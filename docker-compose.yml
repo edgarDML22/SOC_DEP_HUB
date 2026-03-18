@@ -1,0 +1,45 @@
+services:
+  # BACKEND: Laravel 11
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: socdep-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www
+    networks:
+      - socdep-network
+    depends_on:
+      - nosql
+
+  # FRONTEND: Vue.js + Vite
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: socdep-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Evita que los módulos locales sobreescriban a los del contenedor
+    networks:
+      - socdep-network
+
+  # NOSQL: MongoDB para Telemetría (RF-12)
+  nosql:
+    image: mongo:latest
+    container_name: socdep-nosql
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    networks:
+      - socdep-network
+
+networks:
+  socdep-network:
+    driver: bridge
