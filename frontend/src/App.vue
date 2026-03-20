@@ -1,15 +1,11 @@
 <script setup>
-// 1. Importamos el componente que acabas de crear
-// (Asegúrate de que la ruta coincida con la carpeta donde lo guardaste)
 import Nombres from './components/Names.vue'
 </script>
 
 <template>
   <main>
-    <h1>Prueba de Conexión Frontend - Backend</h1>
-    
+    <h1>Ya puedo conectar Front con Back mira Gabo</h1>
     <Nombres />
-    
   </main>
 </template>
 
@@ -17,5 +13,6 @@ import Nombres from './components/Names.vue'
 main {
   padding: 2rem;
   font-family: Arial, sans-serif;
+  text-align: center;
 }
 </style>

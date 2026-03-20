@@ -8,19 +8,19 @@
     </ul>
   </div>
 </template>
-
+  
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios'; // La librería para hacer peticiones HTTP
+import axios from 'axios';
 
-// Declaramos nuestra variable reactiva vacía
+// Variable reactiva para guardar los nombres que lleguen del backend
 const names = ref([]);
 
-// onMounted = Justo cuando la pantalla cargue, ve a buscar los datos a Laravel
+// Al cargar la pantalla, hacemos la petición a Laravel
 onMounted(async () => {
     try {
-        const response = await axios.get('http://localhost:8000/api/names');
-        names.value = response.data.names; // Llenamos la variable con el JSON
+        const response = await axios.get('http://localhost:8000/api/nombres');
+        names.value = response.data.names; 
     } catch (error) {
         console.error("Error conectando con Laravel", error);
     }
@@ -28,7 +28,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ¡AQUÍ ES DONDE DAS ESTILO! */
 .contenedor-socdep {
   background-color: #f4f6f9;
   padding: 20px;
@@ -36,11 +35,9 @@ onMounted(async () => {
   text-align: center;
   font-family: Arial, sans-serif;
 }
-
 h2 {
-  color: #0056b3; /* Azul institucional */
+  color: #0056b3;
 }
-
 li {
   list-style: none;
   font-size: 1.2rem;
