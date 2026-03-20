@@ -11,25 +11,11 @@ class ForgotPasswordController extends Controller
     public function sendResetLinkEmail(Request $request)
     {
 
-        $flag = false;
-        $dominios = ['@gmail.com', '@hotmail.com', '@outlook.com', '@club.com'];
         /* Revisamos si el correo es valido */
-        foreach ($dominios as $dominio) {
-            if (str_contains($request->correo_electronico, $dominio)) {
+        $request->validate([
+            'correo_electronico' => 'required|email'
+        ]);
 
-                $flag = true;
-                break;
-            }
-
-        }
-        if ($flag == false) {
-
-            return response()->json([
-                "success" => false,
-                "message" => "El correo electrónico no es valido"
-            ]);
-
-        }
         /* Hacemos consulta que el correo existe en la base de datos*/
         $correo_table = DB::table('socios_titulares')
             ->where('correo_electronico', $request->correo_electronico)
@@ -62,9 +48,6 @@ class ForgotPasswordController extends Controller
             $message->to($request->correo_electronico)
                 ->subject('Recuperación de contraseña');
         });
-
-
-
 
         return response()->json([
             "success" => true,
