@@ -1,18 +1,25 @@
-<script setup>
-import Nombres from './components/Names.vue'
-</script>
-
 <template>
-  <main>
-    <h1>Ya puedo conectar Front con Back mira Gabo</h1>
-    <Nombres />
-  </main>
+  <h1>HOLAA</h1>
+<p>Esto</p>
+  <RouterView />
 </template>
 
-<style scoped>
-main {
-  padding: 2rem;
+<script setup>
+import { RouterView } from 'vue-router'
+</script>
+
+
+
+<style>
+/* Estilos globales básicos para resetear márgenes */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
   font-family: Arial, sans-serif;
-  text-align: center;
+  background-color: #f4f4f9;
 }
 </style>
