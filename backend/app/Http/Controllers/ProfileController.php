@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
@@ -9,36 +10,80 @@ class ProfileController extends Controller
     public function show(Request $request)
     {
         $usuario = $request->user();
+        $data = null;
 
-        /* Making a query to get the user data*/
-        $user = DB::table('users')
-            ->select('perfil_id', 'rol')
-            ->where('id', $usuario->id)
-            ->first();
+        switch ($usuario->rol) {
+            case 'socio_titular':
+                $perfil = DB::table('socios_titulares')
+                    ->select('nombre_completo', 'num_accion', 'tipo_socio', 'estatus_cuenta')
+                    ->where('id_socio', $usuario->perfil_id)
+                    ->first();
 
-        if (!$user) {
+                if ($perfil) {
+                    $data = [
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'num_accion' => $perfil->num_accion,
+                        'tipo_socio' => $perfil->tipo_socio,
+                        'estatus_cuenta' => $perfil->estatus_cuenta
+                    ];
+                }
+                break;
+
+            case 'miembro_familiar':
+                $perfil = DB::table('miembros_familiares as mf')
+                    ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
+                    ->select(
+                    'mf.nombre_completo',
+                    'st.num_accion',
+                    'st.tipo_socio',
+                    'st.estatus_cuenta'
+                )
+                    ->where('mf.id_miembro', $usuario->perfil_id)
+                    ->first();
+
+                if ($perfil) {
+                    $data = [
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'num_accion' => $perfil->num_accion,
+                        'tipo_socio' => $perfil->tipo_socio,
+                        'estatus_cuenta' => $perfil->estatus_cuenta
+                    ];
+                }
+                break;
+
+            case 'instructor':
+                $perfil = DB::table('instructores')
+                    ->select('nombre_completo', 'estatus')
+                    ->where('id_instructor', $usuario->perfil_id)
+                    ->first();
+
+                if ($perfil) {
+                    $data = [
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'num_accion' => null,
+                        'tipo_socio' => null,
+                        'estatus_cuenta' => $perfil->estatus
+                    ];
+                }
+                break;
+
+            default:
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rol no válido'
+                ], 400);
+        }
+
+        if (!$data) {
             return response()->json([
                 'success' => false,
                 'message' => 'Perfil no encontrado'
             ], 404);
         }
-        $user_final = DB::table('users as u')
-            ->join('socios_titulares as s', 'u.perfil_id', '=', 's.id_socio')
-            ->select('s.nombre_completo', 's.num_accion', 's.tipo_socio', 's.estatus_cuenta')
-            ->first();
-
-
-
 
         return response()->json([
-            "success" => true,
-            "data" => [
-                'nombre_completo' => $user->nombre_completo,
-                'num_accion' => $user->num_accion,
-                'tipo_socio' => $user->tipo_socio,
-                'estatus_cuenta' => $user->estatus_cuenta
-            ]
+            'success' => true,
+            'data' => $data
         ]);
-
     }
 }
