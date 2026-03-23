@@ -51,7 +51,9 @@ class ForgotPasswordController extends Controller
 
         return response()->json([
             "success" => true,
-            "message" => "Enlace de recuperación enviado al correo electrónico."
+            "message" => "Enlace de recuperación enviado al correo electrónico.",
+            /* token de pruebas para resetear contraseña */
+            "token_prueba" => $token
         ]);
 
 
