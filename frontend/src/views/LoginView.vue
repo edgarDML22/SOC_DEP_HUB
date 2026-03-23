@@ -53,7 +53,7 @@ const handleLogin = async () => {
       // Persistencia segura temporal (SDH-1104)
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user_data', JSON.stringify(user));
-
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Redirección Condicional evaluando el Enum de tu BD
       switch (user.rol) {
         case 'gerente':

@@ -27,7 +27,14 @@ const router = createRouter({
       path: '/instructor/scanner',
       name: 'instructor-scanner',
       component: () => import('../views/InstructorHome.vue')
+    },
+    {
+      path: '/instructor/home',
+      name: 'instructor-home',
+      component: () => import('../views/InstructorHome.vue')
     }
+
+
   ]
 })
 
