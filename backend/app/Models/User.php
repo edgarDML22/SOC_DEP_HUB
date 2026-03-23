@@ -2,40 +2,34 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // <-- 1. Importación vital para el Token
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    // 2. Aquí se agrega HasApiTokens para que el AuthController pueda usar createToken()
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Los atributos que se pueden asignar masivamente.
+     * Actualizados para coincidir con nuestra nueva tabla SSO.
      */
     protected $fillable = [
-        'name',
         'email',
         'password',
+        'rol',
+        'perfil_id',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Los atributos que deben castearse a tipos nativos.
      */
     protected function casts(): array
     {
