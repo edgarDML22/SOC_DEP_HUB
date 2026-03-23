@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     container_name: socdep-app
     restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
     ports:
       - "8000:8000"
     volumes:
@@ -35,6 +37,8 @@ services:
     image: mongo:latest
     container_name: socdep-nosql
     restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
     ports:
       - "27017:27017"
     networks:
