@@ -32,9 +32,12 @@ const router = createRouter({
       path: '/instructor/home',
       name: 'instructor-home',
       component: () => import('../views/InstructorHome.vue')
+    },
+    {
+      path: '/socio/perfil',
+      name: 'perfil-socio',
+      component: () => import('../views/ProfileView.vue')
     }
-
-
   ]
 })
 

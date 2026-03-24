@@ -89,6 +89,8 @@ class ProfileController extends Controller
             ], 404);
         }
 
+        $data['fecha_actualizacion_password'] = $usuario->updated_at;
+
         return response()->json([
             'success' => true,
             'data' => $data
