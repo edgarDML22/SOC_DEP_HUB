@@ -8,11 +8,6 @@ class SystemController extends Controller
 {
     public function getSupportLink(Request $request)
     {
-
-
-
-
-
         //Retorno de json 
         return response()->json([
             "success" => true,

@@ -6,6 +6,7 @@ use App\Models\SocioTitular; // <-- 1. Importamos el modelo
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
+use App\Http\Controllers\ProfileController;
 Route::post('/v1/auth/forgot-password',
 
 [ForgotPasswordController::class , 'sendResetLinkEmail']);
@@ -40,3 +41,4 @@ Route::middleware('auth:sanctum')->group(function () {
         );
 
     });
+Route::middleware('auth:sanctum')->get('/v1/profile', [ProfileController::class , 'show']);
