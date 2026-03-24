@@ -42,7 +42,7 @@ router.beforeEach((to, from, next) => {
 
   // 1. Si la ruta a la que quiere ir requiere autenticación
   if (to.meta.requiresAuth) {
-    
+
     // Si no tiene token, patada de regreso al login
     if (!token || !userData) {
       return next('/login');
