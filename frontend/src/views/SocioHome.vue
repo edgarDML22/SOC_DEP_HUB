@@ -116,7 +116,7 @@
     <main class="main-content">
       <div class="container">
 
-        <!-- 🔥 FIX AQUÍ -->
+    
         <h2>Hola, {{ user.name }}</h2>
 
         <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
