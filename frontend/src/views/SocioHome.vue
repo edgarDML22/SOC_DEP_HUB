@@ -66,7 +66,7 @@
 
   <div class="navbar-right">
     
-    <!-- 🔥 TU LÓGICA ORIGINAL -->
+ 
     <div class="notification-wrapper">
       <button class="notification-btn" @click="toggleNotifications">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,13 +181,13 @@ const menuOpen = ref(false)
 const showNotifications = ref(false)
 const notifications = ref(2)
 
-/* 🔥 INICIALES */
+/* INICIALES */
 const userInitials = computed(() =>
   user.value.name ? user.value.name[0].toUpperCase() : 'U'
 )
 const getSupportLink = async () => {
   try {
-    // 👇 ESTA LÍNEA ES CLAVE
+    
     await api.get('/sanctum/csrf-cookie')
 
     const response = await api.get('/api/v1/system/support-link')
@@ -286,8 +286,8 @@ onMounted(() => {
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
-  height: 64px; /* 👈 clave */
-  padding: 0 32px; /* 👈 más aire */
+  height: 64px; 
+  padding: 0 32px; 
   background: #ffffff; 
   border-bottom: 1px solid #e5e7eb; 
 }
@@ -307,7 +307,7 @@ onMounted(() => {
 }
 
 .brand-name {
-  font-weight: 600; /* 👈 menos pesado */
+  font-weight: 600; 
   font-size: 15px;
   color: #111827;
 }
@@ -316,7 +316,7 @@ onMounted(() => {
 .navbar-center { 
   display: flex; 
   align-items: center;
-  gap: 24px; /* 👈 spacing real */
+  gap: 24px; 
 }
 
 .nav-link { 
@@ -324,7 +324,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   text-decoration: none; 
-  font-size: 13.5px; /* 👈 más fino */
+  font-size: 13.5px; 
   color: #6b7280; 
   padding: 6px 10px; 
   border-radius: 6px; 
@@ -344,7 +344,7 @@ onMounted(() => {
 
 /* ICONOS */
 .icon {
-  width: 16px; /* 👈 importante */
+  width: 16px; 
   height: 16px;
 }
 
