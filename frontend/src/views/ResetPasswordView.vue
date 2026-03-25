@@ -1,7 +1,7 @@
 <template>
   <div class="reset-password-container">
     <h2>Restablecer Contraseña</h2>
-    <p class="user-email">Para: {{ userEmail }}</p>
+    <p class="user-email">Para: <strong>{{ userEmail }}</strong></p>
 
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
@@ -40,10 +40,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router'; 
-import axios from 'axios'; 
+import { useRoute, useRouter } from 'vue-router'; 
+import api from '@/services/api'; 
 
 const route = useRoute();
+const router = useRouter(); 
 
 // Referencias reactivas para el estado
 const userEmail = ref('');
@@ -55,7 +56,6 @@ const errorMessage = ref('');
 const token = ref('');
 
 onMounted(() => {
-  
   userEmail.value = route.query.email || '';
   token.value = route.query.token || ''; 
 });
@@ -72,8 +72,7 @@ const handleSubmit = async () => {
   }
 
   try {
-    
-    const response = await axios.post('http://localhost:8000/api/v1/auth/reset-password', {
+    const response = await api.post('/api/v1/auth/reset-password', {
       token: token.value,
       correo_electronico: userEmail.value,
       password: password.value,
@@ -83,9 +82,14 @@ const handleSubmit = async () => {
     if (response.data.success === false) {
       errorMessage.value = response.data.message || 'El token es inválido o ha expirado.';
     } else {
+      successMessage.value = 'Tu contraseña ha sido restablecida con éxito. Redirigiendo al login...';
       
-      successMessage.value = 'Tu contraseña ha sido restablecida con éxito. Ya puedes iniciar sesión.';
-      
+      password.value = '';
+      passwordConfirmation.value = '';
+
+      setTimeout(() => {
+          router.push('/login'); 
+      }, 2500);
     }
 
   } catch (error) {
@@ -97,66 +101,110 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+
 .reset-password-container {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #111827;
   max-width: 400px;
   margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 24px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 8px;
 }
 
 .user-email {
-  font-weight: bold;
-  color: #555;
-  margin-bottom: 20px;
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+.user-email strong {
+  color: #111827;
+  font-weight: 600;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 label {
   display: block;
-  margin-bottom: 5px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 input[type="password"] {
   width: 100%;
-  padding: 8px;
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 500;
   box-sizing: border-box;
+  transition: border-color 0.2s;
 }
+
+input[type="password"]:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  background-color: #ffffff;
+}
+
 
 button {
   width: 100%;
-  padding: 10px;
-  background-color: #007bff; 
+  padding: 10px 16px;
+  background-color: #1d4ed8; 
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #1e40af;
 }
 
 button:disabled {
-  background-color: #a0cfff;
+  background-color: #93c5fd;
   cursor: not-allowed;
 }
 
 .feedback-message {
   margin-top: 15px;
-  padding: 10px;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
 }
 
 .feedback-message.success {
-  color: #155724;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
+  color: #166534;
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
 }
 
 .feedback-message.error {
-  color: #721c24;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  color: #991b1b;
+  background-color: #fee2e2;
+  border: 1px solid #f87171;
 }
 </style>

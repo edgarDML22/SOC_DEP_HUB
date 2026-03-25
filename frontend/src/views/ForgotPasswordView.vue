@@ -29,9 +29,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios'; // <-- ¡AQUÍ ESTÁ LA SOLUCIÓN! Faltaba importar axios
+import api from '@/services/api'; 
 
-// Referencias reactivas para el estado
 const email = ref('');
 const isLoading = ref(false);
 const successMessage = ref('');
@@ -43,21 +42,19 @@ const handleSubmit = async () => {
   errorMessage.value = '';
 
   try {
-    const response = await axios.post('http://localhost:8000/api/v1/auth/forgot-password', { 
+    const response = await api.post('/api/v1/auth/forgot-password', { 
       correo_electronico: email.value 
     });
 
     if (response.data.success === false) {
-      
       errorMessage.value = response.data.message; 
     } else {
-      
       successMessage.value = 'Se ha enviado un enlace de recuperación a tu correo.';
       console.log("¡Token secreto de prueba!:", response.data.token_prueba);
+      email.value = '';
     }
     
   } catch (error) {
-    
     errorMessage.value = error.response?.data?.message || 'Hubo un error de conexión al intentar enviar el enlace.';
   } finally {
     isLoading.value = false;
@@ -66,13 +63,24 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+
 .forgot-password-container {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #111827;
   max-width: 400px;
   margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 24px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 20px;
 }
 
 .form-group {
@@ -81,45 +89,70 @@ const handleSubmit = async () => {
 
 label {
   display: block;
-  margin-bottom: 5px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 input[type="email"] {
   width: 100%;
-  padding: 8px;
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 500;
   box-sizing: border-box;
 }
 
+input[type="email"]:focus {
+  outline: none;
+  border-color: #1d4ed8;
+}
+
+
 button {
   width: 100%;
-  padding: 10px;
-  background-color: #007bff;
+  padding: 10px 16px;
+  background-color: #1d4ed8; 
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #1e40af;
 }
 
 button:disabled {
-  background-color: #a0cfff;
+  background-color: #93c5fd;
   cursor: not-allowed;
 }
 
+
 .feedback-message {
   margin-top: 15px;
-  padding: 10px;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
 .feedback-message.success {
-  color: #155724;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
+  color: #166534;
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
 }
 
 .feedback-message.error {
-  color: #721c24;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  color: #991b1b;
+  background-color: #fee2e2;
+  border: 1px solid #f87171;
 }
 </style>
