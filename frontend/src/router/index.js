@@ -34,7 +34,7 @@ const router = createRouter({
       component: () => import('../views/InstructorHome.vue')
     },
     {
-      path: '/socio/perfil',
+      path: '/socio/profile',
       name: 'perfil-socio',
       component: () => import('../views/ProfileView.vue')
     }
