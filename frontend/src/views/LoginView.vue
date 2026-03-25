@@ -134,7 +134,7 @@ const handleLogin = async () => {
 
 .socdep-side-panel {
     flex: 1;
-    background-color: #0d62ff; 
+    background-color: #2563EB; 
     display: flex;
     flex-direction: column;
     align-items: center; justify-content: center;
@@ -171,7 +171,7 @@ const handleLogin = async () => {
 .socdep-tagline {
     opacity: 0.85;
     font-size: 14px;
-    color: #e0e7ff;
+    color: #ffffff;
     text-align: center;
     margin: 0;
 }
