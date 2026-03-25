@@ -2,17 +2,17 @@
 
 :root {
     /* Color Palette derived from the design */
-    --primary-blue: #2563EB;   
+    --primary-blue: #2563EB;
     --hover-blue: #1D4ED8;
-    --light-blue: #EFF6FF;     
-    --bg-gray: #5A5A5A;        /* Background gray for auth pages to match image border */
+    --light-blue: #EFF6FF;
+    --bg-gray: #5A5A5A;
     --bg-white: #FFFFFF;
-    --text-main: #0F172A;      
-    --text-muted: #64748B;     
-    --border-color: #E2E8F0;   
-    --dark-header: #1e293b;    /* Dark blue header in login */
-    --header-accent: #B0C4DE;  /* Light blue inside header */
-    
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --border-color: #E2E8F0;
+    --dark-header: #1e293b;
+    --header-accent: #B0C4DE;
+
     /* Variables for Box Model */
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -26,7 +26,8 @@
 * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box; /* Aplicación obligatoria del Box Model de la W3C */
+    box-sizing: border-box;
+    /* Aplicación obligatoria del Box Model de la W3C */
 }
 
 body {
@@ -41,10 +42,23 @@ body {
     background-color: var(--bg-gray);
 }
 
-.text-center { text-align: center; }
-.text-muted { color: var(--text-muted); font-size: 0.875rem; }
-.mt-sm { margin-top: 0.5rem; }
-.mt-md { margin-top: 1rem; }
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.mt-sm {
+    margin-top: 0.5rem;
+}
+
+.mt-md {
+    margin-top: 1rem;
+}
+
 .sr-only {
     position: absolute;
     width: 1px;
@@ -52,7 +66,7 @@ body {
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0,0,0,0);
+    clip: rect(0, 0, 0, 0);
     border: 0;
 }
 
@@ -118,190 +132,13 @@ body {
     margin-right: 8px;
 }
 
-/* Auth Page Layout (Registro / Login) */
-.auth-page {
-    /* To simulate the browser/window border shown in the image */
-    padding: 40px; 
-    min-height: 100vh;
-}
-
-.auth-container {
-    background-color: var(--bg-white);
-    width: 100%;
-    max-width: 1100px;
-    margin: 0 auto;
-    border: 2px solid #3b82f6; /* Blue border of the window */
-    border-radius: 4px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    overflow: hidden;
-}
-
-/* Header inside Auth */
-.auth-header {
-    background-color: var(--dark-header);
-    padding: 15px;
-}
-
-.auth-header h1 {
-    margin: 0;
-    font-size: 1.25rem;
-    color: var(--dark-header);
-    background-color: var(--header-accent);
-    padding: 10px 0;
-    width: 100%;
-    border-radius: 8px;
-    text-align: center;
-    letter-spacing: 1px;
-}
-
-/* Main Split Area */
-.auth-card {
-    padding: 60px;
-    box-shadow: none;
-    border: none;
-    align-items: stretch;
-}
-
-/* Left Column - Graphic/Logo */
-.auth-logo-box {
-    flex: 1;
-    background-color: var(--primary-blue);
-    border-radius: var(--radius-lg);
-    color: white;
-    padding: 40px;
-    margin-right: 60px;
-}
-
-.logo-shield {
-    margin-bottom: 20px;
-}
-
-.logo-text {
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-
-/* Right Column - Form */
-.auth-form-box {
-    flex: 1;
-    justify-content: center;
-    max-width: 320px;
-    margin: 0 auto;
-}
-
-.auth-titles {
-    margin-bottom: 24px;
-}
-
-.auth-titles h3 {
-    font-size: 1.1rem;
-    margin-bottom: 4px;
-}
-
-/* Form Groups & Inputs */
-.form-group {
-    gap: 12px;
-}
-
-.input-wrapper input:not([type="radio"]):not([type="checkbox"]) {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.input-wrapper input:not([type="radio"]):not([type="checkbox"]):focus {
-    border-color: var(--primary-blue);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-}
-
-.input-wrapper input::placeholder {
-    color: #94a3b8;
-}
-
-.input-wrapper input[type="radio"],
-.input-wrapper input[type="checkbox"] {
-    width: auto;
-    margin-right: 4px;
-    cursor: pointer;
-}
-
-/* Divider for OAuth */
-.divider {
-    position: relative;
-    margin: 15px 0;
-}
-
-.divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background-color: var(--border-color);
-    z-index: 1;
-}
-
-.divider span {
-    background-color: var(--bg-white);
-    padding: 0 10px;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    z-index: 2;
-}
-
-.terms-text {
-    font-size: 0.65rem;
-    line-height: 1.4;
-}
-
-.terms-text a {
-    color: var(--text-muted);
-    text-decoration: underline;
-}
-
-/* Responsive auth */
-@media (max-width: 800px) {
-    .auth-card {
-        flex-direction: column;
-        padding: 30px;
-    }
-    
-    .auth-logo-box {
-        margin-right: 0;
-        margin-bottom: 40px;
-        padding: 40px 20px;
-    }
-    
-    .auth-page {
-        padding: 10px;
-    }
-}
-
-/* ID Selector Requirement */
-#main-footer {
-    background-color: var(--dark-header);
-    padding: 30px 20px;
-    border-top: 4px solid var(--primary-blue);
-    margin-top: 40px;
-}
-
-#main-footer .text-white { color: #ffffff; }
-#main-footer .text-white-muted { color: #94a3b8; transition: color 0.2s; }
-#main-footer .text-white-muted:hover { color: #ffffff; text-decoration: none; }
-/* [Añadir al final de css/styles.css] */
-
 /* =========================================
    DASHBOARD LAYOUT (HOME)
    ========================================= */
 
 .dashboard-body {
-    background-color: #F3F4F6; /* Un gris un poco más claro del mock */
+    background-color: #F3F4F6;
+    /* Un gris un poco más claro del mock */
 }
 
 /* Top Navigation */
@@ -321,7 +158,8 @@ body {
 
 .nav-links ul {
     list-style: none;
-    gap: 8px; /* Espacio entre items */
+    gap: 8px;
+    /* Espacio entre items */
 }
 
 .nav-links li a {
@@ -357,17 +195,22 @@ body {
     padding: 6px;
     border-radius: 50%;
 }
+
 .btn-icon-only:hover {
     background-color: #F1F5F9;
     color: var(--text-main);
 }
 
-.position-relative { position: relative; }
+.position-relative {
+    position: relative;
+}
+
 .badge {
     position: absolute;
     top: 2px;
     right: 2px;
-    background-color: #EF4444; /* Rojo para notificaciones */
+    background-color: #EF4444;
+    /* Rojo para notificaciones */
     color: white;
     font-size: 0.6rem;
     font-weight: bold;
@@ -422,15 +265,20 @@ body {
     font-size: 0.75rem;
     font-weight: 500;
 }
+
 .status-confirmed {
     background-color: var(--success-bg);
     color: var(--success-text);
 }
+
 .status-open {
-    color: #15803D; /* Verde oscuro texto */
+    color: #15803D;
+    /* Verde oscuro texto */
 }
+
 .status-progress {
-    color: #B45309; /* Naranja oscuro texto */
+    color: #B45309;
+    /* Naranja oscuro texto */
 }
 
 .reservation-details p {
@@ -438,22 +286,48 @@ body {
     color: #334155;
     font-size: 0.85rem;
 }
-.reservation-details p:last-child { margin-bottom: 0; }
+
+.reservation-details p:last-child {
+    margin-bottom: 0;
+}
 
 .icon {
     width: 16px;
     height: 16px;
     color: var(--primary-blue);
 }
-.mr-sm { margin-right: 8px; }
-.ml-sm { margin-left: 8px; }
-.mb-md { margin-bottom: 16px; }
-.mt-lg { margin-top: 32px; }
-.gap-md { gap: 16px; }
 
-.justify-start { justify-content: flex-start; }
-.align-start { align-items: flex-start; }
-.d-inline-flex { display: inline-flex; }
+.mr-sm {
+    margin-right: 8px;
+}
+
+.ml-sm {
+    margin-left: 8px;
+}
+
+.mb-md {
+    margin-bottom: 16px;
+}
+
+.mt-lg {
+    margin-top: 32px;
+}
+
+.gap-md {
+    gap: 16px;
+}
+
+.justify-start {
+    justify-content: flex-start;
+}
+
+.align-start {
+    align-items: flex-start;
+}
+
+.d-inline-flex {
+    display: inline-flex;
+}
 
 .btn-text {
     color: var(--text-main);
@@ -481,7 +355,7 @@ body {
 
 .action-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .action-icon {
@@ -512,25 +386,46 @@ body {
 }
 
 .tournaments-table th {
-    display: none; /* Oculto visualmente, presente para lectores de pantalla */
+    display: none;
+    /* Oculto visualmente, presente para lectores de pantalla */
 }
 
 .tournaments-table td {
     padding: 16px 0;
     border-bottom: 1px solid var(--border-color);
 }
+
 .tournaments-table tr:last-child td {
     border-bottom: none;
     padding-bottom: 0;
 }
 
-.text-right { text-align: right; }
-.m-0 { margin: 0; }
+.text-right {
+    text-align: right;
+}
+
+.m-0 {
+    margin: 0;
+}
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
-    .nav-links { display: none; } /* En móvil se ocultaría idealmente con un menú hamburguesa */
-    .dashboard-container { padding: 20px 15px; }
-    .action-buttons { flex-direction: column; align-items: flex-start; }
-    .action-buttons .btn { width: 100%; justify-content: center; }
+    .nav-links {
+        display: none;
+    }
+
+    /* En móvil se ocultaría idealmente con un menú hamburguesa */
+    .dashboard-container {
+        padding: 20px 15px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }

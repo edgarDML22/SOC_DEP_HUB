@@ -1,282 +1,274 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+// IMPORTANTE: Importamos tu instancia personalizada, no la librería global
+import api from '@/services/api'; 
 
 const router = useRouter();
-
-// Estado reactivo
-const form = reactive({
-    email: '',
-    password: ''
-});
-
+const form = reactive({ email: '', password: '' });
 const errorMessage = ref('');
 const isLoading = ref(false);
 
-// Login real
 const handleLogin = async () => {
     errorMessage.value = '';
-
-    // Validación frontend
     if (!form.email || !form.password) {
         errorMessage.value = 'Por favor, complete todos los campos.';
         return;
     }
-
     isLoading.value = true;
-
+    
     try {
-        const response = await axios.post(
-            'http://localhost:8000/api/v1/auth/login',
-            form
-        );
+        // 1. Opcional: Si usas Sanctum con cookies, primero pide el CSRF-TOKEN
+        // await api.get('/sanctum/csrf-cookie');
 
+        // 2. Usamos 'api' en lugar de 'axios'. 
+        // Solo ponemos la ruta relativa porque el baseURL ya es http://localhost:8000
+        const response = await api.post('/api/v1/auth/login', form);
+        
         if (response.data.success) {
             const { token, user } = response.data.data;
-
-            // Guardar sesión
+            
+            // Guardamos info para persistencia
             localStorage.setItem('auth_token', token);
             localStorage.setItem('user_data', JSON.stringify(user));
-
-            // Redirección por rol
-            switch (user.rol) {
-                case 'gerente':
-                case 'subgerente':
-                    router.push('/admin/dashboard');
-                    break;
-                case 'socio_titular':
-                case 'miembro_familiar':
-                    router.push('/socio/home');
-                    break;
-                case 'instructor':
-                    router.push('/instructor/home');
-                    break;
-                default:
-                    errorMessage.value = 'Rol no reconocido.';
-            }
+            
+            // Redirección por roles
+            const routes = {
+                'gerente': '/admin/dashboard',
+                'subgerente': '/admin/dashboard',
+                'socio_titular': '/socio/home',
+                'miembro_familiar': '/socio/home',
+                'instructor': '/instructor/home'
+            };
+            router.push(routes[user.rol] || '/');
         }
     } catch (error) {
-        if (error.response && error.response.status === 401) {
-            errorMessage.value = 'Credenciales incorrectas';
-        } else {
-            errorMessage.value = 'Error de conexión con el servidor';
-        }
-    } finally {
-        isLoading.value = false;
+        console.error(error);
+        errorMessage.value = error.response?.status === 401 
+            ? 'Credenciales incorrectas' 
+            : 'Error de conexión con el servidor';
+    } finally { 
+        isLoading.value = false; 
     }
 };
 </script>
 
 <template>
-    <div class="auth-page">
+    <div class="socdep-login-wrapper">
+        <div class="socdep-login-card">
+            
+            <div class="socdep-side-panel">
+                <div class="socdep-logo-container">
+                    <img src="@/assets/LogoSocDep.jpg" alt="SOCDEP HUB" class="socdep-logo-img" />
+                    <h1 class="socdep-title">SOC-DEP HUB</h1>
+                    <div class="socdep-line"></div>
+                    <p class="socdep-tagline">Gestión Deportiva y Social</p>
+                </div>
+            </div>
 
-        <main class="auth-container">
-
-            <!-- Header -->
-            <header class="auth-header">
-                <h1>INICIAR SESIÓN</h1>
-            </header>
-
-            <section class="auth-card">
-
-                <!-- Logo -->
-                <article class="auth-logo-box">
-                    <img src="@/assets/LogoSocDepHub.jpeg" alt="Logo" class="logo-img" />
-                </article>
-
-                <!-- Formulario -->
-                <article class="auth-form-box">
-
-                    <div class="auth-titles">
-                        <h3>Bienvenido a Soc-Dep HUB</h3>
+            <div class="socdep-form-panel">
+                <div class="socdep-form-inner">
+                    <div class="socdep-welcome">
+                        <h2>¡Hola de nuevo!</h2>
                         <p>Ingresa tus datos para comenzar</p>
                     </div>
 
-                    <!-- Error -->
-                    <div v-if="errorMessage" class="error-alert">
-                        {{ errorMessage }}
-                    </div>
+                    <div v-if="errorMessage" class="socdep-error">{{ errorMessage }}</div>
 
-                    <!-- FORM -->
-                    <form @submit.prevent="handleLogin">
+                    <form @submit.prevent="handleLogin" class="socdep-form">
+                        <div class="socdep-input-group">
+                            <label>Correo Electrónico</label>
+                            <input v-model="form.email" type="email" placeholder="carlos@socdep.com" required />
+                        </div>
 
-                        <input v-model="form.email" type="email" placeholder="Correo" />
+                        <div class="socdep-input-group">
+                            <label>Contraseña</label>
+                            <input v-model="form.password" type="password" placeholder="••••••••" required />
+                        </div>
 
-                        <input v-model="form.password" type="password" placeholder="Contraseña" />
-
-                        <button type="submit" :disabled="isLoading">
+                        <button type="submit" class="socdep-btn-main" :disabled="isLoading">
                             {{ isLoading ? 'Cargando...' : 'Iniciar Sesión' }}
                         </button>
-
-                        <div class="divider">o</div>
-
-                        <button type="button" class="btn-outline">
-                            Iniciar sesión con Google
-                        </button>
-
-                        <button type="button" class="btn-outline">
-                            Iniciar sesión con Apple
-                        </button>
-
                     </form>
 
-                </article>
+                    <div class="socdep-divider"><span>o continuar con</span></div>
 
-            </section>
-        </main>
-
+                    <div class="socdep-socials">
+                        <button type="button" class="socdep-btn-social">Google</button>
+                        <button type="button" class="socdep-btn-social">Apple</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
-/* RESET IMPORTANTE */
-:global(html, body, #app) {
-    height: 100%;
-    margin: 0;
+.socdep-login-wrapper * {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Layout general FULL SCREEN */
-.auth-page {
-    width: 100%;
-    height: 100vh;
+.socdep-login-wrapper {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #f8f9fa;
     display: flex;
-    flex-direction: column;
-    background: #f3f4f6;
-}
-
-/* Container ocupa todo */
-.auth-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9999;
     padding: 20px;
 }
 
-/* Header */
-.auth-header {
+.socdep-login-card {
+    display: flex;
     width: 100%;
-    background: rgba(15, 23, 42, 1);
-    padding: 10px;
+    max-width: 900px;
+    height: 550px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.socdep-side-panel {
+    flex: 1;
+    background-color: #0d62ff; 
+    display: flex;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    color: white;
+    padding: 40px;
+}
+
+.socdep-logo-container {
     text-align: center;
-    border-radius: 8px;
+}
+
+.socdep-logo-img {
+    width: 160px;
+    height: auto;
     margin-bottom: 20px;
 }
 
-.auth-header h1 {
-    background: #d1d5db;
-    padding: 10px;
-    border-radius: 8px;
+.socdep-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+
+.socdep-line {
+    width: 30px;
+    height: 3px;
+    background: #3b82f6;
+    margin-bottom: 15px;
+    border-radius: 2px;
+}
+
+.socdep-tagline {
+    opacity: 0.85;
+    font-size: 14px;
+    color: #e0e7ff;
+    text-align: center;
     margin: 0;
 }
 
-/* Card ocupa TODO el espacio restante */
-.auth-card {
-    flex: 1;
-    width: 100%;
+.socdep-form-panel {
+    flex: 1.2;
+    padding: 50px;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    gap: 20px;
+    align-items: center; justify-content: center;
 }
 
-/* Logo */
-.auth-logo-box {
-    text-align: center;
+.socdep-form-inner { width: 100%; max-width: 320px; }
+
+.socdep-welcome h2 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px 0; }
+.socdep-welcome p { color: #6b7280; font-size: 14px; margin: 0 0 30px 0; }
+
+.socdep-input-group { margin-bottom: 20px; }
+.socdep-input-group label { 
+    display: block; 
+    font-size: 13px; 
+    font-weight: 500; 
+    color: #6b7280; 
+    margin-bottom: 6px; 
 }
 
-.logo-img {
-    width: 500px;
-    max-width: 300%;
-    border-radius: 12px;
-}
-
-.logo-text {
-    margin-top: 10px;
-    font-size: 1.2rem;
-}
-
-/* Form */
-.auth-form-box {
-    width: 100%;
-    max-width: 350px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.auth-titles {
-    text-align: center;
-}
-
-/* Inputs */
 input {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
+    padding: 10px 14px;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
+    background-color: #f9fafb;
+    color: #111827;
+    font-size: 15px;
+    font-weight: 500;
+    transition: 0.2s;
 }
 
-/* Botón */
-button {
+input:focus {
+    background-color: #ffffff;
+    border-color: #0d62ff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 98, 255, 0.1);
+}
+
+.socdep-btn-main {
     width: 100%;
-    padding: 10px;
-    background: #2563eb;
+    padding: 12px;
+    background-color: #0d62ff;
     color: white;
     border: none;
     border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
     cursor: pointer;
+    margin-top: 10px;
+    transition: 0.2s;
 }
 
-button:disabled {
-    opacity: 0.6;
-}
+.socdep-btn-main:hover { background-color: #004ecc; }
 
-/* Divider */
-.divider {
+.socdep-divider {
     text-align: center;
-    margin: 10px 0;
+    margin: 25px 0;
+    position: relative;
+}
+.socdep-divider::before { content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: #e5e7eb; }
+.socdep-divider span { position: relative; background: white; padding: 0 10px; color: #6b7280; font-size: 13px; }
+
+.socdep-socials { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.socdep-btn-social {
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
 }
 
-/* Botones secundarios */
-.btn-outline {
-    background: white;
-    border: 1px solid #ccc;
-    color: black;
-}
+.socdep-btn-social:hover { background-color: #f9fafb; }
 
-/* Error */
-.error-alert {
-    color: red;
+.socdep-error {
+    background-color: #fef2f2;
+    color: #991b1b;
+    padding: 12px 16px;
+    border: 1px solid #f87171;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
     text-align: center;
 }
 
-/* ========================= */
-/* 💻 DESKTOP RESPONSIVE */
-/* ========================= */
-
-@media (min-width: 768px) {
-    .auth-card {
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-        gap: 60px;
-    }
-
-    .auth-logo-box {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .auth-form-box {
-        flex: 1;
-        max-width: 400px;
-    }
+@media (max-width: 768px) {
+    .socdep-side-panel { display: none; }
+    .socdep-form-panel { padding: 40px 20px; }
+    .socdep-login-card { border: none; box-shadow: none; background: transparent; }
 }
 </style>
