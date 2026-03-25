@@ -1,6 +1,5 @@
 <template>
-  <h1>HOLAA</h1>
-<p>Esto</p>
+  
   <RouterView />
 </template>
 

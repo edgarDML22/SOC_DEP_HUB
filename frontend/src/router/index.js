@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
+import ForgotPasswordView from '../views/ForgotPasswordView.vue'
+import ResetPasswordView from '../views/ResetPasswordView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -31,6 +33,16 @@ const router = createRouter({
       name: 'instructor-home',
       component: () => import('../views/InstructorHome.vue'),
       meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPasswordView.vue')
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/ResetPasswordView.vue')
     }
   ]
 })
@@ -42,7 +54,7 @@ router.beforeEach((to, from, next) => {
 
   // 1. Si la ruta a la que quiere ir requiere autenticación
   if (to.meta.requiresAuth) {
-    
+
     // Si no tiene token, patada de regreso al login
     if (!token || !userData) {
       return next('/login');
