@@ -34,6 +34,15 @@ Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPa
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 
+// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
+Route::get('/nombres', function () {
+    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
+
+    return response()->json([
+        'names' => $nombres
+    ]);
+});
+
 
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)

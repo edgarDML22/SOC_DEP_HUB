@@ -1,8 +1,7 @@
 <template>
   <div class="layout-wrapper">
 
-    <!-- NAVBAR -->
-   <nav class="top-navbar">
+    <nav class="top-navbar">
   <div class="navbar-left">
     <img src="../assets/Logo.jpeg" alt="SOC-DEP HUB" class="brand-logo" />
     <span class="brand-name">SOC-DEP HUB</span>
@@ -83,7 +82,6 @@
       </div>
     </div>
 
-    <!-- AVATAR FUNCIONAL -->
     <div class="avatar-wrapper">
 
   <div class="nav-avatar" @click="toggleMenu">
@@ -100,7 +98,6 @@
 
 </div>
 
-    <!-- DROPDOWN FUNCIONAL -->
     <div v-if="menuOpen" class="dropdown">
       <button>Perfil</button>
       <button>Configuración</button>
@@ -112,7 +109,6 @@
   </div>
 </nav>
 
-    <!-- CONTENIDO -->
     <main class="main-content">
       <div class="container">
 
@@ -121,7 +117,6 @@
 
         <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
 
-        <!-- RESERVA -->
         <div class="card card-blue">
           <div class="card-header">
             <span>Próxima reserva</span>
@@ -138,7 +133,6 @@
           </div>
         </div>
 
-        <!-- ACCIONES -->
         <h3 class="section-title">Acciones rápidas</h3>
 
         <div class="actions">
@@ -148,7 +142,6 @@
           <div class="action-card" @click="handleClick('historial')">Historial</div>
         </div>
 
-        <!-- TORNEOS -->
         <div class="card torneos">
           <div class="torneos-header">
             <h3>Torneos activos</h3>
@@ -170,7 +163,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import api from '../services/api.js' 
 
 const router = useRouter()
@@ -185,15 +177,13 @@ const notifications = ref(2)
 const userInitials = computed(() =>
   user.value.name ? user.value.name[0].toUpperCase() : 'U'
 )
+
 const getSupportLink = async () => {
   try {
-    
-    await api.get('/sanctum/csrf-cookie')
+    // Si usas Sanctum basado en cookies
+    // await api.get('/sanctum/csrf-cookie')
 
     const response = await api.get('/api/v1/system/support-link')
-
-    console.log(response.data)
-
     const url = response.data?.data?.support_url
 
     if (url) {
@@ -201,51 +191,23 @@ const getSupportLink = async () => {
     }
   } catch (error) {
     console.error("Hubo un error al obtener el link:", error)
-
-    if (error.response) {
-      console.error('STATUS:', error.response.status)
-      console.error('DATA:', error.response.data)
-    }
-
     alert("No se pudo cargar el formulario de soporte.")
   }
 }
 
-
 const loadProfile = async () => {
   try {
-    const token = localStorage.getItem('auth_token')
-
-    if (!token) {
-      console.warn('No hay token')
-      return
-    }
-
-    console.log('TOKEN:', token)
-
+    // api.js ya inyecta el token gracias a tu interceptor
+    const response = await api.get('/api/v1/profile')
     
-
-const response = await api.get('/api/v1/profile', {
-  headers: {
-    Authorization: `Bearer ${token}`
-  }
-})
-
-    
-    console.log('RESPONSE:', response.data)
-
     profile.value = response.data.data
     user.value.name = profile.value?.nombre_completo || 'Usuario'
 
   } catch (error) {
-    console.error('ERROR COMPLETO:', error)
-
-    if (error.response) {
-      console.error('STATUS:', error.response.status)
-      console.error('DATA:', error.response.data)
-    }
+    console.error('ERROR AL CARGAR PERFIL:', error)
   }
 }
+
 /* TOGGLES */
 const toggleMenu = () => {
   menuOpen.value = !menuOpen.value
@@ -260,10 +222,18 @@ const handleClick = (action) => {
   console.log('Click en:', action)
 }
 
-/* LOGOUT */
-const logout = () => {
-  localStorage.clear()
-  router.push('/login')
+/* LOGOUT CORREGIDO */
+const logout = async () => {
+  try {
+    // Hacemos la petición al backend para que invalide el token
+    await api.post('/api/v1/auth/logout')
+  } catch (error) {
+    console.error('Error al cerrar sesión en el servidor:', error)
+  } finally {
+    // Limpiamos el navegador independientemente de si el server falló o no
+    localStorage.clear()
+    router.push('/login')
+  }
 }
 
 /* MOUNT */
@@ -271,8 +241,8 @@ onMounted(() => {
   loadProfile()
 })
 </script>
-<style scoped>
 
+<style scoped>
 /* TODO TU CSS EXACTO (AJUSTADO BIEN NAVBAR) */
 .layout-wrapper {
   min-height: 100vh;
@@ -471,5 +441,4 @@ onMounted(() => {
 .btn-link { background: none; border: none; color: #2563eb; cursor: pointer; }
 .torneos-body { min-height: 120px; display: flex; align-items: center; justify-content: center; }
 .empty { color: #6b7280; text-align: center; }
-
 </style>

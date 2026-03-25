@@ -89,6 +89,9 @@ class ProfileController extends Controller
             ], 404);
         }
 
+        // Esta es la línea que traía la versión Incoming y que debemos conservar
+        $data['fecha_actualizacion_password'] = $usuario->updated_at;
+
         return response()->json([
             'success' => true,
             'data' => $data

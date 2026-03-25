@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
-import ForgotPasswordView from '../views/ForgotPasswordView.vue'
-import ResetPasswordView from '../views/ResetPasswordView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,10 +27,22 @@ const router = createRouter({
       meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] }
     },
     {
+      path: '/socio/profile', // <-- NUEVA RUTA DE INCOMING
+      name: 'perfil-socio',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] } // <-- Le agregamos seguridad
+    },
+    {
       path: '/instructor/home',
       name: 'instructor-home',
       component: () => import('../views/InstructorHome.vue'),
       meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/instructor/scanner', // <-- NUEVA RUTA DE INCOMING
+      name: 'instructor-scanner',
+      component: () => import('../views/InstructorHome.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] } // <-- Le agregamos seguridad
     },
     {
       path: '/forgot-password',
@@ -78,6 +88,7 @@ router.beforeEach((to, from, next) => {
     }
   }
 
+  // 2. Si ya está logueado y quiere ir al login, lo redirigimos a su dashboard correspondiente
   if (to.path === '/login' && token && userData) {
     switch (userData.rol) {
       case 'gerente':
