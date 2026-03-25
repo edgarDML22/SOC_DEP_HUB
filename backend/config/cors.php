@@ -19,6 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
+    // Especificamos la URL exacta de Vue en lugar de usar '*'
     'allowed_origins' => ['http://localhost:5173'],
 
     'allowed_origins_patterns' => [],
@@ -29,6 +30,7 @@ return [
 
     'max_age' => 0,
 
+    // Fundamental cambiarlo a true para que Sanctum funcione
     'supports_credentials' => true,
 
 ];
