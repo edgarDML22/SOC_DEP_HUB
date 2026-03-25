@@ -89,6 +89,7 @@ const handleLogin = async () => {
                         <button type="submit" class="socdep-btn-main" :disabled="isLoading">
                             {{ isLoading ? 'Cargando...' : 'Iniciar Sesión' }}
                         </button>
+                        <a class="socdep-input-group" href="../forgot-password">¿Olvidaste tu contraseña?</a>
                     </form>
 
                     <div class="socdep-divider"><span>o continuar con</span></div>
