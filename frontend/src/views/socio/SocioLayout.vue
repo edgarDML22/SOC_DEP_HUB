@@ -1,6 +1,6 @@
 <template>
     <div class="layout-wrapper">
-        <SocioNavbar /> Layout jsjs
+        <SocioNavbar /> 
         <router-view />
     </div>
 </template>

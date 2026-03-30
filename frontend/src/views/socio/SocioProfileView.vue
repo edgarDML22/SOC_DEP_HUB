@@ -1,5 +1,6 @@
 <script setup>
 import { useProfileStore } from '@/stores/profileStore';
+import { IconEdit, IconUser, IconIdCard, IconCreditCard, IconShield, IconLock } from '@/components/icons';
 const profileStore = useProfileStore();
 </script>
 
@@ -13,27 +14,23 @@ const profileStore = useProfileStore();
       </div>
 
       <div v-if="profileStore.isAccountInactive" class="alert-banner">
-        ⚠️ Atención: El estatus de esta cuenta es <strong>{{profileStore.statusAccount}}</strong>.
+        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }}</strong>.
       </div>
 
       <div class="profile-content">
         <div class="profile-card summary-card">
           <div class="summary-left">
-            <div class="avatar-large">{{profileStore.userInitials }}</div>
+            <div class="avatar-large">{{ profileStore.userInitials }}</div>
             <div class="summary-text">
               <h2>{{ profileStore.fullName }}</h2>
               <div class="badges-container">
-                <span class="badge" :class="profileStore.statusBadgeClass">{{ profileStore.statusAccount}}</span>
+                <span class="badge" :class="profileStore.statusBadgeClass">{{ profileStore.statusAccount }}</span>
                 <span class="badge badge-gray" v-if="profileStore.statusAccount">{{ profileStore.typeSocio }}</span>
               </div>
             </div>
           </div>
           <button class="edit-btn">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
-              </path>
-            </svg>
+            <IconEdit />
             Editar
           </button>
         </div>
@@ -45,10 +42,7 @@ const profileStore = useProfileStore();
 
             <div class="form-group-with-icon">
               <div class="icon-box">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
+                <IconUser />
               </div>
               <div class="input-wrapper">
                 <label for="nombre">Nombre Completo</label>
@@ -58,11 +52,7 @@ const profileStore = useProfileStore();
 
             <div class="form-group-with-icon">
               <div class="icon-box">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2">
-                  </path>
-                </svg>
+                <IconIdCard />
               </div>
               <div class="input-wrapper">
                 <label for="num_accion">Número de Acción</label>
@@ -72,10 +62,7 @@ const profileStore = useProfileStore();
 
             <div class="form-group-with-icon">
               <div class="icon-box">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                </svg>
+                <IconCreditCard />
               </div>
               <div class="input-wrapper">
                 <label for="tipo_socio">Rol / Tipo de Socio</label>
@@ -85,11 +72,7 @@ const profileStore = useProfileStore();
 
             <div class="form-group-with-icon">
               <div class="icon-box">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-                  </path>
-                </svg>
+                <IconShield />
               </div>
               <div class="input-wrapper">
                 <label for="estatus">Estatus de Cuenta</label>
@@ -102,11 +85,7 @@ const profileStore = useProfileStore();
 
         <div class="profile-card security-card">
           <div class="card-header-icon">
-            <svg fill="none" stroke="#3b82f6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-              </path>
-            </svg>
+            <IconLock />
             <h3 class="card-title no-margin">Seguridad</h3>
           </div>
 
@@ -119,10 +98,7 @@ const profileStore = useProfileStore();
             <button class="action-btn">Cambiar</button>
           </div>
         </div>
-
       </div>
-
-
     </div>
   </main>
 </template>

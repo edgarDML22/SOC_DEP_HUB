@@ -1,0 +1,13 @@
+// src/components/icons/index.js
+export { default as IconBell } from './IconBell.vue';
+export { default as IconCalendar } from './IconCalendar.vue';
+export { default as IconClock } from './IconClock.vue';
+export { default as IconEdit } from './IconEdit.vue';
+export { default as IconHome } from './IconHome.vue';
+export { default as IconIdCard } from './IconIdCard.vue';
+export { default as IconShield } from './IconShield.vue';
+export { default as IconTrophy } from './IconTrophy.vue';
+export { default as IconUser } from './IconUser.vue';
+export { default as IconCreditCard } from './IconCreditCard.vue';
+export { default as IconLock } from './IconLock.vue';
+export { default as IconGuests } from './IconGuests.vue';
