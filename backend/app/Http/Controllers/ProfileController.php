@@ -23,14 +23,14 @@ class ProfileController extends Controller
         switch ($usuario->rol) {
             case 'socio_titular':
                 $perfil = DB::table('socios_titulares')
-                    ->select('nombre_completo', 'num_accion', 'tipo_socio', 'estatus_cuenta')
+                    ->select('nombre_completo', 'numero_accion', 'tipo_socio', 'estatus_cuenta')
                     ->where('id_socio', $usuario->perfil_id)
                     ->first();
 
                 if ($perfil) {
                     $data = [
                         'nombre_completo' => $perfil->nombre_completo,
-                        'num_accion' => $perfil->num_accion,
+                        'numero_accion' => $perfil->numero_accion,
                         'tipo_socio' => $perfil->tipo_socio,
                         'estatus_cuenta' => $perfil->estatus_cuenta
                     ];
@@ -42,7 +42,7 @@ class ProfileController extends Controller
                     ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
                     ->select(
                     'mf.nombre_completo',
-                    'st.num_accion',
+                    'st.numero_accion',
                     'st.tipo_socio',
                     'st.estatus_cuenta'
                 )
@@ -52,7 +52,7 @@ class ProfileController extends Controller
                 if ($perfil) {
                     $data = [
                         'nombre_completo' => $perfil->nombre_completo,
-                        'num_accion' => $perfil->num_accion,
+                        'numero_accion' => $perfil->numero_accion,
                         'tipo_socio' => $perfil->tipo_socio,
                         'estatus_cuenta' => $perfil->estatus_cuenta
                     ];

@@ -1,59 +1,91 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '../views/LoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Default Route
     {
       path: '/',
-      redirect: '/login'
+      name: 'default',
+      component: () => import('@/views/auth/Login.vue')
     },
+    // Auth Routes
     {
       path: '/login',
       name: 'login',
-      component: LoginView
-    },
-    {
-      path: '/admin/dashboard',
-      name: 'gerencia-dashboard',
-      component: () => import('../views/AdminDashboard.vue'),
-      // Metadatos para proteger la ruta
-      meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] }
-    },
-    {
-      path: '/socio/home',
-      name: 'socio-home',
-      component: () => import('../views/SocioHome.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] }
-    },
-    {
-      path: '/socio/profile', // <-- NUEVA RUTA DE INCOMING
-      name: 'perfil-socio',
-      component: () => import('../views/ProfileView.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] } // <-- Le agregamos seguridad
-    },
-    {
-      path: '/instructor/home',
-      name: 'instructor-home',
-      component: () => import('../views/InstructorHome.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
-    },
-    {
-      path: '/instructor/scanner', // <-- NUEVA RUTA DE INCOMING
-      name: 'instructor-scanner',
-      component: () => import('../views/InstructorHome.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['instructor'] } // <-- Le agregamos seguridad
+      component: () => import('@/views/auth/Login.vue')
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: () => import('../views/ForgotPasswordView.vue')
+      component: () => import('@/views/auth/ForgotPassword.vue')
     },
     {
       path: '/reset-password',
       name: 'reset-password',
-      component: () => import('../views/ResetPasswordView.vue')
-    }
+      component: () => import('@/views/auth/ResetPassword.vue')
+    },
+
+    // Socio Routes
+    {
+      path: '/socio',
+      component: () => import('@/views/socio/SocioLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] },
+      children: [
+        {
+          path: 'home',
+          name: 'socio-home',
+          component: () => import('@/views/socio/SocioHomeView.vue'),
+        },
+        {
+          path: 'reservations',
+          name: 'socio-reservations',
+          component: () => import('@/views/socio/SocioReservations.vue'),
+        },
+        {
+          path: 'tournaments',
+          name: 'socio-tournaments',
+          component: () => import('@/views/socio/SocioTournamentsView.vue'),
+        },
+        {
+          path: 'guests',
+          name: 'socio-guests',
+          component: () => import('@/views/socio/SocioGuestsView.vue'),
+        },
+        {
+          path: 'history',
+          name: 'socio-history',
+          component: () => import('@/views/socio/SocioHistoryView.vue'),
+        },
+        {
+          path: 'profile',
+          name: 'socio-profile',
+          component: () => import('../views/socio/SocioProfileView.vue'),
+        }
+      ]
+    },
+
+    // Instructor Routes
+    {
+      path: '/instructor/home',
+      name: 'instructor-home',
+      component: () => import('../views/instructor/InstructorHomeView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/instructor/scanner',
+      name: 'instructor-scanner',
+      component: () => import('../views/instructor/InstructorHomeView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+
+    // Admin Routes
+    {
+      path: '/admin/dashboard',
+      name: 'gerencia-dashboard',
+      component: () => import('../views/admin/Dashboard.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] }
+    },
   ]
 })
 
@@ -64,15 +96,11 @@ router.beforeEach((to, from, next) => {
 
   // 1. Si la ruta a la que quiere ir requiere autenticación
   if (to.meta.requiresAuth) {
-
-    // Si no tiene token, patada de regreso al login
     if (!token || !userData) {
       return next('/login');
     }
 
-    // Si tiene token pero su rol NO está en la lista de permitidos para esa vista
     if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userData.rol)) {
-      // Lo mandamos a su propia vista por metiche
       switch (userData.rol) {
         case 'gerente':
         case 'subgerente':
