@@ -1,0 +1,38 @@
+nombre_espacio,tipo_espacio,capacidad_maxima,estatus
+Cancha de Tenis 1,reserva_on_demand,4,activo
+Cancha de Tenis 2,reserva_on_demand,4,activo
+Cancha de Tenis 3,reserva_on_demand,4,activo
+Cancha de Tenis 4,reserva_on_demand,4,activo
+Cancha de Tenis 5,reserva_on_demand,4,activo
+Cancha de Tenis 6,reserva_on_demand,4,activo
+Cancha de Tenis 7,reserva_on_demand,4,activo
+Cancha de Tenis 8,reserva_on_demand,4,activo
+Cancha de Tenis 9,reserva_on_demand,4,activo
+Cancha de Tenis 10,reserva_on_demand,4,activo
+Cancha de Tenis 11,reserva_on_demand,4,activo
+Cancha de Tenis 12,reserva_on_demand,4,activo
+Cancha de Tenis 13,reserva_on_demand,4,activo
+Cancha de Tenis 14,reserva_on_demand,4,activo
+Cancha de Padel 1,reserva_on_demand,4,activo
+Cancha de Padel 2,reserva_on_demand,4,activo
+Cancha de Fronton 1,reserva_on_demand,2,activo
+Cancha de Fronton 2,reserva_on_demand,2,activo
+Cancha de Squash 1,reserva_on_demand,2,activo
+Cancha de Squash 2,reserva_on_demand,2,activo
+Cancha de Squash 3,reserva_on_demand,2,activo
+Cancha de Squash 4,reserva_on_demand,2,activo
+Cancha de Squash 5,reserva_on_demand,2,activo
+Alberca Olimpica - Zona Libre,uso_libre,30,activo
+Alberca Olimpica - Zona Clases,clase_programada,20,activo
+Cancha de Futbol 7,reserva_on_demand,22,activo
+Cancha Multiusos Basquet/Volley 1,reserva_on_demand,12,activo
+Cancha Multiusos Basquet/Volley 2,reserva_on_demand,12,activo
+Pista de Caminata y Trote,uso_libre,50,activo
+Gimnasio Cardio - Primer Piso,uso_libre,30,activo
+Gimnasio Fuerza - Segundo Piso,uso_libre,30,activo
+Gimnasio Fuerza - Cuarto Piso,uso_libre,30,activo
+Espacio de Baile - Tercer Piso,clase_programada,25,activo
+Showroom Spinning - Tercer Piso,clase_programada,20,activo
+Actividad de Piso - Sotano,clase_programada,15,activo
+Salon Enrique Ramirez,clase_programada,50,activo
+Ludoteca Infantil,uso_libre,30,activo
