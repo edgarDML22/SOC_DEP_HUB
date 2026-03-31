@@ -23,7 +23,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../api'; // <-- Importamos tu instancia de Axios configurada
+import api from '@/services/api'; 
 
 const router = useRouter();
 
