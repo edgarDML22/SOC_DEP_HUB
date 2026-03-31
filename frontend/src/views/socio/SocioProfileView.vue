@@ -95,7 +95,7 @@ const profileStore = useProfileStore();
               <p>{{ profileStore.passwordUpdateText }}</p>
             </div>
             <!-- Cambiar a un router-link este boton -->
-            <button class="action-btn">Cambiar</button>
+            <button @click="$router.push('/forgot-password')" class="action-btn">Cambiar</button>
           </div>
         </div>
       </div>
