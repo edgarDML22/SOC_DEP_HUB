@@ -1,0 +1,53 @@
+/* src/assets/css/global.css */
+
+/* Badges (Pastillas de estado) */
+.badge {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+.badge-green { background-color: #dcfce7; color: #166534; }
+.badge-gray { background-color: #f3f4f6; color: #374151; }
+.badge-red { background-color: #fee2e2; color: #991b1b; }
+
+/* Tarjetas base (Cards) */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Botones estándar */
+.btn-blue {
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+}
+.btn-gray {
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+}
+.action-btn {
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.action-btn:hover { background-color: #f9fafb; }
