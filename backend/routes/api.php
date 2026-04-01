@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservacionController;
+use App\Http\Controllers\SocioController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,5 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Agregar acompañantes a una reservación
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
+
+    // Búsqueda dinámica de socios/familiares (Autocompletado)
+    Route::get('/v1/socios/search', [SocioController::class, 'search']);
 
 });
