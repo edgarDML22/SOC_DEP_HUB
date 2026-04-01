@@ -8,6 +8,7 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReservacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,5 +67,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/user', function (Request $request) {
         return $request->user();
     });
+
+    // Agregar acompañantes a una reservación
+    Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
 
 });
