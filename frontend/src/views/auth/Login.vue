@@ -40,7 +40,7 @@ const handleLogin = async () => {
                 'miembro_familiar': '/socio/home',
                 'instructor': '/instructor/home'
             };
-            router.push(routes[user.rol.toLowerCase()] || '/');
+            router.push(routes[user.rol] || '/');
         }
     } catch (error) {
         console.error(error);
