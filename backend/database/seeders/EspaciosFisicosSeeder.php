@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\File;
 
 class EspaciosFisicosSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $route = database_path('data/espacios_fisicos.csv');
@@ -24,10 +21,8 @@ class EspaciosFisicosSeeder extends Seeder
         $openFile = fopen($route, 'r');
         $isFirstRow = true;
 
-        // 4. Bucle: fgetcsv lee una línea, la separa por comas y avanza a la siguiente
         while (($row = fgetcsv($openFile, 1000, ',')) !== false) {
             
-            // 5. Brincarnos la fila 1 (los encabezados)
             if ($isFirstRow) {
                 $isFirstRow = false;
                 continue;

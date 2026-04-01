@@ -36,7 +36,7 @@ class InstructoresSeeder extends Seeder
             $instructorExiste = Instructor::where('nombre_completo', $nombre)->exists();
 
             if ($instructorExiste) {
-                $this->command->warn("Saltando a {$nombre}... ya existe en la BD jeje.");
+                $this->command->warn("Saltando a {$nombre}... ya existe en la BD");
                 continue; 
             }
 
@@ -73,6 +73,6 @@ class InstructoresSeeder extends Seeder
         }
 
         fclose($archivoAbierto);
-        $this->command->info("¡Listo! Instructores nuevos insertados, y los 12 viejos ignorados con éxito.");
+        $this->command->info("Instructores nuevos insertados.");
     }
 }
