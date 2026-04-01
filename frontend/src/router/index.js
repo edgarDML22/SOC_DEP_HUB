@@ -61,6 +61,11 @@ const router = createRouter({
           path: 'profile',
           name: 'socio-profile',
           component: () => import('../views/socio/SocioProfileView.vue'),
+        },
+        {
+          path: 'qr',
+          name: 'socio-qr',
+          component: () => import('../views/socio/SocioQrView.vue'),
         }
       ]
     },
