@@ -24,6 +24,7 @@ const handleLogin = async () => {
         // 2. Usamos 'api' en lugar de 'axios'. 
         // Solo ponemos la ruta relativa porque el baseURL ya es http://localhost:8000
         const response = await api.post('/api/v1/auth/login', form);
+        console.log(response.data);
         
         if (response.data.success) {
             const { token, user } = response.data.data;
