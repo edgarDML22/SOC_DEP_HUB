@@ -99,8 +99,8 @@ class ReservacionController extends Controller
             if ($totalAsistentes >= $espacio->capacidad) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La reservación ha alcanzado la capacidad máxima permitida para este espacio (' . $espacio->capacidad . ' personas).'
-                ], 403);
+                    'message' => 'Se ha alcanzado la capacidad máxima del espacio'
+                ], 400);
             }
         }
 
