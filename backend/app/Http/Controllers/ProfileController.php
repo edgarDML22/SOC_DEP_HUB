@@ -24,7 +24,7 @@ class ProfileController extends Controller
             case 'socio_titular':
                 $perfil = DB::table('socios_titulares')
                     ->select('nombre_completo', 'numero_accion', 'tipo_socio', 'estatus_cuenta')
-                    ->where('id_socio', $usuario->perfil_id)
+                    ->where('id_socio', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
@@ -46,7 +46,7 @@ class ProfileController extends Controller
                     'st.tipo_socio',
                     'st.estatus_cuenta'
                 )
-                    ->where('mf.id_miembro', $usuario->perfil_id)
+                    ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
@@ -62,7 +62,7 @@ class ProfileController extends Controller
             case 'instructor':
                 $perfil = DB::table('instructores')
                     ->select('nombre_completo', 'estatus')
-                    ->where('id_instructor', $usuario->perfil_id)
+                    ->where('id_instructor', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
