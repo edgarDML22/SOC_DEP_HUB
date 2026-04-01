@@ -1,0 +1,21 @@
+﻿id,nombre,telefono,correo,estatus,fecha_contratacion,fecha_nacimiento
+1,Ana García,4431000001,ana.garcia@club.com,ACTIVO,19/03/2026,10/05/1990
+2,Roberto Díaz,4431000002,roberto.diaz@club.com,ACTIVO,19/03/2026,22/03/1988
+3,María López,4431000003,maria.lopez@club.com,ACTIVO,19/03/2026,14/07/1992
+4,Fernando Torres,4431000004,fernando.torres@club.com,ACTIVO,19/03/2026,30/11/1985
+5,Dr. Luis Ramírez,4431000005,luis.ramirez@club.com,ACTIVO,19/03/2026,18/01/1979
+6,Carlos Mendoza,4431000006,carlos.mendoza@club.com,ACTIVO,19/03/2026,12/09/1991
+7,Andrea Castillo,4431000007,andrea.castillo@club.com,ACTIVO,19/03/2026,25/02/1993
+8,Jorge Hernández,4431000008,jorge.hernandez@club.com,INACTIVO,19/03/2026,08/06/1987
+9,Sofía Morales,4431000009,sofia.morales@club.com,ACTIVO,19/03/2026,19/04/1995
+10,Diego Vargas,4431000010,diego.vargas@club.com,ACTIVO,19/03/2026,03/12/1989
+11,Paula Reyes,4431000011,paula.reyes@club.com,ACTIVO,19/03/2026,27/08/1994
+12,Miguel Sánchez,4431000012,miguel.sanchez@club.com,ACTIVO,19/03/2026,15/10/1986
+13,Laura Gámez,4431000013,laura.gomez@club.com,ACTIVO,19/03/2026,05/11/1990
+14,Hugo Silva,4431000014,hugo.silva@club.com,ACTIVO,19/03/2026,12/04/1983
+15,Elena Ruíz,4431000015,elena.ruiz@club.com,ACTIVO,19/03/2026,30/09/1996
+16,Javier Castro,4431000016,javier.castro@club.com,ACTIVO,19/03/2026,11/12/1981
+17,Carmen Ortiz,4431000017,carmen.ortiz@club.com,INACTIVO,19/03/2026,28/02/1989
+18,Ricardo Nuñez,4431000018,ricardo.nunez@club.com,ACTIVO,19/03/2026,17/05/1992
+19,Silvia Navarro,4431000019,silvia.navarro@club.com,ACTIVO,19/03/2026,24/07/1986
+20,Omar Peña,4431000020,omar.pena@club.com,ACTIVO,19/03/2026,09/10/1994
