@@ -1,6 +1,34 @@
 <script setup>
+import { ref } from 'vue'
 import { useProfileStore } from '@/stores/profileStore'
+import api from '@/services/api'
+import QrCredentialModal from '@/components/socio/QrCredentialModal.vue'
+
 const profileStore = useProfileStore();
+
+const qrPayload = ref('');
+const isQrModalOpen = ref(false);
+const errorQr = ref('');
+
+const handleClick = async (action) => {
+  if (action === 'qr') {
+    if (profileStore.isAccountInactive) return;
+    
+    try {
+      errorQr.value = '';
+      const response = await api.get('/api/v1/profile/qr-data');
+      if (response.data.success) {
+        qrPayload.value = response.data.data.qr_payload;
+        isQrModalOpen.value = true;
+      }
+    } catch (error) {
+      console.error('Error al generar QR:', error);
+      errorQr.value = 'No se pudo generar el código QR en este momento.';
+    }
+  } else {
+    console.log('Action:', action);
+  }
+};
 </script>
 
 <template>
@@ -8,6 +36,13 @@ const profileStore = useProfileStore();
     <div class="container">
       <h2>Hola, {{ profileStore.fullName }}</h2>
       <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
+
+      <div v-if="profileStore.isAccountInactive" class="alert warning mt-4">
+        Tu membresía está inactiva. No puedes generar accesos.
+      </div>
+      <div v-if="errorQr" class="alert warning mt-4">
+        {{ errorQr }}
+      </div>
 
       <div class="card card-blue">
         <div class="card-header">
@@ -21,7 +56,13 @@ const profileStore = useProfileStore();
 
         <div class="card-actions">
           <button class="btn-gray" @click="handleClick('detalle')">Ver detalle</button>
-          <button class="btn-blue" @click="handleClick('qr')">Presentar Pase QR</button>
+          <button 
+            v-if="!profileStore.isAccountInactive"
+            class="btn-blue" 
+            @click="handleClick('qr')"
+          >
+            Presentar Pase QR
+          </button>
         </div>
       </div>
 
@@ -47,6 +88,13 @@ const profileStore = useProfileStore();
       </div>
 
     </div>
+
+    <!-- Modal para mostrar el QR -->
+    <QrCredentialModal 
+      v-if="isQrModalOpen" 
+      :payloadText="qrPayload"
+      @close="isQrModalOpen = false" 
+    />
   </main>
 </template>
 
@@ -61,6 +109,21 @@ const profileStore = useProfileStore();
 .subtitle {
   color: #6b7280;
   margin-bottom: 16px;
+}
+
+.alert.warning {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #f87171;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
 }
 
 .card {

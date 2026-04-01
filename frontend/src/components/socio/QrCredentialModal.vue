@@ -7,12 +7,7 @@
       </header>
 
       <div class="modal-body">
-        <qrcode-vue 
-          :value="payloadText" 
-          :size="220" 
-          level="H" 
-          class="responsive-qr"
-        />
+        <qrcode-vue :value="payloadText" :size="220" level="H" class="responsive-qr" />
         <p class="qr-instruction">Muestra este código en la entrada del club.</p>
       </div>
     </div>
@@ -50,7 +45,7 @@ defineEmits(['close']);
   background: white;
   padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   width: 90%;
   max-width: 350px;
   text-align: center;
