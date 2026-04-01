@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useProfileStore } from '@/stores/profileStore'
-import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell} from '@/components/icons';
+import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr} from '@/components/icons';
 
 const profileStore = useProfileStore();
 
@@ -51,11 +51,16 @@ const toggleNotifications = () => {
                 Historial
             </router-link>
 
+           <router-link to="/socio/qr" v-if="!profileStore.isAccountInactive" class="nav-link qr-link">
+                <IconQr class="icon"/>
+                QR
+            </router-link>
 
             <router-link to="/socio/profile" class="nav-link">
                 <IconUser class="icon"/>
                 Perfil
             </router-link>
+
         </div>
 
 
@@ -322,5 +327,64 @@ const toggleNotifications = () => {
 .dropdown .logout {
     color: #ef4444;
     font-weight: bold;
+}
+
+@media (min-width: 1050px) {
+    .qr-link {
+        display: none !important;
+    }
+}
+
+/* DISEÑO PARA MÓVILES (Menos de 1050px)*/
+@media (max-width: 1049px) {
+    .top-navbar {
+        padding: 10px 1rem;
+       
+    }
+    
+    .navbar-left {
+        order: 1;
+    }
+
+    .navbar-right {
+        order: 2;
+        margin-left: auto; 
+    }
+
+    .navbar-center {
+        order: 3;
+        width: 100%;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #e5e7eb; 
+        justify-content: flex-start;
+        overflow-x: auto; /* Activa el scroll horizontal */
+        
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+        padding-bottom: 8px; 
+    }
+   
+    .navbar-center::-webkit-scrollbar {
+        height: 6px; /* Grosor de la barra horizontal */
+    }
+
+    .navbar-center::-webkit-scrollbar-track {
+        background: transparent; 
+    }
+
+    .navbar-center::-webkit-scrollbar-thumb {
+        background-color: #e2e8f0; 
+        border-radius: 10px; 
+    }
+
+    .navbar-center::-webkit-scrollbar-thumb:hover {
+        background-color: #cbd5e1; 
+    }
+
+    .nav-link {
+        white-space: nowrap; 
+        flex-shrink: 0; 
+    }
 }
 </style>

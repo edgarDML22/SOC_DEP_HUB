@@ -11,3 +11,4 @@ export { default as IconUser } from './IconUser.vue';
 export { default as IconCreditCard } from './IconCreditCard.vue';
 export { default as IconLock } from './IconLock.vue';
 export { default as IconGuests } from './IconGuests.vue';
+export { default as IconQr } from './IconQr.vue';
