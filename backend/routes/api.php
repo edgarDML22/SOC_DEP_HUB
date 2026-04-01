@@ -8,6 +8,7 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QrController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Perfil del usuario
     Route::get('/v1/profile', [ProfileController::class, 'show']);
+
+    // Generar payload encriptado para QR
+    Route::get('/v1/profile/qr-data', [QrController::class, 'generateQrPayload']);
 
     // Ruta de prueba para verificar al usuario autenticado (Opcional)
     Route::get('/v1/user', function (Request $request) {
