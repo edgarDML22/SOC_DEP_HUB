@@ -41,7 +41,7 @@ export const useProfileStore = defineStore("profile", () => {
   const isAccountInactive = computed(() => {
     if (!profileData.value) return false;
     const status = statusAccount.value?.toUpperCase();
-    return status === "INACTIVO" || status === "SUSPENDIDO" || status === "MOROSO";
+    return status === "INACTIVO" || status === "SUSPENDIDO";
   });
 
   // Da color al badge dinámicamente
