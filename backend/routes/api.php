@@ -38,9 +38,7 @@ Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPa
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
-Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
 Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
