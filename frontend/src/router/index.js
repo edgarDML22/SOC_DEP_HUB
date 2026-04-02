@@ -75,7 +75,7 @@ const router = createRouter({
     {
       path: '/instructor/scanner',
       name: 'instructor-scanner',
-      component: () => import('../views/instructor/InstructorHomeView.vue'),
+      component: () => import('../views/instructor/ScannerView.vue'),
       meta: { requiresAuth: true, allowedRoles: ['instructor'] }
     },
 
