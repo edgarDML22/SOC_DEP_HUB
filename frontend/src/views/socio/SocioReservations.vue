@@ -1,6 +1,4 @@
 <script setup>
-import { ref } from 'vue';
-
 import { useProfileStore } from '@/stores/profileStore';
 import { IconUser, IconCalendar } from '@/components/icons';
 import { onMounted } from "vue"
@@ -12,9 +10,6 @@ const { profileData } = storeToRefs(profileStore)
 onMounted(() => {
   profileStore.fetchProfile()
 })
-console.log("ANTES DEL FETCH:", profileData.value)
-const fechaHora = ref('');
-const espacioSeleccionado = ref('');
 
 const getUserInfo = () => {
   const data = profileData.value
