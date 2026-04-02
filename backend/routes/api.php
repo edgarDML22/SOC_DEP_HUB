@@ -40,9 +40,6 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
-Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
-
-Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 Route::get('/nombres', function () {
     $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
