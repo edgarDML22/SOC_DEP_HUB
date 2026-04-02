@@ -1,30 +1,102 @@
 <script setup>
+import { ref } from 'vue';
+
 import { useProfileStore } from '@/stores/profileStore';
 import { IconUser, IconCalendar } from '@/components/icons';
-const profileStore = useProfileStore();
+import { onMounted } from "vue"
+import { storeToRefs } from 'pinia'
 
+const profileStore = useProfileStore()
+const { profileData } = storeToRefs(profileStore)
+
+onMounted(() => {
+  profileStore.fetchProfile()
+})
+console.log("ANTES DEL FETCH:", profileData.value)
+const fechaHora = ref('');
+const espacioSeleccionado = ref('');
+
+const getUserInfo = () => {
+  const data = profileData.value
+
+  if (!data) {
+    console.warn("No hay datos del perfil")
+    return {}
+  }
+
+  return {
+    numero_accion: String(data.numero_accion),
+  /* Los espacios de abajo ya son funcionales, solo hay que cambiar los valores de prueba por los que se obtengan de los inputs */
+  /*   id_espacio: 2,
+    fecha_reserva: '2026-04-02',
+    hora_inicio: '10:00',
+    hora_fin: '11:00', */
+  }
+}
 
 const crearReservacion = async () => {
   try {
-    const res = await fetch('http://localhost:8000/api/reservations', {
+    
+    console.log("Payload:", getUserInfo())
+    const res = await fetch('http://localhost:8000/api/v1/reservations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        fechaHora: fechaHora.value,
-        espacio_id: espacioSeleccionado.value
-      })
-    })
+      body: JSON.stringify(
+          getUserInfo()
+      )
+    });
 
-    const data = await res.json()
-    console.log(data)
+    const data = await res.json();
+    console.log("Respuesta de crear:", data);
 
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
-}
+};
 
+const confirmarReservacion = async () => {
+  
+  try {
+    const res = await fetch('http://localhost:8000/api/v1/reservations/confirm', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(
+       
+       getUserInfo()
+      )
+    });
+
+    const data = await res.json();
+    console.log("Respuesta de confirmar:", data);
+
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const cancelarReservacion = async () => {
+  try {
+    const res = await fetch('http://localhost:8000/api/v1/reservations/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(
+       getUserInfo()
+      )
+    });
+
+    const data = await res.json();
+    console.log("Respuesta de cancelar:", data);
+
+  } catch (error) {
+    console.error(error);
+  }
+};
 </script>
 
 <template>
@@ -80,7 +152,11 @@ const crearReservacion = async () => {
       </div>
       
     </div>
-    <div class="btn-container"><button class="btn-primary">Reservar</button></div>
+    <div class="btn-container">
+      <button @click="crearReservacion" class="btn-primary">Reservar</button>
+      <button @click="confirmarReservacion" class="btn-primary">Confirmar</button>
+      <button @click="cancelarReservacion" class="btn-primary">Cancelar</button>
+    </div>
     
   </main>
 </template>

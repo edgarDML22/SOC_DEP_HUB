@@ -12,6 +12,15 @@ class ReservacionController extends Controller
 {
     public function store(Request $request)
     {
+        $id_socio = DB::table('socios_titulares')
+            ->where('numero_accion', $request->numero_accion)
+            ->value('id_socio');
+        if ($id_socio == null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El numero de accion no existe'
+            ]);
+        }
         /* Agregar reservaciones */
         /* SDH-69   */
         try {
@@ -20,7 +29,7 @@ class ReservacionController extends Controller
                 'hora_inicio' => 'required|date_format:H:i',
                 'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
                 'id_espacio' => 'required|integer|exists:espacios_fisicos,id_espacio',
-                'id_socio_titular' => 'required|integer|exists:socios_titulares,id_socio_titular',
+
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -28,6 +37,7 @@ class ReservacionController extends Controller
                 'errors' => $e->errors()
             ], 422);
         }
+
         /* Validar espacio inactivo */
         $activo = DB::table('espacios_fisicos')
             ->where('id_espacio', $request->id_espacio)
@@ -61,7 +71,8 @@ class ReservacionController extends Controller
                 $query->where('hora_inicio', '<', $request->hora_fin)
                     ->where('hora_fin', '>', $request->hora_inicio);
             })
-            ->where('id_socio_titular', $request->id_socio_titular)
+            ->where('id_socio_titular', $id_socio)
+            ->where('estatus_operativo', '!=', 'CANCELADA')
             ->exists();
         if ($empalme) {
             return response()->json([
@@ -74,6 +85,10 @@ class ReservacionController extends Controller
 
         return DB::transaction(function () use ($request) {
             $fecha_expiracion = Carbon::now()->addMinutes(10);
+            $id_socio = DB::table('socios_titulares')
+                ->where('numero_accion', $request->numero_accion)
+                ->value('id_socio');
+
             $conflicto = DB::table('reservaciones_on_demand')
                 ->where('fecha_reserva', $request->fecha_reserva)
                 ->where('estatus_operativo', '!=', 'CANCELADA')
@@ -92,7 +107,7 @@ class ReservacionController extends Controller
             } else {
                 /*Agrega los datos a reservaciones on demand*/
                 DB::table('reservaciones_on_demand')->insert([
-                    'id_socio_titular' => $request->id_socio_titular,
+                    'id_socio_titular' => $id_socio,
                     'id_espacio' => $request->id_espacio,
                     'fecha_reserva' => $request->fecha_reserva,
                     'hora_inicio' => $request->hora_inicio,
