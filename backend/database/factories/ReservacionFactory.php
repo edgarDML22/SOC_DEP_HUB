@@ -1,9 +1,11 @@
 <?php
-
+namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Reservacion;
 
-class ReservaFactory extends Factory
+class ReservacionFactory extends Factory
 {
+    protected $model = Reservacion::class;
     public function definition(): array
     {
         $horaInicioInt = fake()->numberBetween(8, 20);
@@ -13,10 +15,9 @@ class ReservaFactory extends Factory
         $horaFin    = sprintf('%02d:00:00', $horaInicioInt + 2);
 
         return [
-            // 'room_id' y 'reservation_date' vienen inyectados desde el Seeder
-            'start_time' => $horaInicio,
-            'end_time'   => $horaFin,
-            'status'     => 'ACTIVA',
+            'hora_inicio' => $horaInicio,
+            'hora_fin'   => $horaFin,
+            'estatus_operativo'     => 'ACTIVA',
         ];
     }
 }

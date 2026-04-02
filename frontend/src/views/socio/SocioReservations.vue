@@ -99,7 +99,7 @@ const cancelarReservacion = async () => {
     <div class="Date-container">
 
       <div class="page-header">
-        <h1 class="page-title">Reservar espacio</h1>
+        <h1 class="page-title">Reservar Espacio</h1>
        
       </div>
 
@@ -131,7 +131,8 @@ const cancelarReservacion = async () => {
               <div class="icon-box">
                 <IconUser />
               </div>
-              <div class="input-wrapper">
+              <!-- Agregar espacios disponibles -->
+              <div class="input-wrapper"> 
                 <select>
                   <option value="">Futbol</option>
                   <option value="">Tenis</option>
@@ -287,6 +288,7 @@ s
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  padding: 10px;
 }
 
 .btn-primary {

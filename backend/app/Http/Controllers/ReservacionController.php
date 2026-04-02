@@ -6,14 +6,16 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
+use App\Models\SocioTitular;
+use App\Models\EspacioFisico;
+use App\Models\Reservacion;
 
 
 class ReservacionController extends Controller
 {
     public function store(Request $request)
     {
-        $id_socio = DB::table('socios_titulares')
-            ->where('numero_accion', $request->numero_accion)
+        $id_socio = SocioTitular::where('numero_accion', $request->numero_accion)
             ->value('id_socio');
         if ($id_socio == null) {
             return response()->json([
@@ -21,8 +23,6 @@ class ReservacionController extends Controller
                 'message' => 'El numero de accion no existe'
             ]);
         }
-        /* Agregar reservaciones */
-        /* SDH-69   */
         try {
             $request->validate([
                 'fecha_reserva' => 'required|date|after_or_equal:today',
@@ -39,8 +39,7 @@ class ReservacionController extends Controller
         }
 
         /* Validar espacio inactivo */
-        $activo = DB::table('espacios_fisicos')
-            ->where('id_espacio', $request->id_espacio)
+        $activo = EspacioFisico::where('id_espacio', $request->id_espacio)
             ->where('estatus', 'ACTIVO')
             ->exists();
 
@@ -65,8 +64,7 @@ class ReservacionController extends Controller
             ]);
         }
         /* SDH-92 */
-        $empalme = DB::table('reservaciones_on_demand')
-            ->where('fecha_reserva', $request->fecha_reserva)
+        $empalme = Reservacion::where('fecha_reserva', $request->fecha_reserva)
             ->where(function ($query) use ($request) {
                 $query->where('hora_inicio', '<', $request->hora_fin)
                     ->where('hora_fin', '>', $request->hora_inicio);
@@ -77,20 +75,18 @@ class ReservacionController extends Controller
         if ($empalme) {
             return response()->json([
                 'success' => false,
-                'message' => "Ya tienes una actividad reservada en este horario"
+                'message' => "Ya existe una actividad reservada en este horario"
             ]);
         }
 
         /* SDH-74   */
 
         return DB::transaction(function () use ($request) {
-            $fecha_expiracion = Carbon::now()->addMinutes(10);
-            $id_socio = DB::table('socios_titulares')
-                ->where('numero_accion', $request->numero_accion)
+            $fecha_expiracion = Carbon::now()->addMinutes(15);
+            $id_socio = SocioTitular::where('numero_accion', $request->numero_accion)
                 ->value('id_socio');
 
-            $conflicto = DB::table('reservaciones_on_demand')
-                ->where('fecha_reserva', $request->fecha_reserva)
+            $conflicto = Reservacion::where('fecha_reserva', $request->fecha_reserva)
                 ->where('estatus_operativo', '!=', 'CANCELADA')
                 ->where(function ($query) use ($request) {
                     $query->where('hora_inicio', '<', $request->hora_fin)
@@ -106,7 +102,7 @@ class ReservacionController extends Controller
                 ]);
             } else {
                 /*Agrega los datos a reservaciones on demand*/
-                DB::table('reservaciones_on_demand')->insert([
+                Reservacion::create([
                     'id_socio_titular' => $id_socio,
                     'id_espacio' => $request->id_espacio,
                     'fecha_reserva' => $request->fecha_reserva,
