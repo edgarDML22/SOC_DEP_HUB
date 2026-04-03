@@ -3,6 +3,7 @@ import { useProfileStore } from '@/stores/profileStore';
 import { IconUser, IconCalendar } from '@/components/icons';
 import { onMounted } from "vue"
 import { storeToRefs } from 'pinia'
+import api from '@/services/api';
 
 const profileStore = useProfileStore()
 const { profileData } = storeToRefs(profileStore)
@@ -21,30 +22,22 @@ const getUserInfo = () => {
 
   return {
     numero_accion: String(data.numero_accion),
-  /* Los espacios de abajo ya son funcionales, solo hay que cambiar los valores de prueba por los que se obtengan de los inputs */
-  /*   id_espacio: 2,
-    fecha_reserva: '2026-04-02',
-    hora_inicio: '10:00',
-    hora_fin: '11:00', */
+    /* Los espacios de abajo ya son funcionales, solo hay que cambiar los valores de prueba por los que se obtengan de los inputs */
+    /*   id_espacio: 2,
+      fecha_reserva: '2026-04-02',
+      hora_inicio: '10:00',
+      hora_fin: '11:00', */
   }
 }
 
 const crearReservacion = async () => {
   try {
-    
-    console.log("Payload:", getUserInfo())
-    const res = await fetch('http://localhost:8000/api/v1/reservations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(
-          getUserInfo()
-      )
-    });
+    const payload = getUserInfo();
+    console.log("Payload:", payload);
 
-    const data = await res.json();
-    console.log("Respuesta de crear:", data);
+    const res = await api.post('/reservations', payload);
+
+    console.log("Respuesta de crear:", res.data);
 
   } catch (error) {
     console.error(error);
@@ -52,55 +45,51 @@ const crearReservacion = async () => {
 };
 
 const confirmarReservacion = async () => {
-  
   try {
-    const res = await fetch('http://localhost:8000/api/v1/reservations/confirm', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(
-       
-       getUserInfo()
-      )
-    });
+    const payload = getUserInfo();
 
-    const data = await res.json();
-    console.log("Respuesta de confirmar:", data);
+    const res = await api.post('/reservations/confirm', payload);
+
+    console.log("Respuesta de confirmar:", res.data);
 
   } catch (error) {
-    console.error(error);
+    console.error("Error al confirmar:", error.response?.data || error.message);
   }
 };
 
 const cancelarReservacion = async () => {
   try {
-    const res = await fetch('http://localhost:8000/api/v1/reservations/cancel', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(
-       getUserInfo()
-      )
-    });
+    const payload = getUserInfo();
 
-    const data = await res.json();
-    console.log("Respuesta de cancelar:", data);
+    const res = await api.post('/reservations/cancel', payload);
+
+    console.log("Respuesta de cancelar:", res.data);
 
   } catch (error) {
-    console.error(error);
+    console.error("Error al cancelar:", error.response?.data || error.message);
   }
 };
 </script>
 
 <template>
   <main class="main-content">
+    <div class="choice-selector"> 
+      <router-link to="reservations/on-demand">
+        Reservaciones On Demand
+      </router-link>
+      <hr>
+
+      <router-link to="active-sessions">
+        Actividades Programadas
+      </router-link>
+
+    </div>
+
     <div class="Date-container">
 
       <div class="page-header">
-        <h1 class="page-title">Reservar espacio</h1>
-       
+        <h1 class="page-title">Reservar Espacio</h1>
+
       </div>
 
       <div class="Date-content">
@@ -119,7 +108,7 @@ const cancelarReservacion = async () => {
                 <input id="fecha" type="date" />
               </div>
             </div>
-            
+
           </div>
         </div>
         <div class="profile-card details-card">
@@ -131,6 +120,7 @@ const cancelarReservacion = async () => {
               <div class="icon-box">
                 <IconUser />
               </div>
+              <!-- Agregar espacios disponibles -->
               <div class="input-wrapper">
                 <select>
                   <option value="">Futbol</option>
@@ -139,20 +129,20 @@ const cancelarReservacion = async () => {
                 </select>
               </div>
             </div>
-            
+
           </div>
-          
+
         </div>
 
       </div>
-      
+
     </div>
     <div class="btn-container">
       <button @click="crearReservacion" class="btn-primary">Reservar</button>
       <button @click="confirmarReservacion" class="btn-primary">Confirmar</button>
       <button @click="cancelarReservacion" class="btn-primary">Cancelar</button>
     </div>
-    
+
   </main>
 </template>
 
@@ -277,8 +267,8 @@ const cancelarReservacion = async () => {
 .edit-btn:hover {
   background-color: #f9fafb;
 }
-s
-.edit-btn svg {
+
+s .edit-btn svg {
   width: 16px;
   height: 16px;
 }
@@ -287,6 +277,7 @@ s
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  padding: 10px;
 }
 
 .btn-primary {
@@ -306,6 +297,7 @@ s
 .btn-primary:hover {
   background-color: #1e40af;
 }
+
 /* TARJETA 2: DETALLES CON ICONOS */
 .card-title {
   font-size: 16px;
@@ -374,6 +366,4 @@ s
   padding: 40px;
   color: #6b7280;
 }
-
-
 </style>
