@@ -2,6 +2,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { ref } from 'vue'
 import axios from 'axios'
+import api from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,12 +25,12 @@ const banner = ref({
 // confirmar torneo
 const confirmarTorneo = async () => {
   try {
-    await axios.post('http://localhost:8000/api/v1/torneos/update-status', {
-      nombre_torneo: torneo.value.nombre_torneo,
-      fecha_inicio: torneo.value.fecha_inicio,
-      nombre_categoria: torneo.value.categoria,
-      nombre_disciplina: torneo.value.disciplina
-    })
+    await api.post('torneos/update-status', {
+  nombre_torneo: torneo.value.nombre_torneo,
+  fecha_inicio: torneo.value.fecha_inicio,
+  nombre_categoria: torneo.value.categoria,
+  nombre_disciplina: torneo.value.disciplina
+})
 
     //  éxito → regresar
     router.push('/admin/tournaments')

@@ -98,7 +98,7 @@ const router = createRouter({
     // Admin Routes
     {
       path: '/admin',
-      component: () => import('@/views/admin/GerenteLayout.vue'),
+      component: () => import('@/views/layout/GerenteLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] },
       children: [
         {
@@ -136,6 +136,10 @@ const router = createRouter({
         {
           path: '/tournaments/details',
           component: () => import('@/views/admin/DetailsTournament.vue'),
+        },
+        {
+          path: 'categories/create',
+          component: () => import('@/views/admin/CreateCategories.vue'),
         }
 
 

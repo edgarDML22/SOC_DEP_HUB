@@ -6,15 +6,10 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const form = ref({
-  nombre_torneo: '',
   nombre_categoria: '',
-  nombre_disciplina: '',
-  fecha_inicio: '',
-  fecha_fin: '',
-  tipo_acceso: '',
-  formato_competencia: '',
-  cupo_maximo: 1,
-  descripcion: ''
+  edad_maxima: 1,
+  edad_minima: 1,
+  genero_requerido: '',
 })
 
 const loading = ref(false)
@@ -42,13 +37,13 @@ const submit = async () => {
   loading.value = true
 
   try {
-    const res = await api.post('torneos', form.value)
+    const res = await api.post('categories', form.value)
 
     if (res.data.success) {
-      showBanner('Torneo creado correctamente', 'success')
+      showBanner('Categoria creada correctamente', 'success')
 
       setTimeout(() => {
-        router.push('/admin/tournaments')
+        router.push('/admin/categories/create')  
       }, 1500)
     }
 
@@ -58,9 +53,9 @@ const submit = async () => {
     if (err.response?.status === 422) {
       showBanner('Error de validación: revisa los campos', 'error')
     } else if (err.response?.status === 409) {
-      showBanner('Ya existe un torneo con ese nombre en esa fecha', 'error')
+      showBanner('Ya existe una categoria con ese nombre en esa fecha', 'error')
     } else {
-      showBanner('Error al crear torneo', 'error')
+      showBanner('Error al crear categoria', 'error')
     }
 
   } finally {
@@ -71,7 +66,7 @@ const submit = async () => {
 
 <template>
   <div class="container">
-    <h2>Crear Torneo</h2>
+    <h2>Crear Categoria</h2>
 
     <!-- BANNER -->
     <div 
@@ -83,72 +78,41 @@ const submit = async () => {
 
     <form @submit.prevent="submit" class="form">
 
-      <!-- Nombre -->
+      <!-- Nombre del grupo-->
       <div class="group">
-        <label>Nombre del torneo</label>
-        <input v-model="form.nombre_torneo" required />
+        <label>Nombre de la categoria</label>
+        <input v-model="form.nombre_categoria" required />
       </div>
 
-      <!-- Categoria -->
+      <!-- Edad maxima  -->
       <div class="group">
-        <label>Categoría</label>
-        <input v-model="form.nombre_categoria" placeholder="Ej: Juvenil" required />
+        <label>Edad máxima</label>
+        <input type="number" min="1" v-model="form.edad_maxima" required />
       </div>
 
-      <!-- Disciplina -->
+      <!-- Edad minima -->
       <div class="group">
-        <label>Disciplina</label>
-        <input v-model="form.nombre_disciplina" placeholder="Ej: Tenis" required />
+        <label>Edad minima</label>
+        <input type="number" min="1" v-model="form.edad_minima" required />
       </div>
 
-      <!-- Fechas -->
-      <div class="row">
-        <div class="group">
-          <label>Fecha inicio</label>
-          <input type="date" v-model="form.fecha_inicio" required />
-        </div>
 
-        <div class="group">
-          <label>Fecha fin</label>
-          <input type="date" v-model="form.fecha_fin" required />
-        </div>
-      </div>
-
-      <!-- Tipo acceso -->
+      <!-- Genero -->
       <div class="group">
-        <label>Tipo de acceso</label>
-        <select v-model="form.tipo_acceso" required>
+        <label>Genero</label>
+        <select v-model="form.genero_requerido" required>
           <option disabled value="">Selecciona</option>
-          <option value="INTERNO">INTERNO</option>
-          <option value="ABIERTO">ABIERTO</option>
+          <option value="M">Masculino</option>
+          <option value="F">Femenino</option>
+          <option value="MIXTO">Mixto</option>
         </select>
       </div>
 
-      <!-- Formato -->
-      <div class="group">
-        <label>Formato de competencia</label>
-        <select v-model="form.formato_competencia" required>
-          <option disabled value="">Selecciona</option>
-          <option value="ELIMINACION_DIRECTA">Eliminación directa</option>
-          <option value="FASE_GRUPOS">Fase de grupos</option>
-        </select>
-      </div>
-
-      <!-- Cupo -->
-      <div class="group">
-        <label>Cupo máximo</label>
-        <input type="number" min="1" v-model="form.cupo_maximo" required />
-      </div>
-
-      <!-- Descripción -->
-      <div class="group">
-        <label>Descripción</label>
-        <textarea v-model="form.descripcion"></textarea>
-      </div>
+      
 
       <!-- BOTÓN -->
       <button type="submit" :disabled="loading">
-        {{ loading ? 'Creando...' : 'Crear torneo' }}
+        {{ loading ? 'Creando...' : 'Crear categoria' }}
       </button>
 
     </form>

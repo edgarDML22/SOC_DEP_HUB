@@ -1,13 +1,16 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/services/api'
 
 const router = useRouter()
 const torneos = ref([])
 
 const goToCreate = () => {
   router.push('/admin/tournaments/create')
+}
+const goToCreateCategory = () => {
+  router.push('/admin/categories/create')
 }
 
 //  FORMATEO DE ESTADOS
@@ -44,12 +47,13 @@ const getStatusClass = (estado) => {
 //  GET DATA
 const getTorneos = async () => {
   try {
-    const res = await axios.get('http://localhost:8000/api/v1/torneos')
+   const res = await api.get('torneos')
     torneos.value = res.data.data
   } catch (error) {
     console.error(error)
   }
 }
+
 
 onMounted(() => {
   getTorneos()
@@ -62,10 +66,15 @@ onMounted(() => {
       <h1>Torneos</h1>
       <p class="subtitle">Administra los torneos del club</p>
     </div>
+    <div class="header-buttons">
 
-    <button class="btn-create" @click="goToCreate">
-      + Crear Torneo
-    </button>
+      <button class="btn-create" @click="goToCreate">
+        + Crear Torneo
+      </button>
+      <button class="btn-create_cat" @click="goToCreateCategory">
+        + Crear Categoria
+      </button>
+    </div>
   </div>
 
   <div class="table-container">
@@ -129,6 +138,23 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-weight: 500;
+}
+.btn-create_cat {
+  background: #2553eb;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+.btn-create_cat:hover {
+  background: #1d4ed8;
+}
+.header-buttons {
+  display: flex; 
+  flex-direction: row;
+  gap: 10px;
 }
 
 .btn-create:hover {

@@ -7,7 +7,7 @@ use App\Models\torneos;
 use App\Models\CategoriaTorneo;
 use App\Models\Disciplina;
 
-class UpdateStatuTorneo extends Controller
+class UpdateStatusTorneo extends Controller
 {
     public function update(Request $request)
     {
