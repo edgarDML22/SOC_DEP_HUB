@@ -105,6 +105,7 @@ const router = createRouter({
           name: "socio-qr",
           component: () => import("../views/socio/SocioQrView.vue"),
         },
+
       ],
     },
 
@@ -124,10 +125,53 @@ const router = createRouter({
 
     // Admin Routes
     {
-      path: "/admin/dashboard",
-      name: "gerencia-dashboard",
-      component: () => import("../views/admin/Dashboard.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["gerente", "subgerente"] },
+      path: '/admin',
+      component: () => import('@/views/layout/GerenteLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] },
+      children: [
+        {
+          path: 'dashboard',
+          component: () => import('@/views/admin/Dashboard.vue'),
+        },
+        {
+          path: 'tournaments',
+          component: () => import('@/views/admin/TournamentForm.vue'),
+        },
+        {
+          path: 'reservations',
+          component: () => import('@/views/admin/Reservation.vue'),
+        },
+        {
+          path: 'spaces',
+          component: () => import('@/views/admin/Spaces.vue'),
+        },
+        {
+          path: 'instructors',
+          component: () => import('@/views/admin/Instructors.vue'),
+        },
+        {
+          path: 'ludoteca',
+          component: () => import('@/views/admin/Ludoteca.vue'),
+        },
+        {
+          path: 'reports',
+          component: () => import('@/views/admin/Reports.vue'),
+        },
+        {
+          path: 'tournaments/create',
+          component: () => import('@/views/admin/CreateTournament.vue'),
+        },
+        {
+          path: '/tournaments/details',
+          component: () => import('@/views/admin/DetailsTournament.vue'),
+        },
+        {
+          path: 'categories/create',
+          component: () => import('@/views/admin/CreateCategories.vue'),
+        }
+
+
+      ]
     },
   ],
 });

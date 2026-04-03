@@ -12,6 +12,10 @@ use App\Http\Controllers\ReservacionController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CancelationController;
 use App\Http\Controllers\EspacioFisicoController;
+use App\Http\Controllers\TorneoController;
+use App\Http\Controllers\UpdateStatusTorneo;
+use App\Http\Controllers\CreateCategories;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -34,13 +38,18 @@ Route::post('/v1/auth/forgot-password', [ForgotPasswordController::class, 'sendR
 // SDH-77: Endpoint para restablecimiento de contraseña
 Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
+// SDH-47: Endpoint para crear torneos
+Route::post('/v1/torneos', [TorneoController::class, 'store']);
+
+// Endpoint para listar torneos 
+Route::get('/v1/torneos', [TorneoController::class, 'index']);
+//SDH-51: Endpoint para actualizar el estado de un torneo
+Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
+Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
-
-Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
 Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);

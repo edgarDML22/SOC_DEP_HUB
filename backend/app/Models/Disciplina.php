@@ -10,4 +10,11 @@ class Disciplina extends Model
     public $timestamps = false;
     protected $primaryKey = 'id_disciplina';
     //
+    protected $fillable = [
+        'nombre_disciplina',
+        'categorias_disciplina',
+        'estatus',
+    ];
+
+
 }
