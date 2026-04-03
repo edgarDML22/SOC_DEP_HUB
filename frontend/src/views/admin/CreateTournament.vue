@@ -19,7 +19,7 @@ const form = ref({
 
 const loading = ref(false)
 
-/* 🔥 BANNER */
+//  BANNER
 const banner = ref({
   show: false,
   message: '',
@@ -73,7 +73,7 @@ const submit = async () => {
   <div class="container">
     <h2>Crear Torneo</h2>
 
-    <!-- 🔥 BANNER -->
+    <!-- BANNER -->
     <div 
       v-if="banner.show" 
       :class="['alert-banner', banner.type === 'success' ? 'success' : 'error']"
@@ -196,7 +196,7 @@ button:disabled {
   background: #93c5fd;
 }
 
-/* 🔥 BANNER BASE */
+
 .alert-banner {
   padding: 12px 16px;
   border-radius: 8px;
@@ -205,14 +205,14 @@ button:disabled {
   border: 1px solid;
 }
 
-/* 🔴 ERROR */
+
 .alert-banner.error {
   background-color: #fef2f2;
   color: #991b1b;
   border-color: #f87171;
 }
 
-/* 🟢 SUCCESS */
+
 .alert-banner.success {
   background-color: #ecfdf5;
   color: #065f46;

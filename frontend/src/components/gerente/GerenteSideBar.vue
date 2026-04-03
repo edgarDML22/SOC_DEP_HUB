@@ -4,7 +4,8 @@ import {
   IconCalendar,
   IconTrophy,
   IconUser,
-  IconClock
+  IconClock,
+  IconGuests
 } from '@/components/icons'
 </script>
 
@@ -49,7 +50,7 @@ import {
       </router-link>
 
       <router-link to="/admin/reports" class="item">
-        <IconClock class="icon" />
+        <IconGuests class="icon" />
         <span>Reportes</span>
       </router-link>
 

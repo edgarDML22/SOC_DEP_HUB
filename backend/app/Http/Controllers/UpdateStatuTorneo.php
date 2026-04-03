@@ -4,27 +4,50 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\torneos;
+use App\Models\CategoriaTorneo;
+use App\Models\Disciplina;
 
 class UpdateStatuTorneo extends Controller
 {
     public function update(Request $request)
     {
-        $torneo = torneos::find($request->id_torneo);
+        $id_categoria = CategoriaTorneo::where('nombre_categoria', $request->nombre_categoria)->first();
+        $id_disciplina = Disciplina::where('nombre_disciplina', $request->nombre_disciplina)->first();
+        if ($id_categoria == null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontro categoria con ese nombre'
+            ], 404);
+        }
+        if ($id_disciplina == null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontro disciplina con ese nombre'
+            ], 404);
+        }
+
+
+        $torneo = torneos::where('nombre_torneo', $request->nombre_torneo)
+            ->where('fecha_inicio', $request->fecha_inicio)
+            ->where('id_categoria', $id_categoria->id_categoria)
+            ->where('id_disciplina', $id_disciplina->id_disciplina)
+            ->first();
+
         if (!$torneo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Torneo no encontrado'
+                'message' => 'No se encontro torneo con ese nombre'
             ], 404);
         }
-        $validation = torneos::where('id_torneo', $request->id_torneo)->first();
-        if ($validation->estatus_torneo != 'EN_PLANIFICACION') {
+
+        if ($torneo->estatus_torneo == 'PROGRAMADO') {
             return response()->json([
                 'success' => false,
-                'message' => 'El torneo no se encuentra en estado de planificacion'
+                'message' => 'El torneo ya se encuentra programado'
             ], 400);
         }
 
-        torneos::where('id_torneo', $request->id_torneo)->update([
+        $torneo->update([
             'estatus_torneo' => 'PROGRAMADO',
         ]);
 
@@ -32,7 +55,7 @@ class UpdateStatuTorneo extends Controller
         return response()->json([
             "success" => true,
             "message" => "Torneo publicado correctamente",
-            'id_torneo' => $request->id_torneo,
+            'id_torneo' => $torneo->id_torneo,
             'estatus_torneo' => 'PROGRAMADO',
         ], 200);
     }

@@ -77,6 +77,7 @@ const router = createRouter({
           name: 'socio-qr',
           component: () => import('../views/socio/SocioQrView.vue'),
         }
+
       ]
     },
 
@@ -131,7 +132,12 @@ const router = createRouter({
         {
           path: 'tournaments/create',
           component: () => import('@/views/admin/CreateTournament.vue'),
+        },
+        {
+          path: '/tournaments/details',
+          component: () => import('@/views/admin/DetailsTournament.vue'),
         }
+
 
       ]
     },
