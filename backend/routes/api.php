@@ -49,10 +49,6 @@ Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-//SDH-categorias: Endpoint para crear categorias
-Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
-
-
 Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
