@@ -41,10 +41,11 @@ Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPa
 // SDH-47: Endpoint para crear torneos
 Route::post('/v1/torneos', [TorneoController::class, 'store']);
 
-// Endpoint para listar torneos (AGREGADO)
+// Endpoint para listar torneos 
 Route::get('/v1/torneos', [TorneoController::class, 'index']);
 //SDH-51: Endpoint para actualizar el estado de un torneo
 Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
+Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones

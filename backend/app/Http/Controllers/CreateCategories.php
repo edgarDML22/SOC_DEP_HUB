@@ -19,15 +19,12 @@ class CreateCategories extends Controller
             'genero_requerido' => 'required|in:M,F,MIXTO',
         ]);
         $existe = CategoriaTorneo::where('nombre_categoria', $request->nombre_categoria)
-            ->where('edad_maxima', $request->edad_maxima)
-            ->where('edad_minima', $request->edad_minima)
-            ->where('genero_requerido', $request->genero_requerido)
             ->exists();
 
         if ($existe) {
             return response()->json([
                 'success' => false,
-                'message' => 'Ya existe un torneo con ese nombre en esa fecha'
+                'message' => 'Ya existe un torneo con ese nombre'
             ], 409);
         }
 

@@ -73,7 +73,7 @@ class TorneoController extends Controller
         if ($existe) {
             return response()->json([
                 'success' => false,
-                'message' => 'Ya existe un torneo con ese nombre en esa fecha'
+                'message' => 'Ya existe un torneo con ese nombre y genero'
             ], 409);
         }
 
