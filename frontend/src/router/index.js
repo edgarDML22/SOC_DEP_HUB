@@ -29,7 +29,7 @@ const router = createRouter({
     // Socio Routes
     {
       path: '/socio',
-      component: () => import('@/views/socio/SocioLayout.vue'),
+      component: () => import('@/views/layout/SocioLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] },
       children: [
         {
@@ -40,7 +40,17 @@ const router = createRouter({
         {
           path: 'reservations',
           name: 'socio-reservations',
-          component: () => import('@/views/socio/SocioReservations.vue'),
+          component: () => import('@/views/reservations/socio/Reservations.vue'),
+        },
+        {
+          path: 'reservations/on-demand',
+          name: 'socio-reservations-on-demand',
+          component: () => import('@/views/reservations/socio/OnDemand.vue'),
+        },
+        {
+          path: 'reservations/active-sessions',
+          name: 'socio-reservations-active-sessions',
+          component: () => import('@/views/reservations/socio/ActiveSessions.vue'),
         },
         {
           path: 'tournaments',

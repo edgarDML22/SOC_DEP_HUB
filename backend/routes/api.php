@@ -11,6 +11,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservacionController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CancelationController;
+use App\Http\Controllers\EspacioFisicoController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -43,14 +44,7 @@ Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_
 Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
-// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
-Route::get('/nombres', function () {
-    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
 
-    return response()->json([
-        'names' => $nombres
-    ]);
-});
 
 
 // ==========================================
@@ -75,5 +69,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/user', function (Request $request) {
         return $request->user();
     });
-
+    //  Consultar disponibilidad de espacios y clases
+    Route::get('/v1/espacios/disponibilidad', [EspacioFisicoController::class, 'getAvailability']);
 });

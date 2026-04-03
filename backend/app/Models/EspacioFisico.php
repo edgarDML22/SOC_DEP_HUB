@@ -10,5 +10,7 @@ class EspacioFisico extends Model
     protected $primaryKey = 'id_espacio';
     public $timestamps = false;
 
-    //
+    public function reservaciones(){
+        return $this->hasMany(Reservacion::class, 'id_espacio', 'id_espacio');
+    }
 }

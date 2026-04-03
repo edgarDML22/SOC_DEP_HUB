@@ -10,4 +10,15 @@ class SesionActiva extends Model
     protected $primaryKey = 'id_sesion';
     public $timestamps = false;
     //
+
+    public function actividadPlantilla()
+    {
+        return $this->belongsTo(ActividadPlantilla::class, 'id_actividad_plantilla', 'id_actividad_plantilla');
+    }
+
+    public function inscripcionesClase()
+    {
+        // Clase, FK, PK
+        return $this->hasMany(InscripcionClase::class, 'id_sesion', 'id_sesion');
+    }
 }
