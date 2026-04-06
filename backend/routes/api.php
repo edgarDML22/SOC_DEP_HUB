@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgendaEspacioController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\SocioTitular; // <-- 1. Importamos el modelo
@@ -80,4 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     //  Consultar disponibilidad de espacios y clases
     Route::get('/v1/espacios/disponibilidad', [EspacioFisicoController::class, 'getAvailability']);
+    // Consultar los horarios de un espacio fisico que han sido ocupados
+    Route::get('/v1/horarios/disponibilidad', [AgendaEspacioController::class, 'getScheduleForSpace']);
+
 });

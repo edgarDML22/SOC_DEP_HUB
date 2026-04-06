@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
+use App\Models\Reservacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -18,7 +19,7 @@ class ConfirmationController extends Controller
     public function confirmar_reservacion(Request $request)
     {
 
-        $id = $this->service->obtener_ids($request->all());
+        $id = $this->service->obtener_ids_reservaciones($request->all());
 
         if (!$id) {
             return response()->json([
@@ -26,8 +27,7 @@ class ConfirmationController extends Controller
                 'message' => 'No se encontro ninguna reservación'
             ]);
         }
-        $fecha_expiracion = DB::table('reservaciones_on_demand')
-            ->where('id_reserva', $id)
+        $fecha_expiracion = Reservacion::where('id_reserva', $id)
             ->value('fecha_expiracion');
 
         if (!$fecha_expiracion) {
@@ -46,8 +46,7 @@ class ConfirmationController extends Controller
         }
 
         /* Modificar datos */
-        DB::table('reservaciones_on_demand')
-            ->where('id_reserva', $id)
+        Reservacion::where('id_reserva', $id)
             ->update([
                 'estatus_operativo' => 'ACTIVA',
                 'fecha_expiracion' => null,

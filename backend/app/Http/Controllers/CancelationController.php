@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Services\ReservationServices;
 use App\Http\Controllers\Controller;
+use App\Models\Reservacion;
+
 class CancelationController extends Controller
 {
     protected $service;
@@ -15,15 +17,14 @@ class CancelationController extends Controller
     /* Cancelar reservaciones */
     public function cancelar_reservacion(Request $request)
     {
-        $id = $this->service->obtener_ids($request->all());
+        $id = $this->service->obtener_ids_reservaciones($request->all());
         if (!$id) {
             return response()->json([
                 'success' => false,
                 'message' => 'No se encontro ninguna reservación'
             ]);
         }
-        DB::table('reservaciones_on_demand')
-            ->where('id_reserva', $id)
+        Reservacion::where('id_reserva', $id)
             ->update([
                 'estatus_operativo' => 'CANCELADA',
             ]);

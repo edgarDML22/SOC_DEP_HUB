@@ -3,42 +3,38 @@ import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura';
 import { definePreset } from '@primevue/themes';
+import '@/assets/css/main.css'
 
 import App from './App.vue'
 import router from './router'
-import './assets/css/global.css'
-
 
 const TemaSocDep = definePreset(Aura, {
     semantic: {
-        // 1. COLORES PRIMARIOS (Tus azules de SocioProfile y Navbar)
         primary: {
             50: '#eff6ff',
             100: '#dbeafe',
             500: '#3b82f6',
             600: '#2563eb',
-            700: '#1d4ed8', // Azul base    
-            800: '#1e40af', // Azul hover
+            700: '#1d4ed8', //Color principal
+            800: '#1e40af', // Color hover
             900: '#1e3a8a'
         },
-        // 2. COLORES DE SUPERFICIE (Fondos y bordes de SocioHome y Perfil)
         surface: {
-            50: '#f9fafb',  // Fondos de inputs
-            100: '#f3f4f6', // Fondo de IconBoxes
-            200: '#e5e7eb', // Bordes de tarjetas/inputs
+            50: '#f9fafb',
+            100: '#f3f4f6',
+            200: '#e5e7eb',
             300: '#d1d5db',
             400: '#9ca3af',
-            500: '#6b7280', // Color de subtítulos
+            500: '#6b7280',
             600: '#4b5563',
             700: '#374151',
             800: '#1f2937',
-            900: '#111827', // Color de títulos principales
+            900: '#111827',
             950: '#030712'
         },
-        // 3. TIPOGRAFÍA Y BORDES GLOBALES
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         borderRadius: {
-            medium: '8px' // El radio que usas en casi todo
+            medium: '8px'
         }
     },
     components: {
@@ -59,9 +55,9 @@ const TemaSocDep = definePreset(Aura, {
     }
 });
 
-
 const app = createApp(App)
 const pinia = createPinia()
+
 app.use(pinia)
 app.use(router)
 
@@ -70,7 +66,13 @@ app.use(PrimeVue, {
         preset: TemaSocDep,
         options: {
             darkModeSelector: '.app-dark',
-            cssLayer: false // Permite que tu CSS manual conviva fácilmente con PrimeVue
+            // Al meter a PrimeVue en esta capa, tu <style scoped> siempre ganará sin usar !important
+            cssLayer: {
+                name: 'primevue',
+                options: {
+                    mode: 'any'
+                }
+            }
         }
     }
 });
