@@ -112,7 +112,7 @@ return [
         'mongodb' => [
             'driver' => 'mongodb',
             'dsn' => env('MONGO_URI'),
-            'database' => env('MONGO_DB', 'SOC_DEP_HUB'),
+            'database' => env('MONGO_DB'),
         ],
 
     ],
