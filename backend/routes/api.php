@@ -15,6 +15,8 @@ use App\Http\Controllers\EspacioFisicoController;
 use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
+use Illuminate\Support\Facades\DB;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -53,7 +55,6 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
-
 
 
 // ==========================================
