@@ -29,7 +29,7 @@ const router = createRouter({
     // Socio Routes
     {
       path: '/socio',
-      component: () => import('@/views/socio/SocioLayout.vue'),
+      component: () => import('@/views/layout/SocioLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['socio_titular', 'miembro_familiar'] },
       children: [
         {
@@ -40,7 +40,17 @@ const router = createRouter({
         {
           path: 'reservations',
           name: 'socio-reservations',
-          component: () => import('@/views/socio/SocioReservations.vue'),
+          component: () => import('@/views/reservations/socio/Reservations.vue'),
+        },
+        {
+          path: 'reservations/on-demand',
+          name: 'socio-reservations-on-demand',
+          component: () => import('@/views/reservations/socio/OnDemand.vue'),
+        },
+        {
+          path: 'reservations/active-sessions',
+          name: 'socio-reservations-active-sessions',
+          component: () => import('@/views/reservations/socio/ActiveSessions.vue'),
         },
         {
           path: 'tournaments',
@@ -61,7 +71,13 @@ const router = createRouter({
           path: 'profile',
           name: 'socio-profile',
           component: () => import('../views/socio/SocioProfileView.vue'),
+        },
+        {
+          path: 'qr',
+          name: 'socio-qr',
+          component: () => import('../views/socio/SocioQrView.vue'),
         }
+
       ]
     },
 
@@ -81,10 +97,53 @@ const router = createRouter({
 
     // Admin Routes
     {
-      path: '/admin/dashboard',
-      name: 'gerencia-dashboard',
-      component: () => import('../views/admin/Dashboard.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] }
+      path: '/admin',
+      component: () => import('@/views/layout/GerenteLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] },
+      children: [
+        {
+          path: 'dashboard',
+          component: () => import('@/views/admin/Dashboard.vue'),
+        },
+        {
+          path: 'tournaments',
+          component: () => import('@/views/admin/TournamentForm.vue'),
+        },
+        {
+          path: 'reservations',
+          component: () => import('@/views/admin/Reservation.vue'),
+        },
+        {
+          path: 'spaces',
+          component: () => import('@/views/admin/Spaces.vue'),
+        },
+        {
+          path: 'instructors',
+          component: () => import('@/views/admin/Instructors.vue'),
+        },
+        {
+          path: 'ludoteca',
+          component: () => import('@/views/admin/Ludoteca.vue'),
+        },
+        {
+          path: 'reports',
+          component: () => import('@/views/admin/Reports.vue'),
+        },
+        {
+          path: 'tournaments/create',
+          component: () => import('@/views/admin/CreateTournament.vue'),
+        },
+        {
+          path: '/tournaments/details',
+          component: () => import('@/views/admin/DetailsTournament.vue'),
+        },
+        {
+          path: 'categories/create',
+          component: () => import('@/views/admin/CreateCategories.vue'),
+        }
+
+
+      ]
     },
   ]
 })
