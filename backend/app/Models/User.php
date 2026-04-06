@@ -1,9 +1,8 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Foundation\Auth\User as Authenticatable; // <-- Laravel clásico
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -11,18 +10,13 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    // Al no especificar $connection, Laravel usará la default (pgsql)
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'rol',
-        'user_id',
-        // ELIMINADO: perfil_id (No existe en tu BD, si lo dejábamos iba a tronar)
+        'name', 'email', 'password', 'rol', 'user_id',
     ];
 
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', 'remember_token',
     ];
 
     protected function casts(): array
@@ -33,7 +27,6 @@ class User extends Authenticatable
         ];
     }
 
-    // RELACIÓN: Un Usuario tiene un registro de Instructor
     public function instructor()
     {
         return $this->hasOne(Instructor::class, 'id_usuario', 'id');

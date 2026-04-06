@@ -2,6 +2,7 @@
 import { onMounted, defineAsyncComponent, ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useReservationStore } from '@/stores/reservationStore';
+import { useProfileStore } from '@/stores/profileStore'; 
 
 // Imports de PrimeVue 4
 import Stepper from 'primevue/stepper';
@@ -11,6 +12,7 @@ import StepPanels from 'primevue/steppanels';
 import StepPanel from 'primevue/steppanel';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
+import Dialog from 'primevue/dialog';
 
 // Inicializamos el store
 const reservationStore = useReservationStore();
@@ -26,7 +28,8 @@ const {
     horaInicioTemp,
     horaFinTemp,
     esHorarioValidoParaPreview,
-    errorValidacion
+    errorValidacion,
+    errorNavegacion
 } = storeToRefs(reservationStore);
 
 // Extraemos ACCIONES
@@ -34,18 +37,49 @@ const {
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,
     obtenerIconoName,
-    validarHorario
+    validarHorario,
+    buscarReservaActiva
 } = reservationStore;
 
 // --- CICLO DE VIDA ---
-onMounted(() => {
-    fetchDisponibilidadEspacios();
+onMounted(async () => {
+    // 1. Disparamos la carga de deportes DE INMEDIATO. 
+    // No lleva 'await' porque no queremos que bloquee el resto del código.
+    reservationStore.fetchDisponibilidadEspacios();
+
+    // 2. Cargamos el perfil y buscamos el borrador en paralelo.
+    const profileStore = useProfileStore();
+    
+    // Nos aseguramos de tener el perfil primero
+    await profileStore.fetchProfile(); 
+    
+    // Ahora buscamos el borrador
+    const tieneDraft = await reservationStore.buscarReservaActiva();
+    
+    if (tieneDraft) {
+        mostrarModalDraft.value = true;
+    }
 });
+
 
 // --- DIBUJO DEL CALENDARIO ---
 const horaApertura = 7;
 const horaCierre = 23;
 const totalHoras = horaCierre - horaApertura;
+const mostrarModalDraft = ref(false);
+
+
+
+// Funciones para los botones del Modal
+const reanudarReserva = () => {
+    mostrarModalDraft.value = false;
+    reservationStore.pasoActual = "4"; // Lo mandamos directo a acompañantes
+};
+
+const ignorarReserva = async () => {
+    mostrarModalDraft.value = false;
+    await reservationStore.descartarBorrador();
+};
 
 const formatearHora = (horaString) => {
     if (!horaString) return '';
@@ -71,9 +105,42 @@ const IconoDeporte = (disciplina) => {
 
 
 <template>
+
+    <Dialog v-model:visible="mostrarModalDraft" modal header="Reserva pendiente" :closable="false" class="modal-borrador-minimal">
+        <div class="modal-borrador-content">
+            <p class="modal-description">
+                Tienes una reservación que no terminaste de confirmar. El espacio sigue apartado temporalmente para ti.
+            </p>
+
+            <div class="draft-details-list">
+                <div class="detail-item">
+                    <span class="detail-label">Deporte:</span>
+                    <strong class="detail-value">{{ reservaPayload.disciplinaSeleccionada }}</strong>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Horario:</span>
+                    <strong class="detail-value">
+                        {{ formatearHora(reservaPayload.hora_inicio) }} - {{ formatearHora(reservaPayload.hora_fin) }}
+                    </strong>
+                </div>
+            </div>
+
+            <p class="modal-question">
+                ¿Qué deseas hacer?
+            </p>
+        </div>
+        
+        <div class="modal-actions">
+            <Button label="Ignorar y empezar de cero" class="btn-descartar" @click="ignorarReserva" />
+            <Button label="Continuar mi reserva" icon="pi pi-arrow-right" iconPos="right" class="btn-continuar" @click="reanudarReserva" />
+        </div>
+    </Dialog>
+    
+    
+
     <div class="page-wrapper">
         <div class="main-card">
-            <Stepper v-model:value="pasoActual">
+            <Stepper :value="pasoActual" @update:value="reservationStore.intentarCambioPaso">
 
                 <StepList>
                     <Step value="1">Deporte</Step>
@@ -83,11 +150,16 @@ const IconoDeporte = (disciplina) => {
                     <Step value="5">Confirmación</Step>
                 </StepList>
 
+                <div v-if="errorNavegacion" class="alerta-navegacion">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <span>{{ errorNavegacion }}</span>
+                </div>
+
                 <StepPanels>
                     <StepPanel value="1">
                         <div class="step-content-wrapper">
 
-                            <div v-if="!reservaPayload.disciplinaSeleccionada" class="w-full">
+                            <div class="w-full">
                                 <h3 class="section-title">¿Qué vas a jugar hoy?</h3>
 
                                 <div v-if="cargando" class="loader-container">
@@ -200,6 +272,18 @@ const IconoDeporte = (disciplina) => {
                                         <Select v-model="horaFinTemp" :options="opcionesHoras" placeholder="Ej. 11:00"
                                             class="w-full custom-select" appendTo="self" />
                                     </div>
+
+                                    <div class="mensajes-validacion-container">
+                                        <div v-if="errorValidacion" class="mensaje-error-box">
+                                            <i class="pi pi-exclamation-circle"></i>
+                                            <span>{{ errorValidacion }}</span>
+                                        </div>
+
+                                        <div v-else-if="esHorarioValidoParaPreview" class="mensaje-exito-box">
+                                            <i class="pi pi-check-circle"></i>
+                                            <span>¡Horario disponible y listo para reservar!</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="panel-derecho">
@@ -227,6 +311,7 @@ const IconoDeporte = (disciplina) => {
                                                             {{ bloque.tipo === 'sesion' ? 'Clase Programada' : 'Reserva de Socio'}}
                                                             
 
+
                                                             <br>
                                                         </span>
                                                         <span class="evento-horas">{{ formatearHora(bloque.inicio) }} -
@@ -249,6 +334,8 @@ const IconoDeporte = (disciplina) => {
                                                 </div>
                                             </div>
 
+
+
                                             <div v-if="!cargando && horariosDisponibles.length === 0 && !esHorarioValidoParaPreview"
                                                 class="sin-eventos">
                                                 No hay actividades programadas.
@@ -259,10 +346,6 @@ const IconoDeporte = (disciplina) => {
 
                             </div>
 
-                            <div v-if="errorValidacion" class="mensaje-error-box">
-                                <i class="pi pi-exclamation-circle"></i>
-                                <span>{{ errorValidacion }}</span>
-                            </div>
 
                             <div class="action-bottom-right">
                                 <Button label="Confirmar Horario" icon="pi pi-check" iconPos="right"
@@ -334,93 +417,76 @@ const IconoDeporte = (disciplina) => {
 /* =========================================
    2. DISEÑO PROFESIONAL DEL STEPPER
 ========================================= */
-/* Quitamos márgenes por defecto de PrimeVue y damos espaciado inferior al StepList */
+/* =========================================
+   2. DISEÑO ULTRA PRO DEL STEPPER
+========================================= */
 :deep(.p-stepper) {
     width: 100%;
 }
 
-:deep(.p-stepper-nav) {
-    margin-bottom: 2.5rem !important;
-    /* mb-10 */
-    border-bottom: 2px solid var(--p-surface-200);
-    /* Línea base sutil */
-    padding-bottom: 0.5rem;
+/* Contenedor principal de la lista */
+:deep(.p-steplist) {
+    margin-bottom: 3.5rem !important; /* Más espacio para respirar hacia abajo */
+    padding: 0.5rem 1rem !important;
 }
 
-/* Estilo para cada ítem de paso (botón) */
-:deep(.p-stepper-action) {
+/* --- CÍRCULOS (Pasos Inactivos / Futuros) --- */
+:deep(.p-step-number) {
+    font-family: var(--p-font-family) !important;
+    font-weight: 700 !important;
+    width: 2.75rem !important; /* Un poco más grandes */
+    height: 2.75rem !important;
+    font-size: 1.15rem !important;
+    background-color: #ffffff !important;
+    color: var(--p-surface-400) !important;
+    border: 2px solid var(--p-surface-200) !important;
+    border-radius: 50% !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05) !important; /* Sombra sutil */
+}
+
+/* --- TEXTO DE LOS PASOS --- */
+:deep(.p-step-title) {
+    font-family: var(--p-font-family) !important;
+    font-weight: 600 !important;
+    color: var(--p-surface-400) !important;
+    margin-left: 0.75rem !important;
+    font-size: 1.05rem !important;
+    transition: all 0.3s ease !important;
+}
+
+/* --- PASO ACTIVO (Donde estás posicionado) --- */
+:deep(.p-step-active .p-step-number) {
+    background-color: var(--p-primary-600) !important; /* Relleno azul sólido */
+    color: #ffffff !important; /* Número blanco */
+    border: 2px solid var(--p-primary-600) !important;
+    /* Efecto de anillo exterior (glow) que lo hace ver súper pro */
+    box-shadow: 0 0 0 6px var(--p-primary-100), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    transform: scale(1.1); /* Ligero aumento de tamaño (efecto pop) */
+}
+
+:deep(.p-step-active .p-step-title) {
+    color: var(--p-primary-700) !important;
+    font-weight: 800 !important;
+    transform: translateX(4px); /* Pequeño desplazamiento a la derecha para destacar */
+}
+
+/* --- LÍNEAS CONECTORAS --- */
+:deep(.p-steplist-separator) {
+    height: 3px !important; /* De 1px a 3px para darle fuerza visual */
+    background-color: var(--p-surface-200) !important;
+    border-radius: 2px !important;
+    margin: 0 1.5rem !important; /* Separación de los círculos */
+    transition: background-color 0.3s ease;
+}
+
+/* Quitamos los estilos base de los botones invisibles de PrimeVue para no estorbar el diseño */
+:deep(.p-step) {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 1rem 1.5rem !important;
-    transition: all 0.3s ease;
+    padding: 0.5rem !important;
 }
-
-/* Ajustes de tipografía para el título del paso */
-:deep(.p-stepper-title) {
-    font-family: var(--p-font-family) !important;
-    font-weight: 600 !important;
-    color: var(--p-surface-500);
-    /* Color gris sutil por defecto */
-    transition: color 0.3s ease;
-}
-
-/* Ajustes para el círculo del número */
-:deep(.p-stepper-number) {
-    font-family: var(--p-font-family) !important;
-    font-weight: 700 !important;
-    background: var(--p-surface-100) !important;
-    /* Fondo gris suave por defecto */
-    color: var(--p-surface-600) !important;
-    border: 2px solid var(--p-surface-200) !important;
-    width: 2.5rem !important;
-    height: 2.5rem !important;
-    transition: all 0.3s ease;
-}
-
-/* --- ESTADOS ACTIVOS Y COMPLETADOS --- */
-
-/* Paso Activo (En el que estás) */
-:deep(.p-stepper-active .p-stepper-title) {
-    color: var(--p-primary-600) !important;
-    /* Azul empresarial activo */
-}
-
-:deep(.p-stepper-active .p-stepper-number) {
-    background: var(--p-primary-600) !important;
-    /* Fondo azul activo */
-    color: #ffffff !important;
-    /* Número blanco */
-    border-color: var(--p-primary-700) !important;
-    box-shadow: 0 0 0 4px var(--p-primary-100) !important;
-    /* Efecto halo sutil */
-}
-
-/* Paso Completado (Los anteriores al actual) */
-:deep(.p-stepper-complete .p-stepper-title) {
-    color: var(--p-surface-900) !important;
-    /* Texto negro para completados */
-}
-
-:deep(.p-stepper-complete .p-stepper-number) {
-    background: var(--p-primary-50) !important;
-    /* Fondo azul muy pálido */
-    color: var(--p-primary-700) !important;
-    /* Número azul */
-    border-color: var(--p-primary-200) !important;
-}
-
-/* Línea separadora entre pasos (si aplica en el layout) */
-:deep(.p-stepper-separator) {
-    background: var(--p-surface-200) !important;
-}
-
-:deep(.p-stepper-complete + .p-stepper-separator),
-:deep(.p-stepper-active + .p-stepper-separator) {
-    background: var(--p-primary-400) !important;
-    /* Línea azul para pasos completados */
-}
-
 
 /* =========================================
    3. ESTILOS VISTAS INTERNAS (LIMPIEZA TW)
@@ -1184,7 +1250,12 @@ button.tarjeta-deporte:hover .icono-contenedor {
     /* Ajuste milimétrico para alinear el texto con la raya */
 }
 
-/* --- CAJA DE MENSAJE DE ERROR --- */
+/* --- ZONA DE MENSAJES DE VALIDACIÓN --- */
+.mensajes-validacion-container {
+    margin-top: 0.5rem; /* Espaciado extra entre el select y el mensaje */
+}
+
+/* CAJA DE MENSAJE DE ERROR */
 .mensaje-error-box {
     display: flex;
     align-items: center;
@@ -1194,10 +1265,10 @@ button.tarjeta-deporte:hover .icono-contenedor {
     color: #b91c1c; /* Texto rojo oscuro */
     padding: 1rem 1.25rem;
     border-radius: 0.75rem;
-    margin-top: 1.5rem;
+    margin-top: 1rem;
     font-weight: 500;
     font-size: 0.95rem;
-    animation: fadeInError 0.3s ease-out;
+    animation: fadeInMessage 0.3s ease-out;
 }
 
 .mensaje-error-box i {
@@ -1205,8 +1276,158 @@ button.tarjeta-deporte:hover .icono-contenedor {
     color: #ef4444; /* Rojo vibrante para el ícono */
 }
 
-@keyframes fadeInError {
+/* CAJA DE MENSAJE DE ÉXITO (NUEVO) */
+.mensaje-exito-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: #ecfdf5; /* Verde esmeralda muy claro */
+    border: 1px solid #6ee7b7; /* Borde verde suave */
+    color: #047857; /* Texto verde esmeralda oscuro */
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    margin-top: 1rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    animation: fadeInMessage 0.3s ease-out;
+}
+
+.mensaje-exito-box i {
+    font-size: 1.25rem;
+    color: #10b981; /* Verde esmeralda vibrante para el ícono */
+}
+
+/* Animación unificada para ambos mensajes */
+@keyframes fadeInMessage {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* =========================================
+   ALERTA DE NAVEGACIÓN GLOBAL (ESTÁTICA)
+========================================= */
+.alerta-navegacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    max-width: 40rem;
+    margin: -1rem auto 2.5rem auto; 
+    background-color: #fef2f2; /* Rojo muy claro */
+    border: 1px solid #fca5a5; /* Borde rojo suave */
+    color: #b91c1c; /* Texto rojo oscuro */
+    padding: 0.85rem 1.5rem;
+    border-radius: 0.75rem; 
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    animation: fadeInStatic 0.2s ease-out; /* Solo entrada */
+}
+
+.alerta-navegacion i {
+    font-size: 1.25rem;
+    color: #ef4444;
+}
+
+@keyframes fadeInStatic {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   MODAL DE BORRADOR (DRAFT)
+========================================= */
+:deep(.modal-borrador) {
+    width: 90vw !important;
+    max-width: 450px !important;
+    border-radius: 1rem !important;
+    font-family: var(--p-font-family);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+:deep(.modal-borrador .p-dialog-header) {
+    padding: 1.5rem 1.5rem 1rem 1.5rem !important;
+    border-bottom: 1px solid var(--p-surface-200);
+}
+
+:deep(.modal-borrador .p-dialog-title) {
+    font-weight: 700 !important;
+    font-size: 1.25rem !important;
+    color: var(--p-surface-900) !important;
+}
+
+.modal-borrador-content {
+    padding: 1.5rem 0 0.5rem 0;
+}
+
+.modal-text {
+    font-size: 1.05rem;
+    color: var(--p-surface-600);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.modal-text strong {
+    color: var(--p-primary-700);
+    font-weight: 700;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--p-surface-200);
+}
+
+/* Botones del Modal */
+:deep(.btn-descartar.p-button) {
+    background-color: transparent !important;
+    border: 1px solid var(--p-surface-300) !important;
+    color: var(--p-surface-600) !important;
+    font-weight: 600 !important;
+    padding: 0.625rem 1.25rem !important;
+    border-radius: 0.75rem !important;
+    transition: all 0.2s ease !important;
+}
+
+:deep(.btn-descartar.p-button:hover) {
+    background-color: #fef2f2 !important; /* Rojo muy clarito al pasar el mouse */
+    border-color: #fca5a5 !important;
+    color: #dc2626 !important;
+}
+
+:deep(.btn-continuar.p-button) {
+    background-color: var(--p-primary-600) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    padding: 0.625rem 1.5rem !important;
+    border-radius: 0.75rem !important;
+    border: none !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.2s ease !important;
+}
+
+:deep(.btn-continuar.p-button:hover) {
+    background-color: var(--p-primary-700) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Ajuste móvil para los botones */
+@media (max-width: 600px) {
+    .modal-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+    
+    :deep(.btn-descartar.p-button),
+    :deep(.btn-continuar.p-button) {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+
+
 </style>
