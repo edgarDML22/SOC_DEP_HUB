@@ -16,5 +16,15 @@ class Disciplina extends Model
         'estatus',
     ];
 
+    public function espacios(){
+        /* Parámetros: 
+       1. Modelo destino
+       2. Nombre exacto de la tabla pivote
+       3. Llave foránea de ESTE modelo en el pivote
+       4. Llave foránea del OTRO modelo en el pivote
+        */
+        return $this->belongsToMany(EspacioFisico::class, 'espacio_disciplina', 'id_disciplina', 'id_espacio');
+    }
+
 
 }

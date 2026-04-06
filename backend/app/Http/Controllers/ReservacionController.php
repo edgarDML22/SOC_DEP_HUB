@@ -63,6 +63,20 @@ class ReservacionController extends Controller
                 'message' => 'La hora de inicio debe ser menor que la hora de fin'
             ]);
         }
+        /* NUEVA VALIDACIÓN: Máximo 2 horas de reserva */
+        $inicio = Carbon::parse($request->hora_inicio);
+        $fin = Carbon::parse($request->hora_fin);
+        
+        // diffInMinutes es más preciso que diffInHours por si luego permites medias horas
+        $diferenciaMinutos = $inicio->diffInMinutes($fin);
+
+        if ($diferenciaMinutos > 120) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La reservación no puede exceder las 2 horas máximas permitidas.'
+            ]);
+        }
+
         /* SDH-92 */
         $empalme = Reservacion::where('fecha_reserva', $request->fecha_reserva)
             ->where(function ($query) use ($request) {
@@ -121,10 +135,4 @@ class ReservacionController extends Controller
 
         });
     }
-
-
-
-
-
-
 }

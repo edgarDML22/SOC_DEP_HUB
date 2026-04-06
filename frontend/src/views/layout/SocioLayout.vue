@@ -20,8 +20,8 @@ onMounted (() =>{
 <style scoped>
 .layout-wrapper {
     min-height: 100vh;
-    background-color: #f8f9fa;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #111827;
+    background-color: var(--p-surface-50);
+    font-family: var(--p-font-family);
+    color: var(--p-surface-900);
 }
 </style>

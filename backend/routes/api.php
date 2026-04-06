@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgendaEspacioController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\SocioTitular; // <-- 1. Importamos el modelo
@@ -94,5 +95,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
+
+    // Consultar los horarios de un espacio fisico que han sido ocupados
+    Route::get('/v1/horarios/disponibilidad', [AgendaEspacioController::class, 'getScheduleForSpace']);
 
 });
