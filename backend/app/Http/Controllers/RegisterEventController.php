@@ -6,10 +6,10 @@ use App\Models\SesionActiva;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\MongoDB\RegistroAsistecia;
-use App\Models\EspacioFisico;
 use Illuminate\Validation\ValidationException;
 use App\Models\ActividadPlantilla;
-
+use App\Models\Instructor;
+use App\Models\Disciplina;
 
 
 class RegisterEventController extends Controller
@@ -37,6 +37,20 @@ class RegisterEventController extends Controller
                 'message' => 'No se encontro actividad con ese id'
             ], 404);
         }
+        $intructor = Instructor::where("id_instructor", $id_actividad->id_instructor)->first();
+        if (!$intructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontro instructor con ese id'
+            ], 404);
+        }
+        $disipina = Disciplina::where("id_disciplina", $id_actividad->id_disciplina)->first();
+        if (!$disipina) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontro disciplina con ese id'
+            ], 404);
+        }
 
         try {
             $request->validate([
@@ -52,16 +66,19 @@ class RegisterEventController extends Controller
             'socio_id' => $id_user->user_id,
             'id_sesion' => $id_sesion->id_sesion,
             'fase' => $request->fase,
-            'timestamp' => now(),
+            'timestamp' => now('America/Mexico_City'),
             'metadata' => [
                 'dia_semana' => $id_actividad->dia_semana ?? null,
                 'estatus' => $id_actividad->estatus ?? null,
+                'instructor' => $intructor->nombre_instructor ?? null,
+                'disciplina' => $disipina->nombre_disciplina ?? null,
+
 
             ],
         ];
 
 
-        $registro = RegistroAsistecia::create($data);
+        $registro = RegistroAsistecia::insert($data);
 
         if ($registro) {
             return response()->json([
