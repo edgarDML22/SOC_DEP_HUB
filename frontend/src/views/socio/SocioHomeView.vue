@@ -13,7 +13,7 @@ const errorQr = ref('');
 const handleClick = async (action) => {
   if (action === 'qr') {
     if (profileStore.isAccountInactive) return;
-    
+
     try {
       errorQr.value = '';
       const response = await api.get('/api/v1/profile/qr-data');
@@ -36,9 +36,9 @@ const handleClick = async (action) => {
     <div class="container">
       <h2>Hola, {{ profileStore.fullName }}</h2>
       <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
-
-      <div v-if="profileStore.isAccountInactive" class="alert warning mt-4">
-        Tu membresía está inactiva. No puedes generar accesos.
+      <div v-if="profileStore.isAccountInactive" class="alert-banner">
+        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar
+        reservas ni consultar código QR.
       </div>
       <div v-if="errorQr" class="alert warning mt-4">
         {{ errorQr }}
@@ -54,13 +54,9 @@ const handleClick = async (action) => {
           <p class="empty">No hay Reservas disponibles</p>
         </div>
 
-        <div class="card-actions">
+        <div v-if="!profileStore.isAccountInactive" class="card-actions">
           <button class="btn-gray" @click="handleClick('detalle')">Ver detalle</button>
-          <button 
-            v-if="!profileStore.isAccountInactive"
-            class="btn-blue" 
-            @click="handleClick('qr')"
-          >
+          <button v-if="!profileStore.isAccountInactive" class="btn-blue" @click="handleClick('qr')">
             Presentar Pase QR
           </button>
         </div>
@@ -68,7 +64,8 @@ const handleClick = async (action) => {
 
       <h3 class="section-title">Acciones rápidas</h3>
       <div class="actions">
-        <router-link to="/socio/reservations" class="action-card"> Hacer Reservación</router-link>
+        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer
+          Reservación</router-link>
         <router-link to="/socio/tournaments" class="action-card"> Consultar Torneos</router-link>
         <router-link to="/socio/guests" class="action-card"> Gestionar Invitados</router-link>
         <router-link to="/socio/history" class="action-card"> Consultar Historial</router-link>
@@ -90,11 +87,7 @@ const handleClick = async (action) => {
     </div>
 
     <!-- Modal para mostrar el QR -->
-    <QrCredentialModal 
-      v-if="isQrModalOpen" 
-      :payloadText="qrPayload"
-      @close="isQrModalOpen = false" 
-    />
+    <QrCredentialModal v-if="isQrModalOpen" :payloadText="qrPayload" @close="isQrModalOpen = false" />
   </main>
 </template>
 
@@ -107,7 +100,7 @@ const handleClick = async (action) => {
 }
 
 .subtitle {
-  color: #6b7280;
+  color: var(--p-surface-500);
   margin-bottom: 16px;
 }
 
@@ -130,7 +123,7 @@ const handleClick = async (action) => {
   background: white;
   border-radius: 16px;
   padding: 18px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--p-surface-200);
   margin-bottom: 24px;
 }
 
@@ -150,8 +143,8 @@ const handleClick = async (action) => {
 }
 
 .status.inactive {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--p-surface-200);
+  color: var(--p-surface-500);
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -163,15 +156,15 @@ const handleClick = async (action) => {
 }
 
 .btn-gray {
-  background: #e5e7eb;
-  border-radius: 8px;
+  background: var(--p-surface-200);
+  border-radius: var(--p-border-radius);
   padding: 6px 12px;
 }
 
 .btn-blue {
-  background: #2563eb;
+  background: var(--p-primary-600);
   color: white;
-  border-radius: 8px;
+  border-radius: var(--p-border-radius);
   padding: 6px 12px;
 }
 
@@ -182,24 +175,24 @@ const handleClick = async (action) => {
   margin-bottom: 20px;
 }
 
-.action-card { 
+.action-card {
   height: 160px;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--p-surface-200);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
-  color: #111827; 
+
+  color: var(--p-surface-900);
   text-decoration: none;
-  font-weight: 500; 
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .action-card:hover {
-  background-color: #f3f4f6;
+  background-color: var(--p-surface-100);
   border-color: #d1d5db;
 }
 
@@ -212,7 +205,7 @@ const handleClick = async (action) => {
 .btn-link {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--p-primary-600);
   cursor: pointer;
 }
 
@@ -224,7 +217,17 @@ const handleClick = async (action) => {
 }
 
 .empty {
-  color: #6b7280;
+  color: var(--p-surface-500);
   text-align: center;
+}
+
+.alert-banner {
+  background-color: #fef2f2;
+  color: #991b1b;
+  padding: 12px 16px;
+  border: 1px solid #f87171;
+  border-radius: var(--p-border-radius);
+  margin-bottom: 24px;
+  font-size: 14px;
 }
 </style>

@@ -1,19 +1,19 @@
-import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from "node:url";
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
   },
   // AGREGA ESTE BLOQUE SERVER
   server: {
     host: true,
     watch: {
-      usePolling: true // Esto obliga a Docker a revisar si guardaste cambios
-    }
-  }
-})
+      usePolling: true, // Esto obliga a Docker a revisar si guardaste cambios
+    },
+  },
+});

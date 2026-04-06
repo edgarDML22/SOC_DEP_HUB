@@ -5,22 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // <-- 1. Importación vital para el Token
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    // 2. Aquí se agrega HasApiTokens para que el AuthController pueda usar createToken()
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * Los atributos que se pueden asignar masivamente.
-     * Actualizados para coincidir con nuestra nueva tabla SSO.
-     */
     protected $fillable = [
+        'name',
         'email',
         'password',
         'rol',
-        'perfil_id',
+        'user_id',
+        // ELIMINADO: perfil_id (No existe en tu BD, si lo dejábamos iba a tronar)
     ];
 
     protected $hidden = [
@@ -28,14 +25,17 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * Los atributos que deben castearse a tipos nativos.
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // RELACIÓN: Un Usuario tiene un registro de Instructor
+    public function instructor()
+    {
+        return $this->hasOne(Instructor::class, 'id_usuario', 'id');
     }
 }

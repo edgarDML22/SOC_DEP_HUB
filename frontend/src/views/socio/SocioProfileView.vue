@@ -13,7 +13,7 @@ const profileStore = useProfileStore();
         <p class="page-subtitle">Gestiona tu Informacion Personal</p>
       </div>
 
-      <div v-if="profileStore.isAccountInactive" class="alert-banner">
+      <div v-if="profileStore.statusAccount !== 'AL_CORRIENTE' && profileStore.statusAccount !== 'ACTIVO'" class="alert-banner">
         ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }}</strong>.
       </div>
 
@@ -123,19 +123,19 @@ const profileStore = useProfileStore();
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 4px 0;
-  color: #111827;
+  color: var(--p-surface-900);
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--p-surface-500) ;
   margin: 0;
 }
 
 /* CARDS GENERAL */
 .profile-card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--p-surface-200);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
@@ -158,7 +158,7 @@ const profileStore = useProfileStore();
 .avatar-large {
   width: 64px;
   height: 64px;
-  background-color: #1d4ed8;
+  background-color: var(--p-primary-700);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -193,7 +193,7 @@ const profileStore = useProfileStore();
 }
 
 .badge-gray {
-  background-color: #f3f4f6;
+  background-color: var(--p-surface-100);
   color: #374151;
 }
 
@@ -210,7 +210,7 @@ const profileStore = useProfileStore();
   border: 1px solid #d1d5db;
   color: #374151;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: var(--p-border-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -218,7 +218,7 @@ const profileStore = useProfileStore();
 }
 
 .edit-btn:hover {
-  background-color: #f9fafb;
+  background-color: var(--p-surface-100);
 }
 
 .edit-btn svg {
@@ -231,7 +231,7 @@ const profileStore = useProfileStore();
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 20px 0;
-  color: #111827;
+  color: var(--p-surface-900);
 }
 
 .form-container {
@@ -249,12 +249,12 @@ const profileStore = useProfileStore();
 .icon-box {
   width: 44px;
   height: 44px;
-  background-color: #f3f4f6;
+  background-color: var(--p-surface-100);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--p-surface-500) ;
   flex-shrink: 0;
 }
 
@@ -272,16 +272,16 @@ const profileStore = useProfileStore();
   font-weight: 500;
   margin-bottom: 0.4rem;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--p-surface-500) ;
 }
 
 .input-wrapper input[type="text"] {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: #f9fafb;
-  color: #111827;
+  border: 1px solid var(--p-surface-200);
+  border-radius: var(--p-border-radius);
+  background-color: var(--p-surface-100);
+  color: var(--p-surface-900);
   font-size: 15px;
   font-weight: 500;
   cursor: not-allowed;
@@ -293,7 +293,7 @@ const profileStore = useProfileStore();
   color: #991b1b;
   padding: 12px 16px;
   border: 1px solid #f87171;
-  border-radius: 8px;
+  border-radius: var(--p-border-radius);
   margin-bottom: 24px;
   font-size: 14px;
 }
@@ -301,7 +301,7 @@ const profileStore = useProfileStore();
 .loading {
   text-align: center;
   padding: 40px;
-  color: #6b7280;
+  color: var(--p-surface-500) ;
 }
 
 /* TARJETA 3: SEGURIDAD */
@@ -315,7 +315,7 @@ const profileStore = useProfileStore();
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--p-surface-100);
   padding-bottom: 16px;
 }
 
@@ -338,13 +338,13 @@ const profileStore = useProfileStore();
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--p-surface-900);
 }
 
 .security-info p {
   margin: 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--p-surface-500) ;
 }
 
 .action-btn {
@@ -352,7 +352,7 @@ const profileStore = useProfileStore();
   border: 1px solid #d1d5db;
   color: #374151;
   padding: 6px 16px;
-  border-radius: 8px;
+  border-radius: var(--p-border-radius);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -360,6 +360,6 @@ const profileStore = useProfileStore();
 }
 
 .action-btn:hover {
-  background-color: #f9fafb;
+  background-color: var(--p-surface-100);
 }
 </style>

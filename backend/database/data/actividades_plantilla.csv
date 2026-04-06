@@ -1,0 +1,188 @@
+﻿disciplina,espacio,instructor,dia_semana,hora_inicio,hora_fin,cupo_maximo,estatus
+Aerobics,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,MARTES,07:00:00,09:00:00,30,ACTIVO
+Aerobics,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,JUEVES,07:00:00,09:00:00,30,ACTIVO
+Baile,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,MARTES,10:15:00,12:15:00,30,ACTIVO
+Baile,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,JUEVES,10:15:00,12:15:00,30,ACTIVO
+Baile,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,SABADO,11:00:00,13:00:00,30,ACTIVO
+Baile,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,MIERCOLES,10:00:00,12:00:00,30,ACTIVO
+Baile,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,VIERNES,10:00:00,12:00:00,30,ACTIVO
+Barre,Actividad de Piso - Sotano,Lucia Cardenas,MIERCOLES,19:00:00,20:00:00,20,ACTIVO
+Barre,Actividad de Piso - Sotano,Lucia Cardenas,JUEVES,19:00:00,20:00:00,20,ACTIVO
+Higiene de Columna,Actividad de Piso - Sotano,Lucia Cardenas,VIERNES,11:00:00,12:00:00,20,ACTIVO
+Jazz,Actividad de Piso - Sotano,María López,MARTES,16:00:00,20:00:00,20,ACTIVO
+Jazz,Actividad de Piso - Sotano,María López,MIERCOLES,16:00:00,19:00:00,20,ACTIVO
+Jazz,Actividad de Piso - Sotano,María López,JUEVES,16:00:00,19:00:00,20,ACTIVO
+Meditacion,Salon de Eventos,Sofía Morales,MIERCOLES,10:00:00,11:00:00,20,ACTIVO
+Pilates,Salon Enrique Ramirez,Sofía Morales,MIERCOLES,19:00:00,20:00:00,30,ACTIVO
+Pilates,Salon Enrique Ramirez,Sofía Morales,MARTES,11:00:00,13:00:00,30,ACTIVO
+Pilates,Salon Enrique Ramirez,Sofía Morales,MIERCOLES,11:00:00,13:00:00,30,ACTIVO
+Pilates,Salon Enrique Ramirez,Sofía Morales,JUEVES,11:00:00,13:00:00,30,ACTIVO
+Pilates,Salon Enrique Ramirez,Sofía Morales,VIERNES,11:00:00,13:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,MARTES,06:00:00,07:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,MIERCOLES,06:00:00,07:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,JUEVES,06:00:00,07:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,VIERNES,06:00:00,07:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,SABADO,06:00:00,07:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,SABADO,07:00:00,08:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,MARTES,18:00:00,19:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,JUEVES,18:00:00,19:00:00,30,ACTIVO
+Pilates,Gimnasio Espacio de Baile - Tercer Piso,Paula Reyes,SABADO,09:00:00,10:00:00,30,ACTIVO
+Pilates,Actividad de Piso - Sotano,Paula Reyes,MARTES,11:00:00,12:00:00,30,ACTIVO
+Pilates,Actividad de Piso - Sotano,Paula Reyes,JUEVES,11:00:00,12:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,MARTES,07:00:00,09:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,MIERCOLES,07:00:00,09:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,JUEVES,07:00:00,09:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,VIERNES,07:00:00,09:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,MARTES,09:00:00,11:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,MIERCOLES,09:00:00,11:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,JUEVES,09:00:00,11:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,VIERNES,09:00:00,11:00:00,30,ACTIVO
+Yoga,Salon Enrique Ramirez,Elena Ruíz,MIERCOLES,20:00:00,21:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,MARTES,09:00:00,10:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,JUEVES,09:00:00,10:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,MIERCOLES,07:00:00,10:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,MIERCOLES,17:00:00,19:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,VIERNES,16:00:00,19:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Andrea Castillo,SABADO,08:00:00,09:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,JUEVES,19:00:00,20:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,SABADO,10:00:00,11:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,MARTES,19:00:00,21:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,MIERCOLES,19:00:00,21:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,JUEVES,20:00:00,21:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,VIERNES,07:00:00,10:00:00,30,ACTIVO
+Zumba,Gimnasio Espacio de Baile - Tercer Piso,Silvia Navarro,VIERNES,19:00:00,21:00:00,30,ACTIVO
+Frontenis,Cancha de Fronton 1,Diego Vargas,MARTES,16:00:00,20:00:00,8,ACTIVO
+Frontenis,Cancha de Fronton 1,Diego Vargas,MIERCOLES,16:00:00,20:00:00,8,ACTIVO
+Frontenis,Cancha de Fronton 1,Diego Vargas,JUEVES,16:00:00,20:00:00,8,ACTIVO
+Frontenis,Cancha de Fronton 1,Diego Vargas,VIERNES,16:00:00,20:00:00,8,ACTIVO
+Padel,Cancha de Padel 1,Carlos Mendoza,MARTES,18:00:00,21:00:00,8,ACTIVO
+Padel,Cancha de Padel 1,Carlos Mendoza,MIERCOLES,18:00:00,21:00:00,8,ACTIVO
+Padel,Cancha de Padel 1,Carlos Mendoza,JUEVES,18:00:00,21:00:00,8,ACTIVO
+Padel,Cancha de Padel 1,Carlos Mendoza,VIERNES,18:00:00,21:00:00,8,ACTIVO
+Padel,Cancha de Padel 1,Carlos Mendoza,SABADO,09:00:00,12:00:00,8,ACTIVO
+Squash,Cancha de Squash 1,Miguel Sánchez,MARTES,16:00:00,20:00:00,8,ACTIVO
+Squash,Cancha de Squash 1,Miguel Sánchez,MIERCOLES,16:00:00,20:00:00,8,ACTIVO
+Squash,Cancha de Squash 1,Miguel Sánchez,JUEVES,16:00:00,20:00:00,8,ACTIVO
+Squash,Cancha de Squash 1,Miguel Sánchez,VIERNES,16:00:00,20:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,MARTES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,MIERCOLES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,JUEVES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,VIERNES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,MARTES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,MIERCOLES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,JUEVES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 1,Roberto Díaz,VIERNES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,MARTES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,MIERCOLES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,JUEVES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,VIERNES,08:00:00,10:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,MARTES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,MIERCOLES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,JUEVES,16:00:00,19:00:00,8,ACTIVO
+Tenis,Cancha de Tenis 2,Fernando Torres,VIERNES,16:00:00,19:00:00,8,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 2,Javier Castro,MARTES,16:00:00,19:00:00,20,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 2,Javier Castro,MIERCOLES,16:00:00,19:00:00,20,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 2,Javier Castro,JUEVES,16:00:00,19:00:00,20,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 2,Javier Castro,VIERNES,16:00:00,19:00:00,20,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 1,Javier Castro,MARTES,20:00:00,21:00:00,20,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 1,Javier Castro,JUEVES,20:00:00,21:00:00,20,ACTIVO
+Basquetbol,Cancha Multiusos Basquet/Volley 2,Javier Castro,SABADO,09:00:00,13:00:00,20,ACTIVO
+Futbol Adultos,Cancha de Futbol 7,Eduardo Montes,MARTES,14:30:00,16:30:00,16,ACTIVO
+Futbol Adultos,Cancha de Futbol 7,Eduardo Montes,VIERNES,14:30:00,16:30:00,16,ACTIVO
+Futbol Infantil,Cancha de Futbol 7,Eduardo Montes,MIERCOLES,16:30:00,18:30:00,16,ACTIVO
+Futbol Infantil,Cancha de Futbol 7,Eduardo Montes,VIERNES,16:30:00,18:30:00,16,ACTIVO
+Voleibol,Cancha Multiusos Basquet/Volley 1,Arturo Paredes,MARTES,16:00:00,20:00:00,18,ACTIVO
+Voleibol,Cancha Multiusos Basquet/Volley 1,Arturo Paredes,JUEVES,16:00:00,20:00:00,18,ACTIVO
+Voleibol,Cancha Multiusos Basquet/Volley 1,Arturo Paredes,MIERCOLES,16:00:00,20:00:00,18,ACTIVO
+Voleibol,Cancha Multiusos Basquet/Volley 1,Arturo Paredes,VIERNES,16:00:00,20:00:00,18,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,MARTES,07:00:00,09:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,MIERCOLES,07:00:00,09:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,JUEVES,07:00:00,09:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,VIERNES,07:00:00,09:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,MARTES,19:00:00,21:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,MIERCOLES,19:00:00,21:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,JUEVES,19:00:00,21:00:00,25,ACTIVO
+Acondicionamiento Fisico,Cancha Multiusos Basquet/Volley 2,Valeria Romero,VIERNES,19:00:00,21:00:00,25,ACTIVO
+Entrenamiento Funcional,Gimnasio Espacio de Baile - Tercer Piso,Gabriela Rios,MARTES,16:00:00,18:00:00,25,ACTIVO
+Entrenamiento Funcional,Gimnasio Espacio de Baile - Tercer Piso,Gabriela Rios,JUEVES,16:00:00,18:00:00,25,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,MARTES,18:00:00,22:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,MIERCOLES,18:00:00,22:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,JUEVES,18:00:00,22:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,VIERNES,18:00:00,22:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,MARTES,06:00:00,14:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,MIERCOLES,06:00:00,14:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,JUEVES,06:00:00,14:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,VIERNES,06:00:00,14:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,SABADO,09:00:00,13:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Segundo Piso,Felipe Bravo,DOMINGO,09:00:00,12:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Cuarto Piso,Daniela Vega,MARTES,16:00:00,21:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Cuarto Piso,Daniela Vega,MIERCOLES,16:00:00,21:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Cuarto Piso,Daniela Vega,JUEVES,16:00:00,21:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Cuarto Piso,Daniela Vega,VIERNES,16:00:00,21:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Fuerza - Cuarto Piso,Daniela Vega,SABADO,09:00:00,13:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Cardio - Primer Piso,Daniela Vega,MARTES,07:00:00,11:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Cardio - Primer Piso,Daniela Vega,MIERCOLES,07:00:00,11:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Cardio - Primer Piso,Daniela Vega,JUEVES,07:00:00,11:00:00,12,ACTIVO
+Gym Instructor,Gimnasio Cardio - Primer Piso,Daniela Vega,VIERNES,07:00:00,11:00:00,12,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Diana Salazar,MARTES,06:00:00,07:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Diana Salazar,MARTES,17:00:00,21:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Clara Medina,MIERCOLES,06:00:00,09:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Diana Salazar,JUEVES,06:00:00,07:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Diana Salazar,JUEVES,17:00:00,21:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Clara Medina,VIERNES,06:00:00,09:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Patricia Dominguez,MARTES,07:00:00,09:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Clara Medina,MARTES,09:00:00,10:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Patricia Dominguez,MIERCOLES,17:00:00,19:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Patricia Dominguez,MIERCOLES,19:00:00,20:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Clara Medina,JUEVES,07:00:00,09:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Patricia Dominguez,JUEVES,09:00:00,10:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Clara Medina,VIERNES,09:00:00,10:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Patricia Dominguez,VIERNES,18:00:00,20:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Natalia Flores,SABADO,10:00:00,12:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Natalia Flores,MARTES,10:00:00,13:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Natalia Flores,MIERCOLES,10:00:00,13:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Natalia Flores,JUEVES,10:00:00,13:00:00,20,ACTIVO
+Spinning,Showroom Spinning - Tercer Piso,Natalia Flores,VIERNES,10:00:00,13:00:00,20,ACTIVO
+Tae Kwon Do,Salon Enrique Ramirez,Ivan Pineda,MARTES,16:00:00,21:00:00,20,ACTIVO
+Tae Kwon Do,Salon Enrique Ramirez,Ivan Pineda,JUEVES,16:00:00,21:00:00,20,ACTIVO
+Tae Kwon Do,Salon Enrique Ramirez,Ivan Pineda,SABADO,09:00:00,10:00:00,20,ACTIVO
+Gimnasia Olimpica,Salon de Eventos,Karla Rivas,MARTES,15:00:00,20:00:00,30,ACTIVO
+Gimnasia Olimpica,Salon de Eventos,Karla Rivas,JUEVES,15:00:00,20:00:00,30,ACTIVO
+Gimnasia Olimpica,Salon de Eventos,Karla Rivas,MIERCOLES,15:00:00,21:00:00,30,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,MARTES,07:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,MIERCOLES,07:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,JUEVES,07:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,VIERNES,07:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,MARTES,16:30:00,20:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,JUEVES,16:30:00,20:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,MIERCOLES,17:00:00,20:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 1,Lorena Campos,VIERNES,17:00:00,20:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,MARTES,06:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,MIERCOLES,06:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,JUEVES,06:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,VIERNES,06:00:00,11:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,MARTES,16:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,MIERCOLES,16:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,JUEVES,16:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 2,Jimena Orozco,VIERNES,16:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 3,Veronica Mora,MARTES,16:00:00,19:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 3,Veronica Mora,MIERCOLES,16:00:00,19:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 3,Veronica Mora,JUEVES,16:00:00,19:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 3,Veronica Mora,VIERNES,16:00:00,19:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,MARTES,07:00:00,10:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,MIERCOLES,07:00:00,10:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,JUEVES,07:00:00,10:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,VIERNES,07:00:00,10:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,MARTES,16:00:00,21:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,JUEVES,16:00:00,21:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,MIERCOLES,16:00:00,20:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,VIERNES,16:00:00,20:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 4,Esteban Cruz,SABADO,08:00:00,10:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 5,Ricardo Nuñez,MARTES,15:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 5,Ricardo Nuñez,MIERCOLES,15:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 5,Ricardo Nuñez,JUEVES,15:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 5,Ricardo Nuñez,VIERNES,15:00:00,18:00:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 6,Brenda Valdes,MARTES,16:00:00,19:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 6,Brenda Valdes,MIERCOLES,16:00:00,19:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 6,Brenda Valdes,JUEVES,16:00:00,19:30:00,10,ACTIVO
+Natacion,Alberca Olimpica - Zona Clases 6,Brenda Valdes,VIERNES,16:00:00,19:30:00,10,ACTIVO
