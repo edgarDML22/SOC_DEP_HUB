@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservacionController;
+use App\Http\Controllers\SocioController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CancelationController;
 use App\Http\Controllers\EspacioFisicoController;
@@ -54,6 +55,14 @@ Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirm
 
 Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
 
+// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
+Route::get('/nombres', function () {
+    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
+
+    return response()->json([
+        'names' => $nombres
+    ]);
+});
 
 
 // ==========================================
