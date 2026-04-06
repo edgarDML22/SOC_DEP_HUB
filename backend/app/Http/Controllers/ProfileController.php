@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Psy\Readline\Hoa\Console;
+
 
 class ProfileController extends Controller
 {
@@ -18,7 +20,9 @@ class ProfileController extends Controller
             ], 401);
         }
 
+
         $data = null;
+
 
         switch ($usuario->rol) {
             case 'socio_titular':
@@ -41,11 +45,11 @@ class ProfileController extends Controller
                 $perfil = DB::table('miembros_familiares as mf')
                     ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
                     ->select(
-                    'mf.nombre_completo',
-                    'st.numero_accion',
-                    'st.tipo_socio',
-                    'st.estatus_cuenta'
-                )
+                        'mf.nombre_completo',
+                        'st.numero_accion',
+                        'st.tipo_socio',
+                        'st.estatus_cuenta'
+                    )
                     ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
 
@@ -64,6 +68,29 @@ class ProfileController extends Controller
                     ->select('nombre_completo', 'estatus')
                     ->where('id_instructor', $usuario->user_id)
                     ->first();
+
+                if ($perfil) {
+                    $data = [
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'num_accion' => null,
+                        'tipo_socio' => null,
+                        'estatus_cuenta' => $perfil->estatus
+                    ];
+                }
+                break;
+            case 'gerente':
+                $perfil = DB::table('gerentes')
+                    ->select('nombre_completo', 'estatus')
+                    ->where('id_empleado', $usuario->user_id)
+                    ->first();
+                if (!$perfil) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gerente no encontrado',
+                        'user_id' => $usuario->user_id
+                    ], 404);
+                }
+
 
                 if ($perfil) {
                     $data = [

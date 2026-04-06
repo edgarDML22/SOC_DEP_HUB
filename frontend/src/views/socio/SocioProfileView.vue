@@ -13,7 +13,7 @@ const profileStore = useProfileStore();
         <p class="page-subtitle">Gestiona tu Informacion Personal</p>
       </div>
 
-      <div v-if="profileStore.isAccountInactive" class="alert-banner">
+      <div v-if="profileStore.statusAccount !== 'AL_CORRIENTE' && profileStore.statusAccount !== 'ACTIVO'" class="alert-banner">
         ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }}</strong>.
       </div>
 

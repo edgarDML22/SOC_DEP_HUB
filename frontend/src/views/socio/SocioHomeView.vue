@@ -9,6 +9,10 @@ const profileStore = useProfileStore();
       <h2>Hola, {{ profileStore.fullName }}</h2>
       <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
 
+      <div v-if="profileStore.isAccountInactive" class="alert-banner">
+        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar reservas ni consultar código QR.
+      </div>
+
       <div class="card card-blue">
         <div class="card-header">
           <span>Próxima Reserva</span>
@@ -19,7 +23,7 @@ const profileStore = useProfileStore();
           <p class="empty">No hay Reservas disponibles</p>
         </div>
 
-        <div class="card-actions">
+        <div v-if="!profileStore.isAccountInactive" class="card-actions">
           <button class="btn-gray" @click="handleClick('detalle')">Ver detalle</button>
           <button class="btn-blue" @click="handleClick('qr')">Presentar Pase QR</button>
         </div>
@@ -27,7 +31,7 @@ const profileStore = useProfileStore();
 
       <h3 class="section-title">Acciones rápidas</h3>
       <div class="actions">
-        <router-link to="/socio/reservations" class="action-card"> Hacer Reservación</router-link>
+        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer Reservación</router-link>
         <router-link to="/socio/tournaments" class="action-card"> Consultar Torneos</router-link>
         <router-link to="/socio/guests" class="action-card"> Gestionar Invitados</router-link>
         <router-link to="/socio/history" class="action-card"> Consultar Historial</router-link>
@@ -163,5 +167,14 @@ const profileStore = useProfileStore();
 .empty {
   color: #6b7280;
   text-align: center;
+}
+.alert-banner {
+  background-color: #fef2f2;
+  color: #991b1b;
+  padding: 12px 16px;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
 }
 </style>
