@@ -63,7 +63,7 @@ const profileStore = useProfileStore();
 }
 
 .subtitle {
-  color: #6b7280;
+  color: var(--p-surface-500);
   margin-bottom: 16px;
 }
 
@@ -71,7 +71,7 @@ const profileStore = useProfileStore();
   background: white;
   border-radius: 16px;
   padding: 18px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--p-surface-200);
   margin-bottom: 24px;
 }
 
@@ -91,8 +91,8 @@ const profileStore = useProfileStore();
 }
 
 .status.inactive {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--p-surface-200);
+  color: var(--p-surface-500);
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -104,15 +104,15 @@ const profileStore = useProfileStore();
 }
 
 .btn-gray {
-  background: #e5e7eb;
-  border-radius: 8px;
+  background: var(--p-surface-200);
+  border-radius: var(--p-border-radius); 
   padding: 6px 12px;
 }
 
 .btn-blue {
-  background: #2563eb;
+  background: var(--p-primary-600);
   color: white;
-  border-radius: 8px;
+  border-radius: var(--p-border-radius);
   padding: 6px 12px;
 }
 
@@ -126,21 +126,21 @@ const profileStore = useProfileStore();
 .action-card { 
   height: 160px;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--p-surface-200);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   
-  color: #111827; 
+  color: var(--p-surface-900); 
   text-decoration: none;
   font-weight: 500; 
   transition: all 0.2s ease;
 }
 
 .action-card:hover {
-  background-color: #f3f4f6;
+  background-color: var(--p-surface-100);
   border-color: #d1d5db;
 }
 
@@ -153,7 +153,7 @@ const profileStore = useProfileStore();
 .btn-link {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--p-primary-600);
   cursor: pointer;
 }
 
@@ -165,7 +165,7 @@ const profileStore = useProfileStore();
 }
 
 .empty {
-  color: #6b7280;
+  color: var(--p-surface-500);
   text-align: center;
 }
 .alert-banner {
@@ -173,7 +173,7 @@ const profileStore = useProfileStore();
   color: #991b1b;
   padding: 12px 16px;
   border: 1px solid #f87171;
-  border-radius: 8px;
+  border-radius: var(--p-border-radius);
   margin-bottom: 24px;
   font-size: 14px;
 }

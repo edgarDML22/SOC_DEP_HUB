@@ -33,9 +33,12 @@ class EspacioFisicoController extends Controller
     {
         // 1. LA CONSULTA MAESTRA CON RESTRICCIÓN
         $query = EspacioFisico::where('tipo_espacio', 'RESERVA_ON_DEMAND')
-            ->with(['reservaciones' => function ($queryRelacion) use ($fecha) {
-                $queryRelacion->where('fecha_reserva', $fecha);
-            }]);
+            ->with([
+                'reservaciones' => function ($queryRelacion) use ($fecha) {
+                    $queryRelacion->where('fecha_reserva', $fecha);
+                },
+                'disciplinas'
+            ]);
 
         $espacios = $query->get();
 
@@ -47,18 +50,27 @@ class EspacioFisicoController extends Controller
             $estatus = ($reservasDeHoy >= $cupoMaximo) ? 'Lleno/No Disponible' : 'Disponible';
             $cupoRestante = max(0, $cupoMaximo - $reservasDeHoy);
 
+            // Extraer disciplinas
+            $disciplinas = $espacio->disciplinas->pluck('nombre_disciplina')->toArray();
+
+            if (empty($disciplinas)) {
+                $disciplinas = ['N/A'];
+            }
+
+
             if ($espacio->estatus === 'MANTENIMIENTO') {
                 $estatus = 'Bloqueado por Mantenimiento';
                 $cupoRestante = 0;
             }
 
+
             return [
-                'espacio_id' => $espacio->id_espacio,
-                'nombre'     => $espacio->nombre_espacio,
-                'categoria'  => 'N/A',
+                'id_espacio' => $espacio->id_espacio,
+                'nombre_espacio'     => $espacio->nombre_espacio,
+                'disciplinas'  => $disciplinas,
                 'horario'    => 'Sujeto a disponibilidad',
-                'estatus'     => $estatus,
-                'cupo_restante' => $cupoRestante
+                'estatus'     => $estatus ?? $espacio->estatus,
+                'capacidad_maxima' => $cupoMaximo
             ];
         });
 

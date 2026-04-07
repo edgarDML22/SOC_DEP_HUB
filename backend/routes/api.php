@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgendaEspacioController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\SocioTitular; // <-- 1. Importamos el modelo
@@ -16,6 +17,8 @@ use App\Http\Controllers\EspacioFisicoController;
 use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
+use Illuminate\Support\Facades\DB;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -49,11 +52,7 @@ Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
-// SDH-17: Endpoint para crear reservaciones
-Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
-Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
 
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 Route::get('/nombres', function () {
@@ -96,4 +95,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Búsqueda dinámica de socios/familiares (Autocompletado)
     Route::get('/v1/socios/search', [SocioController::class, 'search']);
 
+    Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
+    // Consultar los horarios de un espacio fisico que han sido ocupados
+    Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
+
+    // SDH-17: Endpoint para crear reservaciones
+    Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+
+    Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);
+
+    Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
+
+    Route::get('/v1/reservations/draft/{id_socio}', [ReservacionController::class, 'getActiveDraft']);
 });

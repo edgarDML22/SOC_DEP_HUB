@@ -1,5 +1,7 @@
 /* src/assets/css/global.css */
 
+@layer primevue;
+
 /* Badges (Pastillas de estado) */
 .badge {
   padding: 4px 10px;

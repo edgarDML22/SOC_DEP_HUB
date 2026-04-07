@@ -19,6 +19,10 @@ export const useProfileStore = defineStore("profile", () => {
     return profileData.value?.numero_accion || "N/A";
   });
 
+  const idSocio = computed(() => {
+    return profileData.value?.id_socio || null;
+  });
+
   const fullName = computed(() => {
     if (!profileData.value?.nombre_completo) return "";
     return profileData.value.nombre_completo;
@@ -134,5 +138,6 @@ export const useProfileStore = defineStore("profile", () => {
     fetchProfile,
     logout,
     getSupportLink,
+    idSocio
   };
 });
