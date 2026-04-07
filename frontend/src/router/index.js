@@ -128,6 +128,18 @@ const router = createRouter({
       component: () => import('../views/instructor/InstructorProfileView.vue'),
       meta: { requiresAuth: true, allowedRoles: ['instructor'] }
     },
+    {
+      path: '/instructor/agenda',
+      name: 'instructor-agenda',
+      component: () => import('../views/instructor/InstructorAgendaView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/instructor/sessions',
+      name: 'instructor-sessions',
+      component: () => import('../views/instructor/InstructorSessionsView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
 
     // Admin Routes
     {
