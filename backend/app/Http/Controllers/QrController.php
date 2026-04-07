@@ -25,8 +25,8 @@ class QrController extends Controller
         }
 
         // Crear payload con el ID del usuario y el timestamp actual para evitar clonaciones
-        // Se utiliza el ID del modelo User estándar (que puede mapear a id_usuario)
-        $userId = $user->id ?? $user->id_usuario ?? $user->getKey();
+        // Se utiliza el id primario de la tabla users
+        $userId = $user->id;
         $timestamp = now()->timestamp;
         
         $payloadData = $userId . '|' . $timestamp;

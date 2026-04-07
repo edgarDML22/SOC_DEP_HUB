@@ -85,8 +85,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     //  Consultar disponibilidad de espacios y clases
-    Route::get('/v1/espacios/disponibilidad', [EspacioFisicoController::class, 'getAvailability']);
+    Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     // Consultar los horarios de un espacio fisico que han sido ocupados
-    Route::get('/v1/horarios/disponibilidad', [AgendaEspacioController::class, 'getScheduleForSpace']);
+    Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
 
 });
