@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api";
+import { useProfileStore } from "@/stores/profileStore"; // <--- ASEGÚRATE DE TENER ESTA LÍNEA AQUÍ TAMBIÉN
 
 export const useReservationStore = defineStore("reservation", () => {
   // --- STATE ---
@@ -9,7 +10,7 @@ export const useReservationStore = defineStore("reservation", () => {
   const horariosDisponibles = ref([]);
   const cargando = ref(false);
   const errorApi = ref(null);
-  const errorValidacion = ref(null);
+  const errorNavegacion = ref(null);
 
   const reservaPayload = ref({
     disciplinaSeleccionada: null,
@@ -17,6 +18,7 @@ export const useReservationStore = defineStore("reservation", () => {
     hora_inicio: null,
     hora_fin: null,
     acompanantes: [],
+    id_reserva: null, // <-- 2. NUEVO ESPACIO PARA GUARDAR EL ID
   });
 
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
@@ -43,44 +45,54 @@ export const useReservationStore = defineStore("reservation", () => {
   const horaInicioTemp = ref(null);
   const horaFinTemp = ref(null);
 
-  // Computada para saber si podemos previsualizar (y si el botón se habilita)
-  const esHorarioValidoParaPreview = computed(() => {
-    if (!horaInicioTemp.value || !horaFinTemp.value) return false;
-    return horaInicioTemp.value < horaFinTemp.value;
-  });
+  // 1. ELIMINA "const errorValidacion = ref(null);" (si la tienes arriba)
+  // 2. CREA la validación de forma REACTIVA (computed):
+  const errorValidacion = computed(() => {
+    // Si aún no elige ambas horas, no mostramos error
+    if (!horaInicioTemp.value || !horaFinTemp.value) return null;
 
-  // --- ACCIÓN DE VALIDACIÓN ---
-  const validarHorario = () => {
-    // 0. Limpiamos cualquier error previo
-    errorValidacion.value = null;
-
-    // 1. Validar inicio < fin
-    if (!esHorarioValidoParaPreview.value) {
-      errorValidacion.value =
-        "La hora de inicio debe ser menor a la hora de fin.";
-      return;
-    }
-
-    // 2. Validar máximo 2 horas
     const numInicio = parseInt(horaInicioTemp.value.split(":")[0]);
     const numFin = parseInt(horaFinTemp.value.split(":")[0]);
-    if (numFin - numInicio > 2) {
-      errorValidacion.value = "La reserva máxima permitida es de 2 horas.";
-      return;
+
+    // A) Validar inicio < fin
+    if (numInicio >= numFin) {
+      return "La hora de inicio debe ser menor a la hora de fin.";
     }
 
-    // 3. Validar empalmes con el backend
+    // B) Validar máximo 2 horas
+    if (numFin - numInicio > 2) {
+      return "La reserva máxima permitida es de 2 horas.";
+    }
+
+    // C) Validar empalmes con el backend en tiempo real
     const hayEmpalme = horariosDisponibles.value.some((bloque) => {
       const bloqueInicio = parseInt(bloque.inicio.split(":")[0]);
       const bloqueFin = parseInt(bloque.fin.split(":")[0]);
+      // Fórmula para detectar intersección de rangos de tiempo
       return numInicio < bloqueFin && numFin > bloqueInicio;
     });
 
     if (hayEmpalme) {
-      errorValidacion.value =
-        "El horario choca con otra actividad. Por favor, elige otro.";
-    } else {
-      // Todo en orden, pasamos al Step 4
+      return "El horario seleccionado ya ha sido ocupado. Elija uno nuevo para continuar.";
+    }
+
+    // Todo está perfecto
+    return null;
+  });
+
+  // 3. ACTUALIZAR la variable del Preview y del Botón
+  const esHorarioValidoParaPreview = computed(() => {
+    // El horario es válido SOLO si tiene horas asignadas y NO hay ningún error
+    return (
+      horaInicioTemp.value &&
+      horaFinTemp.value &&
+      errorValidacion.value === null
+    );
+  });
+
+  // 4. SIMPLIFICAR tu acción, ya que el 'computed' hace todo el trabajo pesado
+  const validarHorario = () => {
+    if (!errorValidacion.value && esHorarioValidoParaPreview.value) {
       seleccionarHorario(horaInicioTemp.value, horaFinTemp.value);
     }
   };
@@ -135,7 +147,7 @@ export const useReservationStore = defineStore("reservation", () => {
     errorApi.value = null;
     try {
       const hoy = fechaHoy();
-      const res = await api.get("/espacios/disponibilidad", {
+      const res = await api.get("/spaces/availability", {
         params: {
           date: hoy,
           espacio_type: "RESERVA_ON_DEMAND",
@@ -155,7 +167,7 @@ export const useReservationStore = defineStore("reservation", () => {
     errorApi.value = null;
     try {
       const hoy = fechaHoy();
-      const res = await api.get("horarios/disponibilidad", {
+      const res = await api.get("schedules/availability", {
         params: {
           date: hoy,
           id_espacio: id_espacio,
@@ -171,51 +183,128 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
-  const handleHorario = async (hora_inicio, hora_fin) => {
-    // VALIDACION hora_inicio < hora_fin
-    // VALIDACION hora_inicio - hora_fin <= 2 horas
-    // VALIDACION empalme con otros bloques
+  // 1. Modificamos esta función
+  const buscarReservaActiva = async () => {
+    const profileStore = useProfileStore();
 
-    const freeHour = false;
+    // Si aún no hay ID (asincronía), no disparamos la petición
+    if (!profileStore.idSocio) return false;
 
-    // 1. Validar que la hora inicio sea menor a la hora fin
-    if (horaInicioTemp.value >= horaFinTemp.value) {
-      console.warn(
-        "FUNCIÓN B: Horario Inválido. La hora inicio debe ser menor a la hora fin.",
+    try {
+      // IMPORTANTE: Asegúrate que en api.php sea GET
+      const res = await api.get(
+        `/reservations/draft/${profileStore.idSocio}`,
       );
-      // Aquí luego pondremos una alerta visual (Toast)
-      return;
-    }
 
-    // 2. Aquí iría el algoritmo para revisar si se empalma con 'horariosDisponibles'
-    const hayEmpalme = false; // Simulación
+      if (res.data.success && res.data.reserva) {
+        const r = res.data.reserva;
 
-    if (hayEmpalme) {
-      console.warn("FUNCIÓN B: Horario Ocupado. ¡Choca con otro bloque!");
-      // Aquí luego pondremos otra alerta
-    } else {
-      console.log("FUNCIÓN A: Horario Válido. ¡Avanzamos!");
-      seleccionarHorario(horaInicioTemp.value, horaFinTemp.value);
+        // Mapeamos los datos del borrador al store
+        reservaPayload.value = {
+          disciplinaSeleccionada: r.espacio_fisico.disciplina || "Futbol", // Ajusta al nombre de tu columna
+          id_espacio: r.id_espacio,
+          hora_inicio: r.hora_inicio,
+          hora_fin: r.hora_fin,
+          id_reserva: r.id_reserva,
+          acompanantes: [],
+        };
+
+        // También actualizamos las horas temporales para que el calendario se pinte
+        horaInicioTemp.value = r.hora_inicio;
+        horaFinTemp.value = r.hora_fin;
+
+        return true;
+      }
+    } catch (e) {
+      console.log("No hay borradores activos para este usuario.");
     }
+    return false;
+  };
+
+  // 2. NUEVA FUNCIÓN: Para cuando el usuario le da "Ignorar y empezar de cero"
+  const descartarBorrador = async () => {
+    if (reservaPayload.value.id_reserva) {
+      try {
+        // Le avisamos al backend que la cancele para liberar la cancha
+        await api.post("/reservations/cancelar", {
+          id_reserva: reservaPayload.value.id_reserva,
+        });
+      } catch (e) {
+        console.error("Error al cancelar el borrador");
+      }
+    }
+    resetearReserva();
+    fetchDisponibilidadEspacios(); // Cargamos las canchas normales
   };
 
   // GO FOWARD
+  // --- 3. LIMPIAR EL ERROR CUANDO EL USUARIO HACE LO CORRECTO ---
+  // Actualiza tus funciones de selección para que limpien 'errorNavegacion'
+
   const seleccionarDisciplina = (disciplina) => {
     reservaPayload.value.disciplinaSeleccionada = disciplina;
+    reservaPayload.value.id_espacio = null;
+    horaInicioTemp.value = null;
+    horaFinTemp.value = null;
+    errorNavegacion.value = null; // <--- Agrega esto
     pasoActual.value = "2";
   };
 
   const seleccionarEspacio = (id_espacio) => {
     fetchHorarioEspacio(id_espacio);
     reservaPayload.value.id_espacio = id_espacio;
+    errorNavegacion.value = null; // <--- Agrega esto
     pasoActual.value = "3";
   };
 
-  const seleccionarHorario = (hora_inicio, hora_fin) => {
+  // reservationStore.js
+
+  const seleccionarHorario = async (hora_inicio, hora_fin) => {
+    const profileStore = useProfileStore();
+
+    // 1. EL GUARDIÁN: Si el ID es null, esperamos a que el perfil se cargue
+    if (!profileStore.idSocio) {
+      await profileStore.fetchProfile();
+    }
+
+    // Si después de intentar cargar sigue sin haber ID (ej. sesión expirada), cancelamos
+    if (!profileStore.idSocio) {
+      errorNavegacion.value =
+        "No se pudo identificar al socio. Por favor, reintenta iniciar sesión.";
+      return;
+    }
+
     reservaPayload.value.hora_inicio = hora_inicio;
-    reservaPayload.value.hora_inicio = hora_fin;
-    pasoActual.value = "4";
-    // agregar la lógica de pendiente que hizo Gabo
+    reservaPayload.value.hora_fin = hora_fin;
+    errorNavegacion.value = null;
+
+    cargando.value = true;
+    errorApi.value = null;
+
+    try {
+      const payloadBackend = {
+        id_socio: profileStore.idSocio, // <-- Ahora garantizamos que NO será null
+        id_espacio: reservaPayload.value.id_espacio,
+        fecha_reserva: fechaHoy(),
+        hora_inicio: hora_inicio,
+        hora_fin: hora_fin,
+      };
+
+      // Usamos la ruta en inglés como la definiste en api.php
+      const res = await api.post("/reservations", payloadBackend);
+
+      if (res.data.success) {
+        reservaPayload.value.id_reserva = res.data.id_reserva;
+        pasoActual.value = "4";
+      }
+    } catch (error) {
+      console.error("Error al confirmar horario:", error);
+      if (error.response?.data?.message) {
+        errorNavegacion.value = error.response.data.message;
+      }
+    } finally {
+      cargando.value = false;
+    }
   };
 
   // GO BACK
@@ -235,6 +324,43 @@ export const useReservationStore = defineStore("reservation", () => {
     pasoActual.value = "3";
   };
 
+  // --- 2. EL GUARDIÁN DE RUTAS (Sin animaciones que desaparecen) ---
+  const intentarCambioPaso = (nuevoPaso) => {
+    const destino = parseInt(nuevoPaso);
+    const actual = parseInt(pasoActual.value);
+
+    // Si va hacia atrás, limpiamos errores y lo dejamos pasar
+    if (destino < actual) {
+      errorNavegacion.value = null;
+      pasoActual.value = nuevoPaso;
+      return;
+    }
+
+    // Reglas de validación
+    if (destino >= 2 && !reservaPayload.value.disciplinaSeleccionada) {
+      errorNavegacion.value = "Primero debes elegir un deporte para continuar.";
+      return;
+    }
+
+    if (destino >= 3 && !reservaPayload.value.id_espacio) {
+      errorNavegacion.value = "Primero debes seleccionar una cancha disponible";
+      return;
+    }
+
+    if (
+      destino >= 4 &&
+      (!horaInicioTemp.value || !horaFinTemp.value || errorValidacion.value)
+    ) {
+      errorNavegacion.value =
+        "Primero debes elegir y confirmar un horario válido.";
+      return;
+    }
+
+    // Si todo está bien, limpiamos el error y avanzamos
+    errorNavegacion.value = null;
+    pasoActual.value = nuevoPaso;
+  };
+
   // Cancelar reserva
 
   const resetearReserva = () => {
@@ -249,7 +375,6 @@ export const useReservationStore = defineStore("reservation", () => {
   };
 
   const obtenerIconoName = (disciplina) => {
-    // Mapea el nombre de la disciplina de tu BD con el nombre EXACTO de tu archivo .vue
     const mapaIconos = {
       Tenis: "IconTenis",
       Padel: "IconPadel",
@@ -263,7 +388,6 @@ export const useReservationStore = defineStore("reservation", () => {
       Fronton: "IconFrontenis",
     };
 
-    // Si no encuentra el deporte, carga un ícono genérico (asegúrate de crear DefaultIcon.vue)
     return mapaIconos[disciplina] || "DefaultIcon";
   };
 
@@ -281,6 +405,9 @@ export const useReservationStore = defineStore("reservation", () => {
     horaFinTemp,
     esHorarioValidoParaPreview,
     validarHorario,
+    errorValidacion,
+    errorNavegacion,
+    intentarCambioPaso,
     // -----------------------------------
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,
@@ -292,6 +419,7 @@ export const useReservationStore = defineStore("reservation", () => {
     volverAHorarios,
     seleccionarEspacio,
     seleccionarHorario,
-    handleHorario,
+    buscarReservaActiva,
+    descartarBorrador,
   };
 });
