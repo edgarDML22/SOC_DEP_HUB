@@ -106,10 +106,17 @@ const IconoDeporte = (disciplina) => {
 
 <template>
 
-    <Dialog v-model:visible="mostrarModalDraft" modal header="Reserva pendiente" :closable="false" class="modal-borrador-minimal">
-        <div class="modal-borrador-content">
+    <Dialog v-model:visible="mostrarModalDraft" modal :closable="false" class="modal-borrador-minimal">
+        
+        <template #header>
+            <div class="custom-modal-header">
+                <h3>Reserva pendiente</h3>
+            </div>
+        </template>
+
+        <div class="custom-modal-body">
             <p class="modal-description">
-                Tienes una reservación que no terminaste de confirmar. El espacio sigue apartado temporalmente para ti.
+                Tienes una reservación que no terminaste de confirmar. El espacio sigue resevado temporalmente para ti.
             </p>
 
             <div class="draft-details-list">
@@ -130,10 +137,13 @@ const IconoDeporte = (disciplina) => {
             </p>
         </div>
         
-        <div class="modal-actions">
-            <Button label="Ignorar y empezar de cero" class="btn-descartar" @click="ignorarReserva" />
-            <Button label="Continuar mi reserva" icon="pi pi-arrow-right" iconPos="right" class="btn-continuar" @click="reanudarReserva" />
-        </div>
+        <template #footer>
+            <div class="custom-modal-footer">
+                <Button label="Ignorar y empezar de cero" class="btn-descartar" @click="ignorarReserva" />
+                <Button label="Continuar mi reserva" icon="pi pi-arrow-right" iconPos="right" class="btn-continuar" @click="reanudarReserva" />
+            </div>
+        </template>
+
     </Dialog>
     
     
@@ -1335,54 +1345,99 @@ button.tarjeta-deporte:hover .icono-contenedor {
 }
 
 /* =========================================
-   MODAL DE BORRADOR (DRAFT)
+   MODAL DE BORRADOR (DRAFT) MINIMALISTA Y PRO
 ========================================= */
-:deep(.modal-borrador) {
+
+/* 1. Resetear PrimeVue y poner el borde general */
+:deep(.modal-borrador-minimal.p-dialog),
+:deep(.modal-borrador-minimal) {
     width: 90vw !important;
-    max-width: 450px !important;
-    border-radius: 1rem !important;
-    font-family: var(--p-font-family);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    max-width: 480px !important;
+    border-radius: 12px !important;
+    border: 2px solid var(--p-primary-500) !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+    font-family: var(--p-font-family) !important;
+    overflow: hidden !important;
 }
 
-:deep(.modal-borrador .p-dialog-header) {
-    padding: 1.5rem 1.5rem 1rem 1.5rem !important;
-    border-bottom: 1px solid var(--p-surface-200);
+/* Apagamos el padding rebelde de PrimeVue */
+:deep(.modal-borrador-minimal .p-dialog-header),
+:deep(.modal-borrador-minimal .p-dialog-content),
+:deep(.modal-borrador-minimal .p-dialog-footer) {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
 }
 
-:deep(.modal-borrador .p-dialog-title) {
-    font-weight: 700 !important;
-    font-size: 1.25rem !important;
-    color: var(--p-surface-900) !important;
+/* 2. NUESTROS CONTENEDORES CON PADDING PERFECTO */
+.custom-modal-header {
+    padding: 1.75rem 2rem 0.5rem 2rem; /* Espacio arriba y a los lados */
 }
 
-.modal-borrador-content {
-    padding: 1.5rem 0 0.5rem 0;
+.custom-modal-header h3 {
+    font-weight: 700;
+    font-size: 1.35rem;
+    color: var(--p-surface-900);
+    margin: 0;
 }
 
-.modal-text {
+.custom-modal-body {
+    padding: 0.5rem 2rem 1.5rem 2rem; /* Espacio a los lados alineado con el header */
+}
+
+.custom-modal-footer {
+    padding: 0 2rem 2rem 2rem; /* Espacio abajo y a los lados */
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* 3. Textos internos */
+.modal-description {
     font-size: 1.05rem;
     color: var(--p-surface-600);
     line-height: 1.5;
-    margin-bottom: 1rem;
+    margin: 0 0 1.5rem 0;
 }
 
-.modal-text strong {
-    color: var(--p-primary-700);
+.modal-question {
+    margin: 1.5rem 0 0 0;
+    text-align: center;
+    font-weight: 600;
+    color: var(--p-surface-900);
+}
+
+/* 4. Lista de Detalles Limpia */
+.draft-details-list {
+    background-color: var(--p-surface-50);
+    border: 1px solid var(--p-surface-200);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.detail-label {
+    color: var(--p-surface-500);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.detail-value {
+    color: var(--p-primary-900);
+    font-size: 1.05rem;
     font-weight: 700;
 }
 
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px dashed var(--p-surface-200);
-}
-
-/* Botones del Modal */
+/* 5. Botones */
 :deep(.btn-descartar.p-button) {
     background-color: transparent !important;
     border: 1px solid var(--p-surface-300) !important;
@@ -1394,9 +1449,9 @@ button.tarjeta-deporte:hover .icono-contenedor {
 }
 
 :deep(.btn-descartar.p-button:hover) {
-    background-color: #fef2f2 !important; /* Rojo muy clarito al pasar el mouse */
-    border-color: #fca5a5 !important;
-    color: #dc2626 !important;
+    background-color: var(--p-surface-100) !important;
+    border-color: var(--p-surface-400) !important;
+    color: var(--p-surface-900) !important;
 }
 
 :deep(.btn-continuar.p-button) {
@@ -1415,19 +1470,16 @@ button.tarjeta-deporte:hover .icono-contenedor {
     transform: translateY(-2px) !important;
 }
 
-/* Ajuste móvil para los botones */
+/* Ajuste para celulares */
 @media (max-width: 600px) {
-    .modal-actions {
+    .custom-modal-footer {
         flex-direction: column-reverse;
-        align-items: stretch;
     }
-    
     :deep(.btn-descartar.p-button),
     :deep(.btn-continuar.p-button) {
         width: 100% !important;
         justify-content: center !important;
     }
 }
-
 
 </style>

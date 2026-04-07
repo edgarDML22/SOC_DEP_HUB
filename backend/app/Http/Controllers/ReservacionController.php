@@ -82,7 +82,7 @@ class ReservacionController extends Controller
                 'hora_inicio'      => $request->hora_inicio,
                 'hora_fin'         => $request->hora_fin,
                 'estatus_operativo' => 'PENDIENTE',
-                'fecha_expiracion' => Carbon::now()->addMinutes(15),
+                'fecha_expiracion' => Carbon::now()->addMinutes(15), // REGRESAR A 15 MINUTOS
             ]);
 
             return response()->json([
