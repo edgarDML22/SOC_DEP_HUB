@@ -125,7 +125,7 @@ class ReservacionController extends Controller
         }
 
         // Obtener datos de la reservación padre
-        $reservacion = DB::table('reservaciones')->where('id', $id)->first();
+        $reservacion = DB::table('reservaciones_on_demand')->where('id_reserva', $id)->first();
         if (!$reservacion) {
             return response()->json([
                 'success' => false,
@@ -136,28 +136,28 @@ class ReservacionController extends Controller
         // 2. Validación de conflicto de horario
         // Validar que el acompañante no tenga otra reservación activa en el mismo horario
         $tieneConflicto = DB::table('reservaciones_usuarios')
-            ->join('reservaciones', 'reservaciones.id', '=', 'reservaciones_usuarios.reservacion_id')
+            ->join('reservaciones_on_demand as rod', 'rod.id_reserva', '=', 'reservaciones_usuarios.reservacion_id')
             ->where('reservaciones_usuarios.usuario_id', $acompananteId)
-            ->where('reservaciones.fecha', $reservacion->fecha)
-            ->where('reservaciones.estatus', '!=', 'cancelada')
+            ->where('rod.fecha_reserva', $reservacion->fecha_reserva)
+            ->where('rod.estatus_operativo', '!=', 'CANCELADA')
             ->where(function ($query) use ($reservacion) {
                 // Hay conflicto si el inicio de otra es antes del fin, y su fin es después del inicio
-                $query->where('reservaciones.hora_inicio', '<', $reservacion->hora_fin)
-                    ->where('reservaciones.hora_fin', '>', $reservacion->hora_inicio);
+                $query->where('rod.hora_inicio', '<', $reservacion->hora_fin)
+                    ->where('rod.hora_fin', '>', $reservacion->hora_inicio);
             })
-            ->where('reservaciones.id', '!=', $id) // Excluir esta misma reservación
+            ->where('rod.id_reserva', '!=', $id) // Excluir esta misma reservación
             ->exists();
 
-        // Si es titular y hace sus propias reservas, verificamos con tabla "reservaciones"
-        $tieneConflictoTitular = DB::table('reservaciones')
-            ->where('usuario_id', $acompananteId) // dueño de reserva
-            ->where('fecha', $reservacion->fecha)
-            ->where('estatus', '!=', 'cancelada')
+        // Si es titular y hace sus propias reservas, verificamos con tabla "reservaciones_on_demand"
+        $tieneConflictoTitular = DB::table('reservaciones_on_demand')
+            ->where('id_socio_titular', $acompananteId) // dueño de reserva
+            ->where('fecha_reserva', $reservacion->fecha_reserva)
+            ->where('estatus_operativo', '!=', 'CANCELADA')
             ->where(function ($query) use ($reservacion) {
                 $query->where('hora_inicio', '<', $reservacion->hora_fin)
                     ->where('hora_fin', '>', $reservacion->hora_inicio);
             })
-            ->where('id', '!=', $id)
+            ->where('id_reserva', '!=', $id)
             ->exists();
 
         if ($tieneConflicto || $tieneConflictoTitular) {
@@ -168,8 +168,8 @@ class ReservacionController extends Controller
         }
 
         // 3. Validación: No superar la capacidad máxima del espacio
-        $espacio = DB::table('espacios')->where('id', $reservacion->espacio_id)->first();
-        if ($espacio && isset($espacio->capacidad)) {
+        $espacio = DB::table('espacios_fisicos')->where('id_espacio', $reservacion->id_espacio)->first();
+        if ($espacio && isset($espacio->capacidad_maxima)) {
             // Contar asistentes (1 titular + cantidad en tabla pivote para esta reservacion)
             $asistentesAdicionales = DB::table('reservaciones_usuarios')
                 ->where('reservacion_id', $id)
@@ -177,7 +177,7 @@ class ReservacionController extends Controller
 
             $totalAsistentes = 1 + $asistentesAdicionales;
 
-            if ($totalAsistentes >= $espacio->capacidad) {
+            if ($totalAsistentes >= $espacio->capacidad_maxima) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Se ha alcanzado la capacidad máxima del espacio'
