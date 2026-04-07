@@ -10,6 +10,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservacionController;
+use App\Http\Controllers\SocioController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CancelationController;
 use App\Http\Controllers\EspacioFisicoController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -52,6 +54,14 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 
 
+// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
+Route::get('/nombres', function () {
+    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
+
+    return response()->json([
+        'names' => $nombres
+    ]);
+});
 // SDH 119
 Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
 // ==========================================
@@ -77,6 +87,14 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     //  Consultar disponibilidad de espacios y clases
+    Route::get('/v1/espacios/disponibilidad', [EspacioFisicoController::class, 'getAvailability']);
+
+    // Agregar acompañantes a una reservación
+    Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
+
+    // Búsqueda dinámica de socios/familiares (Autocompletado)
+    Route::get('/v1/socios/search', [SocioController::class, 'search']);
+
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     // Consultar los horarios de un espacio fisico que han sido ocupados
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
