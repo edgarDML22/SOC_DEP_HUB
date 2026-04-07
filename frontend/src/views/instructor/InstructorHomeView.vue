@@ -1,4 +1,5 @@
 <template>
+  <InstructorNavBar />
   <div class="instructor-container">
     <h1>Panel de Instructor</h1>
     <p>Área de escáner y registro de asistencia.</p>
@@ -15,8 +16,6 @@
       <h2>Perfil del Instructor</h2>
       <pre>{{ JSON.stringify(profile, null, 2) }}</pre>
     </div>
-
-    <button @click="handleLogout" class="logout-btn">Cerrar Sesión</button>
   </div>
 </template>
 
@@ -24,6 +23,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api'; 
+import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
 
 const router = useRouter();
 

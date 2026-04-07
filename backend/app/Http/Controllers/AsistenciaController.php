@@ -18,10 +18,10 @@ class AsistenciaController extends Controller
         try {
             $decrypted = Crypt::decryptString($request->input('qr_payload'));
             
-            // The payload might be a JSON containing socio_id, or just the socio_id string itself.
+            // The payload might be a JSON containing id_socio, or just the id_socio string itself.
             $data = json_decode($decrypted, true);
-            $socioId = (json_last_error() === JSON_ERROR_NONE && isset($data['socio_id'])) 
-                ? $data['socio_id'] 
+            $socioId = (json_last_error() === JSON_ERROR_NONE && isset($data['id_socio'])) 
+                ? $data['id_socio'] 
                 : $decrypted;
 
         } catch (DecryptException $e) {
@@ -40,18 +40,18 @@ class AsistenciaController extends Controller
             ], 404);
         }
 
-        if (strcasecmp($socio->estatus_cuenta, 'Inactivo') === 0) {
+        if (strcasecmp($socio->estatus_cuenta, 'SUSPENDIDO') === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Socio suspendido o inactivo'
+                'message' => 'Socio suspendido'
             ], 403);
         }
 
         return response()->json([
             'success' => true,
-            'socio_id' => $socio->id_socio,
+            'id_socio' => $socio->id_socio,
             'nombre_completo' => $socio->nombre_completo,
-            'estatus' => $socio->estatus_cuenta
+            'estatus_cuenta' => $socio->estatus_cuenta
         ], 200);
     }
 }

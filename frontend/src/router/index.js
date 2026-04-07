@@ -122,6 +122,12 @@ const router = createRouter({
       component: () => import('../views/instructor/ScannerView.vue'),
       meta: { requiresAuth: true, allowedRoles: ['instructor'] }
     },
+    {
+      path: '/instructor/profile',
+      name: 'instructor-profile',
+      component: () => import('../views/instructor/InstructorProfileView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
 
     // Admin Routes
     {
