@@ -17,8 +17,7 @@ use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
 use Illuminate\Support\Facades\DB;
-
-
+use App\Http\Controllers\GuestPassController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -53,8 +52,8 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 
 
-
-
+// SDH 119
+Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
