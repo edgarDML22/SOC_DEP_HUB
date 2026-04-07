@@ -18,3 +18,6 @@ export { default as IconBriefcase } from './IconBriefcase.vue';
 export { default as IconSupport } from './IconSupport.vue';
 export { default as IconLogout } from './IconLogout.vue';
 export { default as IconHistory } from './IconHistory.vue';
+export { default as IconMessage } from './IconMessage.vue';
+export { default as IconInbox } from './IconInbox.vue';
+export { default as IconHourglass } from './IconHourglass.vue';
