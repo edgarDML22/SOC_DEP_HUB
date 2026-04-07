@@ -10,11 +10,16 @@ class PasesDiarios extends Model
     use HasFactory;
 
     protected $table = 'pases_diarios';
+    protected $primaryKey = 'id_pase';
+    public $timestamps = false;
+
 
     protected $fillable = [
-        'id_pase',
+
         'invitado_id',
-        'estatus_accceso',
+        'estatus_acceso',
+        'fecha_activacion',
+
 
     ];
 }

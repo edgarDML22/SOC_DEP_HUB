@@ -19,6 +19,8 @@ class Invitados extends Model
         'nombre_invitado',
         'socio_titulare',
         'codigo_qr',
+        'correo',
+        'telefono',
 
     ];
 

@@ -18,11 +18,11 @@ class ReservacionController extends Controller
     {
         try {
             $request->validate([
-                'id_socio'      => 'required|integer|exists:socios_titulares,id_socio',
+                'id_socio' => 'required|integer|exists:socios_titulares,id_socio',
                 'fecha_reserva' => 'required|date|after_or_equal:today',
-                'hora_inicio'   => 'required|date_format:H:i',
-                'hora_fin'      => 'required|date_format:H:i|after:hora_inicio',
-                'id_espacio'    => 'required|integer|exists:espacios_fisicos,id_espacio',
+                'hora_inicio' => 'required|date_format:H:i',
+                'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+                'id_espacio' => 'required|integer|exists:espacios_fisicos,id_espacio',
             ]);
         } catch (ValidationException $e) {
             return response()->json(['success' => false, 'errors' => $e->errors()], 422);
@@ -47,7 +47,7 @@ class ReservacionController extends Controller
             $conflictoReserva = Reservacion::where('id_espacio', $request->id_espacio)
                 ->where('fecha_reserva', $request->fecha_reserva)
                 ->where(function ($q) {
-                    $q->where('estatus_operativo','ACTIVA') // Reservas firmes
+                    $q->where('estatus_operativo', 'ACTIVA') // Reservas firmes
                         ->orWhere(function ($sub) {
                             $sub->where('estatus_operativo', 'PENDIENTE')
                                 ->where('fecha_expiracion', '>', now()); // PENDIENTES vivas
@@ -78,10 +78,10 @@ class ReservacionController extends Controller
             // SI TODO ESTÁ LIBRE, CREAMOS LA RESERVA
             $nuevaReserva = Reservacion::create([
                 'id_socio_titular' => $request->id_socio,
-                'id_espacio'       => $request->id_espacio,
-                'fecha_reserva'    => $request->fecha_reserva,
-                'hora_inicio'      => $request->hora_inicio,
-                'hora_fin'         => $request->hora_fin,
+                'id_espacio' => $request->id_espacio,
+                'fecha_reserva' => $request->fecha_reserva,
+                'hora_inicio' => $request->hora_inicio,
+                'hora_fin' => $request->hora_fin,
                 'estatus_operativo' => 'PENDIENTE',
                 'fecha_expiracion' => Carbon::now()->addMinutes(15),
             ]);
@@ -212,7 +212,7 @@ class ReservacionController extends Controller
             'message' => 'Acompañante agregado exitosamente.'
         ], 201);
     }
-}
+
     // 2. CONFIRMAR RESERVA (Paso 5 del Front)
     public function confirm(Request $request)
     {
@@ -238,7 +238,7 @@ class ReservacionController extends Controller
 
         $reserva->update([
             'estatus_operativo' => 'ACTIVA',
-            'fecha_expiracion'  => null,
+            'fecha_expiracion' => null,
         ]);
 
         return response()->json(['success' => true, 'message' => 'Reservación confirmada correctamente']);
@@ -258,17 +258,17 @@ class ReservacionController extends Controller
         return response()->json(['success' => true, 'message' => 'Reservación cancelada correctamente']);
     }
 
-    public function getActiveDraft(Request $request) 
-{
-    $reserva = Reservacion::where('id_socio_titular', $request->id_socio)
-        ->where('estatus_operativo', 'PENDIENTE')
-        ->where('fecha_expiracion', '>', now())
-        ->with('espacioFisico') 
-        ->first();
+    public function getActiveDraft(Request $request)
+    {
+        $reserva = Reservacion::where('id_socio_titular', $request->id_socio)
+            ->where('estatus_operativo', 'PENDIENTE')
+            ->where('fecha_expiracion', '>', now())
+            ->with('espacioFisico')
+            ->first();
 
-    return response()->json([
-        'success' => !!$reserva,
-        'reserva' => $reserva
-    ]);
-}
+        return response()->json([
+            'success' => !!$reserva,
+            'reserva' => $reserva
+        ]);
+    }
 }
