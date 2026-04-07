@@ -13,7 +13,18 @@ class Reservacion extends Model
     public $timestamps = true;
 
     protected $fillable = [
+        'id_socio_titular',
         'id_espacio',
-        'id_socio_titular'
+        'fecha_reserva',
+        'hora_inicio',
+        'hora_fin',
+        'estatus_operativo',
+        'fecha_expiracion',
     ];
+
+    public function espacioFisico(){
+        return $this->hasOne(EspacioFisico::class, 'id_espacio', 'id_espacio');
+    }
+
+  
 }

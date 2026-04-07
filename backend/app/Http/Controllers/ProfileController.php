@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SocioTitular;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Psy\Readline\Hoa\Console;
@@ -26,17 +27,21 @@ class ProfileController extends Controller
 
         switch ($usuario->rol) {
             case 'socio_titular':
-                $perfil = DB::table('socios_titulares')
-                    ->select('nombre_completo', 'numero_accion', 'tipo_socio', 'estatus_cuenta')
-                    ->where('id_socio', $usuario->user_id)
+                $perfil = SocioTitular::where('id_socio', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
                     $data = [
-                        'nombre_completo' => $perfil->nombre_completo,
+                        'id_socio' => $perfil->id_socio,
                         'numero_accion' => $perfil->numero_accion,
+                        'nombre_completo' => $perfil->nombre_completo,
                         'tipo_socio' => $perfil->tipo_socio,
-                        'estatus_cuenta' => $perfil->estatus_cuenta
+                        'modalidad_plan' => $perfil->modalidad_plan,
+                        'estatus_cuenta' => $perfil->estatus_cuenta,
+                        'correo_electronico' => $perfil->correo_electronico,
+                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                        'genero' => $perfil->genero,
+                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
                     ];
                 }
                 break;

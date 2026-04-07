@@ -51,11 +51,8 @@ Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
-// SDH-17: Endpoint para crear reservaciones
-Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
 
-Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
+
 
 
 // ==========================================
@@ -81,8 +78,16 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     //  Consultar disponibilidad de espacios y clases
-    Route::get('/v1/espacios/disponibilidad', [EspacioFisicoController::class, 'getAvailability']);
+    Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     // Consultar los horarios de un espacio fisico que han sido ocupados
-    Route::get('/v1/horarios/disponibilidad', [AgendaEspacioController::class, 'getScheduleForSpace']);
+    Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
 
+    // SDH-17: Endpoint para crear reservaciones
+    Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+
+    Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);
+
+    Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
+
+    Route::get('/v1/reservations/draft/{id_socio}', [ReservacionController::class, 'getActiveDraft']);
 });
