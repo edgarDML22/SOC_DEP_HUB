@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\SocioTitular;
 
 class ProfileController extends Controller
 {
@@ -23,17 +24,11 @@ class ProfileController extends Controller
         switch ($usuario->rol) {
             case 'socio_titular':
                 $perfil = DB::table('socios_titulares')
-                    ->select('nombre_completo', 'numero_accion', 'tipo_socio', 'estatus_cuenta')
                     ->where('id_socio', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
-                    $data = [
-                        'nombre_completo' => $perfil->nombre_completo,
-                        'numero_accion' => $perfil->numero_accion,
-                        'tipo_socio' => $perfil->tipo_socio,
-                        'estatus_cuenta' => $perfil->estatus_cuenta
-                    ];
+                    $data = (array) $perfil;
                 }
                 break;
 
@@ -41,11 +36,11 @@ class ProfileController extends Controller
                 $perfil = DB::table('miembros_familiares as mf')
                     ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
                     ->select(
-                    'mf.nombre_completo',
-                    'st.numero_accion',
-                    'st.tipo_socio',
-                    'st.estatus_cuenta'
-                )
+                        'mf.nombre_completo',
+                        'st.numero_accion',
+                        'st.tipo_socio',
+                        'st.estatus_cuenta'
+                    )
                     ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
 
@@ -96,5 +91,35 @@ class ProfileController extends Controller
             'success' => true,
             'data' => $data
         ], 200);
+    }
+
+    public function update(Request $request)
+    {
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado o token inválido'
+            ], 401);
+        }
+
+        if ($usuario->rol !== 'socio_titular') {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $validated = $request->validate([
+            'fecha_nacimiento' => 'required|date',
+            'genero' => 'required|in:M,F,OTRO',
+        ]);
+
+        $socio = SocioTitular::find($usuario->user_id);
+
+        if ($socio) {
+            $socio->update($validated);
+            return response()->json(['success' => true, 'message' => 'Perfil actualizado correctamente']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Error al actualizar'], 500);
     }
 }

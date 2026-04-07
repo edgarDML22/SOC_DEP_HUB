@@ -12,3 +12,5 @@ export { default as IconCreditCard } from './IconCreditCard.vue';
 export { default as IconLock } from './IconLock.vue';
 export { default as IconGuests } from './IconGuests.vue';
 export { default as IconQr } from './IconQr.vue';
+export { default as IconMail } from './IconMail.vue';
+export { default as IconGender } from './IconGender.vue';

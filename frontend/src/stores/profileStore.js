@@ -9,12 +9,31 @@ export const useProfileStore = defineStore("profile", () => {
   const isLoading = ref(false);
   const error = ref(null);
 
+  // Helper para formatear texto: "AL_CORRIENTE" -> "Al Corriente"
+  const formatText = (text) => {
+    if (!text) return "N/A";
+    return text
+      .toLowerCase()
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // 2. GETTERS
-  // Calcula las iniciales
+  // Tipos y estados formateados
   const typeSocio = computed(() => {
-    return profileData.value?.tipo_socio || "N/A";
+    return formatText(profileData.value?.tipo_socio);
   });
 
+  const statusAccount = computed(() => {
+    return formatText(profileData.value?.estatus_cuenta) || 'Desconocido';
+  });
+
+  const modalidadPlan = computed(() => {
+    return formatText(profileData.value?.modalidad_plan);
+  });
+
+  // Datos originales
   const actionNumber = computed(() => {
     return profileData.value?.numero_accion || "N/A";
   });
@@ -33,14 +52,14 @@ export const useProfileStore = defineStore("profile", () => {
     return names[0][0].toUpperCase();
   });
 
-  // Cuenta inactiva
-  const statusAccount = computed(() => {
-    return profileData.value?.estatus_cuenta || 'Desconocido';
-  });
+  // Nuevos campos extraídos para edición
+  const fechaNacimiento = computed(() => profileData.value?.fecha_nacimiento || "");
+  const genero = computed(() => profileData.value?.genero || "");
+  const correoElectronico = computed(() => profileData.value?.correo_electronico || "");
 
   const isAccountInactive = computed(() => {
     if (!profileData.value) return false;
-    const status = statusAccount.value?.toUpperCase();
+    const status = profileData.value?.estatus_cuenta?.toUpperCase();
     return status === "INACTIVO" || status === "SUSPENDIDO";
   });
 
@@ -95,6 +114,28 @@ export const useProfileStore = defineStore("profile", () => {
     }
   };
 
+  // Nuevo Action para guardar los cambios editados
+  const updateProfile = async (formData) => {
+    isLoading.value = true;
+    try {
+      const response = await api.post("/api/v1/profile/update", formData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+
+      if (response.data.success) {
+        // Limpiamos el profileData actual y volvemos a cargar para traer los datos frescos de la BD
+        profileData.value = null;
+        await fetchProfile();
+        return true;
+      }
+    } catch (error) {
+      console.error("Error al actualizar perfil:", error);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const logout = async () => {
     try {
       // Hacemos la petición al backend para que invalide el token
@@ -135,7 +176,12 @@ export const useProfileStore = defineStore("profile", () => {
     isAccountInactive,
     statusBadgeClass,
     passwordUpdateText,
+    fechaNacimiento,
+    genero,
+    correoElectronico,
+    modalidadPlan,
     fetchProfile,
+    updateProfile,
     logout,
     getSupportLink,
   };

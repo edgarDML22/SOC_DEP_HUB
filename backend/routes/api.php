@@ -53,6 +53,7 @@ Route::get('/nombres', function () {
 });
 
 
+
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -75,5 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/user', function (Request $request) {
         return $request->user();
     });
+
+    //Ruta para actualizar el perfil del usuario
+    Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
 });

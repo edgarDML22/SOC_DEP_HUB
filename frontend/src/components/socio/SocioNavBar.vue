@@ -31,7 +31,7 @@ const toggleNotifications = () => {
                 Inicio
             </router-link>
 
-            <router-link v-if="!profileStore.isAccountInactive"to="/socio/reservations" class="nav-link">
+            <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="nav-link">
                 <IconCalendar class="icon"/>
                 Reservas
             </router-link>
