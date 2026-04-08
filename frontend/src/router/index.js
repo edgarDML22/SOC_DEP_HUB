@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useProfileStore } from '@/stores/profileStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,7 @@ const router = createRouter({
       component: () => import("@/views/auth/ResetPassword.vue"),
     },
 
+
     // Socio Routes
     {
       path: "/socio",
@@ -40,6 +42,7 @@ const router = createRouter({
           name: "socio-home",
           component: () => import("@/views/socio/SocioHomeView.vue"),
         },
+
         {
           path: "reservations",
           name: "socio-reservations",
@@ -68,6 +71,21 @@ const router = createRouter({
               component: () => import("@/views/reservations/socio/Manage.vue"),
             },
           ],
+          beforeEnter: async (to, from) => {
+            const profileStore = useProfileStore();
+
+            if (!profileStore.profileData) {
+              try {
+                await profileStore.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el store desde el router", error);
+              }
+            }
+
+            if (profileStore.isAccountInactive) {
+              return '/socio/home';
+            }
+          }
         },
         {
           path: "reservations/on-demand",
@@ -89,6 +107,35 @@ const router = createRouter({
           path: "guests",
           name: "socio-guests",
           component: () => import("@/views/socio/SocioGuestsView.vue"),
+
+          children: [
+            {
+              path: "",
+              redirect: "guests"
+            },
+            {
+              path: "guests",
+              name: "guests-guests",
+              component: () => import("@/views/guest/guestLists/guestList.vue"),
+            },
+            {
+              path: "family-members",
+              name: "guests-family-members",
+              component: () => import("@/views/guest/guestLists/familyMembers.vue"),
+            },
+            {
+              path: "friends",
+              name: "guests-friends",
+              component: { template: "<div></div>" },
+            },
+            {
+              path: "add",
+              name: "guests-add",
+              component: () => import("@/views/guest/guestLists/addGuest.vue")
+            },
+          ]
+
+
         },
         {
           path: "history",
@@ -101,12 +148,26 @@ const router = createRouter({
           component: () => import("../views/socio/SocioProfileView.vue"),
         },
         {
-          path: "qr",
-          name: "socio-qr",
-          component: () => import("../views/socio/SocioQrView.vue"),
-        },
+          path: 'qr',
+          name: 'socio-qr',
+          component: () => import('../views/socio/SocioQrView.vue'),
+          beforeEnter: async (to, from) => {
+            const profileStore = useProfileStore();
 
-      ],
+            if (!profileStore.profileData) {
+              try {
+                await profileStore.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el store desde el router", error);
+              }
+            }
+
+            if (profileStore.isAccountInactive) {
+              return '/socio/home';
+            }
+          }
+        }
+      ]
     },
 
     // Instructor Routes
@@ -117,10 +178,28 @@ const router = createRouter({
       meta: { requiresAuth: true, allowedRoles: ["instructor"] },
     },
     {
-      path: "/instructor/scanner",
-      name: "instructor-scanner",
-      component: () => import("../views/instructor/InstructorHomeView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
+      path: '/instructor/scanner',
+      name: 'instructor-scanner',
+      component: () => import('../views/instructor/ScannerView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/instructor/profile',
+      name: 'instructor-profile',
+      component: () => import('../views/instructor/InstructorProfileView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/instructor/agenda',
+      name: 'instructor-agenda',
+      component: () => import('../views/instructor/InstructorAgendaView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+    },
+    {
+      path: '/instructor/sessions',
+      name: 'instructor-sessions',
+      component: () => import('../views/instructor/InstructorSessionsView.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
     },
 
     // Admin Routes

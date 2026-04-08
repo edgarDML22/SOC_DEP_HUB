@@ -24,10 +24,21 @@ class AgendaEspacioController extends Controller
         // Revisamos otras reservas TABLE reservaciones_on_demand
         // con fecha de hoy y con el mismo $id_espacio
         // ver si hay una forma más eficiente de hacerlo con with()
+        // PASO 1
+        // Revisamos otras reservas con fecha de hoy y con el mismo $id_espacio
+        $id_socio = $request->user()->user_id;  
+
         $reservas = Reservacion::where('id_espacio', $id_espacio)
-            ->where('fecha_reserva', $fecha)
-            ->whereNotIn('estatus_operativo', ['NO_SHOW', 'CANCELADA', 'FINALIZADA'])
-            ->get()
+            ->where('fecha_reserva', $fecha) // <- Corregido: usamos $fecha
+            ->where(function ($q) use ($id_socio){
+                $q->where('estatus_operativo', 'ACTIVA') // Reservas firmes
+                    ->orWhere(function ($sub) use ($id_socio) {
+                        $sub->where('estatus_operativo', 'PENDIENTE')
+                            ->where('fecha_expiracion', '>', now()) // PENDIENTES vivas
+                            ->where('id_socio_titular', '!=', $id_socio);
+                            });
+            })
+            ->get() 
             ->map(function ($reserva) {
                 return [
                     'inicio' => $reserva->hora_inicio,
@@ -37,7 +48,7 @@ class AgendaEspacioController extends Controller
             });
         // se añaden las reservas
         $resultado = $resultado->concat($reservas);
-        
+
 
         // PASO 2
         // Revisamos actividades programadas TABLE sesiones_activas
@@ -61,7 +72,7 @@ class AgendaEspacioController extends Controller
                     'tipo' => 'sesion'
                 ];
             });
-        
+
         $resultado = $resultado->concat($sesiones);
 
 

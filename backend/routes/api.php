@@ -9,15 +9,18 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\ReservacionController;
-use App\Http\Controllers\ConfirmationController;
-use App\Http\Controllers\CancelationController;
+use App\Http\Controllers\SocioController;
 use App\Http\Controllers\EspacioFisicoController;
 use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
+use App\Http\Controllers\InstructorDashboardController;
 use Illuminate\Support\Facades\DB;
-
+use App\Http\Controllers\GuestPassController;
+use App\Http\Controllers\GuestStatusController;
+use App\Http\Controllers\MiembrosFamiliaresController;
 use App\Http\Controllers\QrController;
 
 /*
@@ -50,13 +53,25 @@ Route::get('/v1/torneos', [TorneoController::class, 'index']);
 //SDH-51: Endpoint para actualizar el estado de un torneo
 Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
+
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
-Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-Route::post('/v1/reservations/confirm', [ConfirmationController::class, 'confirmar_reservacion']);
+Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
+Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
 
-Route::post('/v1/reservations/cancel', [CancelationController::class, 'cancelar_reservacion']);
+// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
+Route::get('/nombres', function () {
+    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
+
+    return response()->json([
+        'names' => $nombres
+    ]);
+});
+// SDH 119
+Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
+// get status of guest
+Route::post('/v1/guest-status', [GuestStatusController::class, 'store']);
 
 
 // ==========================================
@@ -85,8 +100,36 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     //  Consultar disponibilidad de espacios y clases
+
+    // Validación de QR para Asistencia
+    Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
+
+    // Dashboard dinámico del instructor
+    Route::get('/v1/instructor/dashboard', [InstructorDashboardController::class, 'getDashboardData']);
+
+    // Agregar acompañantes a una reservación
+    Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
+
+    // Búsqueda dinámica de socios/familiares (Autocompletado)
+    Route::get('/v1/socios/search', [SocioController::class, 'search']);
+
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     // Consultar los horarios de un espacio fisico que han sido ocupados
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
 
+    // SDH-17: Endpoint para crear reservaciones
+    Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+
+    Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);
+
+    Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
+
+    Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
+
+    //Ruta para actualizar el perfil del usuario
+    Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 });
+
+
+
+

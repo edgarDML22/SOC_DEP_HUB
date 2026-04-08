@@ -41,7 +41,7 @@ class AuthController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'nombre' => $user->email, // Fallback temporal hasta conectar relaciones con perfil_id
-                    'rol' => $user->rol       // Retorna 'gerente', 'socio_titular', etc.
+                    'rol' => $user->rol,       // Retorna 'gerente', 'socio_titular', etc.
                 ]
             ]
         ], 200);
