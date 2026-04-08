@@ -8,6 +8,7 @@ const profileStore = useProfileStore();
 
 const qrPayload = ref('');
 const isQrModalOpen = ref(false);
+const qrIsLoading = ref(false);
 const errorQr = ref('');
 
 const handleClick = async (action) => {
@@ -16,14 +17,24 @@ const handleClick = async (action) => {
 
     try {
       errorQr.value = '';
-      const response = await api.get('/api/v1/profile/qr-data');
+      qrIsLoading.value = true;
+      // VITE_API_URL = http://localhost:8000/api/v1
+      // Por eso la ruta no lleva el prefijo /v1 (ya está en el baseURL).
+      const response = await api.get('/profile/qr-data');
       if (response.data.success) {
         qrPayload.value = response.data.data.qr_payload;
         isQrModalOpen.value = true;
       }
     } catch (error) {
       console.error('Error al generar QR:', error);
-      errorQr.value = 'No se pudo generar el código QR en este momento.';
+      // Si el backend devuelve 403 (cuenta no al corriente) mostramos su mensaje.
+      if (error.response?.status === 403) {
+        errorQr.value = error.response.data?.message ?? 'Tu cuenta no puede generar el código QR en este momento.';
+      } else {
+        errorQr.value = 'No se pudo generar el código QR. Intenta de nuevo más tarde.';
+      }
+    } finally {
+      qrIsLoading.value = false;
     }
   } else {
     console.log('Action:', action);
@@ -87,7 +98,12 @@ const handleClick = async (action) => {
     </div>
 
     <!-- Modal para mostrar el QR -->
-    <QrCredentialModal v-if="isQrModalOpen" :payloadText="qrPayload" @close="isQrModalOpen = false" />
+    <QrCredentialModal
+      v-if="isQrModalOpen"
+      :payloadText="qrPayload"
+      :isLoading="qrIsLoading"
+      @close="isQrModalOpen = false"
+    />
   </main>
 </template>
 
