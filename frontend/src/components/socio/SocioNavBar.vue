@@ -32,7 +32,7 @@ const toggleNotifications = () => {
             </router-link>
 
             <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="nav-link">
-                <IconCalendar class="icon" />
+                <IconCalendar class="icon"/>
                 Reservas
             </router-link>
 
@@ -41,7 +41,7 @@ const toggleNotifications = () => {
                 Torneos
             </router-link>
 
-            <router-link to="/socio/guests" class="nav-link">
+            <router-link to="/socio/guests/guests" class="nav-link">
                 <IconGuests class="icon" />
                 Invitados
             </router-link>

@@ -21,3 +21,5 @@ export { default as IconHistory } from './IconHistory.vue';
 export { default as IconMessage } from './IconMessage.vue';
 export { default as IconInbox } from './IconInbox.vue';
 export { default as IconHourglass } from './IconHourglass.vue';
+export { default as IconMail } from './IconMail.vue';
+export { default as IconGender } from './IconGender.vue';
