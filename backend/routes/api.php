@@ -19,7 +19,8 @@ use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
-
+use App\Http\Controllers\GuestStatusController;
+use App\Http\Controllers\MiembrosFamiliaresController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -52,7 +53,8 @@ Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
-
+// Miembros Familiares
+Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
 
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 Route::get('/nombres', function () {
@@ -64,6 +66,8 @@ Route::get('/nombres', function () {
 });
 // SDH 119
 Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
+// get status of guest
+Route::post('/v1/guest-status', [GuestStatusController::class, 'store']);
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================

@@ -26,6 +26,7 @@ const router = createRouter({
       component: () => import("@/views/auth/ResetPassword.vue"),
     },
 
+
     // Socio Routes
     {
       path: "/socio",
@@ -40,6 +41,7 @@ const router = createRouter({
           name: "socio-home",
           component: () => import("@/views/socio/SocioHomeView.vue"),
         },
+
         {
           path: "reservations",
           name: "socio-reservations",
@@ -89,6 +91,35 @@ const router = createRouter({
           path: "guests",
           name: "socio-guests",
           component: () => import("@/views/socio/SocioGuestsView.vue"),
+
+          children: [
+            {
+              path: "",
+              redirect: "invitados"
+            },
+            {
+              path: "invitados",
+              name: "guests-invitados",
+              component: () => import("@/views/invitados/guests/invitados.vue"),
+            },
+            {
+              path: "miembros",
+              name: "guests-miembros",
+              component: () => import("@/views/invitados/guests/miembros.vue"),
+            },
+            {
+              path: "amigos",
+              name: "guests-amigos",
+              component: { template: "<div></div>" },
+            },
+            {
+              path: "agregar",
+              name: "guests-add",
+              component: () => import("@/views/invitados/guests/add_guest.vue")
+            },
+          ]
+
+
         },
         {
           path: "history",

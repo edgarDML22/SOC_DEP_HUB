@@ -19,6 +19,7 @@ class PasesDiarios extends Model
         'invitado_id',
         'estatus_acceso',
         'fecha_activacion',
+        'fecha_expiracion',
 
 
     ];

@@ -22,10 +22,15 @@ class Invitados extends Model
         'correo',
         'telefono',
 
+
     ];
 
     public function socioTitular()
     {
         return $this->belongsTo(SocioTitular::class, 'id_socio', 'socio_id');
+    }
+    public function pase()
+    {
+        return $this->hasOne(PasesDiarios::class, 'invitado_id', 'id_invitado');
     }
 }
