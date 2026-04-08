@@ -65,6 +65,8 @@ Route::get('/nombres', function () {
     ]);
 });
 
+
+
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -114,4 +116,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
 
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
+
+    //Ruta para actualizar el perfil del usuario
+    Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 });
+
+
+
+
