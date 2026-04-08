@@ -73,7 +73,7 @@ const mostrarModalDraft = ref(false);
 // Funciones para los botones del Modal
 const reanudarReserva = () => {
     mostrarModalDraft.value = false;
-    reservationStore.pasoActual = "4"; // Lo mandamos directo a acompañantes
+    reservationStore.pasoActual = "4"; 
 };
 
 const ignorarReserva = async () => {
@@ -128,6 +128,12 @@ const IconoDeporte = (disciplina) => {
                     <span class="detail-label">Horario:</span>
                     <strong class="detail-value">
                         {{ formatearHora(reservaPayload.hora_inicio) }} - {{ formatearHora(reservaPayload.hora_fin) }}
+                    </strong>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Espacio:</span>
+                    <strong class="detail-value">
+                        {{reservaPayload.espacioSeleccionado}}
                     </strong>
                 </div>
             </div>
@@ -240,8 +246,12 @@ const IconoDeporte = (disciplina) => {
                                     <!-- ESTATUS -->
                                     <div class="shrink-0 ml-4">
                                         <span class="cancha-status-badge"
-                                            :class="cancha.estatus === 'Disponible' ? 'status-available' : 'status-maintenance'">
-                                            {{ cancha.estatus === 'Disponible' ? 'Disponible' : 'Mantenimiento' }}
+                                            :class="{
+                                                'status-available': cancha.estatus === 'Disponible',
+                                                'status-maintenance': cancha.estatus === 'Bloqueado por Mantenimiento' || cancha.estatus === 'MANTENIMIENTO',
+                                                'status-full': cancha.estatus === 'Lleno/No Disponible'
+                                            }">
+                                            {{ cancha.estatus === 'Lleno/No Disponible' ? 'Lleno' : (cancha.estatus === 'Disponible' ? 'Disponible' : 'Mantenimiento') }}
                                         </span>
                                     </div>
                                 </button>
@@ -274,13 +284,13 @@ const IconoDeporte = (disciplina) => {
                                     <div class="form-group">
                                         <label class="form-label">Hora de Inicio</label>
                                         <Select v-model="horaInicioTemp" :options="opcionesHoras"
-                                            placeholder="Ej. 09:00" class="w-full custom-select" appendTo="self" />
+                                            placeholder="Ej. 09:00" class="w-full custom-select" appendTo="self" :disabled="cargando"/>
                                     </div>
 
                                     <div class="form-group mt-medium">
                                         <label class="form-label">Hora de Fin</label>
                                         <Select v-model="horaFinTemp" :options="opcionesHoras" placeholder="Ej. 11:00"
-                                            class="w-full custom-select" appendTo="self" />
+                                            class="w-full custom-select" appendTo="self" :disabled="cargando"/>
                                     </div>
 
                                     <div class="mensajes-validacion-container">
@@ -1480,6 +1490,11 @@ button.tarjeta-deporte:hover .icono-contenedor {
         width: 100% !important;
         justify-content: center !important;
     }
+}
+
+.status-full {
+    background-color: #fef08a; /* Amarillo clarito */
+    color: #854d0e; /* Texto café oscuro */
 }
 
 </style>

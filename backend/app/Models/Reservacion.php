@@ -15,6 +15,7 @@ class Reservacion extends Model
     protected $fillable = [
         'id_socio_titular',
         'id_espacio',
+        'id_disciplina',
         'fecha_reserva',
         'hora_inicio',
         'hora_fin',
@@ -26,5 +27,7 @@ class Reservacion extends Model
         return $this->hasOne(EspacioFisico::class, 'id_espacio', 'id_espacio');
     }
 
-  
+    public function disciplina(){
+        return $this->hasOne(Disciplina::class,'id_disciplina', 'id_disciplina');
+    }
 }
