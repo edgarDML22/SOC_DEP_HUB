@@ -1,40 +1,41 @@
-import axios from 'axios';
+import axios from "axios";
+
+import router from "@/router";
 
 const api = axios.create({
-    // La URL del backend en Laravel expuesto por Docker
-    baseURL: 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL, //URL DEL BACKEND
+  withCredentials: true,
 
-    // ESTA ES LA REGLA DE ORO PARA SANCTUM
-    withCredentials: true,
-
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-    }
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
 });
 
 api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
 );
 
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            console.warn('Sesión expirada o token inválido');
-            // Nota: Aquí en el futuro podrías agregar lógica para redirigir al router de Vue hacia el login
-        }
-        return Promise.reject(error);
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_data");
+
+      router.push("/login");
     }
+    return Promise.reject(error);
+  },
 );
 
 export default api;

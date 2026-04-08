@@ -8,15 +8,39 @@ export const useProfileStore = defineStore("profile", () => {
   const profileData = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
+  let profilePromise = null;
+
+  // Helper para formatear texto: "AL_CORRIENTE" -> "Al Corriente"
+  const formatText = (text) => {
+    if (!text) return "N/A";
+    return text
+      .toLowerCase()
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   // 2. GETTERS
-  // Calcula las iniciales
+  // Tipos y estados formateados
   const typeSocio = computed(() => {
-    return profileData.value?.tipo_socio || "N/A";
+    return formatText(profileData.value?.tipo_socio);
   });
 
+  const statusAccount = computed(() => {
+    return formatText(profileData.value?.estatus_cuenta) || 'Desconocido';
+  });
+
+  const modalidadPlan = computed(() => {
+    return formatText(profileData.value?.modalidad_plan);
+  });
+
+  // Datos originales
   const actionNumber = computed(() => {
     return profileData.value?.numero_accion || "N/A";
+  });
+
+  const idSocio = computed(() => {
+    return profileData.value?.id_socio || null;
   });
 
   const fullName = computed(() => {
@@ -33,14 +57,14 @@ export const useProfileStore = defineStore("profile", () => {
     return names[0][0].toUpperCase();
   });
 
-  // Cuenta inactiva
-  const statusAccount = computed(() => {
-    return profileData.value?.estatus_cuenta || 'Desconocido';
-  });
+  // Nuevos campos extraídos para edición
+  const fechaNacimiento = computed(() => profileData.value?.fecha_nacimiento || "");
+  const genero = computed(() => profileData.value?.genero || "");
+  const correoElectronico = computed(() => profileData.value?.correo_electronico || "");
 
   const isAccountInactive = computed(() => {
     if (!profileData.value) return false;
-    const status = statusAccount.value?.toUpperCase();
+    const status = profileData.value?.estatus_cuenta?.toUpperCase();
     return status === "INACTIVO" || status === "SUSPENDIDO";
   });
 
@@ -70,26 +94,50 @@ export const useProfileStore = defineStore("profile", () => {
   });
 
   // 3. ACTIONS
-  const fetchProfile = async (params) => {
-    if (profileData.value) return; //para solo cargar la primera vez
+  const fetchProfile = async () => {
+    if (profileData.value) return profileData.value;
+
+
+    if (profilePromise) return profilePromise;
 
     isLoading.value = true;
     error.value = null;
 
+    profilePromise = api.get('/profile')
+      .then(response => {
+        if (response.data.success) {
+          profileData.value = response.data.data;
+        }
+        return profileData.value;
+      })
+      .catch(err => {
+        console.error("Error de conexión al obtener el perfil:", err);
+      })
+      .finally(() => {
+        isLoading.value = false;
+        profilePromise = null;
+      });
+
+    return profilePromise;
+  };
+
+  // Nuevo Action para guardar los cambios editados
+  const updateProfile = async (formData) => {
+    isLoading.value = true;
     try {
-      const response = await api.get("/api/v1/profile", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
+      const response = await api.post("/profile/update", formData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
 
       if (response.data.success) {
-        profileData.value = response.data.data;
-      } else {
-        console.error("Error desde el servidor:", response.data.message);
+        // Limpiamos el profileData actual y volvemos a cargar para traer los datos frescos de la BD
+        profileData.value = null;
+        await fetchProfile();
+        return true;
       }
     } catch (error) {
-      console.error("Error de conexión al obtener el perfil:", error);
+      console.error("Error al actualizar perfil:", error);
+      return false;
     } finally {
       isLoading.value = false;
     }
@@ -98,7 +146,7 @@ export const useProfileStore = defineStore("profile", () => {
   const logout = async () => {
     try {
       // Hacemos la petición al backend para que invalide el token
-      await api.post("/api/v1/auth/logout");
+      await api.post("/auth/logout");
     } catch (error) {
       console.error("Error al cerrar sesión en el servidor:", error);
     } finally {
@@ -110,7 +158,7 @@ export const useProfileStore = defineStore("profile", () => {
 
   const getSupportLink = async () => {
     try {
-      const response = await api.get("/api/v1/system/support-link");
+      const response = await api.get("/system/support-link");
       const url = response.data?.data?.support_url;
 
       if (url) {
@@ -135,8 +183,14 @@ export const useProfileStore = defineStore("profile", () => {
     isAccountInactive,
     statusBadgeClass,
     passwordUpdateText,
+    fechaNacimiento,
+    genero,
+    correoElectronico,
+    modalidadPlan,
     fetchProfile,
+    updateProfile,
     logout,
     getSupportLink,
+    idSocio
   };
 });
