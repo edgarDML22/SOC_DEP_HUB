@@ -26,16 +26,19 @@ class AgendaEspacioController extends Controller
         // ver si hay una forma más eficiente de hacerlo con with()
         // PASO 1
         // Revisamos otras reservas con fecha de hoy y con el mismo $id_espacio
+        $id_socio = $request->user()->user_id;  
+
         $reservas = Reservacion::where('id_espacio', $id_espacio)
             ->where('fecha_reserva', $fecha) // <- Corregido: usamos $fecha
-            ->where(function ($q) {
+            ->where(function ($q) use ($id_socio){
                 $q->where('estatus_operativo', 'ACTIVA') // Reservas firmes
-                    ->orWhere(function ($sub) {
+                    ->orWhere(function ($sub) use ($id_socio) {
                         $sub->where('estatus_operativo', 'PENDIENTE')
-                            ->where('fecha_expiracion', '>', now()); // PENDIENTES vivas
-                    });
+                            ->where('fecha_expiracion', '>', now()) // PENDIENTES vivas
+                            ->where('id_socio_titular', '!=', $id_socio);
+                            });
             })
-            ->get() // <- ¡Este era el que faltaba para evitar el Error 500!
+            ->get() 
             ->map(function ($reserva) {
                 return [
                     'inicio' => $reserva->hora_inicio,

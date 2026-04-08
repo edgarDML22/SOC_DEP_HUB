@@ -8,6 +8,7 @@ export const useProfileStore = defineStore("profile", () => {
   const profileData = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
+  let profilePromise = null;
 
   // Helper para formatear texto: "AL_CORRIENTE" -> "Al Corriente"
   const formatText = (text) => {
@@ -93,32 +94,38 @@ export const useProfileStore = defineStore("profile", () => {
   });
 
   // 3. ACTIONS
-  const fetchProfile = async (params) => {
-    if (profileData.value) return; //para solo cargar la primera vez
+  const fetchProfile = async () => {
+    if (profileData.value) return profileData.value;
+
+
+    if (profilePromise) return profilePromise;
 
     isLoading.value = true;
     error.value = null;
 
-    try {
-      const response = await api.get('/profile');
+    profilePromise = api.get('/profile')
+      .then(response => {
+        if (response.data.success) {
+          profileData.value = response.data.data;
+        }
+        return profileData.value;
+      })
+      .catch(err => {
+        console.error("Error de conexión al obtener el perfil:", err);
+      })
+      .finally(() => {
+        isLoading.value = false;
+        profilePromise = null;
+      });
 
-      if (response.data.success) {
-        profileData.value = response.data.data;
-      } else {
-        console.error("Error desde el servidor:", response.data.message);
-      }
-    } catch (error) {
-      console.error("Error de conexión al obtener el perfil:", error);
-    } finally {
-      isLoading.value = false;
-    }
+    return profilePromise;
   };
 
   // Nuevo Action para guardar los cambios editados
   const updateProfile = async (formData) => {
     isLoading.value = true;
     try {
-      const response = await api.post("/api/v1/profile/update", formData, {
+      const response = await api.post("/profile/update", formData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
 

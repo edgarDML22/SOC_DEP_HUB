@@ -13,8 +13,10 @@ export const useReservationStore = defineStore("reservation", () => {
   const errorNavegacion = ref(null);
 
   const reservaPayload = ref({
+    espacioSeleccionado: null,
     disciplinaSeleccionada: null,
     id_espacio: null,
+    id_disciplina: null,
     hora_inicio: null,
     hora_fin: null,
     acompanantes: [],
@@ -101,19 +103,14 @@ export const useReservationStore = defineStore("reservation", () => {
   const disciplinasUnicas = computed(() => {
     if (!espaciosDisponibles.value.length) return [];
 
-    // Disciplinas
-    const todasLasDisciplinas = espaciosDisponibles.value.flatMap(
-      (espacio) => espacio.disciplinas,
+    const nombresDisciplinas = espaciosDisponibles.value.flatMap((espacio) =>
+      espacio.disciplinas.map((d) => {
+        if (d.nombre_disciplina.includes("Futbol")) return "Futbol";
+        return d.nombre_disciplina;
+      })
     );
 
-    const disciplinasAgrupadas = todasLasDisciplinas.map((disciplina) => {
-      if (disciplina === "Futbol Adultos" || disciplina === "Futbol Infantil") {
-        return "Futbol";
-      }
-      return disciplina;
-    });
-
-    return [...new Set(disciplinasAgrupadas)].filter((d) => d !== "N/A");
+    return [...new Set(nombresDisciplinas)].filter((d) => d !== "N/A");
   });
 
   const espaciosPorDisciplina = computed(() => {
@@ -121,15 +118,11 @@ export const useReservationStore = defineStore("reservation", () => {
     if (!seleccion) return [];
 
     return espaciosDisponibles.value.filter((espacio) => {
-      if (seleccion === "Futbol") {
-        return (
-          espacio.disciplinas.includes("Futbol Adultos") ||
-          espacio.disciplinas.includes("Futbol Infantil")
-        );
-      }
-      return espacio.disciplinas.includes(seleccion);
+      // Buscamos si la cancha tiene al menos una disciplina que coincida
+      return espacio.disciplinas.some((d) => d.nombre_disciplina.includes(seleccion));
     });
   });
+  
 
   const fechaHoy = () => {
     const hoy = new Date();
@@ -183,35 +176,40 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
-  // 1. Modificamos esta función
+  // MANEJAR RESERVAS PENDIENTES (ACTIVE DRAFTS)
+
   const buscarReservaActiva = async () => {
-    const profileStore = useProfileStore();
+    // Ya no necesitamos validar if(!profileStore.idSocio) porque 
+    // Laravel sabrá quiénes somos gracias a la cookie/token de sesión.
 
-    // Si aún no hay ID (asincronía), no disparamos la petición
-    if (!profileStore.idSocio) return false;
 
+    // -- Se busca su última reserva que dejó como PENDIENTE
     try {
-      // IMPORTANTE: Asegúrate que en api.php sea GET
-      const res = await api.get(
-        `/reservations/draft/${profileStore.idSocio}`,
-      );
+      const res = await api.get('/reservations/draft/active');
 
       if (res.data.success && res.data.reserva) {
         const r = res.data.reserva;
 
-        // Mapeamos los datos del borrador al store
+        const horaInicioLimpia = r.hora_inicio.substring(0, 5); // Pasa de "11:00:00" a "11:00"
+        const horaFinLimpia = r.hora_fin.substring(0, 5);
+
+        //En automatico se guardan los datos en reservaPayload
+
         reservaPayload.value = {
-          disciplinaSeleccionada: r.espacio_fisico.disciplina || "Futbol", // Ajusta al nombre de tu columna
+          id_disciplina: r.id_disciplina,
+          disciplinaSeleccionada: r.disciplina?.nombre_disciplina || "Deporte",
           id_espacio: r.id_espacio,
+          espacioSeleccionado: r.espacio_fisico?.nombre_espacio || "Espacio",
           hora_inicio: r.hora_inicio,
           hora_fin: r.hora_fin,
           id_reserva: r.id_reserva,
-          acompanantes: [],
+          acompanantes: [], 
         };
 
-        // También actualizamos las horas temporales para que el calendario se pinte
-        horaInicioTemp.value = r.hora_inicio;
-        horaFinTemp.value = r.hora_fin;
+        horaInicioTemp.value = horaInicioLimpia;
+        horaFinTemp.value = horaFinLimpia;
+
+        fetchHorarioEspacio(r.id_espacio);
 
         return true;
       }
@@ -221,12 +219,17 @@ export const useReservationStore = defineStore("reservation", () => {
     return false;
   };
 
-  // 2. NUEVA FUNCIÓN: Para cuando el usuario le da "Ignorar y empezar de cero"
+  // -- FLUJO A: Cuando el usuario decide continuar con su reserva
+  // Los datos que llevaba se guardan en reservaPayload para que pueda continuar
+
+
+  // -- FLUJO B: Cuando el usuario descarta su reserva PENDIENTE
+  // Es devuelto al principio de la reserva
   const descartarBorrador = async () => {
     if (reservaPayload.value.id_reserva) {
       try {
         // Le avisamos al backend que la cancele para liberar la cancha
-        await api.post("/reservations/cancelar", {
+        await api.post("/reservations/cancel", {
           id_reserva: reservaPayload.value.id_reserva,
         });
       } catch (e) {
@@ -244,16 +247,33 @@ export const useReservationStore = defineStore("reservation", () => {
   const seleccionarDisciplina = (disciplina) => {
     reservaPayload.value.disciplinaSeleccionada = disciplina;
     reservaPayload.value.id_espacio = null;
+    reservaPayload.value.espacioSeleccionado = null;
     horaInicioTemp.value = null;
     horaFinTemp.value = null;
-    errorNavegacion.value = null; // <--- Agrega esto
+    errorNavegacion.value = null; 
     pasoActual.value = "2";
   };
 
   const seleccionarEspacio = (id_espacio) => {
+    // Magia pro: Buscar la disciplina exacta dentro de la cancha seleccionada
+    const canchaSeleccionada = espaciosDisponibles.value.find(e => e.id_espacio === id_espacio);
+    
+    
+    if (canchaSeleccionada) {
+      
+        const disciplinaExacta = canchaSeleccionada.disciplinas.find(d => 
+            d.nombre_disciplina.includes(reservaPayload.value.disciplinaSeleccionada)
+        );
+        // Guardamos el ID real en el payload
+        reservaPayload.value.id_disciplina = disciplinaExacta ? disciplinaExacta.id_disciplina : null;
+        reservaPayload.value.espacioSeleccionado = canchaSeleccionada.nombre_espacio;
+
+      }
+
     fetchHorarioEspacio(id_espacio);
     reservaPayload.value.id_espacio = id_espacio;
-    errorNavegacion.value = null; // <--- Agrega esto
+    
+    errorNavegacion.value = null; 
     pasoActual.value = "3";
   };
 
@@ -277,14 +297,13 @@ export const useReservationStore = defineStore("reservation", () => {
     reservaPayload.value.hora_inicio = hora_inicio;
     reservaPayload.value.hora_fin = hora_fin;
     errorNavegacion.value = null;
-
     cargando.value = true;
     errorApi.value = null;
 
     try {
       const payloadBackend = {
-        id_socio: profileStore.idSocio, // <-- Ahora garantizamos que NO será null
         id_espacio: reservaPayload.value.id_espacio,
+        id_disciplina: reservaPayload.value.id_disciplina,
         fecha_reserva: fechaHoy(),
         hora_inicio: hora_inicio,
         hora_fin: hora_fin,
@@ -366,12 +385,20 @@ export const useReservationStore = defineStore("reservation", () => {
   const resetearReserva = () => {
     pasoActual.value = "1";
     reservaPayload.value = {
+      id_disciplina: null,
       disciplinaSeleccionada: null,
       id_espacio: null,
+      espacioSeleccionado: null,
       hora_inicio: null,
       hora_fin: null,
+      id_reserva: null,
       acompanantes: [],
     };
+
+    horaInicioTemp.value = null
+    horaFinTemp.value = null
+    errorNavegacion.value = null
+    horariosDisponibles.value = null
   };
 
   const obtenerIconoName = (disciplina) => {
