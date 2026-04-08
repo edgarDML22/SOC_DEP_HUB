@@ -95,27 +95,27 @@ const router = createRouter({
           children: [
             {
               path: "",
-              redirect: "invitados"
+              redirect: "guests"
             },
             {
-              path: "invitados",
-              name: "guests-invitados",
-              component: () => import("@/views/invitados/guests/invitados.vue"),
+              path: "guests",
+              name: "guests-guests",
+              component: () => import("@/views/guest/guestLists/guestList.vue"),
             },
             {
-              path: "miembros",
-              name: "guests-miembros",
-              component: () => import("@/views/invitados/guests/miembros.vue"),
+              path: "family-members",
+              name: "guests-family-members",
+              component: () => import("@/views/guest/guestLists/familyMembers.vue"),
             },
             {
-              path: "amigos",
-              name: "guests-amigos",
+              path: "friends",
+              name: "guests-friends",
               component: { template: "<div></div>" },
             },
             {
-              path: "agregar",
+              path: "add",
               name: "guests-add",
-              component: () => import("@/views/invitados/guests/add_guest.vue")
+              component: () => import("@/views/guest/guestLists/addGuest.vue")
             },
           ]
 

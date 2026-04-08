@@ -8,9 +8,9 @@ import Tab from 'primevue/tab';
 const route = useRoute()
 
 const items = ref([
-  { route: '/socio/guests/invitados', label: 'Invitados', icon: 'pi pi-users' },
-  { route: '/socio/guests/miembros', label: 'Miembros familiares', icon: 'pi pi-user' },
-  { route: '/socio/guests/amigos', label: 'Amigos', icon: 'pi pi-user-plus' }
+  { route: '/socio/guests/guests', label: 'Invitados', icon: 'pi pi-users' },
+  { route: '/socio/guests/family-members', label: 'Miembros familiares', icon: 'pi pi-user' },
+  { route: '/socio/guests/friends', label: 'Amigos', icon: 'pi pi-user-plus' }
 ])
 </script>
 

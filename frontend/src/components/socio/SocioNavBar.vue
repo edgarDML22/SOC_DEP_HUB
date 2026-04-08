@@ -41,7 +41,7 @@ const toggleNotifications = () => {
                 Torneos
             </router-link>
 
-            <router-link to="/socio/guests/invitados" class="nav-link">
+            <router-link to="/socio/guests/guests" class="nav-link">
                 <IconGuests class="icon" />
                 Invitados
             </router-link>
