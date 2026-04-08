@@ -1,0 +1,26 @@
+nombre_disciplina,categoria_disciplina,requiere_instructor,estatus
+Aerobics,mente_cuerpo,true,true
+Baile,mente_cuerpo,true,true
+Barre,mente_cuerpo,true,true
+Higiene de Columna,mente_cuerpo,true,true
+Jazz,mente_cuerpo,true,true
+Meditacion,mente_cuerpo,true,true
+Pilates,mente_cuerpo,true,true
+Yoga,mente_cuerpo,true,true
+Zumba,mente_cuerpo,true,true
+Frontenis,deportes_raqueta,true,true
+Padel,deportes_raqueta,true,true
+Squash,deportes_raqueta,true,true
+Tenis,deportes_raqueta,true,true
+Basquetbol,deportes_equipo,true,true
+Futbol Adultos,deportes_equipo,true,true
+Futbol Infantil,deportes_equipo,true,true
+Voleibol,deportes_equipo,true,true
+Acondicionamiento Fisico,acondicionamiento_fisico,true,true
+Entrenamiento Funcional,acondicionamiento_fisico,true,true
+Gym Instructor,acondicionamiento_fisico,true,true
+Gym Uso Libre,acondicionamiento_fisico,false,true
+Spinning,acondicionamiento_fisico,true,true
+Tae Kwon Do,artes_marciales,true,true
+Gimnasia Olimpica,gimnasia,true,true
+Natacion,acuatico,true,true

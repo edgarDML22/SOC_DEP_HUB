@@ -38,6 +38,10 @@ export const useProfileStore = defineStore("profile", () => {
     return profileData.value?.numero_accion || "N/A";
   });
 
+  const idSocio = computed(() => {
+    return profileData.value?.id_socio || null;
+  });
+
   const fullName = computed(() => {
     if (!profileData.value?.nombre_completo) return "";
     return profileData.value.nombre_completo;
@@ -96,11 +100,7 @@ export const useProfileStore = defineStore("profile", () => {
     error.value = null;
 
     try {
-      const response = await api.get("/api/v1/profile", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      });
+      const response = await api.get('/profile');
 
       if (response.data.success) {
         profileData.value = response.data.data;
@@ -139,7 +139,7 @@ export const useProfileStore = defineStore("profile", () => {
   const logout = async () => {
     try {
       // Hacemos la petición al backend para que invalide el token
-      await api.post("/api/v1/auth/logout");
+      await api.post("/auth/logout");
     } catch (error) {
       console.error("Error al cerrar sesión en el servidor:", error);
     } finally {
@@ -151,7 +151,7 @@ export const useProfileStore = defineStore("profile", () => {
 
   const getSupportLink = async () => {
     try {
-      const response = await api.get("/api/v1/system/support-link");
+      const response = await api.get("/system/support-link");
       const url = response.data?.data?.support_url;
 
       if (url) {
@@ -184,5 +184,6 @@ export const useProfileStore = defineStore("profile", () => {
     updateProfile,
     logout,
     getSupportLink,
+    idSocio
   };
 });

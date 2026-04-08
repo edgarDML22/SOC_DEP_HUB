@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SocioTitular;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\SocioTitular;
+use Psy\Readline\Hoa\Console;
 
 class ProfileController extends Controller
 {
@@ -19,16 +20,28 @@ class ProfileController extends Controller
             ], 401);
         }
 
+
         $data = null;
+
 
         switch ($usuario->rol) {
             case 'socio_titular':
-                $perfil = DB::table('socios_titulares')
-                    ->where('id_socio', $usuario->user_id)
+                $perfil = SocioTitular::where('id_socio', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
-                    $data = (array) $perfil;
+                    $data = [
+                        'id_socio' => $perfil->id_socio,
+                        'numero_accion' => $perfil->numero_accion,
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'tipo_socio' => $perfil->tipo_socio,
+                        'modalidad_plan' => $perfil->modalidad_plan,
+                        'estatus_cuenta' => $perfil->estatus_cuenta,
+                        'correo_electronico' => $perfil->correo_electronico,
+                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                        'genero' => $perfil->genero,
+                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                    ];
                 }
                 break;
 
@@ -59,6 +72,29 @@ class ProfileController extends Controller
                     ->select('nombre_completo', 'estatus')
                     ->where('id_instructor', $usuario->user_id)
                     ->first();
+
+                if ($perfil) {
+                    $data = [
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'num_accion' => null,
+                        'tipo_socio' => null,
+                        'estatus_cuenta' => $perfil->estatus
+                    ];
+                }
+                break;
+            case 'gerente':
+                $perfil = DB::table('gerentes')
+                    ->select('nombre_completo', 'estatus')
+                    ->where('id_empleado', $usuario->user_id)
+                    ->first();
+                if (!$perfil) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gerente no encontrado',
+                        'user_id' => $usuario->user_id
+                    ], 404);
+                }
+
 
                 if ($perfil) {
                     $data = [
