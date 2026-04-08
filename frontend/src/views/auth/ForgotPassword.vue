@@ -42,7 +42,7 @@ const handleSubmit = async () => {
   errorMessage.value = '';
 
   try {
-    const response = await api.post('/api/v1/auth/forgot-password', { 
+    const response = await api.post('/auth/forgot-password', { 
       correo_electronico: email.value 
     });
 
