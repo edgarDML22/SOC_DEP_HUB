@@ -8,7 +8,6 @@ const profileStore = useProfileStore();
 const menuOpen = ref(false)
 const notifications = ref(2)
 
-
 const toggleMenu = () => {
     menuOpen.value = !menuOpen.value
 }
@@ -31,7 +30,8 @@ const toggleNotifications = () => {
                 Inicio
             </router-link>
 
-            <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="nav-link">
+            <router-link to="/socio/reservations" class="nav-link" 
+                :class="{ 'disabled-link': profileStore.isAccountInactive }">
                 <IconCalendar class="icon"/>
                 Reservas
             </router-link>
@@ -51,8 +51,12 @@ const toggleNotifications = () => {
                 Historial
             </router-link>
 
-            <router-link to="/socio/qr" v-if="!profileStore.isAccountInactive" class="nav-link qr-link">
-                <IconQr class="icon" />
+           <router-link 
+                to="/socio/qr" 
+                class="nav-link qr-link"
+                :class="{ 'disabled-link': profileStore.isAccountInactive }"
+            >
+                <IconQr class="icon"/>
                 QR
             </router-link>
 
@@ -62,7 +66,6 @@ const toggleNotifications = () => {
             </router-link>
 
         </div>
-
 
         <div class="navbar-right">
 
@@ -321,7 +324,9 @@ const toggleNotifications = () => {
 
 @media (min-width: 1050px) {
     .qr-link {
-        display: none !important;
+        pointer-events: none; 
+        opacity: 0.4; 
+        filter: grayscale(100%);
     }
 }
 
@@ -376,5 +381,12 @@ const toggleNotifications = () => {
         white-space: nowrap;
         flex-shrink: 0;
     }
+}
+
+.disabled-link {
+    pointer-events: none; 
+    opacity: 0.4; 
+    filter: grayscale(100%); 
+    cursor: not-allowed; 
 }
 </style>

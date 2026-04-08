@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useProfileStore } from '@/stores/profileStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,6 +71,21 @@ const router = createRouter({
               component: () => import("@/views/reservations/socio/Manage.vue"),
             },
           ],
+          beforeEnter: async (to, from) => {
+            const profileStore = useProfileStore();
+
+            if (!profileStore.profileData) {
+              try {
+                await profileStore.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el store desde el router", error);
+              }
+            }
+
+            if (profileStore.isAccountInactive) {
+              return '/socio/home';
+            }
+          }
         },
         {
           path: "reservations/on-demand",
@@ -132,12 +148,26 @@ const router = createRouter({
           component: () => import("../views/socio/SocioProfileView.vue"),
         },
         {
-          path: "qr",
-          name: "socio-qr",
-          component: () => import("../views/socio/SocioQrView.vue"),
-        },
+          path: 'qr',
+          name: 'socio-qr',
+          component: () => import('../views/socio/SocioQrView.vue'),
+          beforeEnter: async (to, from) => {
+            const profileStore = useProfileStore();
 
-      ],
+            if (!profileStore.profileData) {
+              try {
+                await profileStore.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el store desde el router", error);
+              }
+            }
+
+            if (profileStore.isAccountInactive) {
+              return '/socio/home';
+            }
+          }
+        }
+      ]
     },
 
     // Instructor Routes
