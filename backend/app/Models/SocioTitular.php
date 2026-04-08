@@ -15,4 +15,9 @@ class SocioTitular extends Model
         'fecha_nacimiento',
         'genero',
     ];
+
+    public function invitados()
+    {
+        return $this->hasMany(Invitados::class, 'socio_id', 'id_socio');
+    }
 }
