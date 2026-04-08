@@ -70,6 +70,8 @@ Route::get('/nombres', function () {
 Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
 // get status of guest
 Route::post('/v1/guest-status', [GuestStatusController::class, 'store']);
+
+
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -119,4 +121,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
 
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
+
+    //Ruta para actualizar el perfil del usuario
+    Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 });
+
+
+
+
