@@ -1,6 +1,45 @@
 <script setup>
+import { ref } from 'vue'
 import { useProfileStore } from '@/stores/profileStore'
+import api from '@/services/api'
+import QrCredentialModal from '@/components/socio/QrCredentialModal.vue'
+
 const profileStore = useProfileStore();
+
+const qrPayload = ref('');
+const isQrModalOpen = ref(false);
+const qrIsLoading = ref(false);
+const errorQr = ref('');
+
+const handleClick = async (action) => {
+  if (action === 'qr') {
+    if (profileStore.isAccountInactive) return;
+
+    try {
+      errorQr.value = '';
+      qrIsLoading.value = true;
+      // VITE_API_URL = http://localhost:8000/api/v1
+      // Por eso la ruta no lleva el prefijo /v1 (ya está en el baseURL).
+      const response = await api.get('/profile/qr-data');
+      if (response.data.success) {
+        qrPayload.value = response.data.data.qr_payload;
+        isQrModalOpen.value = true;
+      }
+    } catch (error) {
+      console.error('Error al generar QR:', error);
+      // Si el backend devuelve 403 (cuenta no al corriente) mostramos su mensaje.
+      if (error.response?.status === 403) {
+        errorQr.value = error.response.data?.message ?? 'Tu cuenta no puede generar el código QR en este momento.';
+      } else {
+        errorQr.value = 'No se pudo generar el código QR. Intenta de nuevo más tarde.';
+      }
+    } finally {
+      qrIsLoading.value = false;
+    }
+  } else {
+    console.log('Action:', action);
+  }
+};
 </script>
 
 <template>
@@ -8,9 +47,12 @@ const profileStore = useProfileStore();
     <div class="container">
       <h2>Hola, {{ profileStore.fullName }}</h2>
       <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
-
       <div v-if="profileStore.isAccountInactive" class="alert-banner">
-        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar reservas ni consultar código QR.
+        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar
+        reservas ni consultar código QR.
+      </div>
+      <div v-if="errorQr" class="alert warning mt-4">
+        {{ errorQr }}
       </div>
 
       <div class="card card-blue">
@@ -25,13 +67,16 @@ const profileStore = useProfileStore();
 
         <div v-if="!profileStore.isAccountInactive" class="card-actions">
           <button class="btn-gray" @click="handleClick('detalle')">Ver detalle</button>
-          <button class="btn-blue" @click="handleClick('qr')">Presentar Pase QR</button>
+          <button v-if="!profileStore.isAccountInactive" class="btn-blue" @click="handleClick('qr')">
+            Presentar Pase QR
+          </button>
         </div>
       </div>
 
       <h3 class="section-title">Acciones rápidas</h3>
       <div class="actions">
-        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer Reservación</router-link>
+        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer
+          Reservación</router-link>
         <router-link to="/socio/tournaments" class="action-card"> Consultar Torneos</router-link>
         <router-link to="/socio/guests" class="action-card"> Gestionar Invitados</router-link>
         <router-link to="/socio/history" class="action-card"> Consultar Historial</router-link>
@@ -51,6 +96,14 @@ const profileStore = useProfileStore();
       </div>
 
     </div>
+
+    <!-- Modal para mostrar el QR -->
+    <QrCredentialModal
+      v-if="isQrModalOpen"
+      :payloadText="qrPayload"
+      :isLoading="qrIsLoading"
+      @close="isQrModalOpen = false"
+    />
   </main>
 </template>
 
@@ -65,6 +118,21 @@ const profileStore = useProfileStore();
 .subtitle {
   color: var(--p-surface-500);
   margin-bottom: 16px;
+}
+
+.alert.warning {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #f87171;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
 }
 
 .card {
@@ -105,7 +173,7 @@ const profileStore = useProfileStore();
 
 .btn-gray {
   background: var(--p-surface-200);
-  border-radius: var(--p-border-radius); 
+  border-radius: var(--p-border-radius);
   padding: 6px 12px;
 }
 
@@ -123,7 +191,7 @@ const profileStore = useProfileStore();
   margin-bottom: 20px;
 }
 
-.action-card { 
+.action-card {
   height: 160px;
   border-radius: 16px;
   border: 1px solid var(--p-surface-200);
@@ -132,10 +200,10 @@ const profileStore = useProfileStore();
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
-  color: var(--p-surface-900); 
+
+  color: var(--p-surface-900);
   text-decoration: none;
-  font-weight: 500; 
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
@@ -168,6 +236,7 @@ const profileStore = useProfileStore();
   color: var(--p-surface-500);
   text-align: center;
 }
+
 .alert-banner {
   background-color: #fef2f2;
   color: #991b1b;
