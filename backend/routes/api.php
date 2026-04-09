@@ -21,6 +21,10 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
 use App\Http\Controllers\MiembrosFamiliaresController;
+use App\Http\Controllers\LudotecaController;
+use App\Http\Controllers\LudotecaStatusController;
+use App\Http\Controllers\LudotecaRegisterController;
+use App\Http\Controllers\MiembrosFamiliaresList;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -70,12 +74,17 @@ Route::get('/nombres', function () {
 Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
 // get status of guest
 Route::post('/v1/guest-status', [GuestStatusController::class, 'store']);
-
-
+//Ludoteca SDH-131
+Route::get('/v1/ludoteca/validar-tutor', [LudotecaController::class, 'validarTutor']);
+//Ludoteca  cambio estatus
+Route::post('/v1/ludoteca/update-status', [LudotecaStatusController::class, 'updateStatus']);
+//Ludoteca Registros
+Route::post('/v1/ludoteca/register', [LudotecaRegisterController::class, 'store']);
+//Ludoteca Lista de menores
+Route::get('/v1/ludoteca/list', [MiembrosFamiliaresList::class, 'show']);
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
-
 // Ruta por defecto que incluye Laravel
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -124,6 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
+
 });
 
 

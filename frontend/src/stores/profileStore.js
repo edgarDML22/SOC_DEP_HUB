@@ -48,6 +48,10 @@ export const useProfileStore = defineStore("profile", () => {
     return profileData.value.nombre_completo;
   });
 
+  const esAdmin = computed(() => {
+    return profileData.value?.rol === 'gerente'
+  })
+
   const userInitials = computed(() => {
     if (fullName.value === "") return "";
     const names = fullName.value.split(" ");
@@ -191,6 +195,7 @@ export const useProfileStore = defineStore("profile", () => {
     updateProfile,
     logout,
     getSupportLink,
-    idSocio
+    idSocio,
+    esAdmin
   };
 });

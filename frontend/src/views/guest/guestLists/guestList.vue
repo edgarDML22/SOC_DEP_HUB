@@ -78,12 +78,7 @@ onMounted(fetchInvitados)
         <p>Consulta el estatus de tus invitados</p>
       </div>
 
-      <!-- Botón dentro de SocioGuestsView.vue -->
-<router-link
-  class="btn-primary"
-  :to="{ name: 'guests-add' }"
->+ Agregar invitado
-</router-link>
+
     </div>
 
     <!-- BUSCADOR -->
