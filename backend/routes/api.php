@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
 use App\Http\Controllers\MiembrosFamiliaresController;
+use App\Http\Controllers\QrController;
+
 use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
@@ -99,12 +101,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Perfil del usuario
     Route::get('/v1/profile', [ProfileController::class, 'show']);
 
+    // Generar payload encriptado para QR
+    Route::get('/v1/profile/qr-data', [QrController::class, 'generateQrPayload']);
+
     // Ruta de prueba para verificar al usuario autenticado (Opcional)
     Route::get('/v1/user', function (Request $request) {
         return $request->user();
     });
     //  Consultar disponibilidad de espacios y clases
-    Route::get('/v1/espacios/disponibilidad', [EspacioFisicoController::class, 'getAvailability']);
 
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
