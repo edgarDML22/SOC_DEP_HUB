@@ -16,7 +16,7 @@ use App\Http\Controllers\EspacioFisicoController;
 use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
-use App\Http\Controllers\InstructorDashboardController;
+use App\Http\Controllers\InstructorController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
@@ -101,7 +101,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
 
     // Dashboard dinámico del instructor
-    Route::get('/v1/instructor/dashboard', [InstructorDashboardController::class, 'getDashboardData']);
+    Route::get('/v1/instructor/dashboard', [InstructorController::class, 'getDashboardData']);
+    // Profile del instructor
+    Route::get('/v1/instructor/profile', [InstructorController::class, 'getProfileData']);
 
     // Agregar acompañantes a una reservación
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);

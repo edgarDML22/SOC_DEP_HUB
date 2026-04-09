@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\SocioTitular;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Psy\Readline\Hoa\Console;
 
 class ProfileController extends Controller
 {
@@ -69,16 +68,19 @@ class ProfileController extends Controller
 
             case 'instructor':
                 $perfil = DB::table('instructores')
-                    ->select('nombre_completo', 'estatus')
+                    ->select('nombre_completo', 'estatus', 'correo_electronico', 'telefono', 'fecha_afiliacion', 'fecha_nacimiento')
                     ->where('id_instructor', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
                     $data = [
-                        'nombre_completo' => $perfil->nombre_completo,
-                        'num_accion' => null,
-                        'tipo_socio' => null,
-                        'estatus_cuenta' => $perfil->estatus
+                        'nombre_completo'    => $perfil->nombre_completo,
+                        'estatus_cuenta'     => $perfil->estatus,
+                        'correo_electronico' => $perfil->correo_electronico,
+                        'telefono'           => $perfil->telefono,
+                        'fecha_afiliacion'   => $perfil->fecha_afiliacion,
+                        'fecha_nacimiento'   => $perfil->fecha_nacimiento,
+                        'rol'                => 'Instructor',
                     ];
                 }
                 break;

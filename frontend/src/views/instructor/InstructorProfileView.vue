@@ -1,21 +1,42 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import api from '@/services/api';
 import { useProfileStore } from '@/stores/profileStore';
 import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
 
 // Nuevos iconos
-import { 
-  IconEnvelope, 
-  IconPhone, 
-  IconBriefcase, 
-  IconClock, 
-  IconHistory, 
-  IconSupport, 
-  IconLock, 
-  IconLogout 
+import {
+  IconEnvelope, IconPhone, IconBriefcase, IconClock,
+  IconHistory, IconSupport, IconLock, IconLogout
 } from '@/components/icons';
 
+// Solo usamos profileStore para el logout
 const profileStore = useProfileStore();
+
+// Estado local del perfil del instructor
+const instructor = ref(null);
+const isLoading = ref(true);
+
+// Iniciales calculadas localmente
+const userInitials = computed(() => {
+  if (!instructor.value?.nombre_completo) return '?';
+  const names = instructor.value.nombre_completo.split(' ');
+  if (names.length >= 2) return `${names[0][0]}${names[1][0]}`.toUpperCase();
+  return names[0][0].toUpperCase();
+});
+
+onMounted(async () => {
+  try {
+    const response = await api.get('/v1/instructor/profile');
+    if (response.data.success) {
+      instructor.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Error cargando perfil del instructor:', error);
+  } finally {
+    isLoading.value = false;
+  }
+});
 
 const passwordData = ref({
   current: '',
@@ -28,11 +49,11 @@ const handlePasswordUpdate = async () => {
     alert("Las contraseñas nuevas no coinciden");
     return;
   }
-  
+
   // TODO: Implementar la llamada real a la API para cambiar la contraseña
   console.log("Actualizar contraseña", passwordData.value);
   alert("Contraseña actualizada exitosamente (simulación)");
-  
+
   passwordData.value = { current: '', new: '', confirm: '' };
 };
 
@@ -44,13 +65,14 @@ const handleLogout = () => {
 <template>
   <InstructorNavBar />
   <main class="profile-page">
-    
+
     <header class="card profile-header">
       <div class="avatar">
-        {{ profileStore.userInitials }}
+        <span v-if="isLoading">...</span>
+        <span v-else>{{ userInitials }}</span>
       </div>
-      <h1 class="profile-name">{{ profileStore.fullName }}</h1>
-      <p class="profile-specialty">{{ profileStore.profileData?.especialidad || 'Instructor' }}</p>
+      <h1 class="profile-name">{{ instructor?.nombre_completo || 'Cargando...' }}</h1>
+      <p class="profile-specialty">{{ instructor?.rol || 'Instructor' }}</p>
     </header>
 
     <section class="card">
@@ -60,7 +82,7 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Email</span>
-          <span class="info-value">{{ profileStore.profileData?.correo_electronico || profileStore.profileData?.email || 'No disponible' }}</span>
+          <span class="info-value">{{ instructor?.correo_electronico || 'No disponible' }}</span>
         </div>
       </article>
 
@@ -70,7 +92,7 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Teléfono</span>
-          <span class="info-value">{{ profileStore.profileData?.telefono || 'No registrado' }}</span>
+          <span class="info-value">{{ instructor?.telefono || 'No registrado' }}</span>
         </div>
       </article>
 
@@ -80,7 +102,7 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Rol</span>
-          <span class="info-value">{{ profileStore.userType || 'INSTRUCTOR' }}</span>
+          <span class="info-value">{{ instructor?.rol || 'Instructor' }}</span>
         </div>
       </article>
 
@@ -89,8 +111,8 @@ const handleLogout = () => {
           <IconClock />
         </div>
         <div class="info-content">
-          <span class="info-label">Afiliación</span>
-          <span class="info-value">{{ profileStore.profileData?.fecha_afiliacion || 'Pendiente' }}</span>
+          <span class="info-label">Contratación</span>
+          <span class="info-value">{{ instructor?.fecha_contratacion || 'Pendiente' }}</span>
         </div>
       </article>
     </section>
@@ -131,40 +153,20 @@ const handleLogout = () => {
       <form @submit.prevent="handlePasswordUpdate" class="password-form">
         <div class="form-group">
           <label for="currentPassword">Contraseña actual</label>
-          <input 
-            type="password" 
-            id="currentPassword" 
-            v-model="passwordData.current" 
-            placeholder="Ingresa tu contraseña actual" 
-            class="input-field"
-            required
-          />
+          <input type="password" id="currentPassword" v-model="passwordData.current"
+            placeholder="Ingresa tu contraseña actual" class="input-field" required />
         </div>
 
         <div class="form-group">
           <label for="newPassword">Nueva contraseña</label>
-          <input 
-            type="password" 
-            id="newPassword" 
-            v-model="passwordData.new" 
-            placeholder="Mínimo 8 caracteres" 
-            class="input-field"
-            minlength="8"
-            required
-          />
+          <input type="password" id="newPassword" v-model="passwordData.new" placeholder="Mínimo 8 caracteres"
+            class="input-field" minlength="8" required />
         </div>
 
         <div class="form-group">
           <label for="confirmPassword">Confirmar nueva contraseña</label>
-          <input 
-            type="password" 
-            id="confirmPassword" 
-            v-model="passwordData.confirm" 
-            placeholder="Repite la nueva contraseña" 
-            class="input-field"
-            minlength="8"
-            required
-          />
+          <input type="password" id="confirmPassword" v-model="passwordData.confirm"
+            placeholder="Repite la nueva contraseña" class="input-field" minlength="8" required />
         </div>
 
         <button type="submit" class="btn-primary">Actualizar contraseña</button>
@@ -186,12 +188,14 @@ const handleLogout = () => {
 .profile-page {
   background-color: var(--p-surface-50, #f8fafc);
   padding: 1rem;
-  padding-bottom: 90px; /* Importante para que el NavBar inferior no cubra el boton de Cerrar sesión */
+  padding-bottom: 90px;
+  /* Importante para que el NavBar inferior no cubra el boton de Cerrar sesión */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  font-family: inherit; /* Utiliza la tipografía global de tu app */
+  font-family: inherit;
+  /* Utiliza la tipografía global de tu app */
 }
 
 /* Estructura Base de Tarjetas */

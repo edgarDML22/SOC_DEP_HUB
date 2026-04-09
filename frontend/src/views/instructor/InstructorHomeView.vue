@@ -1,6 +1,7 @@
 <script setup>
 import { ref, markRaw, onMounted } from 'vue';
 import api from '@/services/api';
+import { useProfileStore } from '@/stores/profileStore';
 import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
 
 // Importación de componentes SVG
@@ -23,8 +24,12 @@ const stats = ref([
 // Datos reactivos para la lista de sesiones
 const todaySessions = ref([]);
 const isLoading = ref(true);
+const profileStore = useProfileStore();
 
 onMounted(async () => {
+  // Cargamos perfil del instructor (parallel con el dashboard)
+  profileStore.fetchProfile();
+
   try {
     const response = await api.get('/v1/instructor/dashboard');
     if (response.data && response.data.success) {
@@ -48,6 +53,18 @@ onMounted(async () => {
 <template>
   <InstructorNavBar />
   <main class="home-instructor">
+
+    <!-- Saludo personalizado con datos del profileStore -->
+    <header class="home-header">
+      <div>
+        <p class="greeting-label">Bienvenido de vuelta,</p>
+        <h1 class="greeting-name">{{ profileStore.fullName || 'Instructor' }}</h1>
+      </div>
+      <div class="avatar-small">
+        <span v-if="profileStore.isLoading">...</span>
+        <span v-else>{{ profileStore.userInitials }}</span>
+      </div>
+    </header>
     
     <section class="stats-section">
       <article v-for="stat in stats" :key="stat.id" class="stat-card">
@@ -110,6 +127,41 @@ onMounted(async () => {
 
 <style scoped>
 /* Variables base integradas al sistema */
+
+/* Header de bienvenida */
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.greeting-label {
+  font-size: 0.8rem;
+  color: var(--p-surface-500, #6b7280);
+  margin: 0 0 0.15rem 0;
+}
+
+.greeting-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--p-surface-900, #111827);
+  margin: 0;
+}
+
+.avatar-small {
+  width: 44px;
+  height: 44px;
+  background-color: var(--p-primary-600, #2563eb);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
 .home-instructor {
   background-color: var(--p-surface-50, #f8fafc);
   padding: 1rem;
