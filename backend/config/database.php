@@ -92,6 +92,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'timezone' => 'America/Mexico_City'
         ],
 
         'sqlsrv' => [
@@ -110,9 +111,8 @@ return [
         ],
         'mongodb' => [
             'driver' => 'mongodb',
-            'host' => env('MONGODB_HOST', 'nosql'),
-            'port' => env('MONGODB_PORT', 27017),
-            'database' => env('MONGODB_DATABASE', 'socdep_telemetry'),
+            'dsn' => env('MONGO_URI'),
+            'database' => env('MONGO_DB'),
         ],
 
     ],

@@ -21,10 +21,7 @@ const handleLogin = async () => {
         // 1. Opcional: Si usas Sanctum con cookies, primero pide el CSRF-TOKEN
         // await api.get('/sanctum/csrf-cookie');
 
-        // 2. Usamos 'api' en lugar de 'axios'. 
-        // Solo ponemos la ruta relativa porque el baseURL ya es http://localhost:8000
-        const response = await api.post('/api/v1/auth/login', form);
-        console.log(response.data);
+        const response = await api.post('/auth/login', form);
         
         if (response.data.success) {
             const { token, user } = response.data.data;
