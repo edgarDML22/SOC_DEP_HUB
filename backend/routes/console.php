@@ -12,5 +12,5 @@ Artisan::command('inspire', function () {
 Schedule::command('app:clean-expired-reservations')->everyMinute();
 
 Schedule::command('app:calcular-no-shows')
-    ->dailyAt('23:00')
+    ->dailyAt('23:50')
     ->timezone('America/Mexico_City');
