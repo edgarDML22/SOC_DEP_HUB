@@ -15,8 +15,6 @@ class LudotecaRegisterController extends Controller
         $request->validate([
             'id_miembro' => 'required|exists:miembros_familiares,id_miembro',
             'id_socio' => 'required|exists:socios_titulares,id_socio',
-
-
         ]);
 
 

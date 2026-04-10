@@ -110,7 +110,6 @@ const router = createRouter({
           component: () => import("@/views/ludoteca/LudotecaSocio.vue"),
           children: [
             {
-
               path: "ludoteca-list",
               name: "ludoteca-list",
               component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
@@ -119,7 +118,15 @@ const router = createRouter({
               path: "add-register",
               name: "add-register",
               component: () => import("@/views/ludoteca/AddRegiste.vue"),
+
+
             },
+            {
+              path: "ludoteca-list",
+              name: "ludoteca-list",
+              component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
+            },
+
           ]
         },
 
@@ -258,6 +265,11 @@ const router = createRouter({
               path: 'ludoteca-list',
               name: 'admin-ludoteca-list',
               component: () => import('@/views/ludoteca/List/LudotecaList.vue'),
+            },
+            {
+              path: 'update',
+              name: 'ludoteca/update',
+              component: () => import('@/views/ludoteca/LudotecaUpdate.vue')
             }
           ]
         },

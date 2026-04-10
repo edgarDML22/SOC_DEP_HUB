@@ -17,9 +17,8 @@ const items = ref([
   <div class="layout-wrapper">
     <div class="layout-container">
         
-      <!-- TABS -->
+  <!--     
       <div class="tabs-card">
-        <!-- 🔥 usar route.name -->
         <Tabs :value="route.name" class="custom-tabs">
           <TabList>
             <Tab 
@@ -36,7 +35,7 @@ const items = ref([
             </Tab>
           </TabList>
         </Tabs>
-      </div>
+      </div> -->
 
       <!-- CONTENIDO -->
       <div class="content-area">

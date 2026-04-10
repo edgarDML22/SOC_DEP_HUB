@@ -47,14 +47,13 @@ const registrar = async () => {
     })
 
     // Éxito
-    if(res.data?.message == 'Ingreso registrado correctamente' ){
-       tipoMensaje.value = 'success'
-    }else{
+    mensaje.value = res.data.message
+
+    if (mensaje.value?.toLowerCase().includes('ingreso registrado')) {
+      tipoMensaje.value = 'success'
+    } else {
       tipoMensaje.value = 'error'
     }
-    mensaje.value = res.data?.message
-   
-
     idSeleccionado.value = null
 
   } catch (error) {
@@ -202,19 +201,17 @@ select:focus {
   font-weight: 500;
   text-align: center;
 }
-
-/* ERROR */
-.error {
-  background: #fee2e2;
-  border: 2px solid #dc2626;
-  color: #dc2626;
+/* VERDE */
+.alert.success {
+  background-color: #d4edda;
+  color: #155724;
 }
 
-/* SUCCESS */
-.success {
-  background: #dcfce7;
-  border: 2px solid #16a34a;
-  color: #16a34a;
+/* ROJO */
+.alert.error {
+  background-color: #f8d7da;
+  color: #721c24;
 }
+
 
 </style>

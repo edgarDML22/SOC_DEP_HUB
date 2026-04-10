@@ -1,24 +1,29 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useProfileStore } from '@/stores/profileStore'
 
+const router = useRouter()
 const profileStore = useProfileStore()
 
 const miembros = ref([])
 const search = ref('')
 const loading = ref(false)
-console.log(profileStore.profileData)
 
-// 🔥 detectar gerente
+const mensaje = ref('')
+const tipoMensaje = ref('')
+
+// detectar gerente
 const esGerente = computed(() => {
   return ['gerente', 'subgerente'].includes(profileStore.profileData?.tipo_socio)
 })
 
-// 🕒 formato fecha bonito
+const idSocio = computed(() => profileStore.profileData?.id_socio)
+
+// formato fecha
 const formatearFecha = (fecha) => {
   if (!fecha) return 'Sin datos'
-
   return new Date(fecha).toLocaleString('es-MX', {
     day: '2-digit',
     month: 'short',
@@ -27,169 +32,149 @@ const formatearFecha = (fecha) => {
   })
 }
 
-const idSocio = computed(() => {
-  return profileStore.profileData?.id_socio || null
-})
-
+// cargar lista
 const fetchMiembros = async () => {
   if (!idSocio.value) return
 
   loading.value = true
-
   try {
     const res = await api.get(`ludoteca/validar-tutor?id_socio=${idSocio.value}`)
     miembros.value = res.data.data || []
   } catch (error) {
-    console.error(error)
+    console.log(error)
+    mensaje.value = 'No hay registros'
+    tipoMensaje.value = 'error'
   } finally {
     loading.value = false
   }
 }
 
-watch(idSocio, (newVal) => {
-  if (newVal) fetchMiembros()
+watch(idSocio, (val) => {
+  if (val) fetchMiembros()
 }, { immediate: true })
 
-// 🔍 filtro
+// filtro
 const miembrosFiltrados = computed(() => {
-  if (!search.value) return miembros.value || []
-
-  const s = search.value.toLowerCase()
-
-  return (miembros.value || []).filter(m =>
-    (m?.menor || '').toLowerCase().includes(s)
+  if (!search.value) return miembros.value
+  return miembros.value.filter(m =>
+    (m.menor || '').toLowerCase().includes(search.value.toLowerCase())
   )
 })
 
-// 🔥 estado visual
+// estado visual
 const getEstado = (m) => {
   if (m.estatus_visita === 'ACTIVA') {
-    return {
-      texto: 'Activo',
-      clase: 'estado-activo'
+    return { texto: 'Activo', clase: 'estado-activo' }
+  }
+  return { texto: 'Sin registro', clase: 'estado-inactivo' }
+}
+
+
+const irAUpdate = (m, tipo) => {
+  router.push({
+    name: 'ludoteca/update',
+    query: {
+      id_registro: m.id_registro,
+      tipo: tipo
     }
-  }
-
-  return {
-    texto: 'Sin registro',
-    clase: 'estado-inactivo'
-  }
-}
-
-// 🚀 acciones
-const registrarEntrada = (m) => {
-  console.log('Entrada 👉', m)
-}
-
-const registrarSalida = (m) => {
-  console.log('Salida 👉', m)
+  })
 }
 </script>
 
 <template>
   <div class="container">
 
-    <!-- HEADER -->
     <div class="header">
       <div>
         <h2>Lista ludoteca</h2>
-        <p>Consulta los niños asociados a tu cuenta</p>
+        <p>Consulta y controla accesos</p>
       </div>
-     
     </div>
 
     <!-- BUSCADOR -->
     <input
       v-model="search"
-      placeholder="Buscar por nombre o ID..."
+      placeholder="Buscar..."
       class="search"
     />
 
-    <!-- LISTA -->
-    <div v-if="loading" class="loading">Cargando...</div>
-
-    <div v-else>
-      <div v-for="m in miembrosFiltrados" :key="m.menor" class="card">
-
-        <div class="left">
-          <div class="avatar">
-            {{ m.menor?.charAt(0) || '' }}
-          </div>
-
-          <div>
-            <!-- NOMBRE -->
-            <div class="nombre">
-              {{ m.menor }}
-            </div>
-
-            <!-- INFO -->
-            <div class="info">
-               Ingreso: {{ formatearFecha(m.hora_ingreso) }}
-            </div>
-
-            <div class="info" v-if="m.hora_limite">
-              Límite: {{ formatearFecha(m.hora_limite) }}
-            </div>
-
-          
-            <div class="estado-container">
-
-              <div :class="['estado-chip', getEstado(m).clase]">
-                {{ getEstado(m).texto }}
-              </div>
-
-              <div class="estado-sub">
-                Último registro: {{ m.estatus_visita || 'Sin datos' }}
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-        <!-- 🔥 BOTONES SOLO GERENTE -->
-        <div class="actions" v-if="esGerente">
-          <button class="btn-entrada" @click="registrarEntrada(m)">
-            ⬅ Entrada
-          </button>
-
-          <button class="btn-salida" @click="registrarSalida(m)">
-            ➡ Salida
-          </button>
-        </div>
-
-      </div>
+    <!-- MENSAJE -->
+    <div v-if="mensaje" :class="['alert', tipoMensaje]">
+      {{ mensaje }}
     </div>
 
+    <!-- LISTA SCROLL -->
+    <div class="scroll-container">
+
+      <div v-if="loading" class="loading">Cargando...</div>
+
+      <div v-else>
+        <div v-for="m in miembrosFiltrados" :key="m.id_registro" class="card">
+
+          <div class="left">
+            <div class="avatar">
+              {{ m.menor?.charAt(0) }}
+            </div>
+
+            <div>
+              <div class="nombre">{{ m.menor }}</div>
+
+              <div class="info">
+                Ingreso: {{ formatearFecha(m.hora_ingreso) }}
+              </div>
+
+              <div class="info">
+                Límite: {{ formatearFecha(m.hora_limite) }}
+              </div>
+
+              <div class="estado-container">
+                <div :class="['estado-chip', getEstado(m).clase]">
+                  {{ getEstado(m).texto }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOTONES -->
+          <div class="actions" v-if="esGerente">
+
+            <button
+              v-if="m.estatus_visita !== 'ACTIVA'"
+              type="button"
+              class="btn-entrada"
+              @click="irAUpdate(m, 'in')"
+            >
+              Entrada
+            </button>
+
+            <button
+              v-if="m.estatus_visita === 'ACTIVA'"
+              type="button"
+              class="btn-salida"
+              @click="irAUpdate(m, 'out')"
+            >
+              Salida
+            </button>
+
+</div>
+
+        </div>
+      </div>
+
+    </div>
   </div>
 </template>
 
 <style scoped>
 
-/* CONTENEDOR */
 .container {
   padding: 20px;
 }
 
-/* HEADER */
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 16px;
 }
 
-.header h2 {
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.header p {
-  color: #6b7280;
-  font-size: 14px;
-}
-
-/* SEARCH */
 .search {
   width: 100%;
   padding: 10px;
@@ -198,25 +183,29 @@ const registrarSalida = (m) => {
   margin-bottom: 12px;
 }
 
+/* SCROLL */
+.scroll-container {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
 /* CARD */
 .card {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   background: white;
   border-radius: 12px;
   padding: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   border: 1px solid #e5e7eb;
 }
 
-/* LEFT */
 .left {
   display: flex;
   gap: 12px;
 }
 
-/* AVATAR */
 .avatar {
   width: 42px;
   height: 42px;
@@ -226,95 +215,82 @@ const registrarSalida = (m) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
 }
 
-/* NOMBRE */
 .nombre {
   font-weight: 600;
-  font-size: 15px;
 }
 
-/* INFO */
 .info {
   font-size: 13px;
   color: #6b7280;
 }
 
-/* ESTADO */
-.estado-container {
-  margin-top: 8px;
-}
-
 .estado-chip {
-  display: inline-block;
-  padding: 6px 14px;
+  margin-top: 6px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 }
 
-/* 🟢 ACTIVO */
 .estado-activo {
   background: #d1fae5;
   color: #15803d;
-  border: 1px solid #86efac;
 }
 
-/* ⚪ SIN REGISTRO */
 .estado-inactivo {
   background: #e5e7eb;
   color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.estado-sub {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
 }
 
 /* BOTONES */
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* 🔵 ENTRADA */
 .btn-entrada {
   background: #2563eb;
   color: white;
-  border: none;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
 }
-
 .btn-entrada:hover {
   background: #1d4ed8;
 }
 
-/* 🔴 SALIDA */
 .btn-salida {
   background: #dc2626;
   color: white;
-  border: none;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
 }
-
 .btn-salida:hover {
   background: #b91c1c;
 }
 
-/* LOADING */
-.loading {
+/* ALERTAS */
+.alert {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
   text-align: center;
-  padding: 20px;
 }
 
+.error {
+  background: #fee2e2;
+  border: 2px solid #dc2626;
+  color: #dc2626;
+}
+
+.success {
+  background: #dcfce7;
+  border: 2px solid #16a34a;
+  color: #16a34a;
+}
+
+.loading {
+  text-align: center;
+}
 
 </style>

@@ -16,7 +16,7 @@ class LudotecaController extends Controller
         ]);
         //si es gerente, mostrar todos los registros
         $type = User::where('id', $request->id_socio)->first();
-        if ($type->rol == 'gerente') {
+        if ($type->rol == 'gerente' || $type->rol == 'subgerente') {
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])->get();
 
             if ($registros->count() == 0) {
@@ -34,6 +34,7 @@ class LudotecaController extends Controller
                             'hora_limite' => $registro->hora_limite,
                             'estatus_visita' => $registro->estatus_visita,
                             'rol' => 'gerente',
+                            'id_registro' => $registro->id_registro,
 
                         ];
                     })
@@ -49,7 +50,6 @@ class LudotecaController extends Controller
         }
         //si es tutor, mostrar solo sus registros
         $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
-            ->where('estatus_visita', 'ACTIVA')
             ->where('id_adulto_ingreso', $request->id_socio)
             ->get();
 
@@ -66,6 +66,10 @@ class LudotecaController extends Controller
                         'hora_ingreso' => $registro->hora_ingreso,
                         'hora_limite' => $registro->hora_limite,
                         'estatus_visita' => $registro->estatus_visita,
+                        'rol' => 'tutor',
+                        'id_registro' => $registro->id_registro,
+
+
 
                     ];
                 })
