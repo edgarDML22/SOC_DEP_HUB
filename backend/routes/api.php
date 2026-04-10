@@ -22,6 +22,7 @@ use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
 use App\Http\Controllers\MiembrosFamiliaresController;
 use App\Http\Controllers\QrController;
+use App\Http\Controllers\SessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -130,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
+
+    Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
 });
 
 

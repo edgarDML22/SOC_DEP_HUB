@@ -49,7 +49,8 @@ const handleLogout = () => {
         <span v-else>{{ profileStore.userInitials }}</span>
       </div>
       <h1 class="profile-name">{{ profileStore.fullName || 'Cargando...' }}</h1>
-      <p class="profile-specialty">{{ profileStore.role }}</p>
+      <h2 class="profile-specialty">{{ profileStore.role }}</h2>
+      <p class="profile-speciality">{{ profileStore.discipline || 'No disponible' }}</p>
     </header>
 
     <section class="card">
