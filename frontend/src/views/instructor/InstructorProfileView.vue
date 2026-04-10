@@ -1,7 +1,6 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import api from '@/services/api';
-import { useProfileStore } from '@/stores/profileStore';
+import { ref, onMounted } from 'vue';
+import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
 
 // Nuevos iconos
@@ -10,32 +9,10 @@ import {
   IconHistory, IconSupport, IconLock, IconLogout
 } from '@/components/icons';
 
-// Solo usamos profileStore para el logout
-const profileStore = useProfileStore();
+const profileStore = useInstructorStore();
 
-// Estado local del perfil del instructor
-const instructor = ref(null);
-const isLoading = ref(true);
-
-// Iniciales calculadas localmente
-const userInitials = computed(() => {
-  if (!instructor.value?.nombre_completo) return '?';
-  const names = instructor.value.nombre_completo.split(' ');
-  if (names.length >= 2) return `${names[0][0]}${names[1][0]}`.toUpperCase();
-  return names[0][0].toUpperCase();
-});
-
-onMounted(async () => {
-  try {
-    const response = await api.get('/v1/instructor/profile');
-    if (response.data.success) {
-      instructor.value = response.data.data;
-    }
-  } catch (error) {
-    console.error('Error cargando perfil del instructor:', error);
-  } finally {
-    isLoading.value = false;
-  }
+onMounted(() => {
+  profileStore.fetchProfile();
 });
 
 const passwordData = ref({
@@ -68,11 +45,11 @@ const handleLogout = () => {
 
     <header class="card profile-header">
       <div class="avatar">
-        <span v-if="isLoading">...</span>
-        <span v-else>{{ userInitials }}</span>
+        <span v-if="profileStore.isLoading">...</span>
+        <span v-else>{{ profileStore.userInitials }}</span>
       </div>
-      <h1 class="profile-name">{{ instructor?.nombre_completo || 'Cargando...' }}</h1>
-      <p class="profile-specialty">{{ instructor?.rol || 'Instructor' }}</p>
+      <h1 class="profile-name">{{ profileStore.fullName || 'Cargando...' }}</h1>
+      <p class="profile-specialty">{{ profileStore.role }}</p>
     </header>
 
     <section class="card">
@@ -82,7 +59,7 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Email</span>
-          <span class="info-value">{{ instructor?.correo_electronico || 'No disponible' }}</span>
+          <span class="info-value">{{ profileStore.email || 'No disponible' }}</span>
         </div>
       </article>
 
@@ -92,7 +69,7 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Teléfono</span>
-          <span class="info-value">{{ instructor?.telefono || 'No registrado' }}</span>
+          <span class="info-value">{{ profileStore.phone || 'No registrado' }}</span>
         </div>
       </article>
 
@@ -102,7 +79,7 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Rol</span>
-          <span class="info-value">{{ instructor?.rol || 'Instructor' }}</span>
+          <span class="info-value">{{ profileStore.role }}</span>
         </div>
       </article>
 
@@ -112,9 +89,10 @@ const handleLogout = () => {
         </div>
         <div class="info-content">
           <span class="info-label">Contratación</span>
-          <span class="info-value">{{ instructor?.fecha_contratacion || 'Pendiente' }}</span>
+          <span class="info-value">{{ profileStore.hireDate || 'Pendiente' }}</span>
         </div>
       </article>
+
     </section>
 
     <section class="card action-menu">

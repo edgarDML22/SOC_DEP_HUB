@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api";
-import { useProfileStore } from "@/stores/profileStore"; // <--- ASEGÚRATE DE TENER ESTA LÍNEA AQUÍ TAMBIÉN
+import { useProfileStore } from "@/stores/profiles/socioStore"; // <--- ASEGÚRATE DE TENER ESTA LÍNEA AQUÍ TAMBIÉN
 
 export const useReservationStore = defineStore("reservation", () => {
   // --- STATE ---
@@ -122,7 +122,7 @@ export const useReservationStore = defineStore("reservation", () => {
       return espacio.disciplinas.some((d) => d.nombre_disciplina.includes(seleccion));
     });
   });
-  
+
 
   const fechaHoy = () => {
     const hoy = new Date();
@@ -203,7 +203,7 @@ export const useReservationStore = defineStore("reservation", () => {
           hora_inicio: r.hora_inicio,
           hora_fin: r.hora_fin,
           id_reserva: r.id_reserva,
-          acompanantes: [], 
+          acompanantes: [],
         };
 
         horaInicioTemp.value = horaInicioLimpia;
@@ -250,30 +250,30 @@ export const useReservationStore = defineStore("reservation", () => {
     reservaPayload.value.espacioSeleccionado = null;
     horaInicioTemp.value = null;
     horaFinTemp.value = null;
-    errorNavegacion.value = null; 
+    errorNavegacion.value = null;
     pasoActual.value = "2";
   };
 
   const seleccionarEspacio = (id_espacio) => {
     // Magia pro: Buscar la disciplina exacta dentro de la cancha seleccionada
     const canchaSeleccionada = espaciosDisponibles.value.find(e => e.id_espacio === id_espacio);
-    
-    
-    if (canchaSeleccionada) {
-      
-        const disciplinaExacta = canchaSeleccionada.disciplinas.find(d => 
-            d.nombre_disciplina.includes(reservaPayload.value.disciplinaSeleccionada)
-        );
-        // Guardamos el ID real en el payload
-        reservaPayload.value.id_disciplina = disciplinaExacta ? disciplinaExacta.id_disciplina : null;
-        reservaPayload.value.espacioSeleccionado = canchaSeleccionada.nombre_espacio;
 
-      }
+
+    if (canchaSeleccionada) {
+
+      const disciplinaExacta = canchaSeleccionada.disciplinas.find(d =>
+        d.nombre_disciplina.includes(reservaPayload.value.disciplinaSeleccionada)
+      );
+      // Guardamos el ID real en el payload
+      reservaPayload.value.id_disciplina = disciplinaExacta ? disciplinaExacta.id_disciplina : null;
+      reservaPayload.value.espacioSeleccionado = canchaSeleccionada.nombre_espacio;
+
+    }
 
     fetchHorarioEspacio(id_espacio);
     reservaPayload.value.id_espacio = id_espacio;
-    
-    errorNavegacion.value = null; 
+
+    errorNavegacion.value = null;
     pasoActual.value = "3";
   };
 

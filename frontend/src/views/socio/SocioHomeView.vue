@@ -1,5 +1,9 @@
 <script setup>
-import { useProfileStore } from '@/stores/profileStore'
+import { ref } from 'vue'
+import { useProfileStore } from '@/stores/profiles/socioStore'
+import api from '@/services/api'
+import QrCredentialModal from '@/components/socio/QrCredentialModal.vue'
+
 const profileStore = useProfileStore();
 </script>
 
@@ -10,7 +14,8 @@ const profileStore = useProfileStore();
       <p class="subtitle">Bienvenido de vuelta al Club Deportivo</p>
 
       <div v-if="profileStore.isAccountInactive" class="alert-banner">
-        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar reservas ni consultar código QR.
+        ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar
+        reservas ni consultar código QR.
       </div>
 
       <div class="card card-blue">
@@ -31,7 +36,8 @@ const profileStore = useProfileStore();
 
       <h3 class="section-title">Acciones rápidas</h3>
       <div class="actions">
-        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer Reservación</router-link>
+        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer
+          Reservación</router-link>
         <router-link to="/socio/tournaments" class="action-card"> Consultar Torneos</router-link>
         <router-link to="/socio/guests" class="action-card"> Gestionar Invitados</router-link>
         <router-link to="/socio/history" class="action-card"> Consultar Historial</router-link>
@@ -105,7 +111,7 @@ const profileStore = useProfileStore();
 
 .btn-gray {
   background: var(--p-surface-200);
-  border-radius: var(--p-border-radius); 
+  border-radius: var(--p-border-radius);
   padding: 6px 12px;
 }
 
@@ -123,7 +129,7 @@ const profileStore = useProfileStore();
   margin-bottom: 20px;
 }
 
-.action-card { 
+.action-card {
   height: 160px;
   border-radius: 16px;
   border: 1px solid var(--p-surface-200);
@@ -132,10 +138,10 @@ const profileStore = useProfileStore();
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
-  color: var(--p-surface-900); 
+
+  color: var(--p-surface-900);
   text-decoration: none;
-  font-weight: 500; 
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
@@ -168,6 +174,7 @@ const profileStore = useProfileStore();
   color: var(--p-surface-500);
   text-align: center;
 }
+
 .alert-banner {
   background-color: #fef2f2;
   color: #991b1b;

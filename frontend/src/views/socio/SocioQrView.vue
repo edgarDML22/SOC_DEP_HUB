@@ -25,7 +25,7 @@
 <script setup>
 import { computed } from 'vue';
 import QrcodeVue from 'qrcode.vue';
-import { useProfileStore } from '@/stores/profileStore';
+import { useProfileStore } from '@/stores/profiles/socioStore';
 
 const profileStore = useProfileStore();
 

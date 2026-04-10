@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SocioTitular;
+use App\Models\Instructor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -67,20 +68,18 @@ class ProfileController extends Controller
                 break;
 
             case 'instructor':
-                $perfil = DB::table('instructores')
-                    ->select('nombre_completo', 'estatus', 'correo_electronico', 'telefono', 'fecha_afiliacion', 'fecha_nacimiento')
-                    ->where('id_instructor', $usuario->user_id)
+                $perfil = Instructor::where('id_instructor', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
                     $data = [
-                        'nombre_completo'    => $perfil->nombre_completo,
-                        'estatus_cuenta'     => $perfil->estatus,
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'estatus_cuenta' => $perfil->estatus,
                         'correo_electronico' => $perfil->correo_electronico,
-                        'telefono'           => $perfil->telefono,
-                        'fecha_afiliacion'   => $perfil->fecha_afiliacion,
-                        'fecha_nacimiento'   => $perfil->fecha_nacimiento,
-                        'rol'                => 'Instructor',
+                        'telefono' => $perfil->telefono,
+                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                        'rol' => 'Instructor',
                     ];
                 }
                 break;

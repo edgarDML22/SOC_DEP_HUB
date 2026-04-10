@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr } from '@/components/icons';
 
 const profileStore = useProfileStore();

@@ -1,16 +1,16 @@
 <script setup>
 import { ref, markRaw, onMounted } from 'vue';
 import api from '@/services/api';
-import { useProfileStore } from '@/stores/profileStore';
+import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
 
 // Importación de componentes SVG
-import { 
-  IconCalendar, 
-  IconClock, 
-  IconHourglass, 
-  IconUser, 
-  IconInbox 
+import {
+  IconCalendar,
+  IconClock,
+  IconHourglass,
+  IconUser,
+  IconInbox
 } from '@/components/icons';
 
 // Datos reactivos para las estadísticas superiores
@@ -24,7 +24,7 @@ const stats = ref([
 // Datos reactivos para la lista de sesiones
 const todaySessions = ref([]);
 const isLoading = ref(true);
-const profileStore = useProfileStore();
+const profileStore = useInstructorStore();
 
 onMounted(async () => {
   // Cargamos perfil del instructor (parallel con el dashboard)
@@ -34,12 +34,12 @@ onMounted(async () => {
     const response = await api.get('/v1/instructor/dashboard');
     if (response.data && response.data.success) {
       const dataStats = response.data.data.stats;
-      
+
       stats.value[0].value = dataStats.sesionesHoy;
       stats.value[1].value = dataStats.proximas2Horas;
       stats.value[2].value = dataStats.pendientes;
       stats.value[3].value = dataStats.totalInscritos;
-      
+
       todaySessions.value = response.data.data.todaySessions;
     }
   } catch (error) {
@@ -60,12 +60,9 @@ onMounted(async () => {
         <p class="greeting-label">Bienvenido de vuelta,</p>
         <h1 class="greeting-name">{{ profileStore.fullName || 'Instructor' }}</h1>
       </div>
-      <div class="avatar-small">
-        <span v-if="profileStore.isLoading">...</span>
-        <span v-else>{{ profileStore.userInitials }}</span>
-      </div>
+
     </header>
-    
+
     <section class="stats-section">
       <article v-for="stat in stats" :key="stat.id" class="stat-card">
         <div class="stat-icon-wrapper" :class="stat.iconColor">
@@ -80,7 +77,7 @@ onMounted(async () => {
 
     <section class="next-session-section">
       <h2 class="section-title">PRÓXIMA SESIÓN</h2>
-      
+
       <div class="empty-state">
         <div class="empty-icon-circle">
           <IconInbox class="icon-svg-large" />
@@ -100,7 +97,7 @@ onMounted(async () => {
 
       <div class="sessions-list">
         <article v-for="session in todaySessions" :key="session.id" class="session-card">
-          
+
           <div class="time-block">
             <span class="time-start">{{ session.startTime }}</span>
             <span class="time-end">{{ session.endTime }}</span>
@@ -170,7 +167,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: 1.5rem;
   font-family: inherit;
-  padding-bottom: 90px; /* Espacio para el bottom nav bar */
+  padding-bottom: 90px;
+  /* Espacio para el bottom nav bar */
 }
 
 /* Títulos de sección generales */
@@ -197,6 +195,7 @@ onMounted(async () => {
     flex-direction: row;
     flex-wrap: wrap;
   }
+
   .stat-card {
     flex: 1 1 calc(50% - 0.75rem);
   }
@@ -228,10 +227,25 @@ onMounted(async () => {
 }
 
 /* Colores simulados para iconos */
-.text-green { color: #10b981; background-color: #d1fae5; }
-.text-blue { color: #3b82f6; background-color: #dbeafe; }
-.text-yellow { color: #f59e0b; background-color: #fef3c7; }
-.text-gray { color: var(--p-surface-500, #64748b); background-color: var(--p-surface-100, #f1f5f9); }
+.text-green {
+  color: #10b981;
+  background-color: #d1fae5;
+}
+
+.text-blue {
+  color: #3b82f6;
+  background-color: #dbeafe;
+}
+
+.text-yellow {
+  color: #f59e0b;
+  background-color: #fef3c7;
+}
+
+.text-gray {
+  color: var(--p-surface-500, #64748b);
+  background-color: var(--p-surface-100, #f1f5f9);
+}
 
 .stat-info {
   display: flex;
@@ -375,7 +389,7 @@ onMounted(async () => {
   display: -webkit-box;
   -webkit-line-clamp: 1;
   line-clamp: 1;
-  -webkit-box-orient: vertical;  
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
@@ -395,9 +409,17 @@ onMounted(async () => {
 }
 
 /* Modificadores de Badge */
-.badge-success-dark { background-color: var(--p-primary-600, #2563eb); }
-.badge-success { background-color: #10b981; }
-.badge-info { background-color: #3b82f6; }
+.badge-success-dark {
+  background-color: var(--p-primary-600, #2563eb);
+}
+
+.badge-success {
+  background-color: #10b981;
+}
+
+.badge-info {
+  background-color: #3b82f6;
+}
 
 .arrow-right {
   color: var(--p-surface-400, #9ca3af);

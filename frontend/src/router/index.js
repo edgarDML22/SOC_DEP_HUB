@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

@@ -2,7 +2,7 @@
 
 import { ref, reactive, onMounted, watch } from 'vue';
 
-import { useProfileStore } from '@/stores/profileStore';
+import { useProfileStore } from '@/stores/profiles/socioStore';
 
 import {
 
