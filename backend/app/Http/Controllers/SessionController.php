@@ -11,7 +11,7 @@ class SessionController extends Controller
     {
         // Obtener el ID del instructor autenticado a traves del token (user_id apunta a su ID real en la tabla)
         $user = $request->user();
-        
+
         if ($user->rol !== 'instructor') {
             return response()->json([
                 'success' => false,
@@ -45,6 +45,6 @@ class SessionController extends Controller
         return response()->json([
             'success' => true,
             'data' => $sesiones
-        ]);
+        ], 200);
     }
 }

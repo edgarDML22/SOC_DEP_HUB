@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
+import { useRouter } from 'vue-router';
 import api from '@/services/api';
+
+const router = useRouter();
 
 // Importación de componentes SVG existentes en tu proyecto
 import {
@@ -59,14 +61,14 @@ const sesionesAgrupadas = computed(() => {
 const haySesiones = computed(() => sesionesData.value.length > 0);
 
 const handleSessionClick = (sesion) => {
-  console.log('Click en sesión:', sesion.id);
-  // Redirigir a detalle de sesión
+  router.push({
+    path: `/instructor/sessions/${sesion.id}`,
+    state: { sessionData: JSON.stringify(sesion) } // Pasamos los datos vía history state
+  });
 };
 </script>
 
 <template>
-  <InstructorNavBar />
-
   <main class="home-instructor">
 
     <header class="home-header">

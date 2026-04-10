@@ -1,15 +1,14 @@
 <script setup>
-import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
+
 </script>
 
 <template>
-  <InstructorNavBar />
   <main class="main-content">
     <div class="page-header">
       <h1 class="page-title">Agenda</h1>
       <p class="page-subtitle">Próximos eventos y calendario</p>
     </div>
-    
+
     <div class="card empty-state">
       <p>Aquí se mostrará tu agenda de actividades.</p>
     </div>

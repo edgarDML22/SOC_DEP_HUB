@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
-import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
 
 // Nuevos iconos
 import {
@@ -40,7 +39,6 @@ const handleLogout = () => {
 </script>
 
 <template>
-  <InstructorNavBar />
   <main class="profile-page">
 
     <header class="card profile-header">
