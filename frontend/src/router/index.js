@@ -117,7 +117,7 @@ const router = createRouter({
             {
               path: "add-register",
               name: "add-register",
-              component: () => import("@/views/ludoteca/AddRegiste.vue"),
+              component: () => import("@/views/ludoteca/AddRegister.vue"),
 
 
             },
