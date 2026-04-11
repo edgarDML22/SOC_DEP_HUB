@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { useProfileStore } from "@/stores/profileStore";
+import { useProfileStore } from '@/stores/profiles/socioStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +92,34 @@ const router = createRouter({
           component: () => import("@/views/socio/SocioTournamentsView.vue"),
         },
         {
+          path: "socio-ludoteca",
+          name: "socio-ludoteca",
+          redirect: { name: "ludoteca-list" },
+          component: () => import("@/views/ludoteca/LudotecaSocio.vue"),
+          children: [
+            {
+              path: "ludoteca-list",
+              name: "ludoteca-list",
+              component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
+            },
+            {
+              path: "add-register",
+              name: "add-register",
+              component: () => import("@/views/ludoteca/AddRegister.vue"),
+
+
+            },
+            {
+              path: "ludoteca-list",
+              name: "ludoteca-list",
+              component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
+            },
+
+          ]
+        },
+
+
+        {
           path: "community",
           name: "socio-guests",
           component: () => import("@/views/socio/SocioCommunityView.vue"),
@@ -170,34 +198,39 @@ const router = createRouter({
 
     // Instructor Routes
     {
-      path: "/instructor/home",
-      name: "instructor-home",
-      component: () => import("../views/instructor/InstructorHomeView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
-    },
-    {
-      path: "/instructor/scanner",
-      name: "instructor-scanner",
-      component: () => import("../views/instructor/ScannerView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
-    },
-    {
-      path: "/instructor/profile",
-      name: "instructor-profile",
-      component: () => import("../views/instructor/InstructorProfileView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
-    },
-    {
-      path: "/instructor/agenda",
-      name: "instructor-agenda",
-      component: () => import("../views/instructor/InstructorAgendaView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
-    },
-    {
-      path: "/instructor/sessions",
-      name: "instructor-sessions",
-      component: () => import("../views/instructor/InstructorSessionsView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
+      path: '/instructor',
+      component: () => import('@/views/layout/InstructorLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] },
+      children: [
+        {
+          path: "home",
+          component: () => import("../views/instructor/InstructorHomeView.vue"),
+        },
+        {
+          path: 'scanner',
+          component: () => import('../views/instructor/ScannerView.vue'),
+        },
+        {
+          path: 'profile',
+          component: () => import('../views/instructor/InstructorProfileView.vue'),
+        },
+        {
+          path: 'agenda',
+          component: () => import('../views/instructor/InstructorAgendaView.vue'),
+        },
+        {
+          path: 'sessions',
+          component: () => import('../views/instructor/InstructorSessionsView.vue'),
+        },
+        {
+          path: 'sessions/:id',
+          component: () => import('../views/instructor/SessionDetails.vue'),
+        },
+        {
+          path: 'scanner/:id',
+          component: () => import('../views/instructor/ScannerView.vue'),
+        },
+      ]
     },
 
     // Admin Routes
@@ -227,8 +260,21 @@ const router = createRouter({
           component: () => import("@/views/admin/Instructors.vue"),
         },
         {
-          path: "ludoteca",
-          component: () => import("@/views/admin/Ludoteca.vue"),
+          path: 'ludoteca',
+          component: () => import('@/views/ludoteca/LudotecaAdmin.vue'),
+          redirect: { name: 'admin-ludoteca-list' }, // 🔥 ESTO FALTABA
+          children: [
+            {
+              path: 'ludoteca-list',
+              name: 'admin-ludoteca-list',
+              component: () => import('@/views/ludoteca/List/LudotecaList.vue'),
+            },
+            {
+              path: 'update',
+              name: 'ludoteca/update',
+              component: () => import('@/views/ludoteca/LudotecaUpdate.vue')
+            }
+          ]
         },
         {
           path: "reports",

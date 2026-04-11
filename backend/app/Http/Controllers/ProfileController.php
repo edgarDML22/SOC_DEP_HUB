@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\SocioTitular;
+use App\Models\Instructor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Psy\Readline\Hoa\Console;
 
 class ProfileController extends Controller
 {
@@ -68,25 +68,29 @@ class ProfileController extends Controller
                 break;
 
             case 'instructor':
-                $perfil = DB::table('instructores')
-                    ->select('nombre_completo', 'estatus')
-                    ->where('id_instructor', $usuario->user_id)
+                $perfil = Instructor::where('id_instructor', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
                     $data = [
                         'nombre_completo' => $perfil->nombre_completo,
-                        'num_accion' => null,
-                        'tipo_socio' => null,
-                        'estatus_cuenta' => $perfil->estatus
+                        'estatus_cuenta' => $perfil->estatus,
+                        'correo_electronico' => $perfil->correo_electronico,
+                        'telefono' => $perfil->telefono,
+                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                        'rol' => 'Instructor',
                     ];
                 }
                 break;
             case 'gerente':
+            case 'subgerente':
+
                 $perfil = DB::table('gerentes')
-                    ->select('nombre_completo', 'estatus')
+                    ->select('id_empleado', 'nombre_completo', 'estatus')
                     ->where('id_empleado', $usuario->user_id)
                     ->first();
+
                 if (!$perfil) {
                     return response()->json([
                         'success' => false,
@@ -94,16 +98,18 @@ class ProfileController extends Controller
                         'user_id' => $usuario->user_id
                     ], 404);
                 }
+                $id = DB::table('users')
+                    ->where('user_id', $perfil->id_empleado)
+                    ->whereIn('rol', ['gerente', 'subgerente'])
+                    ->first();
 
-
-                if ($perfil) {
-                    $data = [
-                        'nombre_completo' => $perfil->nombre_completo,
-                        'num_accion' => null,
-                        'tipo_socio' => null,
-                        'estatus_cuenta' => $perfil->estatus
-                    ];
-                }
+                $data = [
+                    'id_socio' => $id->id,
+                    'nombre_completo' => $perfil->nombre_completo,
+                    'num_accion' => null,
+                    'tipo_socio' => $id->rol,
+                    'estatus_cuenta' => $perfil->estatus
+                ];
                 break;
 
             default:

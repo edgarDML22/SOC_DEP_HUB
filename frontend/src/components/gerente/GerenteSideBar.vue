@@ -44,7 +44,7 @@ import {
         <span>Instructores</span>
       </router-link>
 
-      <router-link to="/admin/ludoteca" class="item">
+      <router-link to="/admin/ludoteca/ludoteca-list" class="item">
         <IconClock class="icon" />
         <span>Ludoteca</span>
       </router-link>

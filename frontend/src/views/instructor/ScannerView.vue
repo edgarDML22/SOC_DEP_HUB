@@ -1,7 +1,13 @@
 <script setup>
 import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { QrcodeStream } from 'vue-qrcode-reader';
 import api from '@/services/api';
+
+const route = useRoute();
+const id_sesion = route.params.id || route.query.sesion || ''; // Verifica tanto parámetros como query params
+const fase = ref('ingreso');
+const id_instructor = route.params.id_instructor || route.query.instructor || '';
 
 const isProcessing = ref(false);
 const errorAlert = ref('');
@@ -55,10 +61,22 @@ const onDetect = async (detectedCodes) => {
   if (successTimer) clearTimeout(successTimer);
 
   try {
-    const response = await api.post('/api/v1/asistencia/validar-qr', { qr_payload: rawValue });
+    if (!id_sesion) {
+      throw new Error("No hay id_sesion en la ruta.");
+    }
+
+    // Enviamos al backend los datos que solicita RegisterEventController
+    const payload = {
+      id: rawValue, // Asume que el QR contiene el id, si está encriptado requerirá ajuste en backend o validarlo antes
+      id_sesion: id_sesion,
+      id_instructor: id_instructor,
+      fase: fase.value
+    };
+
+    const response = await api.post('instructor/register-event', payload);
     playSuccessBeep();
     
-    successAlert.value = `¡Acceso concedido! ${response.data.nombre_completo}`;
+    successAlert.value = response.data.message || 'Registro exitoso';
     
     // Alerta viva por 2 segundos
     successTimer = setTimeout(() => {
@@ -68,6 +86,7 @@ const onDetect = async (detectedCodes) => {
   } catch (error) {
     playErrorSound();
     isErrorState.value = true;
+    console.log(error.response?.data?.message);
     errorAlert.value = error.response?.data?.message || 'Error al validar el código QR.';
   } finally {
     // Cooldown de 3 segundos
@@ -102,7 +121,17 @@ const onError = (err) => {
   <main class="scanner-page">
     <div class="scanner-container">
       <h2>Escáner de Accesos</h2>
-      <p class="subtitle">Apunta el código QR del socio en el recuadro para registrar su entrada.</p>
+      <p class="subtitle">Apunta el código QR del socio en el recuadro para registrar su evento.</p>
+      
+      <!-- Selector de Fase -->
+      <div class="fase-selector">
+        <label :class="{ active: fase === 'ingreso' }">
+          <input type="radio" value="ingreso" v-model="fase" /> Ingreso
+        </label>
+        <label :class="{ active: fase === 'cierre' }">
+          <input type="radio" value="cierre" v-model="fase" /> Cierre
+        </label>
+      </div>
       
       <!-- Alerta de Extio Flotante -->
       <transition name="fade">
@@ -113,7 +142,7 @@ const onError = (err) => {
 
       <!-- Alerta de Error Manual -->
       <div v-if="errorAlert" class="static-alert error">
-        <span>❌ {{ errorAlert }}</span>
+        <span>❌ {{ errorAlert }} (sesión detectada: {{ id_sesion || 'Ninguna' }})</span>
         <button @click="errorAlert = ''" class="close-btn">&times;</button>
       </div>
 
@@ -165,8 +194,36 @@ const onError = (err) => {
 
 .subtitle {
   color: #6b7280;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   font-size: 0.95rem;
+}
+
+.fase-selector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.fase-selector label {
+  cursor: pointer;
+  padding: 0.5rem 1.5rem;
+  border-radius: 9999px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.fase-selector label input[type="radio"] {
+  display: none;
+}
+
+.fase-selector label.active {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
 }
 
 .camera-wrapper {

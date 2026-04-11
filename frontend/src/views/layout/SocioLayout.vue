@@ -9,7 +9,7 @@
 
 <script setup>
 import SocioNavbar from '@/components/socio/SocioNavBar.vue';
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 import Toast from 'primevue/toast';
 import { onMounted } from 'vue';
 

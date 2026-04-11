@@ -2,7 +2,7 @@
 
 import { ref, reactive, onMounted, watch } from 'vue';
 
-import { useProfileStore } from '@/stores/profileStore';
+import { useProfileStore } from '@/stores/profiles/socioStore';
 
 import {
 
@@ -353,6 +353,30 @@ const handleSave = async () => {
           </div>
 
         </div>
+        <div class="profile-card security-card">
+
+          <div class="card-header-icon">
+
+            <IconLock />
+
+            <h3 class="card-title no-margin">Ludoteca</h3>
+
+          </div>
+
+
+
+          <div class="security-row">
+
+            <div class="security-info">
+              <p>Gestion de tus hijos </p>
+
+            </div>
+
+            <button @click="$router.push('socio-ludoteca')" class="button-ludoteca">Ver</button>
+
+          </div>
+
+        </div>
 
       </div>
 
@@ -570,6 +594,31 @@ const handleSave = async () => {
 
   transition: all 0.2s;
 
+}
+.button-ludoteca{
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 8px 16px;
+
+  border-radius: 8px; 
+
+  font-size: 14px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: all 0.2s;
+
+  background-color: #1d4ed8;
+
+  border: 1px solid #1d4ed8;
+
+  color: white;
 }
 
 

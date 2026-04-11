@@ -23,3 +23,4 @@ export { default as IconInbox } from './IconInbox.vue';
 export { default as IconHourglass } from './IconHourglass.vue';
 export { default as IconMail } from './IconMail.vue';
 export { default as IconGender } from './IconGender.vue';
+export { default as IconStart } from './IconStart.vue';

@@ -10,6 +10,12 @@ class SesionActiva extends Model
     protected $primaryKey = 'id_sesion';
     public $timestamps = false;
     //
+    protected $fillable = [
+        'id_sesion',
+        'id_actividad_plantilla',
+        'id_espacio',
+        'fecha_sesion',
+    ];
 
     public function actividadPlantilla()
     {
