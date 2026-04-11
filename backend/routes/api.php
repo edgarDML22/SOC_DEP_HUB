@@ -28,6 +28,7 @@ use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
+use App\Http\Controllers\RegisterEventController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -142,6 +143,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
+    
+    // SDH-23: Register event (Asistencia de sesión)
+    Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
 });
 
 
