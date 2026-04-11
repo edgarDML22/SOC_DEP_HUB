@@ -16,11 +16,12 @@ class RegisterEventController extends Controller
 {
     public function register_event(Request $request)
     {
-        $id_user = User::where("email", $request->email)->first();
+
+        $id_user = User::where("id", $request->id)->first();
         if (!$id_user) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se encontro usuario con ese email'
+                'message' => 'No se encontro usuario con ese id'
             ], 404);
         }
         $id_sesion = SesionActiva::where("id_sesion", $request->id_sesion)->first();
@@ -63,14 +64,14 @@ class RegisterEventController extends Controller
             ], 422);
         }
         $data = [
-            'socio_id' => $id_user->user_id,
+            'socio_id' => $id_user->id,
             'id_sesion' => $id_sesion->id_sesion,
             'fase' => $request->fase,
             'timestamp' => now('America/Mexico_City'),
             'metadata' => [
                 'dia_semana' => $id_actividad->dia_semana ?? null,
                 'estatus' => $id_actividad->estatus ?? null,
-                'instructor' => $intructor->nombre_instructor ?? null,
+                'instructor' => $intructor->nombre_completo ?? null,
                 'disciplina' => $disipina->nombre_disciplina ?? null,
 
 

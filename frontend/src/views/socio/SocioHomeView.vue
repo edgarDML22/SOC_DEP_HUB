@@ -50,15 +50,14 @@ const handleClick = async (action) => {
       <div v-if="profileStore.isAccountInactive" class="alert-banner">
         ⚠️ Atención: El estatus de esta cuenta es <strong>{{ profileStore.statusAccount }} </strong> no puede realizar
         reservas ni consultar código QR.
-        <<<<<<< HEAD=======</div>
-          <div v-if="errorQr" class="alert warning mt-4">
-            {{ errorQr }}
-            >>>>>>> c85e1b7579a7af7bd1a68ad6afae18845f94591f
-          </div>
+      </div>
+      <div v-if="errorQr" class="alert warning mt-4">
+        {{ errorQr }}
+      </div>
 
-          <div class="card card-blue">
-            <div class="card-header">
-              <span>Próxima Reserva</span>
+      <div class="card card-blue">
+        <div class="card-header">
+          <span>Próxima Reserva</span>
               <span class="status inactive">Inactivo</span>
             </div>
 
