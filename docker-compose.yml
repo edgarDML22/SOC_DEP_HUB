@@ -17,6 +17,40 @@ services:
     depends_on:
       - nosql
 
+  # SCHEDULER: CRON Jobs para Laravel
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: socdep-scheduler
+    restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
+    command: php artisan schedule:work
+    volumes:
+      - ./backend:/var/www
+    networks:
+      - socdep-network
+    depends_on:
+      - nosql
+
+  # WORKER: Procesador de colas (Notificaciones de No-Shows, etc.)
+  queue-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: socdep-worker
+    restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
+    command: php artisan queue:work
+    volumes:
+      - ./backend:/var/www
+    networks:
+      - socdep-network
+    depends_on:
+      - nosql
+
   # FRONTEND: Vue.js + Vite
   frontend:
     build:

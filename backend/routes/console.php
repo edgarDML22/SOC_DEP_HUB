@@ -8,7 +8,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
 
-
-
 // Le decimos que corra tu comando de limpieza cada minuto
 Schedule::command('app:clean-expired-reservations')->everyMinute();
+
+Schedule::command('app:calcular-no-shows')
+    ->dailyAt('23:50')
+    ->timezone('America/Mexico_City');
