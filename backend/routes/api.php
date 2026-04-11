@@ -57,21 +57,10 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
-Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
-Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
+Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 
-// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
-Route::get('/nombres', function () {
-    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
 
-    return response()->json([
-        'names' => $nombres
-    ]);
-});
-// SDH 119
-Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
-// get status of guest
-Route::post('/v1/guest-status', [GuestStatusController::class, 'store']);
+
 
 
 // ==========================================
@@ -128,8 +117,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
+
+    // GUESTS 
+    Route::post('/v1/guest-create', [GuestStatusController::class, 'store']);
+    Route::get('/v1/guest-list', [GuestStatusController::class, 'show']);
+    Route::put('/v1/guests/{id}', [GuestStatusController::class, 'update']);
+    Route::delete('/v1/guests/{id}', [GuestStatusController::class, 'destroy']);
+
+    // FAMILY MEMBERS 
+    Route::post('/v1/family-member-create', [MiembrosFamiliaresController::class, 'store']);
+    Route::get('/v1/family-member-list', [MiembrosFamiliaresController::class, 'show']);
+    Route::put('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'update']);
+    Route::delete('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'destroy']);
+
 });
-
-
-
-
