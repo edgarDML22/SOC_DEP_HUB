@@ -1,7 +1,7 @@
 <script setup>
 import GerenteSidebar from '@/components/gerente/GerenteSideBar.vue'
 import GerenteTopbar from '@/components/gerente/GerenteTopBar.vue'
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 import { onMounted } from 'vue';
 
 const profileStore = useProfileStore()

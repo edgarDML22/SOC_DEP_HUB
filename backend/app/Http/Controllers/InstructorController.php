@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\SesionActiva;
+use App\Models\Instructor;
 use Carbon\Carbon;
 
-class InstructorDashboardController extends Controller
+class InstructorController extends Controller
 {
     /**
      * Obtener los datos del Dashboard dinámico del Instructor
@@ -65,7 +67,7 @@ class InstructorDashboardController extends Controller
             // 3. Estadística: Próximas 2 horas
             // Formar el datetime exacto de inicio de esta sesión
             $horaInicioReal = Carbon::parse($todayDate . ' ' . $plantilla->hora_inicio, 'America/Mexico_City');
-            
+
             // Verificamos si la hora de inicio está entre justo ahora y las próximas 2 horas
             // Tambien es válido si la sesión no ha finalizado y su hora de fin todavia está en ese rango
             if ($horaInicioReal->greaterThanOrEqualTo($now) && $horaInicioReal->lessThanOrEqualTo($nowPlus2)) {
@@ -117,6 +119,57 @@ class InstructorDashboardController extends Controller
             'data' => [
                 'stats' => $stats,
                 'todaySessions' => $todaySessionsList,
+            ]
+        ], 200);
+    }
+
+    public function getProfileData(Request $request)
+    {
+        $user = Auth::user();
+
+        // Validar acceso
+        if ($user->rol !== 'instructor') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado. No eres instructor.'
+            ], 403);
+        }
+
+        $instructorId = $user->user_id;
+
+        // Consultar perfil del instructor con join a usuarios para obtener correo
+        $instructor = DB::table('instructores as i')
+            ->join('usuarios as u', 'i.id_usuario', '=', 'u.id')
+            ->select(
+                'i.id_instructor',
+                'i.nombre as nombre_completo',
+                'i.telefono',
+                'i.estatus',
+                'i.fecha_nacimiento',
+                'i.fecha_contratacion',
+                'u.correo as correo_electronico',
+                'u.rol'
+            )
+            ->where('i.id_instructor', $instructorId)
+            ->first();
+
+        if (!$instructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Instructor no encontrado'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'nombre_completo'    => $instructor->nombre_completo,
+                'correo_electronico' => $instructor->correo_electronico,
+                'telefono'           => $instructor->telefono,
+                'estatus_cuenta'     => $instructor->estatus,
+                'fecha_nacimiento'   => $instructor->fecha_nacimiento,
+                'fecha_contratacion' => $instructor->fecha_contratacion,
+                'rol'                => 'Instructor',
             ]
         ], 200);
     }

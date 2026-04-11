@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 import api from '@/services/api'
 import QrCredentialModal from '@/components/socio/QrCredentialModal.vue'
 
@@ -58,52 +58,48 @@ const handleClick = async (action) => {
       <div class="card card-blue">
         <div class="card-header">
           <span>Próxima Reserva</span>
-          <span class="status inactive">Inactivo</span>
-        </div>
+              <span class="status inactive">Inactivo</span>
+            </div>
 
-        <div class="torneos-body">
-          <p class="empty">No hay Reservas disponibles</p>
-        </div>
+            <div class="torneos-body">
+              <p class="empty">No hay Reservas disponibles</p>
+            </div>
 
-        <div v-if="!profileStore.isAccountInactive" class="card-actions">
-          <button class="btn-gray" @click="handleClick('detalle')">Ver detalle</button>
-          <button v-if="!profileStore.isAccountInactive" class="btn-blue" @click="handleClick('qr')">
-            Presentar Pase QR
-          </button>
-        </div>
+            <div v-if="!profileStore.isAccountInactive" class="card-actions">
+              <button class="btn-gray" @click="handleClick('detalle')">Ver detalle</button>
+              <button v-if="!profileStore.isAccountInactive" class="btn-blue" @click="handleClick('qr')">
+                Presentar Pase QR
+              </button>
+            </div>
+          </div>
+
+          <h3 class="section-title">Acciones rápidas</h3>
+          <div class="actions">
+            <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer
+              Reservación</router-link>
+            <router-link to="/socio/tournaments" class="action-card"> Consultar Torneos</router-link>
+            <router-link to="/socio/guests" class="action-card"> Gestionar Invitados</router-link>
+            <router-link to="/socio/history" class="action-card"> Consultar Historial</router-link>
+          </div>
+
+          <div class="card torneos">
+            <div class="torneos-header">
+              <h3>Torneos activos</h3>
+              <button class="btn-link" @click="handleClick('ver torneos')">
+                Ver todos →
+              </button>
+            </div>
+
+            <div class="torneos-body">
+              <p class="empty">NO HAY TORNEOS ACTIVOS</p>
+            </div>
+          </div>
+
       </div>
 
-      <h3 class="section-title">Acciones rápidas</h3>
-      <div class="actions">
-        <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="action-card"> Hacer
-          Reservación</router-link>
-        <router-link to="/socio/tournaments" class="action-card"> Consultar Torneos</router-link>
-        <router-link to="/socio/guests" class="action-card"> Gestionar Invitados</router-link>
-        <router-link to="/socio/history" class="action-card"> Consultar Historial</router-link>
-      </div>
-
-      <div class="card torneos">
-        <div class="torneos-header">
-          <h3>Torneos activos</h3>
-          <button class="btn-link" @click="handleClick('ver torneos')">
-            Ver todos →
-          </button>
-        </div>
-
-        <div class="torneos-body">
-          <p class="empty">NO HAY TORNEOS ACTIVOS</p>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Modal para mostrar el QR -->
-    <QrCredentialModal
-      v-if="isQrModalOpen"
-      :payloadText="qrPayload"
-      :isLoading="qrIsLoading"
-      @close="isQrModalOpen = false"
-    />
+      <!-- Modal para mostrar el QR -->
+      <QrCredentialModal v-if="isQrModalOpen" :payloadText="qrPayload" :isLoading="qrIsLoading"
+        @close="isQrModalOpen = false" />
   </main>
 </template>
 

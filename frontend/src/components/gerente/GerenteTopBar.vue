@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { IconBell } from '@/components/icons'
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 
 const profileStore = useProfileStore()
 

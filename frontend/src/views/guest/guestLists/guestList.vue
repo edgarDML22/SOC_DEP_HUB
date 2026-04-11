@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 
 const profileStore = useProfileStore()
 
@@ -78,12 +78,7 @@ onMounted(fetchInvitados)
         <p>Consulta el estatus de tus invitados</p>
       </div>
 
-      <!-- Botón dentro de SocioGuestsView.vue -->
-<router-link
-  class="btn-primary"
-  :to="{ name: 'guests-add' }"
->+ Agregar invitado
-</router-link>
+
     </div>
 
     <!-- BUSCADOR -->

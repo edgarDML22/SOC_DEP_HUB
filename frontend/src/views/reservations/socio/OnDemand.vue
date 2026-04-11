@@ -2,7 +2,7 @@
 import { onMounted, defineAsyncComponent, ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useReservationStore } from '@/stores/reservationStore';
-import { useProfileStore } from '@/stores/profileStore'; 
+import { useProfileStore } from '@/stores/profiles/socioStore'; 
 
 // Imports de PrimeVue 4
 import Stepper from 'primevue/stepper';
