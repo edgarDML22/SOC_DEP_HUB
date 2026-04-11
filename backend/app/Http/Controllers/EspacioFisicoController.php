@@ -31,34 +31,33 @@ class EspacioFisicoController extends Controller
 
     private function getDisponibilidadOnDemand($fecha): array
     {
-        // 1. LA CONSULTA MAESTRA CON RESTRICCIÓN
-        $query = EspacioFisico::where('tipo_espacio', 'RESERVA_ON_DEMAND')
-            ->with(['reservaciones' => function ($queryRelacion) use ($fecha) {
-                $queryRelacion->where('fecha_reserva', $fecha);
-            }]);
+        // 1. LA CONSULTA MAESTRA (¡Ultra ligera!)
+        $query = EspacioFisico::select('id_espacio', 'nombre_espacio', 'capacidad_maxima', 'estatus')
+            ->where('tipo_espacio', 'RESERVA_ON_DEMAND')
+            ->with(['disciplinas:id_disciplina,nombre_disciplina']);
 
         $espacios = $query->get();
 
+
         // 2. EL MAPEO
         $resultado = $espacios->map(function ($espacio) {
-            $reservasDeHoy = $espacio->reservaciones->count();
-            $cupoMaximo = $espacio->capacidad_maxima;
-
-            $estatus = ($reservasDeHoy >= $cupoMaximo) ? 'Lleno/No Disponible' : 'Disponible';
-            $cupoRestante = max(0, $cupoMaximo - $reservasDeHoy);
+            $estatus = 'Disponible';
 
             if ($espacio->estatus === 'MANTENIMIENTO') {
                 $estatus = 'Bloqueado por Mantenimiento';
-                $cupoRestante = 0;
             }
 
+            // Mapeamos las disciplinas limpio (El array de objetos que tu front ya espera)
+            $disciplinas = $espacio->disciplinas->isEmpty() 
+                ? [['id_disciplina' => null, 'nombre_disciplina' => 'N/A']] 
+                : $espacio->disciplinas->toArray();
+
             return [
-                'espacio_id' => $espacio->id_espacio,
-                'nombre'     => $espacio->nombre_espacio,
-                'categoria'  => 'N/A',
-                'horario'    => 'Sujeto a disponibilidad',
-                'estatus'     => $estatus,
-                'cupo_restante' => $cupoRestante
+                'id_espacio'       => $espacio->id_espacio,
+                'nombre_espacio'   => $espacio->nombre_espacio,
+                'disciplinas'      => $disciplinas,
+                'estatus'          => $estatus,
+                'capacidad_maxima' => $espacio->capacidad_maxima 
             ];
         });
 

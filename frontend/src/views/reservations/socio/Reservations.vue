@@ -1,369 +1,148 @@
 <script setup>
-import { useProfileStore } from '@/stores/profileStore';
-import { IconUser, IconCalendar } from '@/components/icons';
-import { onMounted } from "vue"
-import { storeToRefs } from 'pinia'
-import api from '@/services/api';
+import { ref } from "vue";
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
 
-const profileStore = useProfileStore()
-const { profileData } = storeToRefs(profileStore)
-
-onMounted(() => {
-  profileStore.fetchProfile()
-})
-
-const getUserInfo = () => {
-  const data = profileData.value
-
-  if (!data) {
-    console.warn("No hay datos del perfil")
-    return {}
-  }
-
-  return {
-    numero_accion: String(data.numero_accion),
-    /* Los espacios de abajo ya son funcionales, solo hay que cambiar los valores de prueba por los que se obtengan de los inputs */
-    /*   id_espacio: 2,
-      fecha_reserva: '2026-04-02',
-      hora_inicio: '10:00',
-      hora_fin: '11:00', */
-  }
-}
-
-const crearReservacion = async () => {
-  try {
-    const payload = getUserInfo();
-    console.log("Payload:", payload);
-
-    const res = await api.post('/reservations', payload);
-
-    console.log("Respuesta de crear:", res.data);
-
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const confirmarReservacion = async () => {
-  try {
-    const payload = getUserInfo();
-
-    const res = await api.post('/reservations/confirm', payload);
-
-    console.log("Respuesta de confirmar:", res.data);
-
-  } catch (error) {
-    console.error("Error al confirmar:", error.response?.data || error.message);
-  }
-};
-
-const cancelarReservacion = async () => {
-  try {
-    const payload = getUserInfo();
-
-    const res = await api.post('/reservations/cancel', payload);
-
-    console.log("Respuesta de cancelar:", res.data);
-
-  } catch (error) {
-    console.error("Error al cancelar:", error.response?.data || error.message);
-  }
-};
+const items = ref([
+    { route: '/socio/reservations/manage', label: 'Gestión', icon: 'pi pi-calendar-plus' },
+    { route: '/socio/reservations/on-demand', label: 'On Demand', icon: 'pi pi-bolt' },
+    { route: '/socio/reservations/active-sessions', label: 'Actividades Programadas', icon: 'pi pi-list' }
+]);
 </script>
 
 <template>
-  <main class="main-content">
-    <div class="choice-selector"> 
-      <router-link to="reservations/on-demand">
-        Reservaciones On Demand
-      </router-link>
-      <hr>
-
-      <router-link to="active-sessions">
-        Actividades Programadas
-      </router-link>
-
-    </div>
-
-    <div class="Date-container">
-
-      <div class="page-header">
-        <h1 class="page-title">Reservar Espacio</h1>
-
-      </div>
-
-      <div class="Date-content">
-
-        <div class="profile-card details-card">
-          <h3 class="card-title">Fecha</h3>
-
-          <div class="form-container">
-
-            <div class="form-group-with-icon">
-              <div class="icon-box">
-                <IconCalendar />
-              </div>
-              <div class="input-wrapper">
-                <label for="fecha">Fecha</label>
-                <input id="fecha" type="date" />
-              </div>
-            </div>
-
-          </div>
-        </div>
-        <div class="profile-card details-card">
-          <h3 class="card-title">Espacio</h3>
-
-          <div class="form-container">
-
-            <div class="form-group-with-icon">
-              <div class="icon-box">
-                <IconUser />
-              </div>
-              <!-- Agregar espacios disponibles -->
-              <div class="input-wrapper">
-                <select>
-                  <option value="">Futbol</option>
-                  <option value="">Tenis</option>
-                  <option value="">Basquetbol</option>
-                </select>
-              </div>
-            </div>
-
-          </div>
-
+  <div class="layout-wrapper">
+    <div class="layout-container">
+        
+        <div class="tabs-card">
+            <Tabs :value="$route.path" class="custom-tabs">
+                <TabList>
+                    <Tab v-for="tab in items" :key="tab.label" :value="tab.route">
+                        <router-link v-if="tab.route" v-slot="{ href, navigate, isActive }" :to="tab.route" custom>
+                            <a v-ripple :href="href" @click="navigate" class="tab-link" :class="{ 'is-active': isActive }">
+                                <i :class="tab.icon" class="tab-icon" />
+                                <span>{{ tab.label }}</span>
+                            </a>
+                        </router-link>
+                    </Tab>
+                </TabList>
+            </Tabs>
         </div>
 
-      </div>
+        <div class="content-area">
+            <router-view v-slot="{ Component }">
+                <keep-alive>
+                    <component :is="Component" />
+                </keep-alive>
+            </router-view>
+        </div>
 
     </div>
-    <div class="btn-container">
-      <button @click="crearReservacion" class="btn-primary">Reservar</button>
-      <button @click="confirmarReservacion" class="btn-primary">Confirmar</button>
-      <button @click="cancelarReservacion" class="btn-primary">Cancelar</button>
-    </div>
-
-  </main>
+  </div>
 </template>
 
-
-
 <style scoped>
-.main-content {
-  padding: 2rem;
+/* =========================================
+   1. CONTENEDORES PRINCIPALES
+========================================= */
+.layout-wrapper {
+    min-height: 100vh;
+    background-color: var(--p-surface-50); /* Fondo gris súper clarito global */
+    font-family: var(--p-font-family);
+    padding: 1.5rem;
 }
 
-.Date-container {
-  max-width: 900px;
-  margin: 0 auto;
+@media (min-width: 768px) {
+    .layout-wrapper {
+        padding: 2.5rem;
+    }
 }
 
-.page-header {
-  margin-bottom: 24px;
+.layout-container {
+    max-width: 80rem; /* Equivale a max-w-7xl */
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Separación entre las pestañas y el contenido */
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-  color: #111827;
+/* =========================================
+   2. ESTILOS DE LA TARJETA DE PESTAÑAS
+========================================= */
+.tabs-card {
+    background-color: #ffffff;
+    border-radius: 1rem;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--p-surface-200);
+    overflow-x: auto; /* Para que en móviles se pueda hacer scroll horizontal si hay muchas pestañas */
 }
 
-.page-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
+.tab-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--p-surface-600);
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
 }
 
-/* CARDS GENERAL */
-.profile-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+.tab-icon {
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
 }
 
-/* TARJETA 1: RESUMEN */
-.Date-content {
-  justify-content: center;
-  display: flex;
-  gap: 24px;
-  width: 100%;
+/* Estado normal hover */
+.tab-link:hover:not(.is-active) {
+    background-color: var(--p-surface-100);
+    color: var(--p-surface-900);
 }
 
-.summary-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Estado Activo */
+.tab-link.is-active {
+    color: var(--p-primary-600);
+    background-color: var(--p-primary-50);
 }
 
-.summary-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+.tab-link.is-active .tab-icon {
+    transform: scale(1.1); /* Efecto sutil al estar activo */
 }
 
-.avatar-large {
-  width: 64px;
-  height: 64px;
-  background-color: #1d4ed8;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
+/* =========================================
+   3. REESCRITURA DE PRIMEVUE (Force Clean)
+========================================= */
+/* Obligamos a PrimeVue a quitar sus bordes y fondos predeterminados para usar los nuestros */
+:deep(.p-tablist-tab-list) {
+    border: none !important; 
+    background: transparent !important;
 }
 
-.summary-text h2 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
+:deep(.p-tab) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin-right: 0.5rem !important;
 }
 
-.badges-container {
-  display: flex;
-  gap: 8px;
+:deep(.p-tab-active) {
+    border: none !important;
 }
 
-.badge {
-  padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.badge-green {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.badge-gray {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-
-
-.edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.edit-btn:hover {
-  background-color: #f9fafb;
-}
-
-s .edit-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.btn-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  padding: 10px;
-}
-
-.btn-primary {
-  position: relative;
-  justify-content: center;
-  background-color: #1d4ed8;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-primary:hover {
-  background-color: #1e40af;
-}
-
-/* TARJETA 2: DETALLES CON ICONOS */
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 20px 0;
-  color: #111827;
-}
-
-.form-container {
-  display: flex;
-  gap: 24px;
-}
-
-.form-group-with-icon {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.icon-box {
-  width: 44px;
-  height: 44px;
-  background-color: #f3f4f6;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  flex-shrink: 0;
-}
-
-.icon-box svg {
-  width: 20px;
-  height: 20px;
-}
-
-.input-wrapper {
-  flex-grow: 1;
-}
-
-.input-wrapper label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.4rem;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.input-wrapper input[type="text"] {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: #f9fafb;
-  color: #111827;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: not-allowed;
-  box-sizing: border-box;
-}
-
-
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #6b7280;
+/* =========================================
+   4. ÁREA DE CONTENIDO
+========================================= */
+.content-area {
+    width: 100%;
+    /* Si necesitas que el router-view tenga fondo blanco por defecto, 
+       descomenta las siguientes líneas, pero es mejor que cada componente dicte su diseño */
+    /* background-color: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--p-surface-200); */
 }
 </style>

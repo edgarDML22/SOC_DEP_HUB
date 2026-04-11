@@ -1,13 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import { useProfileStore } from '@/stores/profileStore'
-import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr} from '@/components/icons';
+import { useProfileStore } from '@/stores/profiles/socioStore'
+import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr } from '@/components/icons';
 
 const profileStore = useProfileStore();
 
 const menuOpen = ref(false)
 const notifications = ref(2)
-
 
 const toggleMenu = () => {
     menuOpen.value = !menuOpen.value
@@ -27,48 +26,52 @@ const toggleNotifications = () => {
 
         <div class="navbar-center">
             <router-link to="/socio/home" class="nav-link">
-                <IconHome class="icon"/>
+                <IconHome class="icon" />
                 Inicio
             </router-link>
 
-            <router-link v-if="!profileStore.isAccountInactive"to="/socio/reservations" class="nav-link">
+            <router-link to="/socio/reservations" class="nav-link" 
+                :class="{ 'disabled-link': profileStore.isAccountInactive }">
                 <IconCalendar class="icon"/>
                 Reservas
             </router-link>
 
             <router-link to="/socio/tournaments" class="nav-link">
-                <IconTrophy class="icon"/>
+                <IconTrophy class="icon" />
                 Torneos
             </router-link>
 
-            <router-link to="/socio/guests" class="nav-link">
-                <IconGuests class="icon"/>
+            <router-link to="/socio/guests/guests" class="nav-link">
+                <IconGuests class="icon" />
                 Invitados
             </router-link>
 
             <router-link to="/socio/history" class="nav-link">
-                <IconClock class="icon"/>
+                <IconClock class="icon" />
                 Historial
             </router-link>
 
-           <router-link to="/socio/qr" v-if="!profileStore.isAccountInactive" class="nav-link qr-link">
+           <router-link 
+                to="/socio/qr" 
+                class="nav-link qr-link"
+                :class="{ 'disabled-link': profileStore.isAccountInactive }"
+            >
                 <IconQr class="icon"/>
                 QR
             </router-link>
 
             <router-link to="/socio/profile" class="nav-link">
-                <IconUser class="icon"/>
+                <IconUser class="icon" />
                 Perfil
             </router-link>
 
         </div>
 
-
         <div class="navbar-right">
 
             <div class="notification-wrapper">
                 <button class="notification-btn" @click="toggleNotifications">
-                    <IconBell/>
+                    <IconBell />
 
                     <span class="notification-badge">{{ notifications }}</span>
                 </button>
@@ -108,7 +111,7 @@ const toggleNotifications = () => {
     position: relative;
     background: none;
     border: none;
-    color: #6b7280;
+    color: var(--p-surface-500);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -147,24 +150,12 @@ const toggleNotifications = () => {
     width: 220px;
     background: white;
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--p-surface-200);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
     padding: 12px;
 }
 
-.nav-avatar {
-    width: 34px;
-    height: 34px;
-    background: #2563eb;
-    color: white;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-}
+
 
 .top-navbar {
     display: flex;
@@ -173,7 +164,7 @@ const toggleNotifications = () => {
     background-color: #ffffff;
     padding: 0 2rem;
     min-height: 70px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--p-surface-200);
     flex-wrap: wrap;
     /* Permite que los elementos bajen en pantallas chicas */
 }
@@ -189,7 +180,7 @@ const toggleNotifications = () => {
     height: 36px;
     width: 36px;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: var(--p-border-radius);
     display: block;
 }
 
@@ -210,7 +201,7 @@ const toggleNotifications = () => {
     align-items: center;
     gap: 6px;
     text-decoration: none;
-    color: #6b7280;
+    color: var(--p-surface-500);
     font-size: 14px;
     font-weight: 500;
     padding: 8px 12px;
@@ -219,13 +210,13 @@ const toggleNotifications = () => {
 }
 
 .nav-link:hover {
-    background-color: #f3f4f6;
+    background-color: var(--p-surface-100);
     color: #111827;
 }
 
 .nav-link.router-link-active {
-    background-color: #e0e7ff;
-    color: #1d4ed8;
+    background-color: var(--p-primary-100); 
+    color: var(--p-primary-700);
 }
 
 .nav-link .icon {
@@ -242,7 +233,7 @@ const toggleNotifications = () => {
 .notification-btn {
     background: none;
     border: none;
-    color: #6b7280;
+    color: var(--p-surface-500);
     cursor: pointer;
     position: relative;
     display: flex;
@@ -275,15 +266,17 @@ const toggleNotifications = () => {
 .nav-avatar {
     width: 36px;
     height: 36px;
-    background-color: #1d4ed8;
+    background-color: var(--p-primary-700);
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     font-size: 14px;
     font-weight: 600;
 }
+
 
 .dropdown {
     position: absolute;
@@ -292,7 +285,7 @@ const toggleNotifications = () => {
     width: 200px;
     background: white;
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--p-surface-200);
     box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     display: flex;
@@ -315,7 +308,7 @@ const toggleNotifications = () => {
 
 .dropdown button:hover,
 .dropdown a:hover {
-    background: #f3f4f6;
+    background: var(--p-surface-100);
 }
 
 .dropdown a.router-link-exact-active {
@@ -331,7 +324,9 @@ const toggleNotifications = () => {
 
 @media (min-width: 1050px) {
     .qr-link {
-        display: none !important;
+        pointer-events: none; 
+        opacity: 0.4; 
+        filter: grayscale(100%);
     }
 }
 
@@ -339,16 +334,16 @@ const toggleNotifications = () => {
 @media (max-width: 1049px) {
     .top-navbar {
         padding: 10px 1rem;
-       
+
     }
-    
+
     .navbar-left {
         order: 1;
     }
 
     .navbar-right {
         order: 2;
-        margin-left: auto; 
+        margin-left: auto;
     }
 
     .navbar-center {
@@ -356,35 +351,42 @@ const toggleNotifications = () => {
         width: 100%;
         margin-top: 15px;
         padding-top: 10px;
-        border-top: 1px solid #e5e7eb; 
+        border-top: 1px solid var(--p-surface-200);
         justify-content: flex-start;
-        overflow-x: auto; /* Activa el scroll horizontal */
-        
+        overflow-x: auto;
+
         scrollbar-width: thin;
         scrollbar-color: #cbd5e1 transparent;
-        padding-bottom: 8px; 
+        padding-bottom: 8px;
     }
-   
+
     .navbar-center::-webkit-scrollbar {
-        height: 6px; /* Grosor de la barra horizontal */
+        height: 6px;
     }
 
     .navbar-center::-webkit-scrollbar-track {
-        background: transparent; 
+        background: transparent;
     }
 
     .navbar-center::-webkit-scrollbar-thumb {
-        background-color: #e2e8f0; 
-        border-radius: 10px; 
+        background-color: #e2e8f0;
+        border-radius: 10px;
     }
 
     .navbar-center::-webkit-scrollbar-thumb:hover {
-        background-color: #cbd5e1; 
+        background-color: #cbd5e1;
     }
 
     .nav-link {
-        white-space: nowrap; 
-        flex-shrink: 0; 
+        white-space: nowrap;
+        flex-shrink: 0;
     }
+}
+
+.disabled-link {
+    pointer-events: none; 
+    opacity: 0.4; 
+    filter: grayscale(100%); 
+    cursor: not-allowed; 
 }
 </style>
