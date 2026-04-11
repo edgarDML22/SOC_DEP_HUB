@@ -84,10 +84,13 @@ class ProfileController extends Controller
                 }
                 break;
             case 'gerente':
+            case 'subgerente':
+
                 $perfil = DB::table('gerentes')
-                    ->select('nombre_completo', 'estatus')
+                    ->select('id_empleado', 'nombre_completo', 'estatus')
                     ->where('id_empleado', $usuario->user_id)
                     ->first();
+
                 if (!$perfil) {
                     return response()->json([
                         'success' => false,
@@ -95,16 +98,18 @@ class ProfileController extends Controller
                         'user_id' => $usuario->user_id
                     ], 404);
                 }
+                $id = DB::table('users')
+                    ->where('user_id', $perfil->id_empleado)
+                    ->whereIn('rol', ['gerente', 'subgerente'])
+                    ->first();
 
-
-                if ($perfil) {
-                    $data = [
-                        'nombre_completo' => $perfil->nombre_completo,
-                        'num_accion' => null,
-                        'tipo_socio' => null,
-                        'estatus_cuenta' => $perfil->estatus
-                    ];
-                }
+                $data = [
+                    'id_socio' => $id->id,
+                    'nombre_completo' => $perfil->nombre_completo,
+                    'num_accion' => null,
+                    'tipo_socio' => $id->rol,
+                    'estatus_cuenta' => $perfil->estatus
+                ];
                 break;
 
             default:

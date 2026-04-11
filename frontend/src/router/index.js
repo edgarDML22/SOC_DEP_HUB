@@ -104,6 +104,34 @@ const router = createRouter({
           component: () => import("@/views/socio/SocioTournamentsView.vue"),
         },
         {
+          path: "socio-ludoteca",
+          name: "socio-ludoteca",
+          redirect: { name: "ludoteca-list" },
+          component: () => import("@/views/ludoteca/LudotecaSocio.vue"),
+          children: [
+            {
+              path: "ludoteca-list",
+              name: "ludoteca-list",
+              component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
+            },
+            {
+              path: "add-register",
+              name: "add-register",
+              component: () => import("@/views/ludoteca/AddRegister.vue"),
+
+
+            },
+            {
+              path: "ludoteca-list",
+              name: "ludoteca-list",
+              component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
+            },
+
+          ]
+        },
+
+
+        {
           path: "guests",
           name: "socio-guests",
           component: () => import("@/views/socio/SocioGuestsView.vue"),
@@ -235,7 +263,20 @@ const router = createRouter({
         },
         {
           path: 'ludoteca',
-          component: () => import('@/views/admin/Ludoteca.vue'),
+          component: () => import('@/views/ludoteca/LudotecaAdmin.vue'),
+          redirect: { name: 'admin-ludoteca-list' }, // 🔥 ESTO FALTABA
+          children: [
+            {
+              path: 'ludoteca-list',
+              name: 'admin-ludoteca-list',
+              component: () => import('@/views/ludoteca/List/LudotecaList.vue'),
+            },
+            {
+              path: 'update',
+              name: 'ludoteca/update',
+              component: () => import('@/views/ludoteca/LudotecaUpdate.vue')
+            }
+          ]
         },
         {
           path: 'reports',
