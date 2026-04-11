@@ -10,4 +10,8 @@ class InscripcionClase extends Model
     protected $primaryKey = 'id_inscripcion';
     public $timestamps = false;
     //
+
+    protected $fillable = [
+        'estatus_inscripcion'
+    ];
 }

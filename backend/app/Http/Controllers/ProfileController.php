@@ -41,6 +41,7 @@ class ProfileController extends Controller
                         'fecha_nacimiento' => $perfil->fecha_nacimiento,
                         'genero' => $perfil->genero,
                         'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                        'contador_no_shows' => $perfil->contador_no_shows,
                     ];
                 }
                 break;

@@ -29,13 +29,14 @@ class GuestStatusController extends Controller
             'data' => $invitados->map(function ($inv) {
                 $pase = $inv->pase;
                 return [
-                    'id'               => $inv->id_invitado,
-                    'nombre'           => $inv->nombre_invitado,
-                    'codigo_qr'        => $inv->codigo_qr,
-                    'correo'           => $inv->correo,
-                    'telefono'         => $inv->telefono,
-                    'estatus_acceso'   => $pase?->estatus_acceso ?? 'SIN_PASE',
+                    'id' => $inv->id_invitado,
+                    'nombre' => $inv->nombre_invitado,
+                    'codigo_qr' => $inv->codigo_qr,
+                    'correo' => $inv->correo,
+                    'telefono' => $inv->telefono,
+                    'estatus_acceso' => $pase?->estatus_acceso ?? 'SIN_PASE',
                     'fecha_expiracion' => $pase?->fecha_expiracion,
+                    'id_pase' => $pase?->id_pase,
                 ];
             })
         ], 200);
@@ -168,8 +169,8 @@ class GuestStatusController extends Controller
 
         // 1. Buscamos al invitado asegurándonos de que pertenezca a este socio
         $invitado = Invitados::where('id_invitado', $id)
-                             ->where('socio_id', $socioId)
-                             ->first();
+            ->where('socio_id', $socioId)
+            ->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
@@ -178,21 +179,21 @@ class GuestStatusController extends Controller
         // 2. Validamos los datos nuevos
         $request->validate([
             'nombre_invitado' => 'required|string|max:255',
-            'correo'          => 'nullable|email|max:255',
-            'telefono'        => 'nullable|string|max:20'
+            'correo' => 'nullable|email|max:255',
+            'telefono' => 'nullable|string|max:20'
         ]);
 
         // 3. Actualizamos
         $invitado->update([
             'nombre_invitado' => $request->nombre_invitado,
-            'correo'          => $request->correo,
-            'telefono'        => $request->telefono,
+            'correo' => $request->correo,
+            'telefono' => $request->telefono,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Invitado actualizado',
-            'data'    => $invitado
+            'data' => $invitado
         ], 200);
     }
 
