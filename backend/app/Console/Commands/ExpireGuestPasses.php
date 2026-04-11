@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\PasesDiarios;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ExpireGuestPasses extends Command
 {
@@ -24,4 +25,5 @@ class ExpireGuestPasses extends Command
 
         $this->info("Proceso terminado. {$affected} pases han sido marcados como 'EXPIRADO'.");
     }
+
 }

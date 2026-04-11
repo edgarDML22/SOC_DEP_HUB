@@ -143,9 +143,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
-    
+
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
+
+    Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
 });
 
 

@@ -125,4 +125,36 @@ class GuestPassController extends Controller
             'estatus_acceso' => $insertar_pase->estatus_acceso,
         ], 201);
     }
+
+    public function cancelPass(Request $request, $id)
+    {
+        // 1. Buscar el pase y cargar la relación con el invitado para validar al socio
+        $pase = PasesDiarios::with('invitado')->find($id);
+
+        if (!$pase) {
+            return response()->json(['message' => 'Pase no encontrado.'], 404);
+        }
+
+        // 2. Seguridad: Validar que el socio_id del pase sea del usuario autenticado
+        if ($pase->invitado->socio_id !== $request->user()->user_id) {
+            return response()->json(['message' => 'No autorizado para cancelar este pase.'], 403);
+        }
+
+        // 3. Validación: Solo se pueden cancelar pases con estatus 'ACTIVO'
+        if ($pase->estatus_acceso !== 'ACTIVO') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden cancelar pases activos. Estatus actual: ' . $pase->estatus_acceso
+            ], 422);
+        }
+
+        // 4. Lógica de Negocio: Actualizar a 'EXPIRADO'
+
+        $pase->update(['estatus_acceso' => 'EXPIRADO']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pase cancelado correctamente. Tienes un espacio disponible.'
+        ], 200);
+    }
 }

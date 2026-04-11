@@ -50,6 +50,7 @@ class GuestStatusController extends Controller
                     'telefono' => $inv->telefono,
                     'estatus_acceso' => $pase?->estatus_acceso,
                     'fecha_expiracion' => $pase?->fecha_expiracion,
+                    'id_pase' => $inv->pase?->id_pase,
                 ];
             })
         ], 200);
