@@ -16,12 +16,13 @@ use App\Http\Controllers\EspacioFisicoController;
 use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
-use App\Http\Controllers\InstructorDashboardController;
+use App\Http\Controllers\InstructorController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
 use App\Http\Controllers\MiembrosFamiliaresController;
 use App\Http\Controllers\QrController;
+use App\Http\Controllers\SessionController;
 
 use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
@@ -114,7 +115,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
 
     // Dashboard dinámico del instructor
-    Route::get('/v1/instructor/dashboard', [InstructorDashboardController::class, 'getDashboardData']);
+    Route::get('/v1/instructor/dashboard', [InstructorController::class, 'getDashboardData']);
+    // Profile del instructor
+    Route::get('/v1/instructor/profile', [InstructorController::class, 'getProfileData']);
 
     // Agregar acompañantes a una reservación
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
@@ -138,6 +141,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
+    Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
 });
 
 

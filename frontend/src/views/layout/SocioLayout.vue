@@ -7,7 +7,7 @@
 
 <script setup>
 import SocioNavbar from '@/components/socio/SocioNavBar.vue';
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 import { onMounted } from 'vue';
 
 const profileStore = useProfileStore();

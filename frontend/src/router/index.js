@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -200,34 +200,39 @@ const router = createRouter({
 
     // Instructor Routes
     {
-      path: "/instructor/home",
-      name: "instructor-home",
-      component: () => import("../views/instructor/InstructorHomeView.vue"),
-      meta: { requiresAuth: true, allowedRoles: ["instructor"] },
-    },
-    {
-      path: '/instructor/scanner',
-      name: 'instructor-scanner',
-      component: () => import('../views/instructor/ScannerView.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
-    },
-    {
-      path: '/instructor/profile',
-      name: 'instructor-profile',
-      component: () => import('../views/instructor/InstructorProfileView.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
-    },
-    {
-      path: '/instructor/agenda',
-      name: 'instructor-agenda',
-      component: () => import('../views/instructor/InstructorAgendaView.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
-    },
-    {
-      path: '/instructor/sessions',
-      name: 'instructor-sessions',
-      component: () => import('../views/instructor/InstructorSessionsView.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['instructor'] }
+      path: '/instructor',
+      component: () => import('@/views/layout/InstructorLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['instructor'] },
+      children: [
+        {
+          path: "home",
+          component: () => import("../views/instructor/InstructorHomeView.vue"),
+        },
+        {
+          path: 'scanner',
+          component: () => import('../views/instructor/ScannerView.vue'),
+        },
+        {
+          path: 'profile',
+          component: () => import('../views/instructor/InstructorProfileView.vue'),
+        },
+        {
+          path: 'agenda',
+          component: () => import('../views/instructor/InstructorAgendaView.vue'),
+        },
+        {
+          path: 'sessions',
+          component: () => import('../views/instructor/InstructorSessionsView.vue'),
+        },
+        {
+          path: 'sessions/:id',
+          component: () => import('../views/instructor/SessionDetails.vue'),
+        },
+        {
+          path: 'scanner/:id',
+          component: () => import('../views/instructor/ScannerView.vue'),
+        },
+      ]
     },
 
     // Admin Routes

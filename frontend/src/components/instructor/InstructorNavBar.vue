@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import { useProfileStore } from '@/stores/profileStore'
-import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr } from '@/components/icons';
+import { useInstructorStore } from '@/stores/profiles/instructorStore'
+import { IconHome, IconCalendar, IconClock, IconUser, IconBell } from '@/components/icons';
 
-const profileStore = useProfileStore();
+const profileStore = useInstructorStore();
 
 const menuOpen = ref(false)
 const notifications = ref(2)
@@ -47,8 +47,8 @@ const toggleNotifications = () => {
             </div>
 
             <div v-if="menuOpen" class="dropdown">
-                <router-link to="/socio/profile">Perfil</router-link>
-                <router-link to="/socio/configuration">Configuración</router-link>
+                <router-link to="/instructor/profile">Perfil</router-link>
+                <router-link to="/instructor/configuration">Configuración</router-link>
                 <button @click="profileStore.getSupportLink">Ayuda</button>
                 <hr />
                 <button class="logout" @click="profileStore.logout">Cerrar sesión</button>
