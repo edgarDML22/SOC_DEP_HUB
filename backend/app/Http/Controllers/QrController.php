@@ -52,7 +52,7 @@ class QrController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'qr_payload' => $encryptedPayload
+                'qr_payload' => $encryptedPayload // ID del Socio
             ]
         ], 200);
     }

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useGuestStore } from '@/stores/guestStore'
-import { useToast } from 'primevue/usetoast' // Asegúrate de importar arriba
+import { useToast } from 'primevue/usetoast' 
 const toast = useToast()
 
 const guestStore = useGuestStore()

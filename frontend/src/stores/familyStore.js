@@ -24,7 +24,7 @@ export const useFamilyStore = defineStore("family", {
       }
     },
     async addMiembroFamiliar(payload) {
-      const res = await api.post("v1/family-member-create", payload);
+      const res = await api.post("/family-member-create", payload);
       await this.fetchMiembrosFamiliares(true); 
       return res;
     },
@@ -34,7 +34,6 @@ export const useFamilyStore = defineStore("family", {
       return res;
     },
     async deleteMiembroFamiliar(id) {
-      // ⚠️ ADIÓS A LOS TOASTS AQUÍ.
       const res = await api.delete(`/family-member/${id}`);
       this.miembrosFamiliares = this.miembrosFamiliares.filter((mf) => mf.id !== id);
       return res;
