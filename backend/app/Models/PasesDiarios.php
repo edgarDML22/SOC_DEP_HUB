@@ -20,7 +20,11 @@ class PasesDiarios extends Model
         'estatus_acceso',
         'fecha_activacion',
         'fecha_expiracion',
-
-
     ];
+
+    public function invitado()
+    {
+        // Relación inversa: Un pase pertenece a un invitado
+        return $this->belongsTo(Invitados::class, 'invitado_id', 'id_invitado');
+    }
 }

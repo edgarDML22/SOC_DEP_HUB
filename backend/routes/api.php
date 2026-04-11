@@ -152,9 +152,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'destroy']);
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
-    
+
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
+    Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
 
 });
 
