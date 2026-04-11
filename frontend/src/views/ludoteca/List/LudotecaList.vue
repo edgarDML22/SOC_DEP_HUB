@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
-import { useProfileStore } from '@/stores/profileStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
 
 const router = useRouter()
 const profileStore = useProfileStore()
@@ -92,11 +92,7 @@ const irAUpdate = (m, tipo) => {
     </div>
 
     <!-- BUSCADOR -->
-    <input
-      v-model="search"
-      placeholder="Buscar..."
-      class="search"
-    />
+    <input v-model="search" placeholder="Buscar..." class="search" />
 
     <!-- MENSAJE -->
     <div v-if="mensaje" :class="['alert', tipoMensaje]">
@@ -138,25 +134,15 @@ const irAUpdate = (m, tipo) => {
           <!-- BOTONES -->
           <div class="actions" v-if="esGerente">
 
-            <button
-              v-if="m.estatus_visita !== 'ACTIVA'"
-              type="button"
-              class="btn-entrada"
-              @click="irAUpdate(m, 'in')"
-            >
+            <button v-if="m.estatus_visita !== 'ACTIVA'" type="button" class="btn-entrada" @click="irAUpdate(m, 'in')">
               Entrada
             </button>
 
-            <button
-              v-if="m.estatus_visita === 'ACTIVA'"
-              type="button"
-              class="btn-salida"
-              @click="irAUpdate(m, 'out')"
-            >
+            <button v-if="m.estatus_visita === 'ACTIVA'" type="button" class="btn-salida" @click="irAUpdate(m, 'out')">
               Salida
             </button>
 
-</div>
+          </div>
 
         </div>
       </div>
@@ -166,7 +152,6 @@ const irAUpdate = (m, tipo) => {
 </template>
 
 <style scoped>
-
 .container {
   padding: 20px;
 }
@@ -255,6 +240,7 @@ const irAUpdate = (m, tipo) => {
   padding: 6px 12px;
   border-radius: 8px;
 }
+
 .btn-entrada:hover {
   background: #1d4ed8;
 }
@@ -265,6 +251,7 @@ const irAUpdate = (m, tipo) => {
   padding: 6px 12px;
   border-radius: 8px;
 }
+
 .btn-salida:hover {
   background: #b91c1c;
 }
@@ -292,5 +279,4 @@ const irAUpdate = (m, tipo) => {
 .loading {
   text-align: center;
 }
-
 </style>
