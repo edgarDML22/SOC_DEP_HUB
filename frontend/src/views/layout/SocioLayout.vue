@@ -1,14 +1,18 @@
 <template>
     <div class="layout-wrapper">
         <SocioNavbar /> 
+        <Toast position="bottom-right" />
         <router-view />
+        
     </div>
 </template>
 
 <script setup>
 import SocioNavbar from '@/components/socio/SocioNavBar.vue';
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import Toast from 'primevue/toast';
 import { onMounted } from 'vue';
+
 
 const profileStore = useProfileStore();
 

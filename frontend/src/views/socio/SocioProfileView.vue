@@ -152,13 +152,19 @@ const handleSave = async () => {
 
                 <span class="badge badge-gray" v-if="profileStore.modalidadPlan !== 'N/A'">{{ profileStore.modalidadPlan }}</span>
 
+                <span class="badge badge-green" v-if="!profileStore.profileData?.contador_no_shows || profileStore.profileData?.contador_no_shows === 0">
+                  Cuenta al corriente (0 faltas)
+                </span>
+
+                <span class="badge badge-warning" v-else>
+                  {{ profileStore.profileData?.contador_no_shows }} Falta(s) registradas
+                </span>
+
               </div>
 
             </div>
 
           </div>
-
-
 
           <div class="action-buttons">
 
@@ -559,6 +565,8 @@ const handleSave = async () => {
 .badge-gray { background-color: #f3f4f6; color: #374151; }
 
 .badge-red { background-color: #fee2e2; color: #991b1b; }
+
+.badge-warning { background-color: #fef08a; color: #854d0e; }
 
 
 
