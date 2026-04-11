@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -8,19 +8,26 @@ import Tab from 'primevue/tab';
 const route = useRoute()
 
 const items = ref([
-  { route: '/socio/guests/guests', label: 'Invitados', icon: 'pi pi-users' },
-  { route: '/socio/guests/family-members', label: 'Miembros familiares', icon: 'pi pi-user' },
-  { route: '/socio/guests/friends', label: 'Amigos', icon: 'pi pi-user-plus' }
+  { route: '/socio/community/guests-list', label: 'Invitados', icon: 'pi pi-users' },
+  { route: '/socio/community/family-members-list', label: 'Miembros Familiares', icon: 'pi pi-user' },
+  { route: '/socio/community/friends-list', label: 'Amigos', icon: 'pi pi-user-plus' }
 ])
+
+// Esto solucionará que la pestaña se "apague" cuando entras a la vista de Agregar
+const activeTab = computed(() => {
+    if (route.path.includes('family-members')) return '/socio/community/family-members-list'
+    if (route.path.includes('guests')) return '/socio/community/guests-list'
+    if (route.path.includes('friends')) return '/socio/community/friends-list'
+    return route.path
+})
 </script>
 
 <template>
   <div class="layout-wrapper">
     <div class="layout-container">
         
-        <!-- TABS -->
         <div class="tabs-card">
-            <Tabs :value="route.path" class="custom-tabs">
+            <Tabs :value="activeTab" class="custom-tabs">
                 <TabList>
                     <Tab 
                       v-for="tab in items" 
@@ -30,12 +37,12 @@ const items = ref([
                         <router-link 
                           :to="tab.route" 
                           custom 
-                          v-slot="{ href, navigate, isActive }"
+                          v-slot="{ href, navigate }"
                         >
                             <a 
                               :href="href" 
                               @click="navigate"
-                              :class="['tab-link', { 'is-active': isActive }]"
+                              :class="['tab-link', { 'is-active': activeTab === tab.route }]"
                             >
                                 <i :class="tab.icon" class="tab-icon" />
                                 <span>{{ tab.label }}</span>
@@ -46,7 +53,6 @@ const items = ref([
             </Tabs>
         </div>
 
-        <!-- CONTENIDO -->
         <div class="content-area">
             <router-view />
         </div>
@@ -54,6 +60,8 @@ const items = ref([
     </div>
   </div>
 </template>
+
+
 <style scoped>
 /* =========================================
    1. CONTENEDORES PRINCIPALES

@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura';
 import { definePreset } from '@primevue/themes';
+import ToastService from 'primevue/toastservice';
 import '@/assets/css/main.css'
 
 import App from './App.vue'
@@ -60,7 +61,7 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-
+app.use(ToastService)
 app.use(PrimeVue, {
     theme: {
         preset: TemaSocDep,
