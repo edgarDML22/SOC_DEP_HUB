@@ -1,10 +1,13 @@
 <?php
 
 namespace App\Console\Commands;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Console\Command;
 use App\Models\InscripcionClase;
 use App\Models\RegistroAsistencia;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\NoShowPenalization;
+use App\Models\SocioTitular;
+use App\Models\ActividadPlantilla;
 
 class CalcularNoShows extends Command
 {
@@ -35,24 +38,34 @@ class CalcularNoShows extends Command
             ->chunkById(100, function ($inscripciones) use ($hoy) {
                 foreach ($inscripciones as $inscripcion) {
 
-                    // 2. Cruzar con MongoDB (Atlas)
-                    $existeEnMongo = RegistroAsistencia::where('socio_id', $inscripcion->socio_id)
-                        ->where(function ($q) use ($inscripcion) {
-                        $q->where('clase_id', $inscripcion->clase_id)
-                            ->orWhere('espacio_id', $inscripcion->espacio_id);
-                    })
-                        ->whereBetween('created_at', [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()])
+                    // 2. Cruzar con MongoDB (Atlas) usando los nombres correctos de tu captura
+                    $existeEnMongo = RegistroAsistencia::where('socio_id', $inscripcion->id_usuario)
+                        ->where('id_sesion', $inscripcion->id_sesion)
+                        ->whereBetween('timestamp', [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()])
                         ->exists();
 
-                    // 3. Aplicar Reglas de Negocio
                     if (!$existeEnMongo) {
-                        // Marcar No-Show
+
+                        // 1. Cambiar estatus a FALTA
                         $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
 
-                        // Incrementar contador en la tabla relacionada
-                        DB::table('socios_titulares')
-                            ->where('id', $inscripcion->socio_id)
-                            ->increment('contador_no_shows');
+                        // 2. Incrementar contador 
+                        SocioTitular::where('id_socio', $inscripcion->id_usuario)->increment('contador_no_shows');
+
+                        // 3. Obtener datos para el correo 
+                        $socio = SocioTitular::find($inscripcion->id_usuario);
+
+                        // Traemos la sesión y cargamos su espacio físico
+                        $sesion = ActividadPlantilla::with('espacioFisico')->find($inscripcion->id_sesion);
+
+                        // Extraemos el nombre del espacio navegando por la relación
+                        $nombreEspacio = ($sesion && $sesion->espacioFisico) ? $sesion->espacioFisico->nombre_espacio : 'las instalaciones';
+
+                        // 4. Enviar notificación
+                        if ($socio && $socio->correo_electronico) {
+                            Notification::route('mail', $socio->correo_electronico)
+                                ->notify(new NoShowPenalization($nombreEspacio));
+                        }
                     }
                 }
             });
