@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useFamilyStore } from '@/stores/familyStore'
+import { useFamilyStore } from '@/stores/community/familyStore'
 import { useToast } from 'primevue/usetoast'
 import Select from 'primevue/select'
 
@@ -11,7 +11,7 @@ const search = ref('')
 
 // --- ESTADO PARA LOS MODALES ---
 const showModal = ref(false)
-const modalType = ref('') 
+const modalType = ref('')
 const modalLoading = ref(false)
 
 const formMiembro = ref({
@@ -283,10 +283,15 @@ const confirmarAccion = async () => {
 /* ================= ESTILOS DEL MODAL (UNIFICADOS) ================= */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(2px);
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
 
@@ -296,7 +301,7 @@ const confirmarAccion = async () => {
   border-radius: 12px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .modal-card h3 {
@@ -307,18 +312,18 @@ const confirmarAccion = async () => {
   color: var(--p-surface-900);
 }
 
-.form-group-modal { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 8px; 
+.form-group-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Labels oscuros y con mejor peso visual */
-.form-group-modal label { 
-  font-size: 14px; 
-  font-weight: 600; 
-  margin-top: 8px; 
-  color: var(--p-surface-900); 
+.form-group-modal label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+  color: var(--p-surface-900);
 }
 
 .form-group-modal label:first-child {
@@ -366,19 +371,19 @@ const confirmarAccion = async () => {
   color: var(--p-surface-900) !important;
 }
 
-.modal-actions { 
-  display: flex; 
-  justify-content: flex-end; 
-  gap: 10px; 
-  margin-top: 24px; 
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
 }
 
 .btn-cancel {
-  background: white; 
+  background: white;
   color: var(--p-surface-900);
   border: 1px solid var(--p-surface-200);
-  padding: 10px 16px; 
-  border-radius: 8px; 
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: 0.2s;
@@ -389,11 +394,11 @@ const confirmarAccion = async () => {
 }
 
 .btn-primary-modal {
-  background: var(--p-primary-700); 
+  background: var(--p-primary-700);
   color: white;
-  border: none; 
-  padding: 10px 16px; 
-  border-radius: 8px; 
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: 0.2s;
@@ -404,11 +409,11 @@ const confirmarAccion = async () => {
 }
 
 .btn-delete-confirm {
-  background: #dc2626; 
+  background: #dc2626;
   color: white;
-  border: none; 
-  padding: 10px 16px; 
-  border-radius: 8px; 
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: 0.2s;
@@ -418,6 +423,13 @@ const confirmarAccion = async () => {
   background: #b91c1c;
 }
 
-.text-danger { color: #dc2626; }
-.text-muted { font-size: 14px; color: var(--p-surface-500); margin-top: 4px;}
+.text-danger {
+  color: #dc2626;
+}
+
+.text-muted {
+  font-size: 14px;
+  color: var(--p-surface-500);
+  margin-top: 4px;
+}
 </style>
