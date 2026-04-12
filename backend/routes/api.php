@@ -23,7 +23,7 @@ use App\Http\Controllers\GuestStatusController;
 use App\Http\Controllers\MiembrosFamiliaresController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\SessionController;
-
+use App\Http\Controllers\FriendsController;
 use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
@@ -150,6 +150,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/family-member-list', [MiembrosFamiliaresController::class, 'show']);
     Route::put('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'update']);
     Route::delete('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'destroy']);
+
+    // FRIENDS
+    Route::get('/v1/friends-list', [FriendsController::class, 'show']);
+    Route::post('/v1/friend-add', [FriendsController::class, 'store']);
+    Route::delete('/v1/friend-remove', [FriendsController::class, 'destroy']);
+    Route::post('/v1/friend-accept', [FriendsController::class, 'accept']);
+    Route::post('/v1/friend-reject', [FriendsController::class, 'reject']);
+
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
 

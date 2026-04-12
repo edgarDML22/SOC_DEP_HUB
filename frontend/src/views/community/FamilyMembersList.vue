@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useFamilyStore } from '@/stores/familyStore'
+import { useFamilyStore } from '@/stores/community/familyStore'
 import { useToast } from 'primevue/usetoast'
 import Select from 'primevue/select'
 import IconQR from '@/components/icons/IconQr.vue'

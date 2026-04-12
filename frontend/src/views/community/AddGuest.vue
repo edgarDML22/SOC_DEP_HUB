@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useGuestStore } from '@/stores/guestStore'
+import { useGuestStore } from '@/stores/community/guestStore'
 import { useToast } from "primevue/usetoast";
 const toast = useToast();
 
@@ -23,11 +23,11 @@ const guardarInvitado = async () => {
       telefono: form.value.telefono
     })
 
-    toast.add({ 
-      severity: 'success', 
-      summary: 'Éxito', 
-      detail: 'Registro creado correctamente', 
-      life: 3000 
+    toast.add({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: 'Registro creado correctamente',
+      life: 3000
     });
 
     mensaje.value = 'Invitado creado y correo enviado'
@@ -42,11 +42,11 @@ const guardarInvitado = async () => {
   } catch (error) {
     mensaje.value = error.response?.data?.message || 'Error al guardar'
     tipoMensaje.value = 'error'
-    toast.add({ 
-        severity: 'error', 
-        summary: 'Error', 
-        detail: msg, 
-        life: 4000 
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: msg,
+      life: 4000
     })
   } finally {
     loadingBtn.value = false
@@ -64,7 +64,7 @@ const volver = () => {
     <div class="card">
       <h2>Agregar Invitado</h2>
       <div class="form">
-        
+
         <div class="form-group">
           <label>Nombre Completo</label>
           <input v-model="form.nombre" placeholder="Ej. Ana Gómez" />
@@ -201,6 +201,15 @@ input:focus {
 }
 
 /* ERROR & SUCCESS */
-.error { border: 1px solid #ef4444; color: #ef4444; background: #fef2f2; }
-.success { border: 1px solid #22c55e; color: #22c55e; background: #f0fdf4; }
+.error {
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.success {
+  border: 1px solid #22c55e;
+  color: #22c55e;
+  background: #f0fdf4;
+}
 </style>
