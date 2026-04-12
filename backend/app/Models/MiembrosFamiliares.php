@@ -20,8 +20,7 @@ class MiembrosFamiliares extends Model
         'parentesco',
         'fecha_nacimiento',
         'genero',
-        'foto_perfil',
-        'codigo_qr', // 3. AGREGAR CODIGO QR AL FILLABLE
+        'correo'
     ];
 
     public function socioTitular()

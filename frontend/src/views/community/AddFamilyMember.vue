@@ -13,7 +13,8 @@ const form = ref({
   nombre: '',
   parentesco: '',
   fecha_nacimiento: '',
-  genero: ''
+  genero: '',
+  correo: ''
 })
 
 const loadingBtn = ref(false)
@@ -36,7 +37,8 @@ const guardarMiembroFamiliar = async () => {
       nombre_completo: form.value.nombre,
       parentesco: form.value.parentesco,
       fecha_nacimiento: form.value.fecha_nacimiento,
-      genero: form.value.genero
+      genero: form.value.genero,
+      correo: form.value.correo
     })
 
     toast.add({
@@ -53,11 +55,14 @@ const guardarMiembroFamiliar = async () => {
     }, 1500)
 
   } catch (error) {
-    mensaje.value = error.response?.data?.message || 'Error al guardar'
+    const msg = error.response?.data?.message || 'Error al guardar'
+    
+    mensaje.value = msg
+    
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: msg,
+      detail: msg, // Ahora sí existe
       life: 6000
     })
   } finally {
@@ -90,6 +95,11 @@ const volver = () => {
         <div class="form-group">
           <label>Fecha de Nacimiento</label>
           <input type="date" v-model="form.fecha_nacimiento" />
+        </div>
+
+        <div class="form-group">
+          <label>Correo Electrónico (Opcional)</label>
+          <input type="email" v-model="form.correo" placeholder="ejemplo@correo.com" />
         </div>
 
         <div class="form-group">

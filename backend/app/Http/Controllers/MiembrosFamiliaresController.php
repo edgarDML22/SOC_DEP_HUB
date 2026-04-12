@@ -24,97 +24,183 @@ class MiembrosFamiliaresController extends Controller
             ], 404);
         }
 
-        // El SoftDelete oculta automáticamente los que tienen deleted_at lleno
+        // 1. Obtenemos a los familiares (activos)
         $miembros = MiembrosFamiliares::where('socio_id', $id_socio)->get();
-        
-        return response()->json($miembros);
+
+        // 2. Mapeamos la colección para buscar y adjuntar el QR correspondiente
+        $miembrosConQR = $miembros->map(function ($miembro) {
+            $qr = DB::table('codigos_qr')
+                ->where('usuario_id', $miembro->id_miembro)
+                ->where('tipo_usuario', 'FAMILIAR')
+                ->first();
+
+            $miembro->codigo_qr = $qr ? $qr->codigo : 'QR_NO_ENCONTRADO';
+
+            return $miembro;
+        });
+
+        // 3. Enviamos la lista ya enriquecida con los QRs
+        return response()->json($miembrosConQR);
     }
+
 
     // CREAR 
     public function store(Request $request)
     {
         $id_socio = $request->user()->user_id;
 
+        // VALIDACION DATOS FRONTEND
         $request->validate([
-            'nombre_completo'  => 'required|string|max:100',
-            'parentesco'       => 'required|in:CONYUGE,HIJO/A,OTRO',
-            'fecha_nacimiento' => 'required|date',
-            'genero'           => 'required|in:M,F,O,OTRO'
+            'nombre_completo'    => 'required|string|max:100',
+            'parentesco'         => 'required|in:CONYUGE,HIJO/A,OTRO',
+            'fecha_nacimiento'   => 'required|date',
+            'genero'             => 'required|in:M,F,O,OTRO',
+            'correo' => 'nullable|email|max:255'
         ]);
 
-        do {
-            $codigoQR = 'MF' . substr(str_replace('-', '', Str::uuid()), 0, 6);
-        } while (MiembrosFamiliares::where('codigo_qr', $codigoQR)->exists());
+        // COMPROBACION CORREOS DUPLICADOS
+        if (!empty($request->correo)) {
+            $existeCorreo = MiembrosFamiliares::where('socio_id', $id_socio)
+                ->where('correo', $request->correo)
+                ->exists();
 
-        try {
-            // === INICIA LA TRANSACCIÓN ===
-            $miembro = DB::transaction(function () use ($id_socio, $request, $codigoQR) {
-                //  Crear el miembro familiar
-                return MiembrosFamiliares::create([
-                    'socio_id'         => $id_socio,
-                    'nombre_completo'  => $request->nombre_completo,
-                    'parentesco'       => $request->parentesco,
-                    'fecha_nacimiento' => $request->fecha_nacimiento,
-                    'genero'           => $request->genero,
-                    'codigo_qr'        => $codigoQR,
-                ]);
-            });
-            // === TERMINA LA TRANSACCIÓN ===
+            if ($existeCorreo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya has registrado a un miembro familiar con este correo electrónico.'
+                ], 422);
+            }
+        }
 
-            /*  Generar contenido del QR (JSON) e imagen (API Externa) */
-            $data = json_encode([
-                'codigo_qr' => $codigoQR,
-                'tipo' => 'familiar' // Lo identificamos como familiar
-            ]);
-            $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($data);
+        //COMPROBACION MAXIMO 6 MIEMBROS FAMILIARES
+        $contador = MiembrosFamiliares::where('socio_id', $id_socio)->count();
 
-            /* 5. Retornamos la respuesta (Incluyendo la URL del QR generado) */
-            return response()->json([
-                'success' => true,
-                'message' => 'Miembro familiar agregado correctamente',
-                'data'    => $miembro,
-                'qr_url'  => $qrUrl 
-            ], 201);
-
-        } catch (\Exception $e) {
-            Log::error('Error al agregar miembro familiar: ' . $e->getMessage());
+        if ($contador >= 6) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error interno al guardar. Intenta más tarde.'
+                'message' => 'Se ha alcanzado el límite máximo permitido de 6 miembros familiares asociados a su cuenta. Para registrar a un nuevo integrante, es necesario gestionar la baja de uno de los registros actuales.'
+            ], 422);
+        }
+
+
+
+
+        // GENERACION CODIGO QR UNICO Y GLOBAL
+        do {
+            // Generamos un identificador MF + 6 caracteres aleatorios únicos (Ej: MF6A8B10)
+            $codigoString = 'MF' . strtoupper(substr(str_replace('-', '', Str::uuid()), 0, 6));
+
+            $existe = DB::table('codigos_qr')
+                ->where('codigo', $codigoString)
+                ->exists();
+        } while ($existe);
+
+
+        try {
+            $result = DB::transaction(function () use ($id_socio, $request, $codigoString) {
+
+                // CREACION MIEMBRO FAMILIAR
+                $miembro = MiembrosFamiliares::create([
+                    'socio_id'           => $id_socio,
+                    'nombre_completo'    => $request->nombre_completo,
+                    'parentesco'         => $request->parentesco,
+                    'fecha_nacimiento'   => $request->fecha_nacimiento,
+                    'genero'             => $request->genero,
+                    'correo' => $request->correo,
+                ]);
+
+                //
+                DB::table('codigos_qr')->insert([
+                    'codigo'           => $codigoString,
+                    'usuario_id'       => $miembro->id_miembro,
+                    'tipo_usuario'     => 'FAMILIAR',
+                    'estatus'          => 'EXPIRADO',
+                    'fecha_activacion' => now(),
+                    'created_at'       => now(),
+                    'updated_at'       => now()
+                ]);
+
+                return $miembro;
+            });
+
+            $qrPayload = json_encode([
+                'codigo_qr' => $codigoString,
+                'tipo'      => 'familiar'
+            ]);
+            $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrPayload);
+
+            if (!empty($request->correo)) {
+                try {
+                    \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($request, $qrUrl) {
+                        $message->to($request->correo)
+                            ->subject('Tu código QR como Miembro Familiar')
+                            ->html("
+                            <div style='text-align:center; font-family:Arial, sans-serif; color: #333;'>
+                                <h2>¡Hola, {$request->nombre_completo}!</h2>
+                                <p>Has sido registrado como miembro familiar en el club.</p>
+                                <p>Presenta este código QR cuando nuestro personal te lo indique:</p>
+                                <div style='margin: 30px 0;'>
+                                    <img src='{$qrUrl}' alt='Código QR de Acceso' style='border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);' />
+                                </div>
+                                <p style='font-size: 12px; color: #666;'>Si no puedes ver la imagen, asegúrate de habilitar las imágenes en tu cliente de correo.</p>
+                            </div>
+                        ");
+                    });
+                } catch (\Exception $e) {
+                    Log::error('Error enviando correo al familiar: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Miembro familiar y QR creados con éxito',
+                'data'    => $result,
+                'qr_url'  => $qrUrl
+            ], 201);
+        } catch (\Exception $e) {
+            // === MODO DIAGNÓSTICO EXTREMO (Solo para Desarrollo) ===
+            Log::error('Error capturado: ' . $e->getMessage());
+
+            return response()->json([
+                'success'    => false,
+                'message'    => '¡El código explotó!',
+                'error_real' => $e->getMessage(), // <--- AQUÍ ESTÁ EL CHISME
+                'archivo'    => $e->getFile(),
+                'linea'      => $e->getLine()
             ], 500);
         }
     }
+
 
     // ACTUALIZAR
     public function update(Request $request, $id)
     {
         $id_socio = $request->user()->user_id;
 
-        // 1. Buscar miembro asegurando que pertenece a este socio
         $miembro = MiembrosFamiliares::where('id_miembro', $id)
-                                     ->where('socio_id', $id_socio)
-                                     ->first();
+            ->where('socio_id', $id_socio)
+            ->first();
 
         if (!$miembro) {
             return response()->json(['success' => false, 'message' => 'Miembro no encontrado o no autorizado'], 404);
         }
 
-        // 2. Validar
         $request->validate([
             'nombre_completo'  => 'required|string|max:100',
             'parentesco'       => 'required|in:CONYUGE,HIJO/A,OTRO',
             'fecha_nacimiento' => 'required|date',
-            'genero'           => 'required|in:M,F,OTRO'
+            'genero'           => 'required|in:M,F,OTRO',
+            'correo' => 'nullable|email|max:255'
         ]);
 
         try {
             DB::transaction(function () use ($miembro, $request) {
-                // 3. Actualizar registro
                 $miembro->update([
                     'nombre_completo'  => $request->nombre_completo,
                     'parentesco'       => $request->parentesco,
                     'fecha_nacimiento' => $request->fecha_nacimiento,
                     'genero'           => $request->genero,
+                    'correo' => $request->correo,
                 ]);
             });
 
@@ -123,7 +209,6 @@ class MiembrosFamiliaresController extends Controller
                 'message' => 'Miembro familiar actualizado correctamente',
                 'data'    => $miembro
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('Error al actualizar miembro familiar: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Hubo un error al actualizar'], 500);
@@ -136,27 +221,35 @@ class MiembrosFamiliaresController extends Controller
         $id_socio = $request->user()->user_id;
 
         $miembro = MiembrosFamiliares::where('id_miembro', $id)
-                                     ->where('socio_id', $id_socio)
-                                     ->first();
+            ->where('socio_id', $id_socio)
+            ->first();
 
         if (!$miembro) {
-            return response()->json(['success' => false, 'message' => 'Miembro no encontrado o no autorizado'], 404);
+            return response()->json(['success' => false, 'message' => 'No autorizado o no encontrado'], 404);
         }
 
         try {
-            DB::transaction(function () use ($miembro) {
-                // El trait SoftDeletes se encargará de llenar la columna deleted_at
-                $miembro->delete(); 
-            });
+            DB::transaction(function () use ($miembro, $id) {
+
+                DB::table('codigos_qr')
+                    ->where('usuario_id', $id)
+                    ->where('tipo_usuario', 'FAMILIAR')
+                    ->update([
+                        'estatus'    => 'INACTIVO',
+                        'deleted_at' => now(),
+                        'updated_at' => now()
+                    ]);
+
+                $miembro->delete();
+            }); // fin transaction
 
             return response()->json([
                 'success' => true,
-                'message' => 'Miembro familiar eliminado correctamente'
+                'message' => 'Miembro familiar y su acceso han sido eliminados correctamente'
             ], 200);
-
         } catch (\Exception $e) {
-            Log::error('Error al eliminar miembro familiar: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Hubo un error al procesar la eliminación'], 500);
+            Log::error('Error en eliminación en cascada MF: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al procesar la baja'], 500);
         }
     }
 }

@@ -3,6 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useFamilyStore } from '@/stores/familyStore'
 import { useToast } from 'primevue/usetoast'
 import Select from 'primevue/select'
+import IconQR from '@/components/icons/IconQr.vue'
+import IconEdit from '@/components/icons/IconEdit.vue'      
+import IconTrash from '@/components/icons/IconTrash.vue'
 
 const familyStore = useFamilyStore()
 const toast = useToast()
@@ -11,7 +14,7 @@ const search = ref('')
 
 // --- ESTADO PARA LOS MODALES ---
 const showModal = ref(false)
-const modalType = ref('') 
+const modalType = ref('')
 const modalLoading = ref(false)
 
 const formMiembro = ref({
@@ -53,7 +56,8 @@ const abrirModalEditar = (m) => {
     nombre: m.nombre_completo,
     parentesco: m.parentesco,
     fecha_nacimiento: m.fecha_nacimiento,
-    genero: m.genero
+    genero: m.genero,
+    correo: m.correo || ''
   }
   modalType.value = 'edit'
   showModal.value = true
@@ -94,6 +98,61 @@ const confirmarAccion = async () => {
     modalLoading.value = false
   }
 }
+
+// 2. Variables de estado para el Modal del QR
+const showQrModal = ref(false)
+const selectedMember = ref(null)
+
+// 3. Función para abrir el modal del QR
+const abrirModalQR = (m) => {
+  selectedMember.value = m
+  showQrModal.value = true
+}
+
+const cerrarModalQR = () => {
+  showQrModal.value = false
+  selectedMember.value = null
+}
+
+// 4. Lógica para generar la URL del QR (usando el mismo estándar del backend)
+const generarQrUrl = (codigo) => {
+  const data = JSON.stringify({ codigo_qr: codigo, tipo: 'familiar' })
+  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`
+}
+
+// 5. Función para copiar el código al portapapeles
+const copiarImagenAlPortapapeles = async (url) => {
+  try {
+    toast.add({ severity: 'info', summary: 'Procesando', detail: 'Preparando imagen...', life: 1000 });
+
+    // 1. Obtenemos la imagen como un Blob
+    const response = await fetch(url);
+    const blob = await response.blob();
+
+    // 2. Usamos ClipboardItem para copiar el archivo de imagen
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        [blob.type]: blob
+      })
+    ]);
+
+    toast.add({
+      severity: 'success',
+      summary: '¡Listo!',
+      detail: 'Imagen del QR copiada al portapapeles',
+      life: 3000
+    });
+  } catch (err) {
+    console.error('Error al copiar imagen:', err);
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Tu navegador no permite copiar imágenes directamente. Intenta con clic derecho.',
+      life: 4000
+    });
+  }
+};
+
 </script>
 
 <template>
@@ -121,11 +180,25 @@ const confirmarAccion = async () => {
             <div class="info" v-if="m.parentesco">Parentesco: {{ m.parentesco }}</div>
             <div class="info" v-if="m.fecha_nacimiento">Nacimiento: {{ m.fecha_nacimiento }}</div>
             <div class="info" v-if="m.genero">Género: {{ m.genero }}</div>
+            <div class="info" v-if="m.correo">Correo Electrónico: {{ m.correo }}</div>
+
           </div>
         </div>
         <div class="actions">
-          <button class="btn-edit" @click="abrirModalEditar(m)">Editar</button>
-          <button class="btn-delete" @click="abrirModalEliminar(m)">Eliminar</button>
+          <button class="btn-qr" @click="abrirModalQR(m)" title="Ver Código QR">
+            <IconQR class="icon-svg" />
+            <span>QR</span>
+          </button>
+          
+          <button class="btn-edit" @click="abrirModalEditar(m)">
+            <IconEdit class="icon-svg" />
+            <span>Editar</span>
+          </button>
+          
+          <button class="btn-delete" @click="abrirModalEliminar(m)">
+            <IconTrash class="icon-svg" />
+            <span>Eliminar</span>
+          </button>
         </div>
       </div>
     </div>
@@ -144,6 +217,9 @@ const confirmarAccion = async () => {
 
           <label>Fecha de Nacimiento</label>
           <input type="date" v-model="formMiembro.fecha_nacimiento" class="modal-input" />
+
+          <label>Correo Electrónico (Opcional)</label>
+          <input type="email" v-model="formMiembro.correo" class="modal-input" placeholder="correo@ejemplo.com" />
 
           <label>Género</label>
           <Select v-model="formMiembro.genero" :options="opcionesGenero" optionLabel="label" optionValue="value"
@@ -164,6 +240,31 @@ const confirmarAccion = async () => {
         </div>
       </div>
     </div>
+
+    <div v-if="showQrModal" class="modal-overlay" @mousedown.self="cerrarModalQR">
+  <div class="modal-card qr-modal">
+    <h3>Código QR de Acceso</h3>
+    <p class="text-muted">Este es el código QR de <strong>{{ selectedMember.nombre_completo }}</strong></p>
+    
+    <div class="qr-display-container">
+      <img 
+        :src="generarQrUrl(selectedMember.codigo_qr)" 
+        alt="QR Code" 
+        class="qr-image-large" 
+      />
+      </div>
+
+    <div class="modal-actions-center">
+      <button class="btn-copy" @click="copiarImagenAlPortapapeles(generarQrUrl(selectedMember.codigo_qr))">
+        Copiar Imagen QR
+      </button>
+      <button class="btn-cancel" @click="cerrarModalQR">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+    
+
   </div>
 </template>
 
@@ -283,10 +384,15 @@ const confirmarAccion = async () => {
 /* ================= ESTILOS DEL MODAL (UNIFICADOS) ================= */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(2px);
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
 
@@ -296,7 +402,7 @@ const confirmarAccion = async () => {
   border-radius: 12px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .modal-card h3 {
@@ -307,18 +413,18 @@ const confirmarAccion = async () => {
   color: var(--p-surface-900);
 }
 
-.form-group-modal { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 8px; 
+.form-group-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Labels oscuros y con mejor peso visual */
-.form-group-modal label { 
-  font-size: 14px; 
-  font-weight: 600; 
-  margin-top: 8px; 
-  color: var(--p-surface-900); 
+.form-group-modal label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+  color: var(--p-surface-900);
 }
 
 .form-group-modal label:first-child {
@@ -366,19 +472,19 @@ const confirmarAccion = async () => {
   color: var(--p-surface-900) !important;
 }
 
-.modal-actions { 
-  display: flex; 
-  justify-content: flex-end; 
-  gap: 10px; 
-  margin-top: 24px; 
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
 }
 
 .btn-cancel {
-  background: white; 
+  background: white;
   color: var(--p-surface-900);
   border: 1px solid var(--p-surface-200);
-  padding: 10px 16px; 
-  border-radius: 8px; 
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: 0.2s;
@@ -389,11 +495,11 @@ const confirmarAccion = async () => {
 }
 
 .btn-primary-modal {
-  background: var(--p-primary-700); 
+  background: var(--p-primary-700);
   color: white;
-  border: none; 
-  padding: 10px 16px; 
-  border-radius: 8px; 
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: 0.2s;
@@ -404,11 +510,11 @@ const confirmarAccion = async () => {
 }
 
 .btn-delete-confirm {
-  background: #dc2626; 
+  background: #dc2626;
   color: white;
-  border: none; 
-  padding: 10px 16px; 
-  border-radius: 8px; 
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: 0.2s;
@@ -418,6 +524,114 @@ const confirmarAccion = async () => {
   background: #b91c1c;
 }
 
-.text-danger { color: #dc2626; }
-.text-muted { font-size: 14px; color: var(--p-surface-500); margin-top: 4px;}
+.text-danger {
+  color: #dc2626;
+}
+
+.text-muted {
+  font-size: 14px;
+  color: var(--p-surface-500);
+  margin-top: 4px;
+}
+
+/* Estilo para el botón de QR en la lista */
+.btn-qr {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--p-surface-100);
+  color: var(--p-primary-700);
+  border: 1px solid var(--p-primary-700);
+  padding: 6px 10px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.btn-qr:hover {
+  color: white;
+  background: var(--p-primary-800);
+  border-color: var(--p-primary-500);
+}
+
+/* 1. Tamaño base para todos los íconos (sin forzar el fill aquí) */
+.icon-svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 2. El QR se queda con relleno (fill) para que siga viéndose perfecto */
+.btn-qr .icon-svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* 3. Editar y Eliminar cambian a línea (stroke) y le quitamos el relleno */
+.btn-edit .icon-svg,
+.btn-delete .icon-svg {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* 4. Forzamos a los trazos internos del SVG a tomar el color del texto (currentColor) */
+.btn-edit .icon-svg *,
+.btn-delete .icon-svg * {
+  fill: none;
+  stroke: currentColor;
+  /* Puedes descomentar la siguiente línea si quieres las líneas un poco más gruesas */
+  /* stroke-width: 1.5; */
+}
+
+/* Estilos específicos para el Modal del QR */
+.qr-modal {
+  text-align: center;
+  max-width: 350px !important;
+}
+
+.qr-display-container {
+  margin: 20px 0;
+  padding: 15px;
+  background: var(--p-surface-50);
+  border-radius: 12px;
+  border: 1px dashed var(--p-surface-300);
+}
+
+.qr-image-large {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+}
+
+.qr-code-label {
+  margin-top: 10px;
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--p-surface-700);
+  letter-spacing: 1px;
+}
+
+.modal-actions-center {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-copy {
+  background: var(--p-primary-700);
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-copy:hover {
+  background: var(--p-primary-800);
+}
 </style>
