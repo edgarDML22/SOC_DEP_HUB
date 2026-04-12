@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useGuestStore } from '@/stores/guestStore'
+import { useGuestStore } from '@/stores/community/guestStore'
 import { useToast } from 'primevue/usetoast'
 import Swal from 'sweetalert2' // <-- Mantenemos tu SweetAlert para la cancelación
 import api from '@/services/api' // <-- Necesario para tu endpoint de cancelar
@@ -16,7 +16,7 @@ const cancelingId = ref(null)
 
 // --- ESTADO PARA LOS MODALES DE DEVELOP ---
 const showModal = ref(false)
-const modalType = ref('') 
+const modalType = ref('')
 const modalLoading = ref(false)
 
 const formInvitado = ref({
@@ -70,11 +70,11 @@ const handleCancel = async (inv) => {
   })
 
   if (result.isConfirmed) {
-    cancelingId.value = inv.id 
-    
+    cancelingId.value = inv.id
+
     try {
       await api.put(`guests/passes/${inv.id}/cancel`)
-      
+
       inv.estatus_acceso = 'EXPIRADO'
 
       Swal.fire('¡Cancelado!', 'El pase ha sido revocado correctamente.', 'success')
@@ -104,7 +104,7 @@ const cerrarModal = () => {
   showModal.value = false
   setTimeout(() => {
     formInvitado.value = { id: null, nombre: '', correo: '', telefono: '' }
-  }, 200) 
+  }, 200)
 }
 
 const confirmarAccion = async () => {
@@ -136,12 +136,12 @@ const confirmarAccion = async () => {
       <div>
         <h2>Mis Invitados</h2>
         <p>Consulta el estatus de tus invitados</p>
-        
+
         <div class="quota-info" :class="{ 'limit-reached': activeCount >= 5 }">
-           Cupo utilizado: <strong>{{ activeCount }} / 5</strong>
+          Cupo utilizado: <strong>{{ activeCount }} / 5</strong>
         </div>
       </div>
-      
+
       <router-link class="btn-primary" :to="{ name: 'guests-add' }">
         + Agregar Invitado
       </router-link>
@@ -178,13 +178,9 @@ const confirmarAccion = async () => {
         <div class="actions">
           <button class="btn-edit" @click="abrirModalEditar(inv)">Editar</button>
           <button class="btn-delete" @click="abrirModalEliminar(inv)">Eliminar</button>
-          
-          <button
-            v-if="inv.estatus_acceso === 'ACTIVO'"
-            class="btn-revoke"
-            @click="handleCancel(inv)"
-            :disabled="cancelingId === inv.id"
-          >
+
+          <button v-if="inv.estatus_acceso === 'ACTIVO'" class="btn-revoke" @click="handleCancel(inv)"
+            :disabled="cancelingId === inv.id">
             {{ cancelingId === inv.id ? 'Cancelando...' : 'Cancelar Pase' }}
           </button>
         </div>
@@ -227,62 +223,321 @@ const confirmarAccion = async () => {
 /* ========================================================
    ESTILOS COMBINADOS (Develop + Tus ajustes de cuota/cancelar)
    ======================================================== */
-.container { padding: 20px; font-family: var(--p-font-family); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header h2 { font-size: 22px; font-weight: 700; color: var(--p-surface-900); }
-.header p { color: var(--p-surface-500); font-size: 14px; }
+.container {
+  padding: 20px;
+  font-family: var(--p-font-family);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--p-surface-900);
+}
+
+.header p {
+  color: var(--p-surface-500);
+  font-size: 14px;
+}
 
 /* TUS ESTILOS DE CUOTA */
-.quota-info { margin-top: 8px; font-size: 14px; color: var(--p-primary-700); }
-.limit-reached { color: #dc2626; }
+.quota-info {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--p-primary-700);
+}
 
-.search { width: 100%; padding: 10px; border-radius: var(--p-border-radius-medium); border: 1px solid var(--p-surface-200); margin-bottom: 12px; }
-.tabs { display: flex; gap: 10px; margin-bottom: 16px; }
-.tab { flex: 1; padding: 10px; border-radius: var(--p-border-radius-medium); background: var(--p-surface-100); color: var(--p-surface-900); border: none; cursor: pointer; transition: background 0.2s ease; }
-.tab:hover { background: var(--p-surface-200); }
-.tab.active { background: var(--p-primary-100); color: var(--p-primary-700); font-weight: 600; }
+.limit-reached {
+  color: #dc2626;
+}
 
-.card { display: flex; justify-content: space-between; align-items: center; background: white; border-radius: var(--p-border-radius-medium); padding: 14px; margin-bottom: 12px; border: 1px solid var(--p-surface-200); }
-.left { display: flex; gap: 12px; }
-.avatar { width: 42px; height: 42px; background: var(--p-surface-100); color: var(--p-primary-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-.nombre { font-weight: 600; font-size: 15px; color: var(--p-surface-900); }
-.info { font-size: 13px; color: var(--p-surface-500); }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; } /* Flex-wrap por si hay muchos botones */
+.search {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--p-border-radius-medium);
+  border: 1px solid var(--p-surface-200);
+  margin-bottom: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--p-border-radius-medium);
+  background: var(--p-surface-100);
+  color: var(--p-surface-900);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tab:hover {
+  background: var(--p-surface-200);
+}
+
+.tab.active {
+  background: var(--p-primary-100);
+  color: var(--p-primary-700);
+  font-weight: 600;
+}
+
+.card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-radius: var(--p-border-radius-medium);
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--p-surface-200);
+}
+
+.left {
+  display: flex;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  background: var(--p-surface-100);
+  color: var(--p-primary-700);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.nombre {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--p-surface-900);
+}
+
+.info {
+  font-size: 13px;
+  color: var(--p-surface-500);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Flex-wrap por si hay muchos botones */
 
 /* BOTONES DE ACCIÓN */
-.btn-edit { background: var(--p-surface-200); color: var(--p-surface-900); border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; transition: background 0.2s ease; }
-.btn-edit:hover { background: #d1d5db; }
+.btn-edit {
+  background: var(--p-surface-200);
+  color: var(--p-surface-900);
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
 
-.btn-delete { background: #fee2e2; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #b91c1c; cursor: pointer; transition: background 0.2s ease; }
-.btn-delete:hover { background: #fecaca; }
+.btn-edit:hover {
+  background: #d1d5db;
+}
+
+.btn-delete {
+  background: #fee2e2;
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--p-border-radius-medium);
+  color: #b91c1c;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-delete:hover {
+  background: #fecaca;
+}
 
 /* TU BOTÓN DE CANCELAR PASE */
-.btn-revoke { background: #fef08a; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #854d0e; cursor: pointer; font-weight: 600; transition: 0.2s; }
-.btn-revoke:hover { background: #fde047; }
-.btn-revoke:disabled { background: #fef9c3; cursor: not-allowed; opacity: 0.7; }
+.btn-revoke {
+  background: #fef08a;
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--p-border-radius-medium);
+  color: #854d0e;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
 
-.badge { margin-left: 10px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: transparent; border: 1.5px solid; }
-.badge.activo { color: #16a34a; border-color: #16a34a; }
-.badge.expirado { color: #dc2626; border-color: #dc2626; }
+.btn-revoke:hover {
+  background: #fde047;
+}
 
-.btn-primary { background-color: var(--p-primary-700); color: white; border: none; padding: 8px 14px; border-radius: var(--p-border-radius-medium); cursor: pointer; text-decoration: none; transition: background-color 0.2s ease; }
-.btn-primary:hover { background-color: var(--p-primary-800); }
+.btn-revoke:disabled {
+  background: #fef9c3;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.badge {
+  margin-left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 1.5px solid;
+}
+
+.badge.activo {
+  color: #16a34a;
+  border-color: #16a34a;
+}
+
+.badge.expirado {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-primary {
+  background-color: var(--p-primary-700);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--p-primary-800);
+}
 
 /* ESTILOS DEL MODAL DE DEVELOP */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-card { background: white; padding: 24px; border-radius: var(--p-border-radius-medium); width: 90%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-.modal-card h3 { margin-top: 0; margin-bottom: 16px; font-size: 18px; color: var(--p-surface-900); }
-.text-danger { color: #dc2626; }
-.text-muted { color: var(--p-surface-500); font-size: 14px; margin-top: 4px; }
-.form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-group label { font-size: 13px; font-weight: 600; color: var(--p-surface-900); margin-top: 4px; }
-.modal-input { padding: 10px; border: 1px solid var(--p-surface-200); border-radius: var(--p-border-radius-medium); outline: none; transition: border-color 0.2s, box-shadow 0.2s; color: var(--p-surface-900); }
-.modal-input:focus { border-color: var(--p-primary-700); box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2); }
-.delete-warning p { margin: 0; font-size: 15px; color: var(--p-surface-900); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.btn-cancel { background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-200); padding: 8px 16px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500; transition: background 0.2s ease; }
-.btn-cancel:hover { background: var(--p-surface-100); }
-.btn-delete-confirm { background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500; transition: background 0.2s ease; }
-.btn-delete-confirm:hover { background: #b91c1c; }
-.loading { text-align: center; padding: 20px; }
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: white;
+  padding: 24px;
+  border-radius: var(--p-border-radius-medium);
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-card h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: var(--p-surface-900);
+}
+
+.text-danger {
+  color: #dc2626;
+}
+
+.text-muted {
+  color: var(--p-surface-500);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-surface-900);
+  margin-top: 4px;
+}
+
+.modal-input {
+  padding: 10px;
+  border: 1px solid var(--p-surface-200);
+  border-radius: var(--p-border-radius-medium);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--p-surface-900);
+}
+
+.modal-input:focus {
+  border-color: var(--p-primary-700);
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2);
+}
+
+.delete-warning p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--p-surface-900);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-cancel {
+  background: white;
+  color: var(--p-surface-900);
+  border: 1px solid var(--p-surface-200);
+  padding: 8px 16px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: var(--p-surface-100);
+}
+
+.btn-delete-confirm {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-delete-confirm:hover {
+  background: #b91c1c;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+}
 </style>

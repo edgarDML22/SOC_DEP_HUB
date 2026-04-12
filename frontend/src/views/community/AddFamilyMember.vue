@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useFamilyStore } from '@/stores/familyStore'
+import { useFamilyStore } from '@/stores/community/familyStore'
 import Select from 'primevue/select'
 import { useToast } from "primevue/usetoast";
 const toast = useToast();

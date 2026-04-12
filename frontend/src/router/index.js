@@ -50,7 +50,7 @@ const router = createRouter({
             allowedRoles: ["socio_titular", "miembro_familiar"],
           },
           // 1. CORRECCIÓN: Agregamos el '/' al inicio para que sea una ruta absoluta
-          redirect: "/socio/reservations/manage", 
+          redirect: "/socio/reservations/manage",
           children: [
             {
               path: "on-demand",
@@ -159,7 +159,12 @@ const router = createRouter({
               // PENDIENTE
               path: "friends-list",
               name: "friends-list",
-              component: { template: "<div></div>" },
+              component: () => import("@/views/community/friends/FriendsList.vue"),
+            },
+            {
+              path: "friends-add",
+              name: "friends-add",
+              component: () => import("@/views/community/friends/FriendsAdd.vue"),
             },
           ],
         },
