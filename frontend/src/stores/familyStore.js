@@ -24,8 +24,8 @@ export const useFamilyStore = defineStore("family", {
       }
     },
     async addMiembroFamiliar(payload) {
-      const res = await api.post("v1/family-member-create", payload);
-      await this.fetchMiembrosFamiliares(true); 
+      const res = await api.post("/family-member-create", payload);
+      await this.fetchMiembrosFamiliares(true);
       return res;
     },
     async updateMiembroFamiliar(id, payload) {

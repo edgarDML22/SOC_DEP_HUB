@@ -7,6 +7,7 @@ const profileStore = useProfileStore();
 
 const menuOpen = ref(false)
 const notifications = ref(2)
+const showNotifications = ref(false)
 
 const toggleMenu = () => {
     menuOpen.value = !menuOpen.value
@@ -155,8 +156,6 @@ const toggleNotifications = () => {
     padding: 12px;
 }
 
-
-
 .top-navbar {
     display: flex;
     justify-content: space-between;
@@ -277,7 +276,6 @@ const toggleNotifications = () => {
     font-weight: 600;
 }
 
-
 .dropdown {
     position: absolute;
     top: 60px;
@@ -305,7 +303,6 @@ const toggleNotifications = () => {
     font-family: inherit;
 }
 
-
 .dropdown button:hover,
 .dropdown a:hover {
     background: var(--p-surface-100);
@@ -322,19 +319,10 @@ const toggleNotifications = () => {
     font-weight: bold;
 }
 
-@media (min-width: 1050px) {
-    .qr-link {
-        pointer-events: none; 
-        opacity: 0.4; 
-        filter: grayscale(100%);
-    }
-}
-
 /* DISEÑO PARA MÓVILES (Menos de 1050px)*/
 @media (max-width: 1049px) {
     .top-navbar {
         padding: 10px 1rem;
-
     }
 
     .navbar-left {
@@ -354,7 +342,6 @@ const toggleNotifications = () => {
         border-top: 1px solid var(--p-surface-200);
         justify-content: flex-start;
         overflow-x: auto;
-
         scrollbar-width: thin;
         scrollbar-color: #cbd5e1 transparent;
         padding-bottom: 8px;
