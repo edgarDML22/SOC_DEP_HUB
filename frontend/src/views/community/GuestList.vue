@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useGuestStore } from '@/stores/guestStore'
 import { useToast } from 'primevue/usetoast'
-import Swal from 'sweetalert2' // <-- Mantenemos tu SweetAlert para la cancelación
-import api from '@/services/api' // <-- Necesario para tu endpoint de cancelar
+import Swal from 'sweetalert2'
+import api from '@/services/api'
 
 const toast = useToast()
 const guestStore = useGuestStore()
@@ -11,7 +11,6 @@ const guestStore = useGuestStore()
 const filtro = ref('TODOS')
 const search = ref('')
 
-// --- TU ESTADO DE CARGA (SDH-2904) ---
 const cancelingId = ref(null)
 
 // --- ESTADO PARA LOS MODALES DE DEVELOP ---
@@ -30,9 +29,7 @@ onMounted(() => {
   guestStore.fetchInvitados()
 })
 
-// --- TU LÓGICA DE CUOTA REACTIVA (SDH-2903) ---
 const activeCount = computed(() => {
-  // Ahora leemos de guestStore.invitados en lugar de la variable local
   return guestStore.invitados.filter(inv => inv.estatus_acceso === 'ACTIVO').length
 })
 
@@ -82,7 +79,7 @@ const handleCancel = async (inv) => {
       const errorMsg = error.response?.data?.message || 'No se pudo procesar la cancelación.'
       Swal.fire('Error', errorMsg, 'error')
     } finally {
-      cancelingId.value = null // Liberamos el botón
+      cancelingId.value = null
     }
   }
 }
@@ -224,15 +221,12 @@ const confirmarAccion = async () => {
 </template>
 
 <style scoped>
-/* ========================================================
-   ESTILOS COMBINADOS (Develop + Tus ajustes de cuota/cancelar)
-   ======================================================== */
 .container { padding: 20px; font-family: var(--p-font-family); }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .header h2 { font-size: 22px; font-weight: 700; color: var(--p-surface-900); }
 .header p { color: var(--p-surface-500); font-size: 14px; }
 
-/* TUS ESTILOS DE CUOTA */
+/* ESTILOS DE CUOTA */
 .quota-info { margin-top: 8px; font-size: 14px; color: var(--p-primary-700); }
 .limit-reached { color: #dc2626; }
 
@@ -256,7 +250,7 @@ const confirmarAccion = async () => {
 .btn-delete { background: #fee2e2; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #b91c1c; cursor: pointer; transition: background 0.2s ease; }
 .btn-delete:hover { background: #fecaca; }
 
-/* TU BOTÓN DE CANCELAR PASE */
+/* BOTÓN DE CANCELAR PASE */
 .btn-revoke { background: #fef08a; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #854d0e; cursor: pointer; font-weight: 600; transition: 0.2s; }
 .btn-revoke:hover { background: #fde047; }
 .btn-revoke:disabled { background: #fef9c3; cursor: not-allowed; opacity: 0.7; }
