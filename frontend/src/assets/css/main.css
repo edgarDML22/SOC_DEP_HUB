@@ -10,9 +10,21 @@
   font-weight: 500;
   display: inline-block;
 }
-.badge-green { background-color: #dcfce7; color: #166534; }
-.badge-gray { background-color: #f3f4f6; color: #374151; }
-.badge-red { background-color: #fee2e2; color: #991b1b; }
+
+.badge-green {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-gray {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.badge-red {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
 
 /* Tarjetas base (Cards) */
 .card {
@@ -33,6 +45,7 @@
   border: none;
   cursor: pointer;
 }
+
 .btn-gray {
   background: #e5e7eb;
   color: #374151;
@@ -41,6 +54,7 @@
   border: none;
   cursor: pointer;
 }
+
 .action-btn {
   background-color: #ffffff;
   border: 1px solid #d1d5db;
@@ -52,4 +66,83 @@
   cursor: pointer;
   transition: background-color 0.2s;
 }
-.action-btn:hover { background-color: #f9fafb; }
+
+.action-btn:hover {
+  background-color: #f9fafb;
+}
+
+:root {
+  /* VARIABLES DE NOTION */
+  --p-primary-600: #2563eb;
+  --p-primary-700: #1d4ed8;
+  --p-primary-800: #1e40af;
+  --p-surface-50: #f8f9fa;
+  --p-surface-100: #f9fafb;
+  --p-surface-200: #e5e7eb;
+  --p-surface-500: #6b7280;
+  --p-surface-900: #111827;
+  --p-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --p-border-radius-medium: 8px;
+
+  /* COLORES DE ESTADO (Para las alertas globales) */
+  --state-success: #16a34a;
+  /* Verde confirmación */
+  --state-error: #dc2626;
+  /* Rojo error/eliminar */
+  --state-info: var(--p-primary-700);
+  /* Azul corporativo SOCDEP HUB */
+}
+
+/* CLASES GLOBALES PARA BOTONES DE SWEETALERT (El Inner Join) */
+.btn-primary {
+  background-color: var(--p-primary-700);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--p-primary-800);
+}
+
+.btn-cancel {
+  background: white;
+  color: var(--p-surface-900);
+  border: 1px solid var(--p-surface-200);
+  padding: 8px 16px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+  margin-right: 10px;
+}
+
+.btn-cancel:hover {
+  background: var(--p-surface-100);
+}
+
+.btn-delete-confirm {
+  background: var(--state-error);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--p-border-radius-medium);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-delete-confirm:hover {
+  background: #b91c1c;
+}
+
+/* Para redondear las ventanas de Swal como el CSS de Edgar */
+.swal-border-radius {
+  border-radius: var(--p-border-radius-medium) !important;
+  font-family: var(--p-font-family);
+}

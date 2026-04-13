@@ -1,26 +1,26 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useGuestStore } from '@/stores/community/guestStore'
-import { useToast } from 'primevue/usetoast'
-import Swal from 'sweetalert2' // <-- Mantenemos tu SweetAlert para la cancelación
-import api from '@/services/api' // <-- Necesario para tu endpoint de cancelar
+import { useAlerts } from '@/composables/useAlerts' 
+import api from '@/services/api'
 
 import IconQR from '@/components/icons/IconQr.vue'
 import IconEdit from '@/components/icons/IconEdit.vue'      
 import IconTrash from '@/components/icons/IconTrash.vue'
 
-const toast = useToast()
+// Alertas personalizadas
+const { toastInfo, confirmDelete, confirmWarning, successModal } = useAlerts()
 const guestStore = useGuestStore()
 
 const filtro = ref('TODOS')
 const search = ref('')
 
-// --- TU ESTADO DE CARGA (SDH-2904) ---
-const cancelingId = ref(null)
+// VARIABLES PARA CONTROLAR LOS BOTONES DE CARGA
+const actionLoadingId = ref(null)
+const actionTypeLoading = ref('') // 'cancelar' o 'eliminar'
 
-// --- ESTADO PARA LOS MODALES DE DEVELOP ---
+// ESTADO PARA EL MODAL DE EDICIÓN
 const showModal = ref(false)
-const modalType = ref('')
 const modalLoading = ref(false)
 
 const formInvitado = ref({
@@ -34,9 +34,7 @@ onMounted(() => {
   guestStore.fetchInvitados()
 })
 
-// --- TU LÓGICA DE CUOTA REACTIVA (SDH-2903) ---
 const activeCount = computed(() => {
-  // Ahora leemos de guestStore.invitados en lugar de la variable local
   return guestStore.invitados.filter(inv => inv.estatus_acceso === 'ACTIVO').length
 })
 
@@ -53,55 +51,67 @@ const invitadosFiltrados = computed(() => {
 
   if (search.value) {
     const s = search.value.toLowerCase()
-    resultado = resultado.filter(inv =>
-      inv.nombre.toLowerCase().includes(s) ||
-      String(inv.id).includes(s)
-    )
+    resultado = resultado.filter(inv => inv.nombre.toLowerCase().includes(s))
   }
   return resultado
 })
 
 const handleCancel = async (inv) => {
-  const result = await Swal.fire({
-    title: '¿Estás seguro?',
-    text: `Se cancelará el pase de ${inv.nombre}. Esta acción liberará tu cuota de invitados.`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#dc2626',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Sí, cancelar pase',
-    cancelButtonText: 'Regresar'
-  })
+  const result = await confirmWarning(
+    '¿Estás seguro?', 
+    `Se cancelará el pase de ${inv.nombre}. Esta acción liberará tu cuota de invitados.`,
+    'Sí, cancelar pase'
+  )
 
   if (result.isConfirmed) {
-    cancelingId.value = inv.id
+    // Prendemos el loading
+    actionLoadingId.value = inv.id
+    actionTypeLoading.value = 'cancelar'
 
     try {
       await api.put(`guests/passes/${inv.id}/cancel`)
-
       inv.estatus_acceso = 'EXPIRADO'
-
-      Swal.fire('¡Cancelado!', 'El pase ha sido revocado correctamente.', 'success')
+      
+      successModal('¡Cancelado!', 'El pase ha sido revocado correctamente.')
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'No se pudo procesar la cancelación.'
-      Swal.fire('Error', errorMsg, 'error')
+      toastInfo('Error', errorMsg, 'error')
     } finally {
-      cancelingId.value = null // Liberamos el botón
+      // Apagamos el loading
+      actionLoadingId.value = null
+      actionTypeLoading.value = ''
     }
   }
 }
 
-// --- FUNCIONES DEL MODAL DE DEVELOP (Editar/Eliminar) ---
+// --- FUNCIONES (Editar usa Vue HTML, Eliminar usa SWAL de diseño) ---
 const abrirModalEditar = (inv) => {
   formInvitado.value = { id: inv.id, nombre: inv.nombre, correo: inv.correo, telefono: inv.telefono }
-  modalType.value = 'edit'
   showModal.value = true
 }
 
-const abrirModalEliminar = (inv) => {
-  formInvitado.value = { id: inv.id, nombre: inv.nombre }
-  modalType.value = 'delete'
-  showModal.value = true
+const abrirModalEliminar = async (inv) => {
+  const result = await confirmDelete(
+    'Eliminar Invitado',
+    `¿Estás seguro de que deseas eliminar a ${inv.nombre}? Esta acción no se puede deshacer.`
+  )
+  
+  if (result.isConfirmed) {
+    // Prendemos el loading
+    actionLoadingId.value = inv.id
+    actionTypeLoading.value = 'eliminar'
+
+    try {
+      await guestStore.deleteInvitado(inv.id)
+      toastInfo('Eliminado', 'El invitado ha sido removido de la comunidad', 'success')
+    } catch (error) {
+      toastInfo('Error', 'No se pudo completar la operación', 'error')
+    } finally {
+      // Apagamos el loading
+      actionLoadingId.value = null
+      actionTypeLoading.value = ''
+    }
+  }
 }
 
 const cerrarModal = () => {
@@ -111,23 +121,18 @@ const cerrarModal = () => {
   }, 200)
 }
 
-const confirmarAccion = async () => {
+const confirmarEdicion = async () => {
   modalLoading.value = true
   try {
-    if (modalType.value === 'edit') {
-      await guestStore.updateInvitado(formInvitado.value.id, {
-        nombre_invitado: formInvitado.value.nombre,
-        correo: formInvitado.value.correo,
-        telefono: formInvitado.value.telefono
-      })
-      toast.add({ severity: 'success', summary: 'Actualizado', detail: 'El invitado se editó con éxito', life: 3000 })
-    } else if (modalType.value === 'delete') {
-      await guestStore.deleteInvitado(formInvitado.value.id)
-      toast.add({ severity: 'info', summary: 'Eliminado', detail: 'El invitado ha sido removido', life: 3000 })
-    }
+    await guestStore.updateInvitado(formInvitado.value.id, {
+      nombre_invitado: formInvitado.value.nombre,
+      correo: formInvitado.value.correo,
+      telefono: formInvitado.value.telefono
+    })
+    toastInfo('Actualizado', 'El invitado se editó con éxito', 'success')
     cerrarModal()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo completar la operación', life: 3000 })
+    toastInfo('Error', 'No se pudo editar el invitado', 'error')
   } finally {
     modalLoading.value = false
   }
@@ -154,22 +159,23 @@ const generarQrUrl = (codigo) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`
 }
 
-// Función para copiar el código al portapapeles
+// Lógica para copiar el código al portapapeles
 const copiarImagenAlPortapapeles = async (url) => {
   try {
-    toast.add({ severity: 'info', summary: 'Procesando', detail: 'Preparando imagen...', life: 1000 });
-    const response = await fetch(url);
-    const blob = await response.blob();
+    toastInfo('Procesando', 'Preparando imagen...', 'info')
+    
+    const response = await fetch(url)
+    const blob = await response.blob()
     await navigator.clipboard.write([
       new ClipboardItem({ [blob.type]: blob })
-    ]);
-    toast.add({ severity: 'success', summary: '¡Listo!', detail: 'Imagen del QR copiada al portapapeles', life: 3000 });
+    ])
+    
+    toastInfo('¡Listo!', 'Imagen del QR copiada al portapapeles', 'success')
   } catch (err) {
-    console.error('Error al copiar imagen:', err);
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Tu navegador no permite copiar imágenes directamente. Intenta con clic derecho.', life: 4000 });
+    console.error('Error al copiar imagen:', err)
+    toastInfo('Error', 'Tu navegador no permite copiar imágenes directamente. Intenta con clic derecho.', 'error')
   }
-};
-
+}
 </script>
 
 <template>
@@ -189,7 +195,7 @@ const copiarImagenAlPortapapeles = async (url) => {
       </router-link>
     </div>
 
-    <input v-model="search" placeholder="Buscar invitado por nombre o ID..." class="search" />
+    <input v-model="search" placeholder="Buscar invitado por nombre..." class="search" />
 
     <div class="tabs">
       <button @click="cambiarFiltro('TODOS')" :class="['tab', filtro === 'TODOS' && 'active']">Todos</button>
@@ -198,6 +204,12 @@ const copiarImagenAlPortapapeles = async (url) => {
     </div>
 
     <div v-if="guestStore.loading" class="loading">Cargando invitados...</div>
+
+    <div v-else-if="invitadosFiltrados.length === 0" class="empty-state">
+      <p v-if="filtro === 'TODOS'">No hay invitados registrados en este momento</p>
+      <p v-else-if="filtro === 'ACTIVO'">No hay invitados con su pase activo en este momento</p>
+      <p v-else-if="filtro === 'EXPIRADO'">No hay invitados con pase expirado en este momento</p>
+    </div>
 
     <div v-else>
       <div v-for="inv in invitadosFiltrados" :key="inv.id" class="card">
@@ -210,7 +222,6 @@ const copiarImagenAlPortapapeles = async (url) => {
                 {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
               </span>
             </div>
-            <div class="info">ID: {{ inv.id }}</div>
             <div class="info" v-if="inv.telefono">Teléfono: {{ inv.telefono }}</div>
             <div class="info" v-if="inv.correo">Correo: {{ inv.correo }}</div>
             <div class="info" v-if="inv.fecha_expiracion">Expira: {{ inv.fecha_expiracion }}</div>
@@ -227,18 +238,24 @@ const copiarImagenAlPortapapeles = async (url) => {
             <IconEdit class="icon-svg" />
             <span>Editar</span>
           </button>
-          <button class="btn-delete" @click="abrirModalEliminar(inv)" title="Eliminar">
-            <IconTrash class="icon-svg" />
-            <span>Eliminar</span>
+          
+          <button 
+            class="btn-delete" 
+            @click="abrirModalEliminar(inv)" 
+            title="Eliminar"
+            :disabled="actionLoadingId === inv.id"
+          >
+            <IconTrash v-if="!(actionLoadingId === inv.id && actionTypeLoading === 'eliminar')" class="icon-svg" />
+            <span>{{ actionLoadingId === inv.id && actionTypeLoading === 'eliminar' ? 'Eliminando...' : 'Eliminar' }}</span>
           </button>
           
           <button
             v-if="inv.estatus_acceso === 'ACTIVO'"
             class="btn-revoke"
             @click="handleCancel(inv)"
-            :disabled="cancelingId === inv.id"
+            :disabled="actionLoadingId === inv.id"
           >
-            {{ cancelingId === inv.id ? 'Cancelando...' : 'Cancelar Pase' }}
+            {{ actionLoadingId === inv.id && actionTypeLoading === 'cancelar' ? 'Cancelando...' : 'Cancelar Pase' }}
           </button>
         </div>
       </div>
@@ -246,10 +263,8 @@ const copiarImagenAlPortapapeles = async (url) => {
 
     <div v-if="showModal" class="modal-overlay" @mousedown.self="cerrarModal">
       <div class="modal-card">
-        <h3 v-if="modalType === 'edit'">Editar Invitado</h3>
-        <h3 v-else class="text-danger">Eliminar Invitado</h3>
-
-        <div v-if="modalType === 'edit'" class="form-group">
+        <h3>Editar Invitado</h3>
+        <div class="form-group">
           <label>Nombre</label>
           <input v-model="formInvitado.nombre" class="modal-input" />
           <label>Correo</label>
@@ -258,16 +273,10 @@ const copiarImagenAlPortapapeles = async (url) => {
           <input v-model="formInvitado.telefono" class="modal-input" />
         </div>
 
-        <div v-else class="delete-warning">
-          <p>¿Estás seguro de que deseas eliminar a <strong>{{ formInvitado.nombre }}</strong>?</p>
-          <p class="text-muted">Esta acción no se puede deshacer.</p>
-        </div>
-
         <div class="modal-actions">
           <button class="btn-cancel" @click="cerrarModal" :disabled="modalLoading">Cancelar</button>
-          <button :class="modalType === 'edit' ? 'btn-primary' : 'btn-delete-confirm'" @click="confirmarAccion"
-            :disabled="modalLoading">
-            {{ modalLoading ? 'Procesando...' : (modalType === 'edit' ? 'Guardar Cambios' : 'Sí, Eliminar') }}
+          <button class="btn-primary" @click="confirmarEdicion" :disabled="modalLoading">
+            {{ modalLoading ? 'Procesando...' : 'Guardar Cambios' }}
           </button>
         </div>
       </div>
@@ -290,7 +299,7 @@ const copiarImagenAlPortapapeles = async (url) => {
           <button class="btn-copy" @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))">
             Copiar Imagen QR
           </button>
-          <button class="btn-cancel" @click="cerrarModalQR">Cerrar</button>
+          <button class="btn-cancel" @click="cerrarModalQR" style="width: 100%; margin-top: 5px;">Cerrar</button>
         </div>
       </div>
     </div>
@@ -299,230 +308,64 @@ const copiarImagenAlPortapapeles = async (url) => {
 </template>
 
 <style scoped>
-/* ========================================================
-   ESTILOS COMBINADOS (Develop + Tus ajustes de cuota/cancelar)
-   ======================================================== */
-.container {
-  padding: 20px;
-  font-family: var(--p-font-family);
-}
+.container { padding: 20px; font-family: var(--p-font-family); }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.header h2 { font-size: 22px; font-weight: 700; color: var(--p-surface-900); margin:0; }
+.header p { color: var(--p-surface-500); font-size: 14px; margin-top: 4px;}
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
+.quota-info { margin-top: 8px; font-size: 14px; color: var(--p-primary-700); }
+.limit-reached { color: var(--state-error); }
 
-.header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--p-surface-900);
-}
+.search { width: 100%; padding: 10px; border-radius: var(--p-border-radius-medium); border: 1px solid var(--p-surface-200); margin-bottom: 12px; outline: none;}
+.search:focus { border-color: var(--p-primary-700); }
 
-.header p {
-  color: var(--p-surface-500);
-  font-size: 14px;
-}
+.tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+.tab { flex: 1; padding: 10px; border-radius: var(--p-border-radius-medium); background: var(--p-surface-100); color: var(--p-surface-900); border: none; cursor: pointer; transition: background 0.2s ease; }
+.tab:hover { background: var(--p-surface-200); }
+.tab.active { background: var(--p-primary-100); color: var(--p-primary-700); font-weight: 600; }
 
-/* TUS ESTILOS DE CUOTA */
-.quota-info {
-  margin-top: 8px;
-  font-size: 14px;
-  color: var(--p-primary-700);
-}
+.empty-state { background: white; border-radius: var(--p-border-radius-medium); padding: 20px 40px; text-align: center; color: var(--p-surface-900); font-size: 18px; font-weight: 500; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--p-surface-200); margin: 40px auto; max-width: 600px; }
 
-.limit-reached {
-  color: #dc2626;
-}
+.card { display: flex; justify-content: space-between; align-items: center; background: white; border-radius: var(--p-border-radius-medium); padding: 14px; margin-bottom: 12px; border: 1px solid var(--p-surface-200); }
+.left { display: flex; gap: 12px; align-items: center; }
+.avatar { width: 42px; height: 42px; background: var(--p-surface-100); color: var(--p-primary-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+.nombre { font-weight: 600; font-size: 15px; color: var(--p-surface-900); margin-bottom: 4px; }
+.info { font-size: 13px; color: var(--p-surface-500); line-height: 1.4; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.search {
-  width: 100%;
-  padding: 10px;
-  border-radius: var(--p-border-radius-medium);
-  border: 1px solid var(--p-surface-200);
-  margin-bottom: 12px;
-}
+.btn-edit { background: var(--p-surface-200); color: var(--p-surface-900); border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500;}
+.btn-edit:hover { background: #d1d5db; }
 
-.tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-}
+/* AJUSTES PARA ESTADO DISABLED EN ELIMINAR Y CANCELAR */
+.btn-delete { background: #fee2e2; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #b91c1c; cursor: pointer; font-weight: 500; transition: 0.2s;}
+.btn-delete:hover:not(:disabled) { background: #fecaca; }
+.btn-delete:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.tab {
-  flex: 1;
-  padding: 10px;
-  border-radius: var(--p-border-radius-medium);
-  background: var(--p-surface-100);
-  color: var(--p-surface-900);
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
+.btn-revoke { background: #fef08a; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #854d0e; cursor: pointer; font-weight: 600; transition: 0.2s; }
+.btn-revoke:hover:not(:disabled) { background: #fde047; }
+.btn-revoke:disabled { background: #fef9c3; cursor: not-allowed; opacity: 0.7; }
 
-.tab:hover {
-  background: var(--p-surface-200);
-}
+.badge { margin-left: 10px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: transparent; border: 1.5px solid; }
+.badge.activo { color: var(--state-success); border-color: var(--state-success); }
+.badge.expirado { color: var(--state-error); border-color: var(--state-error); }
 
-.tab.active {
-  background: var(--p-primary-100);
-  color: var(--p-primary-700);
-  font-weight: 600;
-}
+.btn-primary { background-color: var(--p-primary-700); color: white; border: none; padding: 8px 14px; border-radius: var(--p-border-radius-medium); cursor: pointer; text-decoration: none; transition: background-color 0.2s ease; font-weight: 500; font-size: 14px;}
+.btn-primary:hover { background-color: var(--p-primary-800); }
+.btn-cancel { background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-200); padding: 8px 16px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500; transition: background 0.2s ease; margin-right: 10px; }
+.btn-cancel:hover { background: var(--p-surface-100); }
 
-.card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border-radius: var(--p-border-radius-medium);
-  padding: 14px;
-  margin-bottom: 12px;
-  border: 1px solid var(--p-surface-200);
-}
-
-.left {
-  display: flex;
-  gap: 12px;
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  background: var(--p-surface-100);
-  color: var(--p-primary-700);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.nombre {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--p-surface-900);
-}
-
-.info {
-  font-size: 13px;
-  color: var(--p-surface-500);
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* Flex-wrap por si hay muchos botones */
-
-/* BOTONES DE ACCIÓN */
-.btn-edit {
-  background: var(--p-surface-200);
-  color: var(--p-surface-900);
-  border: none;
-  padding: 6px 10px;
-  border-radius: var(--p-border-radius-medium);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.btn-edit:hover {
-  background: #d1d5db;
-}
-
-.btn-delete {
-  background: #fee2e2;
-  border: none;
-  padding: 6px 10px;
-  border-radius: var(--p-border-radius-medium);
-  color: #b91c1c;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.btn-delete:hover {
-  background: #fecaca;
-}
-
-/* TU BOTÓN DE CANCELAR PASE */
-.btn-revoke {
-  background: #fef08a;
-  border: none;
-  padding: 6px 10px;
-  border-radius: var(--p-border-radius-medium);
-  color: #854d0e;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s;
-}
-
-.btn-revoke:hover {
-  background: #fde047;
-}
-
-.btn-revoke:disabled {
-  background: #fef9c3;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.badge {
-  margin-left: 10px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: transparent;
-  border: 1.5px solid;
-}
-
-.badge.activo {
-  color: #16a34a;
-  border-color: #16a34a;
-}
-
-.badge.expirado {
-  color: #dc2626;
-  border-color: #dc2626;
-}
-
-.btn-primary {
-  background-color: var(--p-primary-700);
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: var(--p-border-radius-medium);
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color 0.2s ease;
-}
-
-.btn-primary:hover {
-  background-color: var(--p-primary-800);
-}
-
-/* ESTILOS DEL MODAL DE DEVELOP */
+/* MODAL DE VUE (Para Editar) */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-card { background: white; padding: 24px; border-radius: var(--p-border-radius-medium); width: 90%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+.modal-card { background: white; padding: 24px; border-radius: var(--p-border-radius-medium); width: 90%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
 .modal-card h3 { margin-top: 0; margin-bottom: 16px; font-size: 18px; color: var(--p-surface-900); }
-.text-danger { color: #dc2626; }
-.text-muted { color: var(--p-surface-500); font-size: 14px; margin-top: 4px; }
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-group label { font-size: 13px; font-weight: 600; color: var(--p-surface-900); margin-top: 4px; }
-.modal-input { padding: 10px; border: 1px solid var(--p-surface-200); border-radius: var(--p-border-radius-medium); outline: none; transition: border-color 0.2s, box-shadow 0.2s; color: var(--p-surface-900); }
-.modal-input:focus { border-color: var(--p-primary-700); box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2); }
-.delete-warning p { margin: 0; font-size: 15px; color: var(--p-surface-900); }
+.modal-input { padding: 10px; border: 1px solid var(--p-surface-200); border-radius: var(--p-border-radius-medium); outline: none; transition: border-color 0.2s; color: var(--p-surface-900); }
+.modal-input:focus { border-color: var(--p-primary-700); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.btn-cancel { background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-200); padding: 8px 16px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500; transition: background 0.2s ease; }
-.btn-cancel:hover { background: var(--p-surface-100); }
-.btn-delete-confirm { background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500; transition: background 0.2s ease; }
-.btn-delete-confirm:hover { background: #b91c1c; }
-.loading { text-align: center; padding: 20px; }
+.loading { text-align: center; padding: 20px; color: var(--p-surface-500); }
 
-/* NUEVOS ESTILOS PARA ICONOS Y MODAL QR Y ESTILO FAMILIARES */
+/* ESTILOS PARA ICONOS Y MODAL QR */
 .btn-edit,
 .btn-delete {
   display: flex;

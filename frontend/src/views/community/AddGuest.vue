@@ -2,19 +2,17 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGuestStore } from '@/stores/community/guestStore'
-import { useToast } from "primevue/usetoast";
-const toast = useToast();
+import { useAlerts } from '@/composables/useAlerts' 
 
 const router = useRouter()
 const guestStore = useGuestStore()
+const { toastInfo } = useAlerts() 
+
 const form = ref({ nombre: '', correo: '', telefono: '' })
 const loadingBtn = ref(false)
-const mensaje = ref('')
-const tipoMensaje = ref('')
 
 const guardarInvitado = async () => {
   loadingBtn.value = true
-  mensaje.value = ''
 
   try {
     await guestStore.addInvitado({
@@ -23,15 +21,9 @@ const guardarInvitado = async () => {
       telefono: form.value.telefono
     })
 
-    toast.add({
-      severity: 'success',
-      summary: 'Éxito',
-      detail: 'Registro creado correctamente',
-      life: 3000
-    });
+    // Alerta global de éxito
+    toastInfo('¡Éxito!', 'Invitado creado y correo enviado', 'success')
 
-    mensaje.value = 'Invitado creado y correo enviado'
-    tipoMensaje.value = 'success'
     form.value = { nombre: '', correo: '', telefono: '' }
 
     // Redirigir de vuelta a la lista
@@ -40,14 +32,11 @@ const guardarInvitado = async () => {
     }, 1500)
 
   } catch (error) {
-    mensaje.value = error.response?.data?.message || 'Error al guardar'
-    tipoMensaje.value = 'error'
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: msg,
-      life: 4000
-    })
+
+    const errorMsg = error.response?.data?.message || 'Error al guardar el invitado'
+    
+    // Alerta global de error
+    toastInfo('Error', errorMsg, 'error')
   } finally {
     loadingBtn.value = false
   }
@@ -89,10 +78,7 @@ const volver = () => {
           </button>
         </div>
 
-        <div v-if="mensaje" :class="['badge', tipoMensaje]">
-          {{ mensaje }}
         </div>
-      </div>
     </div>
   </div>
 </template>
@@ -110,31 +96,16 @@ const volver = () => {
 .card {
   background: white;
   padding: 30px;
-  border-radius: 16px;
+  border-radius: var(--p-border-radius-medium, 16px);
   width: 100%;
   max-width: 450px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
 /* FORM & GROUPS */
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 15px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--p-surface-700, #374151);
-}
+.form { display: flex; flex-direction: column; gap: 16px; margin-top: 15px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--p-surface-900, #374151); }
 
 /* INPUTS */
 input {
@@ -147,69 +118,12 @@ input {
   font-size: 14px;
 }
 
-input:focus {
-  border-color: var(--p-primary-600);
-}
+input:focus { border-color: var(--p-primary-700); }
 
 /* BOTONES */
-.button-group {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.btn-primary {
-  flex: 1;
-  background: var(--p-primary-600);
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 500;
-}
-
-.btn-primary:hover {
-  background: var(--p-primary-700);
-}
-
-.btn-secondary {
-  flex: 1;
-  background: white;
-  color: var(--p-surface-900, #111827);
-  border: 1px solid var(--p-surface-300, #d1d5db);
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 500;
-}
-
-.btn-secondary:hover {
-  background: var(--p-surface-100, #f3f4f6);
-}
-
-/* BADGE BASE */
-.badge {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
-}
-
-/* ERROR & SUCCESS */
-.error {
-  border: 1px solid #ef4444;
-  color: #ef4444;
-  background: #fef2f2;
-}
-
-.success {
-  border: 1px solid #22c55e;
-  color: #22c55e;
-  background: #f0fdf4;
-}
+.button-group { display: flex; gap: 12px; margin-top: 10px; }
+.btn-primary { flex: 1; background: var(--p-primary-700); color: white; border: none; padding: 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; transition: 0.2s; font-weight: 500; font-size: 14px;}
+.btn-primary:hover { background: var(--p-primary-800); }
+.btn-secondary { flex: 1; background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-300, #d1d5db); padding: 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; transition: 0.2s; font-weight: 500; font-size: 14px;}
+.btn-secondary:hover { background: var(--p-surface-100, #f3f4f6); }
 </style>

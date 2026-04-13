@@ -23,8 +23,8 @@ export const useGuestStore = defineStore("guest", {
       }
     },
     async addInvitado(payload) {
-      const res = await api.post("v1/guest-create", payload);
-      await this.fetchInvitados(true); 
+      const res = await api.post("/guest-create", payload);
+      await this.fetchInvitados(true);
       return res;
     },
     async updateInvitado(id, payload) {
