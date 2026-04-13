@@ -34,9 +34,8 @@ export const useFamilyStore = defineStore("family", {
       return res;
     },
     async deleteMiembroFamiliar(id) {
-      // ⚠️ ADIÓS A LOS TOASTS AQUÍ.
       const res = await api.delete(`/family-member/${id}`);
-      this.miembrosFamiliares = this.miembrosFamiliares.filter((mf) => mf.id !== id);
+      await this.fetchMiembrosFamiliares(true);
       return res;
     },
   },

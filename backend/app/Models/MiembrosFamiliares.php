@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; // 1. IMPORTAR SOFT DELETES
 
 class MiembrosFamiliares extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'miembros_familiares';
     protected $primaryKey = 'id_miembro';
@@ -19,7 +20,7 @@ class MiembrosFamiliares extends Model
         'parentesco',
         'fecha_nacimiento',
         'genero',
-        'foto_perfil',
+        'correo'
     ];
 
     public function socioTitular()

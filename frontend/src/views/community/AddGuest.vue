@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useGuestStore } from '@/stores/guestStore'
+import { useGuestStore } from '@/stores/community/guestStore'
 import { useAlerts } from '@/composables/useAlerts' 
 
 const router = useRouter()
@@ -53,7 +53,7 @@ const volver = () => {
     <div class="card">
       <h2>Agregar Invitado</h2>
       <div class="form">
-        
+
         <div class="form-group">
           <label>Nombre Completo</label>
           <input v-model="form.nombre" placeholder="Ej. Ana Gómez" />

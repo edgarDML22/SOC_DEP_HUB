@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useFamilyStore } from '@/stores/familyStore'
+import { useFamilyStore } from '@/stores/community/familyStore'
 import { useAlerts } from '@/composables/useAlerts'
 import Select from 'primevue/select'
 
@@ -13,7 +13,8 @@ const form = ref({
   nombre: '',
   parentesco: '',
   fecha_nacimiento: '',
-  genero: ''
+  genero: '',
+  correo: ''
 })
 
 const loadingBtn = ref(false)
@@ -33,7 +34,8 @@ const guardarMiembroFamiliar = async () => {
       nombre_completo: form.value.nombre,
       parentesco: form.value.parentesco,
       fecha_nacimiento: form.value.fecha_nacimiento,
-      genero: form.value.genero
+      genero: form.value.genero,
+      correo: form.value.correo
     })
 
     // Alerta global de éxito
@@ -81,6 +83,11 @@ const volver = () => {
         <div class="form-group">
           <label>Fecha de Nacimiento</label>
           <input type="date" v-model="form.fecha_nacimiento" />
+        </div>
+
+        <div class="form-group">
+          <label>Correo Electrónico (Opcional)</label>
+          <input type="email" v-model="form.correo" placeholder="ejemplo@correo.com" />
         </div>
 
         <div class="form-group">

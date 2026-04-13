@@ -1,20 +1,22 @@
 import Swal from 'sweetalert2'
 
-// Configuración base: Apaga los estilos por defecto y usa tus clases globales
+// 1. Guardamos nuestras clases base en una variable aparte para que no marque "undefined"
+const baseClasses = {
+    popup: 'swal-border-radius',
+    confirmButton: 'btn-primary',
+    cancelButton: 'btn-cancel'
+}
+
+// 2. SweetAlert principal
 const swalApp = Swal.mixin({
     background: 'var(--p-surface-50)',
     color: 'var(--p-surface-900)',
-    buttonsStyling: false, // Inner Join!
-    customClass: {
-        popup: 'swal-border-radius',
-        confirmButton: 'btn-primary',
-        cancelButton: 'btn-cancel',
-        denyButton: 'btn-delete-confirm'
-    }
+    buttonsStyling: false,
+    customClass: baseClasses
 })
 
 export const useAlerts = () => {
-    // 1. Toasts (Las notificaciones que salen abajo a la derecha)
+    // Toasts
     const toastInfo = (title, text, type = 'success') => {
         const iconColor = type === 'success' ? 'var(--state-success)' :
             type === 'error' ? 'var(--state-error)' : 'var(--state-info)';
@@ -33,7 +35,7 @@ export const useAlerts = () => {
         });
     }
 
-    // 2. Modal de Confirmación Peligrosa (Eliminar)
+    // Modal de Eliminar 
     const confirmDelete = async (title, text) => {
         return await swalApp.fire({
             title: title,
@@ -41,11 +43,14 @@ export const useAlerts = () => {
             showCancelButton: true,
             confirmButtonText: 'Sí, Eliminar',
             cancelButtonText: 'Cancelar',
-            customClass: { ...swalApp.options.customClass, confirmButton: 'btn-delete-confirm' }
+            customClass: {
+                ...baseClasses,
+                confirmButton: 'btn-delete-confirm'
+            }
         });
     }
 
-    // 3. Modal de Confirmación Estándar (Cancelar Pase)
+    // Modal de Advertencia (Cancelar Pase)
     const confirmWarning = async (title, text, confirmText = 'Confirmar') => {
         return await swalApp.fire({
             title: title,
@@ -56,7 +61,7 @@ export const useAlerts = () => {
         });
     }
 
-    // 4. Modal de Éxito al centro de la pantalla
+    // Modal de Éxito
     const successModal = (title, text) => {
         swalApp.fire({
             title: title,

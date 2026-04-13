@@ -8,6 +8,7 @@ use App\Models\SocioTitular;
 use Exception;
 // use App\Models\PasesDiarios; // Descomenta si lo usas
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -43,10 +44,10 @@ class GuestStatusController extends Controller
 
     public function store(Request $request)
     {
-        /* 1. Obtenemos el ID del Socio desde el Token (Súper seguro) */
+        /* 1. Obtenemos el ID del Socio desde el Token */
         $socioId = $request->user()->user_id;
 
-        /* 2. Validar datos (Ya quitamos el 'id' porque lo sacamos del token) */
+        /* 2. Validar datos */
         $request->validate([
             'nombre_invitado' => 'required|string|max:255',
             'correo' => 'nullable|email|max:255',
@@ -55,26 +56,20 @@ class GuestStatusController extends Controller
 
         /* 3. Validar socio */
         $id_valido = SocioTitular::where('id_socio', $socioId)->first();
-        if ($id_valido == null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontro socio con ese id'
-            ], 404);
+        if (!$id_valido) {
+            return response()->json(['success' => false, 'message' => 'No se encontró socio con ese id'], 404);
         }
 
         /* 4. Validar correo duplicado */
-        $corre_validacion = Invitados::where('correo', $request->correo)
+        $correo_validacion = Invitados::where('correo', $request->correo)
             ->where('socio_id', $socioId)
             ->first();
 
-        if ($corre_validacion != null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ya existe un invitado con ese correo'
-            ], 400);
+        if ($correo_validacion) {
+            return response()->json(['success' => false, 'message' => 'Ya existe un invitado con ese correo'], 400);
         }
 
-        /* 5. Validar límite (Usando el ID del token) */
+        /* 5. Validar límite */
         $count = SocioTitular::find($socioId)
             ->invitados()
             ->whereHas('pase', function ($query) {
@@ -82,11 +77,8 @@ class GuestStatusController extends Controller
             })
             ->count();
 
-        if ($count >= 5) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Has alcanzado el límite máximo de 5 invitados activos simultáneamente.'
-            ], 400);
+        if ($count >= 8) {
+            return response()->json(['success' => false, 'message' => 'Has alcanzado el límite máximo de 8 invitados.'], 400);
         }
 
         /* 6. Generar código QR */
@@ -94,70 +86,82 @@ class GuestStatusController extends Controller
             $codigoQR = 'QI' . substr(str_replace('-', '', Str::uuid()), 0, 6);
         } while (Invitados::where('codigo_qr', $codigoQR)->exists());
 
-        /* 7. Insertar invitado (Con el ID del token) */
-        $insertar = Invitados::create([
-            'socio_id' => $socioId,
-            'nombre_invitado' => $request->nombre_invitado,
-            'codigo_qr' => $codigoQR,
-            'correo' => $request->correo,
-            'telefono' => $request->telefono
-        ]);
+        try {
+            // === INICIA LA TRANSACCIÓN ===
+            $result = DB::transaction(function () use ($socioId, $request, $codigoQR) {
+                
+                /* 7. Insertar invitado */
+                $insertar = Invitados::create([
+                    'socio_id' => $socioId,
+                    'nombre_invitado' => $request->nombre_invitado,
+                    'codigo_qr' => $codigoQR,
+                    'correo' => $request->correo,
+                    'telefono' => $request->telefono
+                ]);
 
-        /* 8. Insertar pase */
-        $insertar_pase = PasesDiarios::create([
-            'invitado_id' => $insertar->id_invitado,
-            'estatus_acceso' => 'EXPIRADO',
-            'fecha_activacion' => now(),
-        ]);
+                /* 8. Insertar pase asociado al invitado recién creado */
+                $insertar_pase = PasesDiarios::create([
+                    'invitado_id' => $insertar->id_invitado,
+                    'estatus_acceso' => 'EXPIRADO', 
+                    'fecha_activacion' => now(),
+                ]);
 
-        /* 9. Validar inserción */
-        if (!$insertar || !$insertar_pase) {
+                return [
+                    'invitado' => $insertar,
+                    'pase' => $insertar_pase
+                ];
+            });
+            // === TERMINA LA TRANSACCIÓN ===
+
+            $insertar = $result['invitado'];
+            $insertar_pase = $result['pase'];
+
+            /* 9. Generar contenido del QR (JSON) e imagen */
+            $data = json_encode([
+                'codigo_qr' => $codigoQR,
+                'tipo' => 'invitado'
+            ]);
+            $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($data);
+
+            /* 10. Enviar correo (fuera de la transacción para no enviar spam si la DB falla) */
+            if ($request->correo) {
+                try {
+                    Mail::send([], [], function ($message) use ($request, $qrUrl, $codigoQR) {
+                        $message->to($request->correo)
+                            ->subject('Tu acceso como invitado')
+                            ->html("
+                                <div style='text-align:center; font-family:Arial'>
+                                    <h2>Hola {$request->nombre_invitado}</h2>
+                                    <p>Presenta este código QR en la entrada:</p>
+                                    <div style='margin:20px 0'>
+                                        <img src='$qrUrl' alt='QR Code' />
+                                    </div>
+                                </div>
+                            ");
+                    });
+                } catch (Exception $e) {
+                    Log::error('Error enviando correo: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'id_invitado' => $insertar->id_invitado,
+                'socio_id' => $socioId,
+                'nombre_invitado' => $request->nombre_invitado,
+                'codigo_qr' => $codigoQR,
+                'estatus_acceso' => $insertar_pase->estatus_acceso,
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error en transacción de Invitado: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agregar invitado'
+                'message' => 'Error interno al agregar invitado. Intenta más tarde.'
             ], 500);
         }
-
-        /* 10. Generar contenido del QR (JSON) */
-        $data = json_encode([
-            'codigo_qr' => $codigoQR,
-            'tipo' => 'invitado'
-        ]);
-
-        /* 11. Generar imagen QR (API externa) */
-        $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($data);
-
-        /* 12. Enviar correo */
-        if ($request->correo) {
-            try {
-                Mail::send([], [], function ($message) use ($request, $qrUrl, $codigoQR) {
-                    $message->to($request->correo)
-                        ->subject('Tu acceso como invitado')
-                        ->html("
-                            <div style='text-align:center; font-family:Arial'>
-                                <h2>Hola {$request->nombre_invitado}</h2>
-                                <p>Presenta este código QR en la entrada:</p>
-                                <div style='margin:20px 0'>
-                                    <img src='$qrUrl' alt='QR Code' />
-                                </div>
-                            </div>
-                        ");
-                });
-            } catch (Exception $e) {
-                // Aquí ya no marcará error porque importamos Log y Exception arriba
-                Log::error('Error enviando correo: ' . $e->getMessage());
-            }
-        }
-
-        /* 13. Respuesta exacta a la que tenían (con la data para el Frontend) */
-        return response()->json([
-            'id_invitado' => $insertar->id_invitado,
-            'socio_id' => $socioId,
-            'nombre_invitado' => $request->nombre_invitado,
-            'codigo_qr' => $codigoQR,
-            'estatus_acceso' => $insertar_pase->estatus_acceso,
-        ], 201);
     }
+
+
 
     public function update(Request $request, $id)
     {
@@ -195,24 +199,47 @@ class GuestStatusController extends Controller
 
     public function destroy(Request $request, $id)
     {
-
         $socioId = $request->user()->user_id;
 
-        $invitado = Invitados::where('id_invitado', $id)
-            ->where('socio_id', $socioId)
-            ->first();
+        // Traemos al invitado con su relación de pase diario
+        $invitado = Invitados::with('pase')
+                             ->where('id_invitado', $id)
+                             ->where('socio_id', $socioId)
+                             ->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
         }
 
-        // Al eliminar al invitado, asegúrate de que tu base de datos tenga eliminación 
-        // en cascada para los pases_diarios, o elimínalo manualmente aquí si es necesario.
-        $invitado->delete();
+        try {
+            // === INICIA LA TRANSACCIÓN PARA ELIMINACIÓN EN CASCADA ===
+            DB::transaction(function () use ($invitado) {
+                
+                // 1. Deshabilitar el pase diario (Lo pasamos a EXPIRADO o equivalente)
+                if ($invitado->pase) {
+                    $invitado->pase->update([
+                        'estatus_acceso' => 'EXPIRADO' 
+                    ]);
+                }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Invitado eliminado correctamente'
-        ], 200);
+                // 2. Soft delete del invitado (llena el campo deleted_at de forma automática)
+                $invitado->delete();
+            });
+            // === TERMINA LA TRANSACCIÓN ===
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invitado eliminado y pase deshabilitado correctamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar invitado: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al procesar la eliminación'
+            ], 500);
+        }
     }
+
+
 }

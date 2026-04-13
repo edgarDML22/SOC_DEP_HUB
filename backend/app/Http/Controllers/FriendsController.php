@@ -1,0 +1,193 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Amistades;
+use App\Models\SocioTitular;
+
+class FriendsController extends Controller
+{
+    // MÉTODO 1: Mostrar lista de amistades (aceptadas y pendientes)
+    public function show(Request $request)
+    {
+        $socioId = (int) $request->user()->user_id;
+
+        // Agrupamos el orWhere para evitar conflictos con eager load
+        $amistades = Amistades::with(['solicitante', 'receptor'])
+            ->where(function ($q) use ($socioId) {
+                $q->where('solicitante_id', $socioId)
+                  ->orWhere('receptor_id', $socioId);
+            })
+            ->get();
+
+        $formateado = $amistades->map(function ($amistad) use ($socioId) {
+            // Forzamos a entero ambos lados para comparación estricta
+            $esSolicitante = (int) $amistad->solicitante_id === $socioId;
+            $amigo = $esSolicitante ? $amistad->receptor : $amistad->solicitante;
+
+            return [
+                'id_amistad'       => $amistad->id_amistad,
+                'id_amigo'         => $amigo ? $amigo->id_socio : null,
+                'nombre_amigo'     => $amigo ? $amigo->nombre_completo : 'Desconocido',
+                'estado'           => $amistad->estado,
+                'solicitado_por_mi' => $esSolicitante,
+                'solicitante_id'   => $amistad->solicitante_id, // útil para depurar
+                'receptor_id'      => $amistad->receptor_id,   // útil para depurar
+                'mi_id'            => $socioId,                 // útil para depurar
+                'created_at'       => $amistad->created_at
+            ];
+        })->filter(function ($amistad) {
+            return $amistad['estado'] !== 'RECHAZADA' && $amistad['estado'] !== 'BLOQUEADA';
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $formateado
+        ], 200);
+    }
+
+    // MÉTODO 2: Enviar solicitud de amistad
+    public function store(Request $request)
+    {
+        $request->validate([
+            'receptor_id' => 'required|integer|exists:socios_titulares,id_socio'
+        ]);
+
+        $socioId = $request->user()->user_id;
+        $receptorId = $request->receptor_id;
+
+        if ($socioId == $receptorId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No puedes enviarte una solicitud a ti mismo'
+            ], 400);
+        }
+
+        // Verificar si ya existe una solicitud o amistad
+        $existe = Amistades::where(function ($q) use ($socioId, $receptorId) {
+            $q->where('solicitante_id', $socioId)->where('receptor_id', $receptorId);
+        })->orWhere(function ($q) use ($socioId, $receptorId) {
+            $q->where('solicitante_id', $receptorId)->where('receptor_id', $socioId);
+        })->first();
+
+        if ($existe) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya existe una relación de amistad o solicitud pendiente'
+            ], 400);
+        }
+
+        $amistad = Amistades::create([
+            'solicitante_id' => $socioId,
+            'receptor_id' => $receptorId,
+            'estado' => 'PENDIENTE',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitud enviada correctamente',
+            'data' => $amistad
+        ], 201);
+    }
+
+    // MÉTODO 3: Eliminar amigo o revocar solicitud enviada
+    public function destroy(Request $request)
+    {
+        $request->validate([
+            'id_amistad' => 'required|integer|exists:amistades,id_amistad'
+        ]);
+
+        $socioId = $request->user()->user_id;
+        
+        $amistad = Amistades::where('id_amistad', $request->id_amistad)
+            ->where(function ($q) use ($socioId) {
+                $q->where('solicitante_id', $socioId)
+                  ->orWhere('receptor_id', $socioId);
+            })->first();
+
+        if (!$amistad) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Amistad o solicitud no encontrada o no autorizada'
+            ], 404);
+        }
+
+        $amistad->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Amistad/Solicitud eliminada correctamente'
+        ], 200);
+    }
+
+    // MÉTODO 4: Aceptar solicitud
+    public function accept(Request $request)
+    {
+        $request->validate([
+            'id_amistad' => 'required|integer|exists:amistades,id_amistad'
+        ]);
+
+        $socioId = $request->user()->user_id;
+
+        $amistad = Amistades::where('id_amistad', $request->id_amistad)
+            ->where('receptor_id', $socioId)
+            ->where('estado', 'PENDIENTE')
+            ->first();
+
+        if (!$amistad) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solicitud no encontrada o no válida para aceptar'
+            ], 404);
+        }
+
+        $amistad->estado = 'ACEPTADA';
+        $amistad->updated_at = now();
+        // save() en un modelo con timestamps inhabilitados actualiza de todos modos los campos asignados
+        $amistad->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitud de amistad aceptada',
+            'data' => $amistad
+        ], 200);
+    }
+
+    // MÉTODO 5: Rechazar solicitud
+    public function reject(Request $request)
+    {
+        $request->validate([
+            'id_amistad' => 'required|integer|exists:amistades,id_amistad'
+        ]);
+
+        $socioId = $request->user()->user_id;
+
+        $amistad = Amistades::where('id_amistad', $request->id_amistad)
+            ->where('receptor_id', $socioId)
+            ->where('estado', 'PENDIENTE')
+            ->first();
+
+        if (!$amistad) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solicitud no encontrada o no válida para rechazar'
+            ], 404);
+        }
+
+        $amistad->estado = 'RECHAZADA';
+        $amistad->updated_at = now();
+        $amistad->save();
+
+        // O si prefieres eliminarla por completo para evitar acumular rechazadas:
+        // $amistad->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitud de amistad rechazada',
+            'data' => $amistad
+        ], 200);
+    }
+}
