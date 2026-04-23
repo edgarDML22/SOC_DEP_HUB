@@ -9,13 +9,7 @@ import { RouterView } from 'vue-router'
 
 
 <style>
-/* Estilos globales básicos para resetear márgenes */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* Estilos globales (Tailwind ya incluye su propio reset 'Preflight', por lo que no es necesario resetear margin y padding aquí) */
 body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f9;
