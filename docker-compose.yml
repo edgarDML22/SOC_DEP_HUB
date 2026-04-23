@@ -63,6 +63,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules # Evita que los módulos locales sobreescriban a los del contenedor
+    command: sh -c "npm install && npm run dev"
     networks:
       - socdep-network
 
