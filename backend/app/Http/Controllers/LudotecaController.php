@@ -21,7 +21,7 @@ class LudotecaController extends Controller
 
             if ($registros->count() == 0) {
                 return response()->json([
-                    'message' => 'No se encontraron registros activos',
+                    'message' => 'No se encontraron registros activos en la ludoteca',
                 ], 404);
             } else {
                 return response()->json([
