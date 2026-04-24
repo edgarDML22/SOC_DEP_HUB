@@ -1,18 +1,19 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFriendStore } from '@/stores/community/friendStore'
 import { useAlerts } from '@/composables/useAlerts' 
-import IconTrash from '@/components/icons/IconTrash.vue' 
+import { IconArrowLeft } from '@/components/icons'
 
+const router = useRouter()
 const friendStore = useFriendStore()
-const { toastInfo, confirmDelete, confirmWarning } = useAlerts() 
+const { toastInfo } = useAlerts() 
 
 const search = ref('')
 const filtro = ref('AMIGO') 
 
-// ARIABLES PARA CONTROLAR LOS BOTONES DE CARGA
 const actionLoadingId = ref(null)
-const actionTypeLoading = ref('') // Puede ser: 'eliminar', 'cancelar', 'aceptar', 'rechazar'
+const actionTypeLoading = ref('')
 
 const amigosFiltrados = computed(() => {
   let list = Array.isArray(friendStore.friends) ? friendStore.friends : []
@@ -41,49 +42,6 @@ function cambiarFiltro(nuevoFiltro) {
   filtro.value = nuevoFiltro
 }
 
-const handleEliminarAmigo = async (amigo) => {
-  const result = await confirmDelete(
-    'Eliminar Amigo',
-    `¿Estás seguro de que deseas eliminar a ${amigo.nombre_amigo} de tu lista de amigos?`
-  )
-  if (result.isConfirmed) {
-    // Prendemos el loading
-    actionLoadingId.value = amigo.id_amistad
-    actionTypeLoading.value = 'eliminar'
-    try {
-      await friendStore.removeFriend({ id_amistad: amigo.id_amistad })
-      toastInfo('Eliminado', 'Amigo eliminado correctamente', 'success')
-    } catch (error) {
-      toastInfo('Error', 'Hubo un error al eliminar al amigo', 'error')
-    } finally {
-      // Apagamos el loading
-      actionLoadingId.value = null
-      actionTypeLoading.value = ''
-    }
-  }
-}
-
-const handleCancelarSolicitud = async (amigo) => {
-  const result = await confirmWarning(
-    'Cancelar Solicitud',
-    `¿Deseas cancelar la solicitud de amistad enviada a ${amigo.nombre_amigo}?`,
-    'Sí, cancelar'
-  )
-  if (result.isConfirmed) {
-    actionLoadingId.value = amigo.id_amistad
-    actionTypeLoading.value = 'cancelar'
-    try {
-      await friendStore.removeFriend({ id_amistad: amigo.id_amistad })
-      toastInfo('Cancelada', 'Solicitud cancelada correctamente', 'success')
-    } catch (error) {
-      toastInfo('Error', 'Hubo un error al cancelar la solicitud', 'error')
-    } finally {
-      actionLoadingId.value = null
-      actionTypeLoading.value = ''
-    }
-  }
-}
-
 const aceptarSolicitud = async (amigo) => {
   actionLoadingId.value = amigo.id_amistad
   actionTypeLoading.value = 'aceptar'
@@ -99,169 +57,167 @@ const aceptarSolicitud = async (amigo) => {
 }
 
 const rechazarSolicitud = async (amigo) => {
-  const result = await confirmDelete(
-    'Rechazar Solicitud',
-    `¿Estás seguro de rechazar la solicitud de ${amigo.nombre_amigo}?`
-  )
-  if (result.isConfirmed) {
-    actionLoadingId.value = amigo.id_amistad
-    actionTypeLoading.value = 'rechazar'
-    try {
-      await friendStore.rejectFriend({ id_amistad: amigo.id_amistad })
-      toastInfo('Rechazada', 'Solicitud de amistad rechazada', 'info')
-    } catch (e) {
-      toastInfo('Error', 'Error al rechazar la solicitud', 'error')
-    } finally {
-      actionLoadingId.value = null
-      actionTypeLoading.value = ''
-    }
+  actionLoadingId.value = amigo.id_amistad
+  actionTypeLoading.value = 'rechazar'
+  try {
+    await friendStore.rejectFriend({ id_amistad: amigo.id_amistad })
+    toastInfo('Rechazada', 'Solicitud de amistad rechazada', 'info')
+  } catch (e) {
+    toastInfo('Error', 'Error al rechazar la solicitud', 'error')
+  } finally {
+    actionLoadingId.value = null
+    actionTypeLoading.value = ''
   }
 }
 </script>
 
 <template>
-  <div class="container">
-    <div class="header">
+  <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
+    <div class="max-w-5xl mx-auto flex flex-col gap-6">
+      
+      <!-- Encabezado con Botón Volver -->
       <div>
-        <h2>Mis Amigos</h2>
-        <p>Mantente conectado con las personas que más quieres</p>
+        <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit group">
+            <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
+        </button>
+        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div class="flex flex-col gap-1">
+            <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Mis Amigos</h2>
+            <p class="text-surface-500 font-medium text-sm md:text-base m-0">Mantente conectado con las personas que más quieres</p>
+          </div>
+          
+          <router-link 
+            :to="{ name: 'friends-add' }" 
+            class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center"
+          >
+            + Agregar Amigo
+          </router-link>
+        </div>
       </div>
 
-      <router-link class="btn-primary" :to="{ name: 'friends-add' }">
-        + Agregar Amigo
-      </router-link>
-    </div>
+      <!-- Buscador y Filtros Nivel 2 -->
+      <div class="flex flex-col gap-4">
+        
+        <input 
+          v-model="search" 
+          placeholder="Buscar amigo por nombre..." 
+          class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" 
+        />
+        
+        <!-- Pestañas Nivel 2 (Minimalistas) -->
+        <div class="flex gap-6 border-b border-surface-200 w-full overflow-x-auto scrollbar-thin">
+          <button 
+            @click="cambiarFiltro('AMIGO')" 
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
+            :class="filtro === 'AMIGO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Mis Amigos
+          </button>
+          
+          <button 
+            @click="cambiarFiltro('SOLICITUD_ENVIADA')" 
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
+            :class="filtro === 'SOLICITUD_ENVIADA' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            Enviadas
+          </button>
+          
+          <button 
+            @click="cambiarFiltro('SOLICITUD_RECIBIDA')" 
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
+            :class="filtro === 'SOLICITUD_RECIBIDA' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>
+            Recibidas
+          </button>
+        </div>
 
-    <input v-model="search" placeholder="Buscar amigo por nombre..." class="search" />
+      </div>
 
-    <div class="tabs">
-      <button @click="cambiarFiltro('AMIGO')" :class="['tab', filtro === 'AMIGO' && 'active']">Mis Amigos</button>
-      <button @click="cambiarFiltro('SOLICITUD_ENVIADA')"
-        :class="['tab', filtro === 'SOLICITUD_ENVIADA' && 'active']">Solicitudes Enviadas</button>
-      <button @click="cambiarFiltro('SOLICITUD_RECIBIDA')"
-        :class="['tab', filtro === 'SOLICITUD_RECIBIDA' && 'active']">Solicitudes Recibidas</button>
-    </div>
+      <!-- Estado de Carga -->
+      <div v-if="friendStore.loading" class="text-center py-12 text-surface-500 font-medium">
+        <span class="animate-pulse">Cargando...</span>
+      </div>
 
-    <div v-if="friendStore.loading" class="loading">Cargando...</div>
+      <!-- Empty State -->
+      <div v-else-if="amigosFiltrados.length === 0" class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200 flex flex-col items-center justify-center min-h-[250px]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <p v-if="filtro === 'AMIGO'" class="text-base font-medium">Aún no tienes amigos en tu lista.</p>
+        <p v-else-if="filtro === 'SOLICITUD_ENVIADA'" class="text-base font-medium">No tienes solicitudes enviadas pendientes.</p>
+        <p v-else-if="filtro === 'SOLICITUD_RECIBIDA'" class="text-base font-medium">No tienes solicitudes de amistad recibidas.</p>
+      </div>
 
-    <div v-else-if="amigosFiltrados.length === 0" class="empty-state">
-      <p v-if="filtro === 'AMIGO'">Aún no tienes amigos en tu lista.</p>
-      <p v-else-if="filtro === 'SOLICITUD_ENVIADA'">No tienes solicitudes enviadas pendientes.</p>
-      <p v-else-if="filtro === 'SOLICITUD_RECIBIDA'">No tienes solicitudes de amistad recibidas.</p>
-    </div>
-
-    <div v-else>
-      <div v-for="amigo in amigosFiltrados" :key="amigo.id_amistad" class="card">
-        <div class="left">
-          <div class="avatar">{{ amigo.nombre_amigo?.charAt(0) || '?' }}</div>
-          <div>
-            <div class="nombre">
-              {{ amigo.nombre_amigo }}
-              <span v-if="amigo.estado === 'ACEPTADA'" class="badge activo">AMIGO</span>
-              <span v-else-if="amigo.estado === 'PENDIENTE' && amigo.solicitado_por_mi"
-                class="badge amarillo">ENVIADA</span>
-              <span v-else-if="amigo.estado === 'PENDIENTE' && !amigo.solicitado_por_mi"
-                class="badge expirado">RECIBIDA</span>
+      <!-- Lista de Tarjetas (Grid) -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div 
+          v-for="amigo in amigosFiltrados" 
+          :key="amigo.id_amistad" 
+          class="bg-white rounded-2xl p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col h-full hover:-translate-y-0.5"
+        >
+          <!-- Header de tarjeta -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-bold text-lg uppercase shrink-0">
+              {{ amigo.nombre_amigo?.charAt(0) || '?' }}
             </div>
-            <div class="info" v-if="amigo.created_at">Fecha: {{ new Date(amigo.created_at).toLocaleDateString() }}</div>
-          </div>
-        </div>
-
-        <div class="actions">
-          <template v-if="filtro === 'AMIGO'">
-            <button 
-              class="btn-delete" 
-              @click="handleEliminarAmigo(amigo)"
-              :disabled="actionLoadingId === amigo.id_amistad"
-            >
-              <IconTrash v-if="!(actionLoadingId === amigo.id_amistad && actionTypeLoading === 'eliminar')" class="icon-svg" />
-              <span>{{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'eliminar' ? 'Eliminando...' : 'Eliminar' }}</span>
-            </button>
-          </template>
-
-          <template v-else-if="filtro === 'SOLICITUD_ENVIADA'">
-            <button 
-              class="btn-revoke" 
-              @click="handleCancelarSolicitud(amigo)"
-              :disabled="actionLoadingId === amigo.id_amistad"
-            >
-              {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'cancelar' ? 'Cancelando...' : 'Cancelar Solicitud' }}
-            </button>
-          </template>
-
-          <template v-else-if="filtro === 'SOLICITUD_RECIBIDA'">
-            <button 
-              class="btn-accept" 
-              @click="aceptarSolicitud(amigo)"
-              :disabled="actionLoadingId === amigo.id_amistad"
-            >
-              {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'aceptar' ? 'Aceptando...' : 'Aceptar' }}
-            </button>
             
-            <button 
-              class="btn-delete" 
-              @click="rechazarSolicitud(amigo)"
-              :disabled="actionLoadingId === amigo.id_amistad"
-            >
-              <IconTrash v-if="!(actionLoadingId === amigo.id_amistad && actionTypeLoading === 'rechazar')" class="icon-svg" />
-              <span>{{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'rechazar' ? 'Rechazando...' : 'Rechazar' }}</span>
-            </button>
-          </template>
-        </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="amigo.nombre_amigo">
+                {{ amigo.nombre_amigo }}
+              </h3>
+              
+              <div class="mt-1.5 flex flex-wrap gap-2">
+                <span v-if="amigo.estado === 'ACEPTADA'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-green-50 text-green-700 border border-green-200">
+                  AMIGO
+                </span>
+                <span v-else-if="amigo.estado === 'PENDIENTE' && amigo.solicitado_por_mi" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-yellow-50 text-yellow-700 border border-yellow-200">
+                  ENVIADA
+                </span>
+                <span v-else-if="amigo.estado === 'PENDIENTE' && !amigo.solicitado_por_mi" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-primary-50 text-primary-700 border border-primary-200">
+                  RECIBIDA
+                </span>
+              </div>
+            </div>
+          </div>
 
+          <!-- Detalles Body -->
+          <div class="flex-1 flex flex-col gap-2 text-sm text-surface-600 mb-5 font-medium">
+            <div v-if="amigo.created_at" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+              </svg>
+              <span>{{ new Date(amigo.created_at).toLocaleDateString() }}</span>
+            </div>
+          </div>
+
+          <!-- Footer Actions (Sólo Aceptar/Rechazar para Solicitudes Recibidas) -->
+          <div class="mt-auto pt-2" v-if="filtro === 'SOLICITUD_RECIBIDA'">
+            <div class="flex gap-2 flex-col sm:flex-row w-full">
+              <!-- Estandarización Primary -->
+              <button 
+                @click="aceptarSolicitud(amigo)"
+                :disabled="actionLoadingId === amigo.id_amistad"
+                class="flex-1 bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'aceptar' ? 'Aceptando...' : 'Aceptar' }}
+              </button>
+              
+              <!-- Estandarización Secondary -->
+              <button 
+                @click="rechazarSolicitud(amigo)"
+                :disabled="actionLoadingId === amigo.id_amistad"
+                class="flex-1 bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'rechazar' ? 'Rechazando...' : 'Rechazar' }}
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.container { padding: 20px; font-family: var(--p-font-family); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header h2 { font-size: 22px; font-weight: 700; color: var(--p-surface-900); margin: 0; }
-.header p { color: var(--p-surface-500); font-size: 14px; margin-top: 4px; }
-
-.search { width: 100%; padding: 10px; border-radius: var(--p-border-radius-medium); border: 1px solid var(--p-surface-200); margin-bottom: 12px; outline: none; }
-.search:focus { border-color: var(--p-primary-700); }
-
-.tabs { display: flex; gap: 10px; margin-bottom: 16px; }
-.tab { flex: 1; padding: 10px; border-radius: var(--p-border-radius-medium); background: var(--p-surface-100); color: var(--p-surface-900); border: none; cursor: pointer; transition: background 0.2s ease; }
-.tab:hover { background: var(--p-surface-200); }
-.tab.active { background: var(--p-primary-100); color: var(--p-primary-700); font-weight: 600; }
-
-.empty-state { background: white; border-radius: var(--p-border-radius-medium); padding: 20px 40px; text-align: center; color: var(--p-surface-900); font-size: 16px; font-weight: 500; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--p-surface-200); margin: 40px auto; max-width: 600px; }
-
-.card { display: flex; justify-content: space-between; align-items: center; background: white; border-radius: var(--p-border-radius-medium); padding: 14px; margin-bottom: 12px; border: 1px solid var(--p-surface-200); }
-.left { display: flex; gap: 12px; align-items: center;}
-.avatar { width: 42px; height: 42px; background: var(--p-surface-100); color: var(--p-primary-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; text-transform: uppercase; }
-.nombre { font-weight: 600; font-size: 15px; color: var(--p-surface-900); margin-bottom: 4px; }
-.info { font-size: 13px; color: var(--p-surface-500); }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-/* ======== BOTONES ======== */
-.btn-primary { background-color: var(--p-primary-700); color: white; border: none; padding: 8px 14px; border-radius: var(--p-border-radius-medium); cursor: pointer; text-decoration: none; transition: background-color 0.2s ease; font-weight: 500; font-size: 14px;}
-.btn-primary:hover { background-color: var(--p-primary-800); }
-
-.btn-accept { background: var(--state-success, #16a34a); color: white; border: none; padding: 6px 14px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s;}
-.btn-accept:hover:not(:disabled) { background: #15803d; }
-.btn-accept:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-delete { display: flex; align-items: center; gap: 6px; background: #fee2e2; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #b91c1c; cursor: pointer; transition: 0.2s; font-weight: 600; font-size: 13px;}
-.btn-delete:hover:not(:disabled) { background: #fecaca; }
-.btn-delete:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-revoke { background: #fef08a; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #854d0e; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; }
-.btn-revoke:hover:not(:disabled) { background: #fde047; }
-.btn-revoke:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* ICONOS */
-.icon-svg { width: 16px; height: 16px; }
-.btn-delete .icon-svg { fill: none; stroke: currentColor; }
-.btn-delete .icon-svg * { fill: none; stroke: currentColor; }
-
-.badge { margin-left: 10px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: transparent; border: 1.5px solid; }
-.badge.activo { color: var(--state-success, #16a34a); border-color: var(--state-success, #16a34a); }
-.badge.expirado { color: var(--state-error, #dc2626); border-color: var(--state-error, #dc2626); }
-.badge.amarillo { color: #ca8a04; border-color: #ca8a04; }
-
-.loading { text-align: center; padding: 20px; color: var(--p-surface-500); }
-</style>

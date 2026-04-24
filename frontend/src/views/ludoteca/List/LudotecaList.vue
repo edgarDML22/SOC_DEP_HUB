@@ -61,15 +61,6 @@ const miembrosFiltrados = computed(() => {
   )
 })
 
-// estado visual
-const getEstado = (m) => {
-  if (m.estatus_visita === 'ACTIVA') {
-    return { texto: 'Activo', clase: 'estado-activo' }
-  }
-  return { texto: 'Sin registro', clase: 'estado-inactivo' }
-}
-
-
 const irAUpdate = (m, tipo) => {
   router.push({
     name: 'ludoteca/update',
@@ -82,215 +73,96 @@ const irAUpdate = (m, tipo) => {
 </script>
 
 <template>
-  <div class="container">
-
-    <div class="header">
-      <div>
-        <h2>Lista ludoteca</h2>
-        <p>Consulta y controla accesos</p>
-      </div>
-    </div>
+  <div class="flex flex-col gap-6 font-sans">
 
     <!-- BUSCADOR -->
-    <input
-      v-model="search"
-      placeholder="Buscar..."
-      class="search"
-    />
+    <div class="w-full md:max-w-md">
+      <input
+        v-model="search"
+        placeholder="Buscar por nombre de menor..."
+        class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 font-medium shadow-sm"
+      />
+    </div>
 
     <!-- MENSAJE -->
-    <div v-if="mensaje" :class="['alert', tipoMensaje]">
+    <div v-if="mensaje" :class="tipoMensaje === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'" class="p-4 rounded-xl border text-sm font-semibold shadow-sm animate-pulse">
       {{ mensaje }}
     </div>
 
-    <!-- LISTA SCROLL -->
-    <div class="scroll-container">
+    <!-- ESTADO CARGA -->
+    <div v-if="loading" class="text-center py-12 text-surface-500 font-medium">
+      <span class="animate-pulse">Cargando registros...</span>
+    </div>
 
-      <div v-if="loading" class="loading">Cargando...</div>
+    <!-- Empty State -->
+    <div v-else-if="miembrosFiltrados.length === 0" class="bg-white rounded-2xl md:rounded-3xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200 flex flex-col items-center justify-center min-h-[250px]">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      <p class="text-lg font-medium">No hay registros de menores en este momento</p>
+    </div>
 
-      <div v-else>
-        <div v-for="m in miembrosFiltrados" :key="m.id_registro" class="card">
+    <!-- LISTA GRID -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      
+      <div v-for="m in miembrosFiltrados" :key="m.id_registro" class="bg-white rounded-2xl md:rounded-3xl p-6 shadow-sm border border-surface-200 transition-all hover:shadow-md hover:border-primary-200 flex flex-col h-full group pb-7">
 
-          <div class="left">
-            <div class="avatar">
-              {{ m.menor?.charAt(0) }}
-            </div>
-
-            <div>
-              <div class="nombre">{{ m.menor }}</div>
-
-              <div class="info">
-                Ingreso: {{ formatearFecha(m.hora_ingreso) }}
-              </div>
-
-              <div class="info">
-                Límite: {{ formatearFecha(m.hora_limite) }}
-              </div>
-
-              <div class="estado-container">
-                <div :class="['estado-chip', getEstado(m).clase]">
-                  {{ getEstado(m).texto }}
-                </div>
-              </div>
+        <!-- Header tarjeta -->
+        <div class="flex items-start gap-4 mb-5">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary-50 text-primary-700 font-bold text-xl uppercase shrink-0 border border-primary-100 shadow-sm group-hover:scale-105 transition-transform">
+            {{ m.menor?.charAt(0) || '?' }}
+          </div>
+          
+          <div class="flex-1 min-w-0 pt-1">
+            <h3 class="text-lg font-bold text-surface-900 m-0 truncate" :title="m.menor">{{ m.menor }}</h3>
+            
+            <div class="mt-2 flex align-center">
+               <span 
+                 class="inline-flex items-center px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider"
+                 :class="m.estatus_visita === 'ACTIVA' ? 'bg-green-50 text-green-700 border border-green-200 shadow-sm' : 'bg-surface-100 text-surface-600 border border-surface-200 shadow-sm'"
+               >
+                 {{ m.estatus_visita === 'ACTIVA' ? 'ACTIVO EN SALA' : 'SIN REGISTRO ACTIVO' }}
+               </span>
             </div>
           </div>
-
-          <!-- BOTONES -->
-          <div class="actions" v-if="esGerente">
-
-            <button
-              v-if="m.estatus_visita !== 'ACTIVA'"
-              type="button"
-              class="btn-entrada"
-              @click="irAUpdate(m, 'in')"
-            >
-              Entrada
-            </button>
-
-            <button
-              v-if="m.estatus_visita === 'ACTIVA'"
-              type="button"
-              class="btn-salida"
-              @click="irAUpdate(m, 'out')"
-            >
-              Salida
-            </button>
-
-</div>
-
         </div>
+
+        <!-- Body tarjeta -->
+        <div class="flex-1 flex flex-col gap-2.5 text-sm text-surface-600 font-medium mb-6">
+          <div class="flex items-center justify-between p-3 rounded-xl bg-surface-50 border border-surface-100 group-hover:border-surface-200 transition-colors">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-surface-500">Ingreso:</span>
+              <span class="font-bold text-surface-900">{{ formatearFecha(m.hora_ingreso) }}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-xl bg-surface-50 border border-surface-100 group-hover:border-surface-200 transition-colors">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-surface-500">Límite:</span>
+              <span class="font-bold text-red-600">{{ formatearFecha(m.hora_limite) }}</span>
+          </div>
+        </div>
+
+        <!-- Botones (Solo si es gerente) -->
+        <div v-if="esGerente" class="mt-auto flex gap-3 flex-col sm:flex-row w-full pt-3 border-t border-surface-100">
+          <button
+            v-if="m.estatus_visita !== 'ACTIVA'"
+            type="button"
+            class="w-full sm:flex-1 bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-3 font-semibold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2"
+            @click="irAUpdate(m, 'in')"
+          >
+            Registrar Entrada
+          </button>
+
+          <button
+            v-if="m.estatus_visita === 'ACTIVA'"
+            type="button"
+            class="w-full sm:flex-1 bg-transparent border-2 border-red-500 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2"
+            @click="irAUpdate(m, 'out')"
+          >
+            Registrar Salida
+          </button>
+        </div>
+
       </div>
 
     </div>
+
   </div>
 </template>
-
-<style scoped>
-
-.container {
-  padding: 20px;
-}
-
-.header {
-  margin-bottom: 16px;
-}
-
-.search {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 12px;
-}
-
-/* SCROLL */
-.scroll-container {
-  max-height: 500px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-/* CARD */
-.card {
-  display: flex;
-  justify-content: space-between;
-  background: white;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 10px;
-  border: 1px solid #e5e7eb;
-}
-
-.left {
-  display: flex;
-  gap: 12px;
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nombre {
-  font-weight: 600;
-}
-
-.info {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.estado-chip {
-  margin-top: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 13px;
-}
-
-.estado-activo {
-  background: #d1fae5;
-  color: #15803d;
-}
-
-.estado-inactivo {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-/* BOTONES */
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-entrada {
-  background: #2563eb;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-.btn-entrada:hover {
-  background: #1d4ed8;
-}
-
-.btn-salida {
-  background: #dc2626;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-.btn-salida:hover {
-  background: #b91c1c;
-}
-
-/* ALERTAS */
-.alert {
-  margin-bottom: 10px;
-  padding: 10px;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.error {
-  background: #fee2e2;
-  border: 2px solid #dc2626;
-  color: #dc2626;
-}
-
-.success {
-  background: #dcfce7;
-  border: 2px solid #16a34a;
-  color: #16a34a;
-}
-
-.loading {
-  text-align: center;
-}
-
-</style>
