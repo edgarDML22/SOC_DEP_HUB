@@ -72,7 +72,7 @@ const handleSubmit = async () => {
   }
 
   try {
-    const response = await api.post('/api/v1/auth/reset-password', {
+    const response = await api.post('auth/reset-password', {
       token: token.value,
       correo_electronico: userEmail.value,
       password: password.value,

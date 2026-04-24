@@ -19,361 +19,102 @@ const toggleNotifications = () => {
 </script>
 
 <template>
-    <nav class="top-navbar">
-        <div class="navbar-left">
-            <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="brand-logo" />
-            <span class="brand-name">SOC-DEP HUB</span>
+    <!-- Navbar principal con altura y bordes -->
+    <nav class="bg-white min-h-[70px] border-b border-surface-200 w-full">
+        <!-- Contenedor interno que abarca todo el ancho pero con padding generoso (px-8 a px-16) -->
+        <div class="w-full px-8 lg:px-12 xl:px-16 py-4 flex flex-wrap lg:flex-nowrap justify-between items-center">
+        
+        <!-- Izquierda: Logo y Marca -->
+        <div class="flex items-center gap-4 order-1">
+            <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="h-10 w-10 object-cover rounded-medium block" />
+            <span class="font-bold text-[1.2rem] tracking-tight text-surface-900">SOC-DEP HUB</span>
         </div>
 
-        <div class="navbar-center">
-            <router-link to="/socio/home" class="nav-link">
-                <IconHome class="icon" />
-                Inicio
-            </router-link>
-
-            <router-link to="/socio/reservations" class="nav-link" 
-                :class="{ 'disabled-link': profileStore.isAccountInactive }">
-                <IconCalendar class="icon"/>
-                Reservas
-            </router-link>
-
-            <router-link to="/socio/tournaments" class="nav-link">
-                <IconTrophy class="icon" />
-                Torneos
-            </router-link>
-
-            <router-link to="/socio/community" class="nav-link">
-                <IconGuests class="icon" />
-                Comunidad
-            </router-link>
-
-            <router-link to="/socio/history" class="nav-link">
-                <IconClock class="icon" />
-                Historial
-            </router-link>
-
-           <router-link 
-                to="/socio/qr" 
-                class="nav-link qr-link"
-                :class="{ 'disabled-link': profileStore.isAccountInactive }"
-            >
-                <IconQr class="icon"/>
-                QR
-            </router-link>
-
-            <router-link to="/socio/profile" class="nav-link">
-                <IconUser class="icon" />
-                Perfil
-            </router-link>
-
-        </div>
-
-        <div class="navbar-right">
-
-            <div class="notification-wrapper">
-                <button class="notification-btn" @click="toggleNotifications">
-                    <IconBell />
-
-                    <span class="notification-badge">{{ notifications }}</span>
+        <!-- Derecha: Notificaciones y Perfil -->
+        <div class="flex items-center gap-5 order-2 lg:order-3 ml-auto lg:ml-0 relative">
+            
+            <!-- Notificaciones -->
+            <div class="relative">
+                <button class="relative bg-transparent border-none text-surface-500 cursor-pointer flex items-center justify-center hover:text-surface-900 transition-colors" @click="toggleNotifications">
+                    <IconBell class="w-6 h-6" />
+                    <span class="absolute top-[-2px] right-[-4px] bg-red-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center border-2 border-white">
+                        {{ notifications }}
+                    </span>
                 </button>
 
-                <div v-if="showNotifications" class="notification-dropdown">
-                    <p class="empty">No hay notificaciones</p>
+                <!-- Dropdown Notificaciones -->
+                <div v-if="showNotifications" class="absolute top-11 right-0 w-56 bg-white rounded-xl border border-surface-200 shadow-lg p-3 z-50">
+                    <p class="text-sm text-surface-500 text-center m-0">No hay notificaciones</p>
                 </div>
             </div>
 
-            <div class="avatar-wrapper">
-                <div class="nav-avatar" @click="toggleMenu">
+            <!-- Avatar y Menú Perfil -->
+            <div class="relative">
+                <div class="w-10 h-10 bg-primary-700 text-white rounded-full flex items-center justify-center cursor-pointer text-sm font-semibold hover:bg-primary-800 transition-colors" @click="toggleMenu">
                     {{ profileStore.userInitials }}
                 </div>
 
-            </div>
-
-            <div v-if="menuOpen" class="dropdown">
-                <router-link to="/socio/profile">Perfil</router-link>
-                <router-link to="/socio/configuration">Configuración</router-link>
-                <button @click="profileStore.getSupportLink">Ayuda</button>
-                <hr />
-                <button class="logout" @click="profileStore.logout">Cerrar sesión</button>
+                <!-- Dropdown Perfil -->
+                <div v-if="menuOpen" class="absolute top-14 right-0 w-48 bg-white rounded-xl border border-surface-200 shadow-lg flex flex-col overflow-hidden z-50">
+                    <router-link to="/socio/profile" class="px-4 py-3 text-sm text-center text-surface-900 hover:bg-surface-100 transition-colors">Perfil</router-link>
+                    <router-link to="/socio/configuration" class="px-4 py-3 text-sm text-center text-surface-900 hover:bg-surface-100 transition-colors">Configuración</router-link>
+                    <button @click="profileStore.getSupportLink" class="px-4 py-3 text-sm text-center text-surface-900 bg-transparent border-none cursor-pointer hover:bg-surface-100 transition-colors">Ayuda</button>
+                    <hr class="m-0 border-t border-surface-200" />
+                    <button class="logout px-4 py-3 text-sm text-center text-red-500 font-bold bg-transparent border-none cursor-pointer hover:bg-red-50 transition-colors" @click="profileStore.logout">Cerrar sesión</button>
+                </div>
             </div>
 
         </div>
-    </nav>
 
+        <!-- Centro: Links de Navegación -->
+        <div class="flex gap-2 lg:gap-8 order-3 lg:order-2 w-full lg:w-auto mt-4 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-surface-200 justify-start lg:justify-center overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-thin">
+            
+            <router-link to="/socio/home" class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700">
+                <IconHome class="w-[18px] h-[18px]" /> Inicio
+            </router-link>
+
+            <router-link to="/socio/reservations" 
+                class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700"
+                :class="{ 'pointer-events-none opacity-40 grayscale cursor-not-allowed': profileStore.isAccountInactive }">
+                <IconCalendar class="w-[18px] h-[18px]"/> Reservas
+            </router-link>
+
+            <router-link to="/socio/tournaments" class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700">
+                <IconTrophy class="w-[18px] h-[18px]" /> Torneos
+            </router-link>
+
+            <router-link to="/socio/community" class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700">
+                <IconGuests class="w-[18px] h-[18px]" /> Comunidad
+            </router-link>
+
+            <router-link to="/socio/history" class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700">
+                <IconClock class="w-[18px] h-[18px]" /> Historial
+            </router-link>
+
+           <router-link to="/socio/qr" 
+                class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700"
+                :class="{ 'pointer-events-none opacity-40 grayscale cursor-not-allowed': profileStore.isAccountInactive }">
+                <IconQr class="w-[18px] h-[18px]"/> QR
+            </router-link>
+
+            <router-link to="/socio/profile" class="flex items-center gap-1.5 no-underline text-surface-500 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-surface-100 hover:text-surface-900 whitespace-nowrap shrink-0 [&.router-link-active]:bg-blue-50 [&.router-link-active]:text-primary-700">
+                <IconUser class="w-[18px] h-[18px]" /> Perfil
+            </router-link>
+
+        </div>
+        </div>
+    </nav>
 </template>
 
 <style scoped>
-.notification-wrapper {
-    position: relative;
+.scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
 }
-
-.notification-btn {
-    cursor: pointer;
-    position: relative;
-    background: none;
-    border: none;
-    color: var(--p-surface-500);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.notification-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
-.notification-btn:hover {
-    color: #111827;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -3px;
-    right: -5px;
-    background: #ef4444;
-    color: white;
-    font-size: 9px;
-    border-radius: 999px;
-    height: 15px;
-    width: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    border: 2px solid white;
-}
-
-.notification-dropdown {
-    position: absolute;
-    top: 45px;
-    right: 0;
-    width: 220px;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid var(--p-surface-200);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    padding: 12px;
-}
-
-.top-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ffffff;
-    padding: 0 2rem;
-    min-height: 70px;
-    border-bottom: 1px solid var(--p-surface-200);
-    flex-wrap: wrap;
-    /* Permite que los elementos bajen en pantallas chicas */
-}
-
-.navbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Ajustes del Logo */
-.brand-logo {
-    height: 36px;
-    width: 36px;
-    object-fit: cover;
-    border-radius: var(--p-border-radius);
-    display: block;
-}
-
-.brand-name {
-    font-weight: 700;
-    font-size: 1.2rem;
-    letter-spacing: -0.5px;
-    color: #111827;
-}
-
-.navbar-center {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.nav-link {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-    color: var(--p-surface-500);
-    font-size: 14px;
-    font-weight: 500;
-    padding: 8px 12px;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.nav-link:hover {
-    background-color: var(--p-surface-100);
-    color: #111827;
-}
-
-.nav-link.router-link-active {
-    background-color: var(--p-primary-100); 
-    color: var(--p-primary-700);
-}
-
-.nav-link .icon {
-    width: 18px;
-    height: 18px;
-}
-
-.navbar-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.notification-btn {
-    background: none;
-    border: none;
-    color: var(--p-surface-500);
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.notification-btn svg {
-    width: 24px;
-    height: 24px;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -2px;
-    right: -4px;
-    background-color: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #ffffff;
-}
-
-.nav-avatar {
-    width: 36px;
-    height: 36px;
-    background-color: var(--p-primary-700);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.dropdown {
-    position: absolute;
-    top: 60px;
-    right: 20px;
-    width: 200px;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid var(--p-surface-200);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.dropdown button,
-.dropdown a {
-    padding: 12px 14px;
-    border: none;
-    background: white;
-    cursor: pointer;
-    color: #111827;
-    text-decoration: none;
-    text-align: center;
-    font-size: 14px;
-    font-family: inherit;
-}
-
-.dropdown button:hover,
-.dropdown a:hover {
-    background: var(--p-surface-100);
-}
-
-.dropdown a.router-link-exact-active {
-    pointer-events: none;
-    color: #9ca3af;
+.scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
 }
-
-.dropdown .logout {
-    color: #ef4444;
-    font-weight: bold;
-}
-
-/* DISEÑO PARA MÓVILES (Menos de 1050px)*/
-@media (max-width: 1049px) {
-    .top-navbar {
-        padding: 10px 1rem;
-    }
-
-    .navbar-left {
-        order: 1;
-    }
-
-    .navbar-right {
-        order: 2;
-        margin-left: auto;
-    }
-
-    .navbar-center {
-        order: 3;
-        width: 100%;
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px solid var(--p-surface-200);
-        justify-content: flex-start;
-        overflow-x: auto;
-        scrollbar-width: thin;
-        scrollbar-color: #cbd5e1 transparent;
-        padding-bottom: 8px;
-    }
-
-    .navbar-center::-webkit-scrollbar {
-        height: 6px;
-    }
-
-    .navbar-center::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .navbar-center::-webkit-scrollbar-thumb {
-        background-color: #e2e8f0;
-        border-radius: 10px;
-    }
-
-    .navbar-center::-webkit-scrollbar-thumb:hover {
-        background-color: #cbd5e1;
-    }
-
-    .nav-link {
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-}
-
-.disabled-link {
-    pointer-events: none; 
-    opacity: 0.4; 
-    filter: grayscale(100%); 
-    cursor: not-allowed; 
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #e2e8f0;
+    border-radius: 10px;
 }
 </style>
