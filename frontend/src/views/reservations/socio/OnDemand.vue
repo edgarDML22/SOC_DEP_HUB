@@ -1,23 +1,12 @@
 <script setup>
-import { onMounted, defineAsyncComponent, ref, computed } from 'vue';
+import { onMounted, defineAsyncComponent, ref, computed, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useReservationStore } from '@/stores/reservationStore';
 import { useProfileStore } from '@/stores/profiles/socioStore'; 
+import { IconArrowLeft } from '@/components/icons';
 
-// Imports de PrimeVue 4
-import Stepper from 'primevue/stepper';
-import StepList from 'primevue/steplist';
-import Step from 'primevue/step';
-import StepPanels from 'primevue/steppanels';
-import StepPanel from 'primevue/steppanel';
-import Button from 'primevue/button';
-import Select from 'primevue/select';
-import Dialog from 'primevue/dialog';
-
-// Inicializamos el store
 const reservationStore = useReservationStore();
 
-// Extraemos el ESTADO y GETTERS (Reactivos)
 const {
     pasoActual,
     cargando,
@@ -32,7 +21,6 @@ const {
     errorNavegacion
 } = storeToRefs(reservationStore);
 
-// Extraemos ACCIONES
 const {
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,
@@ -41,36 +29,48 @@ const {
     buscarReservaActiva
 } = reservationStore;
 
-// --- CICLO DE VIDA ---
 onMounted(async () => {
-    // 1. Disparamos la carga de deportes DE INMEDIATO. 
-    // No lleva 'await' porque no queremos que bloquee el resto del código.
     reservationStore.fetchDisponibilidadEspacios();
 
-    // 2. Cargamos el perfil y buscamos el borrador en paralelo.
     const profileStore = useProfileStore();
-    
-    // Nos aseguramos de tener el perfil primero
     await profileStore.fetchProfile(); 
     
-    // Ahora buscamos el borrador
     const tieneDraft = await reservationStore.buscarReservaActiva();
-    
     if (tieneDraft) {
         mostrarModalDraft.value = true;
     }
 });
 
+const formDuration = ref(60); 
 
-// --- DIBUJO DEL CALENDARIO ---
-const horaApertura = 7;
-const horaCierre = 23;
-const totalHoras = horaCierre - horaApertura;
+watch(horaInicioTemp, (newVal) => {
+    if (newVal && opcionesHoras.value && opcionesHoras.value.length) {
+        const idx = opcionesHoras.value.indexOf(newVal);
+        if(idx !== -1) {
+            let [h, m] = newVal.split(':').map(Number);
+            m += formDuration.value;
+            h += Math.floor(m / 60);
+            m = m % 60;
+            const endStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            if(opcionesHoras.value.includes(endStr)) {
+                horaFinTemp.value = endStr;
+            } else {
+                horaFinTemp.value = opcionesHoras.value[opcionesHoras.value.length - 1]; 
+            }
+        }
+    }
+});
+
+watch(formDuration, () => {
+    if(horaInicioTemp.value) {
+        const temp = horaInicioTemp.value;
+        horaInicioTemp.value = null;
+        horaInicioTemp.value = temp; 
+    }
+});
+
 const mostrarModalDraft = ref(false);
 
-
-
-// Funciones para los botones del Modal
 const reanudarReserva = () => {
     mostrarModalDraft.value = false;
     reservationStore.pasoActual = "4"; 
@@ -86,1415 +86,301 @@ const formatearHora = (horaString) => {
     return horaString.substring(0, 5);
 };
 
-const calcularPosicionGrid = (inicio, fin) => {
-    if (!inicio || !fin) return '1 / 2';
-
-    const horaInicio = parseInt(inicio.split(':')[0], 10);
-    const horaFin = parseInt(fin.split(':')[0], 10);
-    const filaInicio = (horaInicio - horaApertura) + 1;
-    const filaFin = (horaFin - horaApertura) + 1;
-
-    return `${filaInicio} / ${filaFin}`;
-};
-
 const IconoDeporte = (disciplina) => {
     const nombreArchivo = obtenerIconoName(disciplina);
     return defineAsyncComponent(() => import(`@/components/icons/sports/${nombreArchivo}.vue`));
 };
+
+const horariosGrupados = computed(() => {
+    const grupos = {
+       "Mañana": [],
+       "Tarde": [],
+       "Noche": []
+    };
+    if(!opcionesHoras.value) return grupos;
+    
+    opcionesHoras.value.forEach(hora => {
+        const h = parseInt(hora.split(':')[0]);
+        if (h < 12) grupos["Mañana"].push(hora);
+        else if (h < 18) grupos["Tarde"].push(hora);
+        else grupos["Noche"].push(hora);
+    });
+    return grupos;
+});
+
+const isHoraBloqueada = (horaInicio) => {
+    if(!horariosDisponibles.value || !horariosDisponibles.value.length) return false;
+    
+    const parseMins = (hStr) => {
+        const [h,m] = hStr.split(':').map(Number);
+        return (h * 60) + (m || 0);
+    };
+    const startMins = parseMins(horaInicio);
+    const endMins = startMins + formDuration.value; 
+
+    return horariosDisponibles.value.some(bloque => {
+        if (!bloque.inicio || !bloque.fin) return false;
+        const bkStart = parseMins(bloque.inicio);
+        const bkEnd = parseMins(bloque.fin);
+        return (startMins < bkEnd && endMins > bkStart);
+    });
+};
 </script>
 
-
 <template>
-
-    <Dialog v-model:visible="mostrarModalDraft" modal :closable="false" class="modal-borrador-minimal">
+  <div class="w-full min-h-screen bg-surface-50 p-4 md:p-6 lg:p-8 font-sans pb-24 md:pb-8 flex flex-col items-center">
         
-        <template #header>
-            <div class="custom-modal-header">
-                <h3>Reserva pendiente</h3>
-            </div>
-        </template>
-
-        <div class="custom-modal-body">
-            <p class="modal-description">
-                Tienes una reservación que no terminaste de confirmar. El espacio sigue resevado temporalmente para ti.
-            </p>
-
-            <div class="draft-details-list">
-                <div class="detail-item">
-                    <span class="detail-label">Deporte:</span>
-                    <strong class="detail-value">{{ reservaPayload.disciplinaSeleccionada }}</strong>
+        <!-- HERO BANNER DRAFT (Reemplazo del Modal Popup) -->
+        <div v-if="mostrarModalDraft" class="w-full max-w-5xl mb-6 bg-gradient-to-br from-primary-800 to-primary-600 text-white rounded-[2.5rem] p-6 md:p-10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 border-4 border-primary-500/20 relative overflow-hidden transition-all animate-fade-in relative z-10">
+            <div class="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex-1 relative z-10">
+                <div class="flex items-center gap-3 mb-3">
+                   <span class="bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                       Reserva en curso
+                   </span>
                 </div>
-                <div class="detail-item">
-                    <span class="detail-label">Horario:</span>
-                    <strong class="detail-value">
-                        {{ formatearHora(reservaPayload.hora_inicio) }} - {{ formatearHora(reservaPayload.hora_fin) }}
-                    </strong>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Espacio:</span>
-                    <strong class="detail-value">
-                        {{reservaPayload.espacioSeleccionado}}
-                    </strong>
+                <h3 class="text-2xl md:text-3xl font-extrabold mb-3 tracking-tight">
+                    Tienes un borrador pendiente
+                </h3>
+                <p class="text-primary-100 font-medium text-sm md:text-base mb-6 opacity-95 max-w-xl leading-relaxed">
+                    Aún cuentas con una reservación de <strong class="text-white">{{reservaPayload.disciplinaSeleccionada}}</strong> que no terminaste de confirmar. Se te ha guardado el horario de <strong class="text-white">{{ formatearHora(reservaPayload.hora_inicio) }} a {{ formatearHora(reservaPayload.hora_fin) }}</strong>.
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                   <span class="px-4 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm font-bold tracking-wider text-white">
+                       <i class="pi pi-map-marker text-xs mr-1 opacity-70"></i> {{reservaPayload.espacioSeleccionado}}
+                   </span>
                 </div>
             </div>
-
-            <p class="modal-question">
-                ¿Qué deseas hacer?
-            </p>
+            
+            <div class="shrink-0 flex flex-col sm:flex-row w-full lg:w-auto gap-4 relative z-10">
+                 <button class="w-full sm:w-auto px-6 py-3.5 bg-transparent border-2 border-white/30 text-white font-bold rounded-xl hover:bg-white/10 transition-colors focus:outline-none flex justify-center items-center active:scale-95" @click="ignorarReserva">
+                     Cancelar
+                 </button>
+                 <button class="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-800 font-extrabold rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all focus:outline-none flex justify-center items-center gap-2 active:scale-95" @click="reanudarReserva">
+                     Continuar <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                 </button>
+            </div>
         </div>
-        
-        <template #footer>
-            <div class="custom-modal-footer">
-                <Button label="Ignorar y empezar de cero" class="btn-descartar" @click="ignorarReserva" />
-                <Button label="Continuar mi reserva" icon="pi pi-arrow-right" iconPos="right" class="btn-continuar" @click="reanudarReserva" />
+
+        <!-- MAIN CARD WRAPPER -->
+        <div v-if="!mostrarModalDraft" class="w-full max-w-5xl bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-surface-200 h-fit">
+
+            <!-- MINIMALIST PROGRESS INDICATOR -->
+            <div class="flex items-center gap-1.5 mb-8 md:mb-10 w-full mx-auto">
+                <div v-for="paso in 5" :key="paso" class="flex-1 h-3 md:h-2.5 rounded-full transition-all duration-500"
+                     :class="parseInt(pasoActual) >= paso ? 'bg-primary-600 shadow-sm' : 'bg-surface-100'">
+                </div>
             </div>
-        </template>
 
-    </Dialog>
-    
-    
-
-    <div class="page-wrapper">
-        <div class="main-card">
-            <Stepper :value="pasoActual" @update:value="reservationStore.intentarCambioPaso">
-
-                <StepList>
-                    <Step value="1">Deporte</Step>
-                    <Step value="2">Espacio</Step>
-                    <Step value="3">Horario</Step>
-                    <Step value="4">Acompañantes</Step>
-                    <Step value="5">Confirmación</Step>
-                </StepList>
-
-                <div v-if="errorNavegacion" class="alerta-navegacion">
-                    <i class="pi pi-exclamation-triangle"></i>
-                    <span>{{ errorNavegacion }}</span>
+            <!-- HEADER DINÁMICO -->
+            <div class="flex flex-col mb-10 border-b border-surface-100 pb-8 relative">
+                
+                <div class="flex items-center gap-4">
+                    <button v-if="pasoActual !== '1'" @click="pasoActual === '2' ? reservationStore.volverADisciplinas() : (pasoActual === '3' ? reservationStore.volverAEspacios() : reservationStore.intentarCambioPaso(String(parseInt(pasoActual)-1)))" 
+                            class="w-12 h-12 md:w-14 md:h-14 rounded-2xl border-2 border-surface-200 flex items-center justify-center text-surface-500 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50/50 transition-all shrink-0 group active:scale-90">
+                        <IconArrowLeft class="w-5 h-5 md:w-6 md:h-6 group-hover:-translate-x-1 transition-transform" />
+                    </button>
+                    
+                    <div class="flex-1">
+                         <span class="text-sm font-semibold tracking-wider text-primary-600 uppercase mb-1.5 block">
+                            Paso {{ pasoActual }} de 5
+                         </span>
+                         <h2 class="text-3xl md:text-4xl font-extrabold text-surface-900 m-0 tracking-tight leading-none">
+                             <template v-if="pasoActual === '1'">¿Qué jugarás hoy?</template>
+                             <template v-if="pasoActual === '2'">Selecciona la Cancha</template>
+                             <template v-if="pasoActual === '3'">Elige tu Horario</template>
+                             <template v-if="pasoActual === '4'">Invita Acompañantes</template>
+                             <template v-if="pasoActual === '5'">Confirma tu Reserva</template>
+                         </h2>
+                    </div>
                 </div>
 
-                <StepPanels>
-                    <StepPanel value="1">
-                        <div class="step-content-wrapper">
+                <p v-if="pasoActual === '2'" class="text-surface-500 font-medium text-sm md:text-base mt-4 ml-0 md:ml-[72px] flex items-center flex-wrap gap-2 md:gap-3">
+                   <span>Disponibilidad para <strong class="text-primary-700 capitalize">{{reservaPayload.disciplinaSeleccionada}}</strong></span>
+                   <span v-if="reservationStore.espaciosPorDisciplina.length" class="inline-flex items-center gap-1.5 px-3 py-1 bg-surface-100/80 rounded-lg text-surface-700 font-semibold border border-surface-200">
+                       <i class="pi pi-users text-xs"></i> Capacidad: {{ reservationStore.espaciosPorDisciplina[0]?.capacidad_maxima }} personas p/cancha
+                   </span>
+                </p>
+                <p v-if="pasoActual === '3'" class="text-surface-500 font-medium text-base md:text-lg mt-4 ml-0 md:ml-[72px] flex flex-wrap gap-2 items-center">
+                   Espacio elegido: <span class="bg-primary-50 text-primary-800 border border-primary-200 px-4 py-1.5 rounded-xl font-bold ml-1 text-lg md:text-xl">{{reservaPayload.espacioSeleccionado}}</span>
+                </p>
 
-                            <div class="w-full">
-                                <h3 class="section-title">¿Qué vas a jugar hoy?</h3>
+            </div>
 
-                                <div v-if="cargando" class="loader-container">
-                                    <i class="pi pi-spin pi-spinner loader-icon"></i>
-                                    <p>Cargando opciones...</p>
-                                </div>
+            <!-- ALERTS -->
+            <div v-if="errorNavegacion" class="flex items-center gap-3 w-full bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl font-semibold text-sm shadow-sm mb-10 animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                <span>{{ errorNavegacion }}</span>
+            </div>
 
-                                <div v-else class="contenedor-tarjetas">
-                                    <button v-for="disciplina in disciplinasUnicas" :key="disciplina"
-                                        @click="seleccionarDisciplina(disciplina)" class="tarjeta-deporte">
+            <div v-if="cargando" class="text-center py-24 text-surface-500">
+                <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <span class="font-bold tracking-wider uppercase text-sm">Cargando datos...</span>
+            </div>
 
-                                        <div class="icono-contenedor">
-                                            <component :is="IconoDeporte(disciplina)" class="icono-svg" />
-                                        </div>
-                                        <span class="texto-disciplina">
-                                            {{ disciplina }}
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </StepPanel>
+            <div v-else>
+                 <!-- PASO 1: DEPORTE -->
+                 <div v-if="pasoActual === '1'" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 w-full">
+                     <button 
+                         v-for="disciplina in disciplinasUnicas" 
+                         :key="disciplina"
+                         @click="seleccionarDisciplina(disciplina)" 
+                         class="bg-primary-600 hover:bg-primary-700 flex flex-col items-center justify-center p-6 md:p-8 rounded-[2rem] w-full aspect-square cursor-pointer transition-all hover:shadow-[0_12px_25px_-6px_rgba(37,99,235,0.4)] hover:-translate-y-1.5 group active:scale-95 focus:outline-none border-none"
+                     >
+                         <div class="w-16 h-16 md:w-20 md:h-20 text-white flex justify-center items-center transition-transform group-hover:scale-110 mb-4">
+                             <component :is="IconoDeporte(disciplina)" class="w-full h-full fill-current" />
+                         </div>
+                         <span class="text-white font-extrabold text-base md:text-lg text-center leading-tight uppercase tracking-widest">
+                             {{ disciplina }}
+                         </span>
+                     </button>
+                 </div>
 
-                    <StepPanel value="2">
-                        <div class="canchas-container">
+                 <!-- PASO 2: ESPACIO -->
+                 <div v-if="pasoActual === '2'" class="flex flex-col w-full">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+                         <button 
+                             v-for="cancha in reservationStore.espaciosPorDisciplina"
+                             :key="cancha.id_espacio"
+                             @click="reservationStore.seleccionarEspacio(cancha.id_espacio)"
+                             :disabled="cancha.estatus === 'Bloqueado por Mantenimiento' || cancha.estatus === 'Lleno/No Disponible'" 
+                             class="flex items-center justify-between w-full p-5 lg:p-7 rounded-[2rem] border-2 transition-all text-left bg-white font-sans group active:scale-95 focus:outline-none"
+                             :class="(cancha.estatus === 'Disponible' || cancha.estatus === 'DISPONIBLE') ? 'border-surface-200 hover:border-primary-500 hover:shadow-xl hover:-translate-y-1 cursor-pointer' : 'border-surface-200 opacity-60 bg-surface-50 cursor-not-allowed hidden-hover'"
+                         >
+                             <div class="flex items-center gap-5 min-w-0">
+                                 <div class="shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm border border-surface-100"
+                                      :class="(cancha.estatus === 'Disponible' || cancha.estatus === 'DISPONIBLE') ? 'bg-primary-50 text-primary-600 group-hover:bg-primary-600 group-hover:text-white group-hover:shadow-md' : 'bg-surface-200 text-surface-500'">
+                                     <component :is="IconoDeporte(reservaPayload.disciplinaSeleccionada)" class="w-8 h-8 fill-current" />
+                                 </div>
+                                 <div class="min-w-0 flex-1">
+                                     <div class="font-extrabold text-xl text-surface-900 truncate mb-1">{{ cancha.nombre_espacio }}</div>
+                                     <div class="text-[11px] text-surface-500 font-bold uppercase mt-0.5 tracking-widest flex items-center gap-1.5">
+                                         {{ reservaPayload.disciplinaSeleccionada }}
+                                     </div>
+                                 </div>
+                             </div>
 
-                            <div class="action-bar">
-                                <Button icon="pi pi-arrow-left" label="Elegir otro deporte" class="btn-retroceder"
-                                    @click="reservationStore.volverADisciplinas()" />
-                            </div>
+                             <div class="shrink-0 ml-4 hidden sm:block">
+                                 <span 
+                                     class="px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-sm"
+                                     :class="{
+                                         'bg-green-100 text-green-800 border border-green-200': (cancha.estatus === 'Disponible' || cancha.estatus === 'DISPONIBLE'),
+                                         'bg-red-100 text-red-800 border border-red-200': cancha.estatus === 'Bloqueado por Mantenimiento' || cancha.estatus === 'MANTENIMIENTO',
+                                         'bg-yellow-100 text-yellow-800 border border-yellow-200': cancha.estatus === 'Lleno/No Disponible'
+                                     }"    
+                                 >
+                                     {{ cancha.estatus === 'Lleno/No Disponible' ? 'Lleno' : ((cancha.estatus === 'Disponible' || cancha.estatus === 'DISPONIBLE') ? 'Disponible' : 'Mantenimiento') }}
+                                 </span>
+                             </div>
+                         </button>
+                     </div>
+                 </div>
 
-                            <div class="header-canchas">
-                                <h3 class="section-title">Selecciona tu cancha de <span class="highlight-deporte">
-                                        {{ reservaPayload.disciplinaSeleccionada }}
-                                    </span></h3>
-                            </div>
+                 <!-- PASO 3: HORARIOS (NEW GRID) -->
+                 <div v-if="pasoActual === '3'" class="flex flex-col w-full">
+                     <!-- Selector de duración -->
+                     <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-5 bg-surface-50/80 border border-surface-200 p-5 rounded-[2rem] shadow-sm">
+                         <div class="flex items-center gap-3">
+                             <div class="w-10 h-10 bg-white rounded-xl shadow-sm border border-surface-100 flex items-center justify-center text-primary-600">
+                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                             </div>
+                             <div>
+                                 <div class="font-bold text-surface-900 text-base leading-tight">Duración de reserva</div>
+                                 <div class="text-[11px] text-surface-500 font-medium uppercase tracking-wider mt-0.5">Define cuánto tiempo jugarás</div>
+                             </div>
+                         </div>
+                         <div class="flex p-1 bg-surface-200/50 rounded-xl w-full md:w-auto overflow-hidden">
+                              <button @click="formDuration = 60" :class="formDuration === 60 ? 'bg-white shadow border border-surface-100 font-bold text-primary-700' : 'text-surface-500 font-bold hover:bg-white/50'" class="flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm transition-all focus:outline-none">1 hr</button>
+                              <button @click="formDuration = 90" :class="formDuration === 90 ? 'bg-white shadow border border-surface-100 font-bold text-primary-700' : 'text-surface-500 font-bold hover:bg-white/50'" class="flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm transition-all focus:outline-none">1.5 hrs</button>
+                              <button @click="formDuration = 120" :class="formDuration === 120 ? 'bg-white shadow border border-surface-100 font-bold text-primary-700' : 'text-surface-500 font-bold hover:bg-white/50'" class="flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm transition-all focus:outline-none">2 hrs</button>
+                         </div>
+                     </div>
 
-                            <div v-if="reservationStore.espaciosPorDisciplina.length" class="capacidad-badge">
-                                <i class="pi pi-users capacidad-icon"></i>
-                                <span class="capacidad-text">
-                                    Capacidad Máxima: <strong class="capacidad-number">{{
-                                        reservationStore.espaciosPorDisciplina[0]?.capacidad_maxima || 'N/A' }}
-                                        personas</strong> por cancha
-                                </span>
-                            </div>
+                     <!-- Opciones por Turno -->
+                     <div class="flex flex-col gap-10">
+                         <div v-for="(horas, nomGrupo) in horariosGrupados" :key="nomGrupo">
+                             <div class="flex items-center gap-3 mb-5 border-b border-surface-100 pb-3">
+                                 <svg v-if="nomGrupo === 'Mañana'" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                                 <svg v-if="nomGrupo === 'Tarde'" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="m17.66 17.66 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                                 <svg v-if="nomGrupo === 'Noche'" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                                 
+                                 <h4 class="text-sm font-extrabold uppercase tracking-widest text-surface-900 m-0">{{ nomGrupo }}</h4>
+                             </div>
+                             
+                             <div v-if="horas.length === 0" class="text-surface-400 font-medium text-sm p-4 border-2 border-dashed border-surface-200 rounded-2xl text-center">
+                                 No hay horarios disponibles en este turno.
+                             </div>
 
-                            <div class="grid-canchas">
-                                <button v-for="cancha in reservationStore.espaciosPorDisciplina"
-                                    :key="cancha.id_espacio"
-                                    @click="reservationStore.seleccionarEspacio(cancha.id_espacio)"
-                                    :disabled="cancha.estatus === 'Bloqueado por Mantenimiento'" class="cancha-card"
-                                    :class="[cancha.estatus === 'Disponible' ? 'is-available' : 'is-disabled']">
+                             <div v-else class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-4">
+                                 <button 
+                                     v-for="hora in horas" 
+                                     :key="hora"
+                                     @click="isHoraBloqueada(hora) ? null : (horaInicioTemp = hora)"
+                                     :disabled="isHoraBloqueada(hora)"
+                                     class="py-3.5 px-2 border-2 rounded-2xl text-center font-bold transition-all focus:outline-none relative overflow-hidden"
+                                     :class="{
+                                         'bg-primary-600 border-primary-600 text-white shadow-lg -translate-y-1': horaInicioTemp === hora,
+                                         'bg-white border-surface-200 text-surface-700 hover:border-primary-400 hover:text-primary-700 hover:-translate-y-0.5 hover:shadow-sm active:scale-95 cursor-pointer': horaInicioTemp !== hora && !isHoraBloqueada(hora),
+                                         'bg-surface-100/50 border-surface-200 text-surface-400 opacity-60 cursor-not-allowed hidden-hover line-through decoration-surface-400 decoration-2': isHoraBloqueada(hora)
+                                     }"
+                                 >
+                                     {{ formatearHora(hora) }}
+                                     <span v-if="isHoraBloqueada(hora)" class="absolute text-[9px] uppercase tracking-wider text-surface-400 bottom-0.5 left-0 w-full text-center font-bold leading-none no-underline">Ocupado</span>
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
 
-                                    <!-- Info del espacio -->
-                                    <div class="cancha-left-info">
-                                        <div class="cancha-icon-wrapper">
-                                            <component :is="IconoDeporte(reservaPayload.disciplinaSeleccionada)"
-                                                class="icon-cancha-svg" />
-                                        </div>
+                     <!-- Status Flotante -->
+                     <div class="mt-12 p-6 md:p-8 bg-surface-50 border border-surface-200 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                         <div class="flex-1">
+                             <div v-if="errorValidacion" class="flex items-center gap-3 text-red-600 font-bold text-sm md:text-base animate-pulse bg-red-100/50 p-4 rounded-xl">
+                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                 {{ errorValidacion }}
+                             </div>
+                             <div v-else-if="esHorarioValidoParaPreview" class="flex items-center gap-3 text-green-700 font-extrabold text-sm md:text-base bg-green-100/50 p-4 rounded-xl">
+                                 <div class="w-8 h-8 rounded-full bg-green-200 text-green-800 flex items-center justify-center shrink-0">
+                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                 </div>
+                                 <span class="leading-tight">Aseguraremos tu lugar de <br class="md:hidden"><span class="text-green-900 border-b-2 border-green-300">{{ formatearHora(horaInicioTemp) }} a {{ formatearHora(horaFinTemp) }}</span></span>
+                             </div>
+                             <div v-else class="text-surface-500 font-medium text-sm md:text-base flex items-center gap-3 bg-white p-4 rounded-xl border border-surface-200">
+                                 <i class="pi pi-info-circle text-xl"></i>
+                                 Selecciona tu bloque de horario inicial para continuar.
+                             </div>
+                         </div>
+                         <button 
+                             @click="validarHorario()"
+                             :disabled="!esHorarioValidoParaPreview"
+                             class="w-full md:w-auto px-10 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(37,99,235,0.5)] transition-all flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 border-none text-lg active:scale-95"
+                         >
+                             Continuar Reservación <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                         </button>
+                     </div>
+                 </div>
 
-                                        <div>
-                                            <div class="cancha-name">
-                                                {{ cancha.nombre_espacio }}
-                                            </div>
-                                        </div>
-                                    </div>
+                 <!-- PASO 4 -->
+                 <div v-if="pasoActual === '4'">
+                     <div class="text-center py-20 text-surface-400 font-bold border-2 border-dashed bg-surface-50 rounded-[2.5rem] border-surface-200">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto mb-4 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+                         Paso 4: Acompañantes (En desarrollo para el entorno actual)
+                     </div>
+                 </div>
+                    
+                 <!-- PASO 5 -->
+                 <div v-if="pasoActual === '5'">
+                     <div class="text-center py-24 text-surface-400 font-bold border-2 border-dashed bg-surface-50 rounded-[2.5rem] border-surface-200 mb-8">
+                         <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-200">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                         </div>
+                         <h3 class="text-2xl font-extrabold text-surface-900 mb-2">¡Todo listo para jugar!</h3>
+                         <p class="text-surface-500 font-medium">Confirma tu reserva de <strong class="text-surface-900">{{reservaPayload.disciplinaSeleccionada}}</strong></p>
+                     </div>
+                 </div>
 
-                                    <!-- ESTATUS -->
-                                    <div class="shrink-0 ml-4">
-                                        <span class="cancha-status-badge"
-                                            :class="{
-                                                'status-available': cancha.estatus === 'Disponible',
-                                                'status-maintenance': cancha.estatus === 'Bloqueado por Mantenimiento' || cancha.estatus === 'MANTENIMIENTO',
-                                                'status-full': cancha.estatus === 'Lleno/No Disponible'
-                                            }">
-                                            {{ cancha.estatus === 'Lleno/No Disponible' ? 'Lleno' : (cancha.estatus === 'Disponible' ? 'Disponible' : 'Mantenimiento') }}
-                                        </span>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    </StepPanel>
-
-
-                    <StepPanel value="3">
-                        <div class="step-content-inner">
-                            <div class="action-bar mb-action-bar">
-                                <Button icon="pi pi-arrow-left" label="Elegir otra cancha" class="btn-retroceder"
-                                    @click="reservationStore.volverAEspacios()" />
-                            </div>
-
-                            <h3 class="section-title text-large mb-header">
-                                Elige tu Horario de Juego
-                            </h3>
-
-                            <div class="horario-grid-container">
-
-                                <div class="panel-izquierdo">
-                                    <div class="info-box">
-                                        <i class="pi pi-clock"></i>
-                                        <p class="texto-instrucciones">Selecciona tu hora de inicio y fin. Recuerda que
-                                            la reserva <strong class="texto-resaltado">máxima es de 2 horas</strong>.
-                                        </p>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="form-label">Hora de Inicio</label>
-                                        <Select v-model="horaInicioTemp" :options="opcionesHoras"
-                                            placeholder="Ej. 09:00" class="w-full custom-select" appendTo="self" :disabled="cargando"/>
-                                    </div>
-
-                                    <div class="form-group mt-medium">
-                                        <label class="form-label">Hora de Fin</label>
-                                        <Select v-model="horaFinTemp" :options="opcionesHoras" placeholder="Ej. 11:00"
-                                            class="w-full custom-select" appendTo="self" :disabled="cargando"/>
-                                    </div>
-
-                                    <div class="mensajes-validacion-container">
-                                        <div v-if="errorValidacion" class="mensaje-error-box">
-                                            <i class="pi pi-exclamation-circle"></i>
-                                            <span>{{ errorValidacion }}</span>
-                                        </div>
-
-                                        <div v-else-if="esHorarioValidoParaPreview" class="mensaje-exito-box">
-                                            <i class="pi pi-check-circle"></i>
-                                            <span>¡Horario disponible y listo para reservar!</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="panel-derecho">
-                                    <h4 class="calendar-title">Disponibilidad de Hoy</h4>
-
-                                    <div class="calendar-visual-box">
-                                        <div class="calendario-grid"
-                                            :style="{ gridTemplateRows: `repeat(${totalHoras}, 60px)` }">
-
-                                            <div v-for="i in totalHoras" :key="i" class="fila-hora"
-                                                :style="{ gridRow: `${i} / ${i + 1}` }">
-                                                <span class="etiqueta-hora">{{ i + horaApertura - 1 }}:00</span>
-                                                <div class="linea-divisoria"></div>
-                                            </div>
-
-                                            <template v-if="horariosDisponibles && horariosDisponibles.length">
-                                                <div v-for="(bloque, index) in horariosDisponibles" :key="index"
-                                                    class="evento-bloque"
-                                                    :class="bloque.tipo === 'sesion' ? 'evento-sesion' : 'reserva'"
-                                                    :style="{ gridRow: calcularPosicionGrid(bloque.inicio, bloque.fin) }">
-                                                    <div class="evento-info">
-                                                        <span class="evento-titulo">
-                                                            <i
-                                                                :class="bloque.tipo === 'sesion' ? 'pi pi-bolt' : 'pi pi-user'"></i>
-                                                            {{ bloque.tipo === 'sesion' ? 'Clase Programada' : 'Reserva de Socio'}}
-                                                            
-
-
-                                                            <br>
-                                                        </span>
-                                                        <span class="evento-horas">{{ formatearHora(bloque.inicio) }} -
-                                                            {{ formatearHora(bloque.fin) }}</span>
-
-                                                    </div>
-                                                </div>
-                                            </template>
-
-                                            <div v-if="esHorarioValidoParaPreview" class="evento-bloque evento-preview"
-                                                :style="{ gridRow: calcularPosicionGrid(horaInicioTemp, horaFinTemp) }">
-                                                <div class="evento-info">
-                                                    <span class="evento-titulo">
-                                                        <i class="pi pi-sparkles"></i> Tu Reserva
-                                                    </span>
-                                                    <br>
-                                                    <span class="evento-horas">{{ horaInicioTemp }} - {{
-                                                        horaFinTemp }}</span>
-
-                                                </div>
-                                            </div>
-
-
-
-                                            <div v-if="!cargando && horariosDisponibles.length === 0 && !esHorarioValidoParaPreview"
-                                                class="sin-eventos">
-                                                No hay actividades programadas.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-
-
-                            <div class="action-bottom-right">
-                                <Button label="Confirmar Horario" icon="pi pi-check" iconPos="right"
-                                    class="btn-retroceder" :disabled="!esHorarioValidoParaPreview"
-                                    @click="validarHorario()" />
-                            </div>
-
-                        </div>
-                    </StepPanel>
-
-                    <StepPanel value="4">...</StepPanel>
-                    <StepPanel value="5">...</StepPanel>
-
-                </StepPanels>
-            </Stepper>
+            </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-/* =========================================
-   1. CONTENEDORES PRINCIPALES (LIMPIEZA TW)
-========================================= */
-.page-wrapper {
-    padding: 1rem;
-    background-color: var(--p-surface-50);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    font-family: var(--p-font-family);
-}
-
-@media (min-width: 768px) {
-    .page-wrapper {
-        padding: 1.5rem;
-    }
-}
-
-.main-card {
-    width: 100%;
-    max-width: 80rem;
-    /* 7xl */
-    background-color: #ffffff;
-    padding: 1.5rem;
-    border-radius: 1rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    /* shadow-xl */
-    border: 1px solid var(--p-surface-100);
-}
-
-@media (min-width: 768px) {
-    .main-card {
-        padding: 2.5rem;
-    }
-}
-
-.main-title {
-    font-size: 1.875rem;
-    /* 3xl */
-    font-weight: 800;
-    color: var(--p-surface-900);
-    margin-bottom: 2.5rem;
-    /* mb-10 */
-    text-align: center;
-    letter-spacing: -0.025em;
-    /* tracking-tight */
-}
-
-/* =========================================
-   2. DISEÑO PROFESIONAL DEL STEPPER
-========================================= */
-/* =========================================
-   2. DISEÑO ULTRA PRO DEL STEPPER
-========================================= */
-:deep(.p-stepper) {
-    width: 100%;
-}
-
-/* Contenedor principal de la lista */
-:deep(.p-steplist) {
-    margin-bottom: 3.5rem !important; /* Más espacio para respirar hacia abajo */
-    padding: 0.5rem 1rem !important;
-}
-
-/* --- CÍRCULOS (Pasos Inactivos / Futuros) --- */
-:deep(.p-step-number) {
-    font-family: var(--p-font-family) !important;
-    font-weight: 700 !important;
-    width: 2.75rem !important; /* Un poco más grandes */
-    height: 2.75rem !important;
-    font-size: 1.15rem !important;
-    background-color: #ffffff !important;
-    color: var(--p-surface-400) !important;
-    border: 2px solid var(--p-surface-200) !important;
-    border-radius: 50% !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05) !important; /* Sombra sutil */
-}
-
-/* --- TEXTO DE LOS PASOS --- */
-:deep(.p-step-title) {
-    font-family: var(--p-font-family) !important;
-    font-weight: 600 !important;
-    color: var(--p-surface-400) !important;
-    margin-left: 0.75rem !important;
-    font-size: 1.05rem !important;
-    transition: all 0.3s ease !important;
-}
-
-/* --- PASO ACTIVO (Donde estás posicionado) --- */
-:deep(.p-step-active .p-step-number) {
-    background-color: var(--p-primary-600) !important; /* Relleno azul sólido */
-    color: #ffffff !important; /* Número blanco */
-    border: 2px solid var(--p-primary-600) !important;
-    /* Efecto de anillo exterior (glow) que lo hace ver súper pro */
-    box-shadow: 0 0 0 6px var(--p-primary-100), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-    transform: scale(1.1); /* Ligero aumento de tamaño (efecto pop) */
-}
-
-:deep(.p-step-active .p-step-title) {
-    color: var(--p-primary-700) !important;
-    font-weight: 800 !important;
-    transform: translateX(4px); /* Pequeño desplazamiento a la derecha para destacar */
-}
-
-/* --- LÍNEAS CONECTORAS --- */
-:deep(.p-steplist-separator) {
-    height: 3px !important; /* De 1px a 3px para darle fuerza visual */
-    background-color: var(--p-surface-200) !important;
-    border-radius: 2px !important;
-    margin: 0 1.5rem !important; /* Separación de los círculos */
-    transition: background-color 0.3s ease;
-}
-
-/* Quitamos los estilos base de los botones invisibles de PrimeVue para no estorbar el diseño */
-:deep(.p-step) {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0.5rem !important;
-}
-
-/* =========================================
-   3. ESTILOS VISTAS INTERNAS (LIMPIEZA TW)
-========================================= */
-.step-content-wrapper {
-    padding: 1rem 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
-/* Títulos internos */
-.section-title {
-    font-size: 1.5rem;
-    /* 2xl */
-    font-weight: 700;
-    color: var(--p-surface-900);
-    margin-bottom: 2.5rem;
-    /* mb-10 */
-    text-align: center;
-}
-
-@media (min-width: 768px) {
-    .section-title {
-        font-size: 1.875rem;
-        /* 3xl */
-    }
-}
-
-/* Loader */
-.loader-container {
-    text-align: center;
-    padding: 2.5rem 0;
-    color: var(--p-surface-500);
-}
-
-.loader-icon {
-    font-size: 2.25rem;
-    /* 4xl */
-    margin-bottom: 1rem;
-}
-
-/* =========================================
-   4. TARJETAS DE DEPORTES (Ya funcionaban)
-========================================= */
-.contenedor-tarjetas {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 2rem;
-    /* 8 */
-    width: 100%;
-    max-width: 72rem;
-    /* 6xl */
-    margin: 0 auto;
-}
-
-button.tarjeta-deporte {
-    background-color: var(--p-primary-700);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    max-width: 250px;
-    aspect-ratio: 1 / 1;
-    border-radius: 1rem;
-    /* 2xl */
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    /* shadow-lg */
-    padding: 1.5rem;
-    text-decoration: none;
-    font-family: var(--p-font-family);
-}
-
-button.tarjeta-deporte:hover {
-    background-color: var(--p-primary-800);
-    transform: translateY(-5px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    /* shadow-2xl */
-}
-
-.icono-contenedor {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 75px;
-    height: 75px;
-    color: #ffffff;
-    transition: transform 0.3s ease;
-}
-
-button.tarjeta-deporte:hover .icono-contenedor {
-    transform: scale(1.1);
-}
-
-.icono-svg,
-.icono-svg svg {
-    width: 100%;
-    height: 100%;
-    fill: currentColor;
-}
-
-.texto-disciplina {
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 1.25rem;
-    /* xl */
-    text-align: center;
-    margin-top: 1.5rem;
-    /* 6 */
-}
-
-/* =========================================
-   5. SELECCIÓN DE CANCHAS (LIMPIEZA TW)
-========================================= */
-.canchas-container {
-    width: 100%;
-    max-width: 64rem;
-    /* 5xl */
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 0.5rem;
-}
-
-.action-bar {
-    width: 100%;
-    display: flex;
-    justify-content: flex-start;
-    margin-bottom: 2.5rem;
-    /* mb-10 */
-}
-
-/* Botón "Elegir otro deporte" (Ajuste de estilo native) */
-/* Botón "Elegir otro deporte" (Recuperando el color sólido) */
-:deep(.btn-retroceder.p-button) {
-    font-weight: 700 !important;
-    color: #ffffff !important;
-    /* Texto blanco */
-    background-color: var(--p-primary-700) !important;
-    /* Tu azul principal */
-    padding: 0.625rem 1.5rem !important;
-    /* Padding un poco más amplio */
-    border-radius: 0.75rem !important;
-    /* xl */
-    transition: all 0.2s ease !important;
-    border: none !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-}
-
-:deep(.btn-retroceder.p-button:hover) {
-    color: #ffffff !important;
-    background-color: var(--p-primary-800) !important;
-    /* Azul más oscuro en hover */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-    transform: translateY(-2px) !important;
-}
-
-.header-canchas {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.main-title-canchas {
-    font-size: 1.4rem;
-    /* 3xl */
-    font-weight: 600;
-    color: var(--p-surface-900);
-    letter-spacing: -0.025em;
-}
-
-@media (min-width: 768px) {
-    .main-title-canchas {
-        font-size: 2.25rem;
-        /* 4xl */
-    }
-}
-
-.highlight-deporte {
-    color: var(--p-primary-600);
-    padding-bottom: 0.25rem;
-    display: inline-block;
-    margin-top: 0.5rem;
-}
-
-@media (min-width: 768px) {
-    .highlight-deporte {
-        margin-top: 0;
-    }
-}
-
-/* Capacidad Info */
-.capacidad-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1.5rem;
-    margin-bottom: 3.5rem;
-    /* mb-14 */
-    background-color: var(--p-primary-50);
-    border: 1px solid var(--p-primary-100);
-    border-radius: 9999px;
-    /* rounded-full */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    /* shadow-sm */
-}
-
-@media (min-width: 768px) {
-    .capacidad-badge {
-        padding: 1rem 2.5rem;
-    }
-}
-
-.capacidad-icon {
-    font-size: 1.5rem;
-    color: var(--p-primary-600);
-}
-
-.capacidad-text {
-    font-weight: 500;
-    font-size: 1.125rem;
-    /* lg */
-    color: var(--p-primary-900);
-}
-
-.capacidad-number {
-    font-weight: 700;
-    font-size: 1.25rem;
-    /* xl */
-}
-
-/* Grid Canchas */
-.grid-canchas {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-    width: 100%;
-}
-
-@media (min-width: 1024px) {
-    .grid-canchas {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.5rem;
-    }
-}
-
-/* Tarjeta Cancha */
-.cancha-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 1rem;
-    border-radius: 1rem;
-    border: 2px solid var(--p-surface-200);
-    transition: all 0.3s ease;
-    text-align: left;
-    background-color: #ffffff;
-    cursor: pointer;
-    font-family: var(--p-font-family);
-}
-
-@media (min-width: 768px) {
-    .cancha-card {
-        padding: 1.25rem;
-    }
-}
-
-/* Estado Disponible */
-.cancha-card.is-available {
-    border-color: var(--p-surface-200);
-}
-
-.cancha-card.is-available:hover {
-    border-color: var(--p-primary-500);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    /* shadow-md */
-    transform: translateY(-0.25rem);
-    /* -translate-y-1 */
-}
-
-/* Estado Mantenimiento */
-.cancha-card.is-disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-    background-color: var(--p-surface-100);
-    border-color: var(--p-surface-200);
-}
-
-.cancha-left-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-@media (min-width: 768px) {
-    .cancha-left-info {
-        gap: 1.5rem;
-    }
-}
-
-.cancha-icon-wrapper {
-    flex-shrink: 0;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 9999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s;
-}
-
-@media (min-width: 768px) {
-    .cancha-icon-wrapper {
-        width: 4rem;
-        height: 4rem;
-    }
-}
-
-.cancha-card.is-available .cancha-icon-wrapper {
-    background-color: var(--p-primary-50);
-    color: var(--p-primary-600);
-}
-
-.cancha-card.is-available:hover .cancha-icon-wrapper {
-    background-color: var(--p-primary-100);
-    color: var(--p-primary-700);
-}
-
-.cancha-card.is-disabled .cancha-icon-wrapper {
-    background-color: #e5e7eb;
-    /* gray-200 */
-    color: #6b7280;
-    /* gray-500 */
-}
-
-.icon-cancha-svg {
-    width: 1.75rem;
-    height: 1.75rem;
-    fill: currentColor;
-}
-
-@media (min-width: 768px) {
-    .icon-cancha-svg {
-        width: 2rem;
-        height: 2rem;
-    }
-}
-
-.cancha-name {
-    font-weight: 700;
-    font-size: 1.125rem;
-    /* lg */
-    color: var(--p-surface-900);
-}
-
-@media (min-width: 768px) {
-    .cancha-name {
-        font-size: 1.25rem;
-        /* xl */
-    }
-}
-
-.cancha-status-badge {
-    flex-shrink: 0;
-    margin-left: 1rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.6875rem;
-    /* 11px */
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    /* tracking-wider */
-}
-
-@media (min-width: 768px) {
-    .cancha-status-badge {
-        padding: 0.5rem 1rem;
-        font-size: 0.75rem;
-        /* xs */
-    }
-}
-
-.status-available {
-    background-color: #dcfce7;
-    /* green-100 */
-    color: #166534;
-    /* green-800 */
-}
-
-.status-maintenance {
-    background-color: #fee2e2;
-    /* red-100 */
-    color: #991b1b;
-    /* red-800 */
-}
-
-/* =========================================
-   6. VISTAS STEP 2 (LIMPIEZA TW)
-========================================= */
-.step-content-inner {
-    width: 100%;
-    max-width: 64rem;
-    /* 5xl */
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 0.5rem;
-}
-
-.btn-secondary-outline {
-    background-color: transparent !important;
-    border: none !important;
-    font-weight: 700 !important;
-    color: var(--p-surface-600) !important;
-    padding: 0.5rem 1rem !important;
-}
-
-.btn-secondary-outline:hover {
-    color: var(--p-surface-900) !important;
-    background-color: var(--p-surface-100) !important;
-}
-
-.btn-primary-action {
-    padding: 0.75rem 2rem !important;
-    font-weight: 700 !important;
-    font-size: 1.125rem !important;
-}
-
-/* Espaciadores útiles */
-.mb-action-bar {
-    margin-bottom: 2.5rem;
-}
-
-.mb-header {
-    margin-bottom: 2.5rem;
-}
-
-.mt-final-action {
-    margin-top: 2.5rem;
-}
-
-/* =========================================
-   7. STEP 3: LAYOUT DE HORARIOS
-========================================= */
-
-/* El contenedor principal dividido en 2 columnas */
-.horario-grid-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    /* Móvil: 1 columna */
-    gap: 2.5rem;
-    margin-bottom: 3rem;
-}
-
-@media (min-width: 1024px) {
-    .horario-grid-container {
-        grid-template-columns: 1fr 1.5fr;
-        /* Desktop: Izquierda más chica, Derecha más grande */
-    }
-}
-
-/* --- PANEL IZQUIERDO --- */
-.panel-izquierdo {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.info-box {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    background-color: var(--p-primary-50);
-    padding: 1rem 1.25rem;
-    border-radius: 0.75rem;
-    border: 1px solid var(--p-primary-100);
-    color: var(--p-primary-900);
-    font-size: 0.95rem;
-    line-height: 1.5;
-}
-
-.info-box i {
-    color: var(--p-primary-600);
-    margin-top: 0.15rem;
-    font-size: 1.25rem;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.form-label {
-    font-weight: 700;
-    color: var(--p-surface-800);
-    font-size: 1rem;
-}
-
-/* Modificamos el Select de PrimeVue para que combine con tus inputs */
-:deep(.custom-select) {
-    border-radius: 0.75rem !important;
-    border: 1px solid var(--p-surface-300) !important;
-    padding: 0.25rem !important;
-    font-family: var(--p-font-family) !important;
-}
-
-:deep(.custom-select:hover) {
-    border-color: var(--p-primary-500) !important;
-}
-
-/* --- PANEL DERECHO --- */
-.panel-derecho {
-    background-color: #ffffff;
-    border: 1px solid var(--p-surface-200);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.calendar-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--p-surface-900);
-    margin-bottom: 1.5rem;
-    text-align: center;
-    border-bottom: 2px solid var(--p-surface-100);
-    padding-bottom: 1rem;
-}
-
-.calendar-visual-box {
-    width: 100%;
-    height: 480px;
-    background-color: #ffffff;
-    border-radius: 1rem;
-    border: 1px solid var(--p-surface-200);
-    overflow-y: auto;
-    position: relative;
-    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
-
-    /* ESTO ES LO CLAVE: Sobrescribe cualquier comportamiento flex anterior */
-    display: block;
-}
-
-/* --- BOTÓN FINAL --- */
-.action-bottom-right {
-    display: flex;
-    justify-content: flex-end;
-    width: 100%;
-    border-top: 2px solid var(--p-surface-100);
-    padding-top: 2rem;
-}
-
-/* =========================================
-   8. VISTA TIPO GOOGLE CALENDAR
-========================================= */
-/* =========================================
-   ESTILOS MEJORADOS PARA LOS SELECTS
-========================================= */
-:deep(.custom-select) {
-    border-radius: 0.75rem !important;
-    border: 1px solid var(--p-surface-300) !important;
-    font-family: var(--p-font-family) !important;
-    display: flex;
-    align-items: center;
-    height: 3rem;
-    /* Lo hacemos más altito y elegante */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-:deep(.custom-select:hover) {
-    border-color: var(--p-primary-500) !important;
-}
-
-/* Mejora la lista desplegable del Select */
-:deep(.p-select-list-container) {
-    font-family: var(--p-font-family) !important;
-    padding: 0.5rem;
-}
-
-:deep(.p-select-option) {
-    border-radius: 0.5rem;
-    margin-bottom: 0.25rem;
-    transition: background-color 0.2s;
-}
-
-/* =========================================
-   EL CALENDARIO Y LA PREVISUALIZACIÓN
-========================================= */
-
-
-/* Ocultamos la scrollbar fea pero permitimos scroll */
-.calendar-visual-box::-webkit-scrollbar {
-    width: 6px;
-}
-
-.calendar-visual-box::-webkit-scrollbar-thumb {
-    background-color: var(--p-surface-300);
-    border-radius: 10px;
-}
-
-.calendario-grid {
-    display: grid;
-    grid-template-columns: 70px 1fr;
-    /* Más espacio para la hora a la izquierda */
-    position: relative;
-    min-height: 100%;
-    padding-bottom: 1rem;
-}
-
-.fila-hora {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 70px 1fr;
-}
-
-.etiqueta-hora {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--p-surface-500);
-    text-align: right;
-    padding-right: 1rem;
-    transform: translateY(-0.6rem);
-}
-
-.linea-divisoria {
-    border-top: 1px dashed var(--p-surface-200);
-    /* Línea punteada más limpia */
-    width: 100%;
-}
-
-/* Los bloques dinámicos */
-.evento-bloque {
-    grid-column: 2 / 3;
-    margin: 2px 15px 2px 0;
-    /* Más margen derecho */
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    overflow: hidden;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.evento-bloque:hover {
-    transform: translateX(4px);
-    /* Animación chula al pasar el mouse */
-}
-
-/* Estilo para LA PREVISUALIZACIÓN en tiempo real */
-.evento-preview {
-    background-color: var(--p-primary-50);
-    border: 2px var(--p-primary-500);
-    color: var(--p-primary-700);
-    z-index: 10;
-    /* Para que quede encima de las líneas */
-    animation: pulse-preview 2s infinite ease-in-out;
-}
-
-@keyframes pulse-preview {
-    0% {
-        opacity: 0.7;
-        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
-    }
-
-    50% {
-        opacity: 1;
-        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
-    }
-
-    100% {
-        opacity: 0.7;
-        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
-    }
-}
-
-.evento-sesion {
-    background-color: var(--p-primary-600);
-    color: #ffffff;
-    border-left: 5px solid var(--p-primary-800);
-}
-
-.reserva {
-    /* Asegúrate de que el nombre de la clase coincida con tu template */
-    background-color: #f97316;
-    color: #ffffff;
-    border-left: 5px solid #c2410c;
-}
-
-/* --- MEJORAS DEL SELECT Y TEXTOS (Izquierda) --- */
-.texto-instrucciones {
-    font-size: 1.05rem;
-    /* Texto de instrucciones más grande */
-}
-
-.texto-resaltado {
-    font-size: 1.15rem;
-    /* El "2 horas" aún más grande y notorio */
-    color: var(--p-primary-800);
-}
-
-/* Espaciamos los números del dropdown para que no se amontonen */
-:deep(.p-select-list-container) {
-    padding: 0.5rem !important;
-}
-
-:deep(.p-select-option) {
-    padding: 0.75rem 1.25rem !important;
-    /* Más espacio para respirar */
-    font-size: 1.05rem !important;
-    margin-bottom: 0.25rem !important;
-    border-radius: 0.5rem !important;
-    transition: background-color 0.2s;
-}
-
-/* --- COLOR DE LA PREVISUALIZACIÓN (Verde Esmeralda) --- */
-.evento-preview {
-    background-color: #ecfdf5 !important;
-    /* Verde muy clarito */
-    border: 2px dashed #10b981 !important;
-    /* Borde punteado esmeralda */
-    border-left: 5px solid #10b981 !important;
-    color: #065f46 !important;
-    /* Texto verde oscuro */
-    z-index: 10;
-    /* Se pone por encima de todo */
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
-    animation: pulse-preview 2s infinite ease-in-out;
-}
-
-/* Animación de latido suave para indicar que está en "borrador" */
-@keyframes pulse-preview {
-    0% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-    }
-
-    70% {
-        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    }
-}
-
-/* Centrado vertical perfecto en las horas */
-.etiqueta-hora {
-    transform: translateY(-0.6rem);
-    /* Ajuste milimétrico para alinear el texto con la raya */
-}
-
-/* --- ZONA DE MENSAJES DE VALIDACIÓN --- */
-.mensajes-validacion-container {
-    margin-top: 0.5rem; /* Espaciado extra entre el select y el mensaje */
-}
-
-/* CAJA DE MENSAJE DE ERROR */
-.mensaje-error-box {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background-color: #fef2f2; /* Rojo muy claro */
-    border: 1px solid #fca5a5; /* Borde rojo suave */
-    color: #b91c1c; /* Texto rojo oscuro */
-    padding: 1rem 1.25rem;
-    border-radius: 0.75rem;
-    margin-top: 1rem;
-    font-weight: 500;
-    font-size: 0.95rem;
-    animation: fadeInMessage 0.3s ease-out;
-}
-
-.mensaje-error-box i {
-    font-size: 1.25rem;
-    color: #ef4444; /* Rojo vibrante para el ícono */
-}
-
-/* CAJA DE MENSAJE DE ÉXITO (NUEVO) */
-.mensaje-exito-box {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background-color: #ecfdf5; /* Verde esmeralda muy claro */
-    border: 1px solid #6ee7b7; /* Borde verde suave */
-    color: #047857; /* Texto verde esmeralda oscuro */
-    padding: 1rem 1.25rem;
-    border-radius: 0.75rem;
-    margin-top: 1rem;
-    font-weight: 500;
-    font-size: 0.95rem;
-    animation: fadeInMessage 0.3s ease-out;
-}
-
-.mensaje-exito-box i {
-    font-size: 1.25rem;
-    color: #10b981; /* Verde esmeralda vibrante para el ícono */
-}
-
-/* Animación unificada para ambos mensajes */
-@keyframes fadeInMessage {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* =========================================
-   ALERTA DE NAVEGACIÓN GLOBAL (ESTÁTICA)
-========================================= */
-.alerta-navegacion {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    max-width: 40rem;
-    margin: -1rem auto 2.5rem auto; 
-    background-color: #fef2f2; /* Rojo muy claro */
-    border: 1px solid #fca5a5; /* Borde rojo suave */
-    color: #b91c1c; /* Texto rojo oscuro */
-    padding: 0.85rem 1.5rem;
-    border-radius: 0.75rem; 
-    font-weight: 600;
-    font-size: 0.95rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    animation: fadeInStatic 0.2s ease-out; /* Solo entrada */
-}
-
-.alerta-navegacion i {
-    font-size: 1.25rem;
-    color: #ef4444;
-}
-
-@keyframes fadeInStatic {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* =========================================
-   MODAL DE BORRADOR (DRAFT) MINIMALISTA Y PRO
-========================================= */
-
-/* 1. Resetear PrimeVue y poner el borde general */
-:deep(.modal-borrador-minimal.p-dialog),
-:deep(.modal-borrador-minimal) {
-    width: 90vw !important;
-    max-width: 480px !important;
-    border-radius: 12px !important;
-    border: 2px solid var(--p-primary-500) !important;
-    background-color: #ffffff !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
-    font-family: var(--p-font-family) !important;
-    overflow: hidden !important;
-}
-
-/* Apagamos el padding rebelde de PrimeVue */
-:deep(.modal-borrador-minimal .p-dialog-header),
-:deep(.modal-borrador-minimal .p-dialog-content),
-:deep(.modal-borrador-minimal .p-dialog-footer) {
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-}
-
-/* 2. NUESTROS CONTENEDORES CON PADDING PERFECTO */
-.custom-modal-header {
-    padding: 1.75rem 2rem 0.5rem 2rem; /* Espacio arriba y a los lados */
-}
-
-.custom-modal-header h3 {
-    font-weight: 700;
-    font-size: 1.35rem;
-    color: var(--p-surface-900);
-    margin: 0;
-}
-
-.custom-modal-body {
-    padding: 0.5rem 2rem 1.5rem 2rem; /* Espacio a los lados alineado con el header */
-}
-
-.custom-modal-footer {
-    padding: 0 2rem 2rem 2rem; /* Espacio abajo y a los lados */
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
-/* 3. Textos internos */
-.modal-description {
-    font-size: 1.05rem;
-    color: var(--p-surface-600);
-    line-height: 1.5;
-    margin: 0 0 1.5rem 0;
-}
-
-.modal-question {
-    margin: 1.5rem 0 0 0;
-    text-align: center;
-    font-weight: 600;
-    color: var(--p-surface-900);
-}
-
-/* 4. Lista de Detalles Limpia */
-.draft-details-list {
-    background-color: var(--p-surface-50);
-    border: 1px solid var(--p-surface-200);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.detail-label {
-    color: var(--p-surface-500);
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.detail-value {
-    color: var(--p-primary-900);
-    font-size: 1.05rem;
-    font-weight: 700;
-}
-
-/* 5. Botones */
-:deep(.btn-descartar.p-button) {
-    background-color: transparent !important;
-    border: 1px solid var(--p-surface-300) !important;
-    color: var(--p-surface-600) !important;
-    font-weight: 600 !important;
-    padding: 0.625rem 1.25rem !important;
-    border-radius: 0.75rem !important;
-    transition: all 0.2s ease !important;
-}
-
-:deep(.btn-descartar.p-button:hover) {
-    background-color: var(--p-surface-100) !important;
-    border-color: var(--p-surface-400) !important;
-    color: var(--p-surface-900) !important;
-}
-
-:deep(.btn-continuar.p-button) {
-    background-color: var(--p-primary-600) !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    padding: 0.625rem 1.5rem !important;
-    border-radius: 0.75rem !important;
-    border: none !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-    transition: all 0.2s ease !important;
-}
-
-:deep(.btn-continuar.p-button:hover) {
-    background-color: var(--p-primary-700) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* Ajuste para celulares */
-@media (max-width: 600px) {
-    .custom-modal-footer {
-        flex-direction: column-reverse;
-    }
-    :deep(.btn-descartar.p-button),
-    :deep(.btn-continuar.p-button) {
-        width: 100% !important;
-        justify-content: center !important;
-    }
-}
-
-.status-full {
-    background-color: #fef08a; /* Amarillo clarito */
-    color: #854d0e; /* Texto café oscuro */
-}
-
-</style>

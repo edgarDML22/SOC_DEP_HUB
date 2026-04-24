@@ -1,35 +1,9 @@
-<template>
-  <div class="forgot-password-container">
-    <h2>Recuperar Contraseña</h2>
-    <form @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label for="email">Correo Electrónico:</label>
-        <input 
-          type="email" 
-          id="email" 
-          v-model="email" 
-          placeholder="Ej: usuario@ejemplo.com" 
-          required
-        />
-      </div>
-
-      <button type="submit" :disabled="isLoading">
-        {{ isLoading ? 'Enviando...' : 'Enviar enlace' }}
-      </button>
-    </form>
-
-    <div v-if="successMessage" class="feedback-message success">
-      {{ successMessage }}
-    </div>
-    <div v-if="errorMessage" class="feedback-message error">
-      {{ errorMessage }}
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '@/services/api'; 
+
+const router = useRouter();
 
 const email = ref('');
 const isLoading = ref(false);
@@ -62,97 +36,48 @@ const handleSubmit = async () => {
 };
 </script>
 
-<style scoped>
+<template>
+  <div class="min-h-screen w-full bg-surface-50 p-4 md:p-8 flex flex-col font-sans">
+    
+    <div class="w-full max-w-md mx-auto mb-6">
+        <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 transition-colors font-medium text-sm w-fit group pt-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Volver al inicio
+        </button>
+    </div>
 
-.forgot-password-container {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #111827;
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 24px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
+    <!-- Container Card -->
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl md:rounded-3xl shadow-sm border border-surface-200 p-6 md:p-10 space-y-8 mt-4 md:mt-12 transition-all">
+      
+      <div>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-surface-900 m-0 tracking-tight text-center">Recuperar Contraseña</h2>
+        <p class="text-surface-500 text-sm font-medium mt-3 text-center">Ingresa el correo electrónico asociado a tu cuenta y te enviaremos instrucciones.</p>
+      </div>
 
-h2 {
-  font-size: 24px;
-  font-weight: 700;
-  margin-top: 0;
-  margin-bottom: 20px;
-}
+      <form @submit.prevent="handleSubmit" class="space-y-6">
+        <div class="space-y-2">
+          <label for="email" class="block font-medium text-[13px] text-surface-600 tracking-wide uppercase px-1">Correo Electrónico</label>
+          <input 
+            type="email" 
+            id="email" 
+            v-model="email" 
+            placeholder="usuario@ejemplo.com" 
+            required
+            class="w-full px-4 py-3.5 border border-surface-200 rounded-xl bg-surface-50 text-base font-medium text-surface-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all shadow-sm"
+          />
+        </div>
 
-.form-group {
-  margin-bottom: 15px;
-}
+        <button type="submit" :disabled="isLoading" class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-[0_8px_20px_-6px_rgba(37,99,235,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300">
+          {{ isLoading ? 'Enviando enlace...' : 'Enviar enlace de recuperación' }}
+        </button>
+      </form>
 
-label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-input[type="email"] {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: #f9fafb;
-  color: #111827;
-  font-size: 15px;
-  font-weight: 500;
-  box-sizing: border-box;
-}
-
-input[type="email"]:focus {
-  outline: none;
-  border-color: #1d4ed8;
-}
-
-
-button {
-  width: 100%;
-  padding: 10px 16px;
-  background-color: #1d4ed8; 
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.2s;
-}
-
-button:hover {
-  background-color: #1e40af;
-}
-
-button:disabled {
-  background-color: #93c5fd;
-  cursor: not-allowed;
-}
-
-
-.feedback-message {
-  margin-top: 15px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.feedback-message.success {
-  color: #166534;
-  background-color: #dcfce7;
-  border: 1px solid #bbf7d0;
-}
-
-.feedback-message.error {
-  color: #991b1b;
-  background-color: #fee2e2;
-  border: 1px solid #f87171;
-}
-</style>
+      <div v-if="successMessage" class="p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-medium flex gap-3 text-center transition-all">
+        {{ successMessage }}
+      </div>
+      <div v-if="errorMessage" class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex gap-3 animate-pulse">
+        {{ errorMessage }}
+      </div>
+    </div>
+  </div>
+</template>
