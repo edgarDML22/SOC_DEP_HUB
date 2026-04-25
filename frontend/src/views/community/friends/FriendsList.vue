@@ -4,10 +4,11 @@ import { useRouter } from 'vue-router'
 import { useFriendStore } from '@/stores/community/friendStore'
 import { useAlerts } from '@/composables/useAlerts' 
 import { IconArrowLeft } from '@/components/icons'
+import IconTrash from '@/components/icons/IconTrash.vue'
 
 const router = useRouter()
 const friendStore = useFriendStore()
-const { toastInfo } = useAlerts() 
+const { toastInfo, confirmDelete } = useAlerts() 
 
 const search = ref('')
 const filtro = ref('AMIGO') 
@@ -19,11 +20,11 @@ const amigosFiltrados = computed(() => {
   let list = Array.isArray(friendStore.friends) ? friendStore.friends : []
 
   if (filtro.value === 'AMIGO') {
-    list = list.filter(f => f.estado === 'ACEPTADA')
+    list = list.filter(f => f.estado?.toUpperCase() === 'ACEPTADA')
   } else if (filtro.value === 'SOLICITUD_ENVIADA') {
-    list = list.filter(f => f.estado === 'PENDIENTE' && f.solicitado_por_mi)
+    list = list.filter(f => f.estado?.toUpperCase() === 'PENDIENTE' && f.solicitado_por_mi)
   } else if (filtro.value === 'SOLICITUD_RECIBIDA') {
-    list = list.filter(f => f.estado === 'PENDIENTE' && !f.solicitado_por_mi)
+    list = list.filter(f => f.estado?.toUpperCase() === 'PENDIENTE' && !f.solicitado_por_mi)
   }
 
   if (search.value) {
@@ -69,7 +70,29 @@ const rechazarSolicitud = async (amigo) => {
     actionTypeLoading.value = ''
   }
 }
+
+const eliminarAmigo = async (amigo) => {
+  const result = await confirmDelete(
+    'Eliminar Amigo',
+    `¿Estás seguro de que deseas eliminar a ${amigo.nombre_amigo}? Esta acción no se puede deshacer.`
+  )
+  
+  if (result.isConfirmed) {
+    actionLoadingId.value = amigo.id_amistad
+    actionTypeLoading.value = 'eliminar'
+    try {
+      await friendStore.removeFriend({ id_amistad: amigo.id_amistad })
+      toastInfo('Eliminado', 'Amigo removido de tu lista', 'success')
+    } catch (e) {
+      toastInfo('Error', e.response?.data?.message || 'Error al eliminar al amigo', 'error')
+    } finally {
+      actionLoadingId.value = null
+      actionTypeLoading.value = ''
+    }
+  }
+}
 </script>
+
 
 <template>
   <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
@@ -99,6 +122,7 @@ const rechazarSolicitud = async (amigo) => {
       <div class="flex flex-col gap-4">
         
         <input 
+          v-if="filtro === 'AMIGO'"
           v-model="search" 
           placeholder="Buscar amigo por nombre..." 
           class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" 
@@ -159,25 +183,25 @@ const rechazarSolicitud = async (amigo) => {
           class="bg-white rounded-2xl p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col h-full hover:-translate-y-0.5"
         >
           <!-- Header de tarjeta -->
-          <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+          <div class="flex items-start gap-4 mb-4">
             <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-bold text-lg uppercase shrink-0">
               {{ amigo.nombre_amigo?.charAt(0) || '?' }}
             </div>
             
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 flex flex-col min-w-0">
               <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="amigo.nombre_amigo">
                 {{ amigo.nombre_amigo }}
               </h3>
               
-              <div class="mt-1.5 flex flex-wrap gap-2">
-                <span v-if="amigo.estado === 'ACEPTADA'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-green-50 text-green-700 border border-green-200">
+              <div class="mt-1">
+                <span v-if="amigo.estado?.toUpperCase() === 'ACEPTADA'" class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border bg-green-50 text-green-700 border-green-200">
                   AMIGO
                 </span>
-                <span v-else-if="amigo.estado === 'PENDIENTE' && amigo.solicitado_por_mi" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-yellow-50 text-yellow-700 border border-yellow-200">
-                  ENVIADA
+                <span v-else-if="amigo.estado?.toUpperCase() === 'PENDIENTE' && amigo.solicitado_por_mi" class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border bg-yellow-50 text-yellow-700 border-yellow-200">
+                  PENDIENTE
                 </span>
-                <span v-else-if="amigo.estado === 'PENDIENTE' && !amigo.solicitado_por_mi" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-primary-50 text-primary-700 border border-primary-200">
-                  RECIBIDA
+                <span v-else-if="amigo.estado?.toUpperCase() === 'PENDIENTE' && !amigo.solicitado_por_mi" class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border bg-primary-50 text-primary-700 border-primary-100">
+                  NUEVA
                 </span>
               </div>
             </div>
@@ -195,25 +219,38 @@ const rechazarSolicitud = async (amigo) => {
 
           <!-- Footer Actions (Sólo Aceptar/Rechazar para Solicitudes Recibidas) -->
           <div class="mt-auto pt-2" v-if="filtro === 'SOLICITUD_RECIBIDA'">
-            <div class="flex gap-2 flex-col sm:flex-row w-full">
+            <div class="flex flex-col sm:flex-row gap-3 w-full">
               <!-- Estandarización Primary -->
               <button 
                 @click="aceptarSolicitud(amigo)"
                 :disabled="actionLoadingId === amigo.id_amistad"
-                class="flex-1 bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 md:bg-none md:bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-md md:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:outline-none"
               >
-                {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'aceptar' ? 'Aceptando...' : 'Aceptar' }}
+                {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'aceptar' ? 'Procesando...' : 'Aceptar' }}
               </button>
               
               <!-- Estandarización Secondary -->
               <button 
                 @click="rechazarSolicitud(amigo)"
                 :disabled="actionLoadingId === amigo.id_amistad"
-                class="flex-1 bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex-1 bg-white md:bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none shadow-sm md:shadow-none"
               >
-                {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'rechazar' ? 'Rechazando...' : 'Rechazar' }}
+                {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'rechazar' ? 'Procesando...' : 'Rechazar' }}
               </button>
             </div>
+          </div>
+
+          <!-- Footer Actions (Sólo Eliminar para Amigos) -->
+          <div class="mt-auto pt-2 flex justify-end" v-if="filtro === 'AMIGO'">
+            <button 
+              @click="eliminarAmigo(amigo)"
+              :disabled="actionLoadingId === amigo.id_amistad"
+              title="Eliminar amigo"
+              class="w-9 h-9 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl transition-all flex items-center justify-center active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+            >
+              <IconTrash v-if="actionLoadingId !== amigo.id_amistad" class="w-4 h-4" />
+              <span v-else class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></span>
+            </button>
           </div>
 
         </div>

@@ -190,7 +190,7 @@ export const useReservationStore = defineStore("reservation", () => {
 
     // -- Se busca su última reserva que dejó como PENDIENTE
     try {
-      const res = await api.get('/reservations/draft/active');
+      
 
       if (res.data.success && res.data.reserva) {
         const r = res.data.reserva;
@@ -420,7 +420,7 @@ export const useReservationStore = defineStore("reservation", () => {
     const maxPermitidos = capacidadMaximaEspacio.value - 1; // -1 porque el titular ya cuenta
     
     const index = acompanantesSeleccionados.value.findIndex(a => 
-      a.id_socio === acompanante.id_socio || a.id === acompanante.id
+      a.id === acompanante.id && a.tipo === acompanante.tipo
     ); 
     
     if (index !== -1) {
@@ -438,32 +438,13 @@ export const useReservationStore = defineStore("reservation", () => {
     return true; // Éxito
   };
 
-  // Cancelar reserva
-
-  const toggleAcompanante = (item) => {
-    // Límite de capacidad (restando 1 para el titular)
-    const limite = espaciosPorDisciplina.value[0]?.capacidad_maxima || 999;
-    
-    const index = reservaPayload.value.acompanantes.findIndex(a => a.id === item.id && a.tipo === item.tipo);
-    if (index !== -1) {
-      // Si ya está en la lista, lo quitamos
-      reservaPayload.value.acompanantes.splice(index, 1);
-    } else {
-      // Si no está, validamos el límite antes de agregarlo
-      if (reservaPayload.value.acompanantes.length >= limite - 1) {
-         return; // Límite alcanzado
-      }
-      reservaPayload.value.acompanantes.push(item);
-    }
-  };
-
   const confirmarReserva = async () => {
     cargando.value = true;
     errorApi.value = null;
     try {
       const res = await api.post("/reservations/confirm", {
         id_reserva: reservaPayload.value.id_reserva,
-        acompanantes: reservaPayload.value.acompanantes
+        acompanantes: acompanantesSeleccionados.value
       });
       return { success: true, data: res.data };
     } catch (error) {
@@ -549,7 +530,6 @@ export const useReservationStore = defineStore("reservation", () => {
     descartarBorrador,
     toggleAcompanante,
     confirmarReserva,
-    toggleAcompanante,
     sincronizarAcompanantesBorrador,
   };
 });

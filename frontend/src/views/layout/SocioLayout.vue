@@ -14,12 +14,18 @@
 <script setup>
 import SocioNavbar from '@/components/socio/SocioNavBar.vue';
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useFamilyStore } from '@/stores/community/familyStore'
+import { useGuestStore } from '@/stores/community/guestStore'
 import Toast from 'primevue/toast';
 import { onMounted } from 'vue';
 
 const profileStore = useProfileStore();
+const familyStore = useFamilyStore();
+const guestStore = useGuestStore();
 
 onMounted (() =>{
-profileStore.fetchProfile()
+    profileStore.fetchProfile()
+    familyStore.fetchMiembrosFamiliares()
+    guestStore.fetchInvitados()
 })
 </script>

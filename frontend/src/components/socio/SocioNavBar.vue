@@ -184,9 +184,12 @@ onUnmounted(() => {
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Agenda</span>
             </router-link>
 
-            <router-link to="/socio/qr" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconQr class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Pase QR</span>
+            <router-link to="/socio/qr" class="flex flex-col items-center justify-center group w-[20%] relative active:scale-90 transition-all -mt-6">
+                <!-- Círculo con degradado premium (mismo que PRÓXIMA RESERVA) -->
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary-800 to-primary-600 shadow-[0_6px_24px_rgba(37,99,235,0.45)] flex items-center justify-center ring-4 ring-white">
+                    <IconQr class="w-7 h-7 text-white drop-shadow-sm" />
+                </div>
+                <span class="text-[9px] font-bold text-primary-700 mt-1 uppercase tracking-wide">Pase QR</span>
             </router-link>
 
             <router-link to="/socio/community" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">

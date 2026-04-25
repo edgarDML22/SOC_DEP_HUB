@@ -12,9 +12,7 @@ const guestStore = useGuestStore()
 const filtro = ref('TODOS')
 const search = ref('')
 
-onMounted(() => {
-  guestStore.fetchInvitados()
-})
+// REMOVED onMounted fetch since it's handled in SocioLayout
 
 const activeCount = computed(() => {
   return guestStore.invitados.filter(inv => inv.estatus_acceso === 'ACTIVO').length
@@ -28,14 +26,21 @@ const invitadosFiltrados = computed(() => {
   let resultado = guestStore.invitados
 
   if (filtro.value !== 'TODOS') {
-    resultado = resultado.filter(inv => inv.estatus_acceso === filtro.value)
+    resultado = resultado.filter(inv => inv.estatus_acceso?.toUpperCase() === filtro.value)
   }
 
   if (search.value) {
     const s = search.value.toLowerCase()
     resultado = resultado.filter(inv => inv.nombre.toLowerCase().includes(s))
   }
-  return resultado
+
+  // Ordenar: ACTIVO primero, luego el resto (EXPIRADO, etc.)
+  return [...resultado].sort((a, b) => {
+    const order = { 'ACTIVO': 0, 'EXPIRADO': 1, 'INACTIVO': 2, 'SIN_PASE': 3 };
+    const statusA = a.estatus_acceso?.toUpperCase() || 'SIN_PASE';
+    const statusB = b.estatus_acceso?.toUpperCase() || 'SIN_PASE';
+    return (order[statusA] ?? 99) - (order[statusB] ?? 99);
+  });
 })
 
 const showQrModal = ref(false)
@@ -89,8 +94,10 @@ const copiarImagenAlPortapapeles = async (url) => {
       <div class="flex flex-col gap-2">
         <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Mis Invitados</h2>
         <p class="text-surface-500 text-sm md:text-base m-0 font-medium">Consulta el estatus de tus invitados</p>
-        <div class="mt-2 text-sm" :class="activeCount >= 5 ? 'text-red-500 font-medium' : 'text-primary-700'">
-           Invitados Activos: <span class="font-bold">{{ activeCount }} / 5</span>
+        <div class="mt-1">
+           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border" :class="activeCount >= 5 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-primary-50 text-primary-700 border-primary-100'">
+             Activos: {{ activeCount }} / 5
+           </span>
         </div>
       </div>
 
@@ -106,23 +113,26 @@ const copiarImagenAlPortapapeles = async (url) => {
         <div class="flex gap-6 border-b border-surface-200 w-full overflow-x-auto scrollbar-thin">
           <button 
             @click="cambiarFiltro('TODOS')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap focus:outline-none"
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none"
             :class="filtro === 'TODOS' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Todos
           </button>
           <button 
             @click="cambiarFiltro('ACTIVO')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap focus:outline-none"
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none"
             :class="filtro === 'ACTIVO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
             Activos
           </button>
           <button 
             @click="cambiarFiltro('EXPIRADO')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap focus:outline-none"
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none"
             :class="filtro === 'EXPIRADO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             Expirados
           </button>
         </div>
@@ -150,7 +160,7 @@ const copiarImagenAlPortapapeles = async (url) => {
           <!-- Header de tarjeta -->
           <div class="flex items-start gap-4 mb-4">
             <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-medium text-lg uppercase shrink-0">
-              {{ inv.nombre.charAt(0) }}
+              {{ inv.nombre?.charAt(0) || '?' }}
             </div>
             <div class="flex-1 flex flex-col min-w-0">
               <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="inv.nombre">{{ inv.nombre }}</h3>
@@ -192,12 +202,12 @@ const copiarImagenAlPortapapeles = async (url) => {
           </div>
 
           <!-- Footer de tarjeta -->
-          <div class="mt-auto">
+          <div class="mt-auto" v-if="inv.estatus_acceso === 'ACTIVO'">
             <button 
               @click="abrirModalQR(inv)" 
-              class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95"
+              class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md focus:outline-none"
             >
-              <IconQR class="w-4 h-4 text-surface-500" />
+              <IconQR class="w-4 h-4 text-white" />
               Ver código QR
             </button>
           </div>
@@ -206,7 +216,7 @@ const copiarImagenAlPortapapeles = async (url) => {
     </div>
 
     <!-- Modal QR -->
-    <div v-if="showQrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
+    <div v-if="showQrModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
       <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
         <h3 class="text-xl font-bold text-surface-900 mb-2">Código QR de Acceso</h3>
         <p class="text-surface-600 font-medium text-sm mb-6">Este es el código QR de <strong class="text-surface-900 font-medium">{{ selectedGuest.nombre }}</strong></p>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Amistades;
 use App\Models\SocioTitular;
+use App\Models\Reservacion;
 
 class FriendsController extends Controller
 {
@@ -93,7 +94,7 @@ class FriendsController extends Controller
         ], 201);
     }
 
-    // MÉTODO 3: Eliminar amigo o revocar solicitud enviada
+    // MÉTODO 3: Eliminar amigo (con validación de reservas activas)
     public function destroy(Request $request)
     {
         $request->validate([
@@ -101,7 +102,7 @@ class FriendsController extends Controller
         ]);
 
         $socioId = $request->user()->user_id;
-        
+
         $amistad = Amistades::where('id_amistad', $request->id_amistad)
             ->where(function ($q) use ($socioId) {
                 $q->where('solicitante_id', $socioId)
@@ -111,15 +112,31 @@ class FriendsController extends Controller
         if (!$amistad) {
             return response()->json([
                 'success' => false,
-                'message' => 'Amistad o solicitud no encontrada o no autorizada'
+                'message' => 'Amistad no encontrada o no autorizada'
             ], 404);
+        }
+
+        // Determinar el ID del amigo
+        $amigoId = ($amistad->solicitante_id == $socioId) ? $amistad->receptor_id : $amistad->solicitante_id;
+
+        // Validar si el amigo está en una reservación ACTIVA o PENDIENTE
+        $hasReservation = Reservacion::where('id_socio_titular', $socioId)
+            ->whereIn('estatus_operativo', ['PENDIENTE', 'ACTIVA'])
+            ->whereJsonContains('acompanantes_draft', ['id' => $amigoId, 'tipo' => 'amigo'])
+            ->exists();
+
+        if ($hasReservation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No puedes eliminar a este amigo porque tienes una reservación activa o pendiente con él.'
+            ], 400);
         }
 
         $amistad->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Amistad/Solicitud eliminada correctamente'
+            'message' => 'Amigo eliminado correctamente de tu lista'
         ], 200);
     }
 
@@ -180,9 +197,6 @@ class FriendsController extends Controller
         $amistad->estado = 'RECHAZADA';
         $amistad->updated_at = now();
         $amistad->save();
-
-        // O si prefieres eliminarla por completo para evitar acumular rechazadas:
-        // $amistad->delete();
 
         return response()->json([
             'success' => true,

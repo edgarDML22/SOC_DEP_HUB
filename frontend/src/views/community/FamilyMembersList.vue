@@ -1,43 +1,17 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFamilyStore } from '@/stores/community/familyStore'
 import { useAlerts } from '@/composables/useAlerts' 
-import Select from 'primevue/select'
 import IconQR from '@/components/icons/IconQr.vue'
-import IconEdit from '@/components/icons/IconEdit.vue'      
-import IconTrash from '@/components/icons/IconTrash.vue'
 
+const router = useRouter()
 const familyStore = useFamilyStore()
-const { toastInfo, confirmDelete } = useAlerts() 
+const { toastInfo } = useAlerts() 
 
 const search = ref('')
 
-// VARIABLE PARA CONTROLAR EL BOTÓN DE ELIMINAR 
-const actionLoadingId = ref(null)
-
-// ESTADO PARA EL MODAL DE EDICIÓN 
-const showModal = ref(false)
-const modalType = ref('')
-const modalLoading = ref(false)
-
-const formMiembro = ref({
-  id: null,
-  nombre: '',
-  parentesco: '',
-  fecha_nacimiento: '',
-  genero: ''
-})
-
-const opcionesParentesco = ref(['CONYUGE', 'HIJO/A', 'OTRO'])
-const opcionesGenero = ref([
-  { label: 'MASCULINO', value: 'M' },
-  { label: 'FEMENINO', value: 'F' },
-  { label: 'OTRO', value: 'OTRO' }
-])
-
-onMounted(() => {
-  familyStore.fetchMiembrosFamiliares()
-})
+// REMOVED onMounted fetch since it's handled in SocioLayout
 
 const miembrosFiltrados = computed(() => {
   let resultado = familyStore.miembrosFamiliares
@@ -51,71 +25,9 @@ const miembrosFiltrados = computed(() => {
   return resultado
 })
 
-// --- FUNCIONES ---
-const abrirModalEditar = (m) => {
-  formMiembro.value = {
-    id: m.id_miembro,
-    nombre: m.nombre_completo,
-    parentesco: m.parentesco,
-    fecha_nacimiento: m.fecha_nacimiento,
-    genero: m.genero,
-    correo: m.correo || ''
-  }
-  showModal.value = true
-}
-
-const abrirModalEliminar = async (m) => {
-  const result = await confirmDelete(
-    'Eliminar Miembro Familiar',
-    `¿Estás seguro de que deseas eliminar a ${m.nombre_completo}? Esta acción no se puede deshacer.`
-  )
-  
-  if (result.isConfirmed) {
-    // Prendemos el loading para este ID
-    actionLoadingId.value = m.id_miembro
-
-    try {
-      await familyStore.deleteMiembroFamiliar(m.id_miembro)
-      toastInfo('Eliminado', 'Miembro familiar removido de tu cuenta', 'success')
-    } catch (error) {
-      toastInfo('Error', 'No se pudo eliminar al familiar', 'error')
-    } finally {
-      // Apagamos el loading
-      actionLoadingId.value = null
-    }
-  }
-}
-
-const cerrarModal = () => {
-  showModal.value = false
-  setTimeout(() => {
-    formMiembro.value = { id: null, nombre: '', parentesco: '', fecha_nacimiento: '', genero: '' }
-  }, 200)
-}
-
-const confirmarEdicion = async () => {
-  modalLoading.value = true
-  try {
-    await familyStore.updateMiembroFamiliar(formMiembro.value.id, {
-      nombre_completo: formMiembro.value.nombre,
-      parentesco: formMiembro.value.parentesco,
-      fecha_nacimiento: formMiembro.value.fecha_nacimiento,
-      genero: formMiembro.value.genero
-    })
-    toastInfo('Actualizado', 'Miembro familiar editado con éxito', 'success')
-    cerrarModal()
-  } catch (error) {
-    toastInfo('Error', 'No se pudo editar el familiar', 'error')
-  } finally {
-    modalLoading.value = false
-  }
-}
-
-// 2. Variables de estado para el Modal del QR
 const showQrModal = ref(false)
 const selectedMember = ref(null)
 
-// 3. Función para abrir el modal del QR
 const abrirModalQR = (m) => {
   selectedMember.value = m
   showQrModal.value = true
@@ -126,13 +38,11 @@ const cerrarModalQR = () => {
   selectedMember.value = null
 }
 
-// 4. Lógica para generar la URL del QR
 const generarQrUrl = (codigo) => {
   const data = JSON.stringify({ codigo_qr: codigo, tipo: 'familiar' })
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`
 }
 
-// 5. Función para copiar el código al portapapeles
 const copiarImagenAlPortapapeles = async (url) => {
   try {
     toastInfo('Procesando', 'Preparando imagen...', 'info')
@@ -150,265 +60,140 @@ const copiarImagenAlPortapapeles = async (url) => {
     toastInfo('Error', 'Tu navegador no permite copiar imágenes directamente. Intenta con clic derecho.', 'error')
   }
 }
-
 </script>
 
 <template>
-  <div class="container">
-    <div class="header">
-      <div>
-        <h2>Miembros Familiares</h2>
-        <p>Consulta los miembros asociados a tu cuenta</p>
+  <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
+    <div class="max-w-7xl mx-auto flex flex-col gap-6">
+      
+      <!-- BOTÓN VOLVER UNIVERSAL -->
+      <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Volver
+      </button>
+
+      <!-- Encabezado -->
+      <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div class="flex flex-col gap-2">
+          <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Miembros Familiares</h2>
+          <p class="text-surface-500 text-sm md:text-base m-0 font-medium">Consulta los miembros asociados a tu cuenta</p>
+        </div>
+        
+        <router-link 
+          :to="{ name: 'family-members-add' }" 
+          class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center"
+        >
+          + Agregar Familiar
+        </router-link>
       </div>
-      <router-link class="btn-primary" :to="{ name: 'family-members-add' }">
-        + Agregar Miembro Familiar
-      </router-link>
-    </div>
 
-    <input v-model="search" placeholder="Buscar familiar por nombre..." class="search" />
+      <!-- Buscador -->
+      <div class="flex flex-col gap-4">
+        <input 
+          v-model="search" 
+          placeholder="Buscar familiar por nombre..." 
+          class="w-full md:max-w-md px-4 py-3 bg-white border border-surface-200 rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 font-medium shadow-sm" 
+        />
+      </div>
 
-    <div v-if="familyStore.loading" class="loading">Cargando familiares...</div>
+      <!-- Estado de Carga -->
+      <div v-if="familyStore.loading" class="text-center py-12 text-surface-500 font-medium">
+        <span class="animate-pulse">Cargando familiares...</span>
+      </div>
 
-    <div v-else-if="miembrosFiltrados.length === 0" class="empty-state">
-      <p>No tienes miembros familiares registrados o no coinciden con la búsqueda.</p>
-    </div>
+      <!-- Empty State -->
+      <div v-else-if="miembrosFiltrados.length === 0" class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200">
+        <p class="text-lg font-medium">No tienes miembros familiares registrados o no coinciden con la búsqueda.</p>
+      </div>
 
-    <div v-else>
-      <div v-for="m in miembrosFiltrados" :key="m.id_miembro" class="card">
-        <div class="left">
-          <div class="avatar">{{ m.nombre_completo.charAt(0) }}</div>
-          <div>
-            <div class="nombre">{{ m.nombre_completo }}</div>
-            <div class="info" v-if="m.parentesco">Parentesco: {{ m.parentesco }}</div>
-            <div class="info" v-if="m.fecha_nacimiento">Nacimiento: {{ m.fecha_nacimiento }}</div>
-            <div class="info" v-if="m.genero">Género: {{ m.genero }}</div>
-            <div class="info" v-if="m.correo">Correo Electrónico: {{ m.correo }}</div>
+      <!-- Lista de Tarjetas (Grid) -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div 
+          v-for="m in miembrosFiltrados" 
+          :key="m.id_miembro" 
+          class="bg-white rounded-2xl p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col h-full"
+        >
+          <!-- Header de tarjeta -->
+          <div class="flex items-start gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-medium text-lg uppercase shrink-0">
+              {{ m.nombre_completo.charAt(0) }}
+            </div>
+            <div class="flex-1 flex flex-col min-w-0">
+              <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="m.nombre_completo">{{ m.nombre_completo }}</h3>
+              <div class="mt-1">
+                 <span class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border bg-primary-50 text-primary-700 border-primary-100">
+                   {{ m.parentesco || 'FAMILIAR' }}
+                 </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Body de tarjeta -->
+          <div class="flex-1 flex flex-col gap-3 text-sm text-surface-600 mb-5 font-medium">
+            <div v-if="m.fecha_nacimiento" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+              </svg>
+              <span>Nacimiento: {{ m.fecha_nacimiento }}</span>
+            </div>
+            <div v-if="m.genero" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+              </svg>
+              <span>Género: {{ m.genero }}</span>
+            </div>
+            <div v-if="m.correo" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+              <span class="truncate" :title="m.correo">{{ m.correo }}</span>
+            </div>
+          </div>
+
+          <!-- Footer de tarjeta -->
+          <div class="mt-auto">
+            <button 
+              @click="abrirModalQR(m)" 
+              class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md focus:outline-none"
+            >
+              <IconQR class="w-4 h-4 text-white" />
+              Ver código QR
+            </button>
           </div>
         </div>
-        <div class="actions">
-          <button class="btn-qr" @click="abrirModalQR(m)" title="Ver Código QR">
-            <IconQR class="icon-svg" />
-            <span>QR</span>
-          </button>
-          
-          <button class="btn-edit" @click="abrirModalEditar(m)">
-            <IconEdit class="icon-svg" />
-            <span>Editar</span>
-          </button>
-          
-          <button 
-            class="btn-delete" 
-            @click="abrirModalEliminar(m)"
-            :disabled="actionLoadingId === m.id_miembro"
-          >
-            <IconTrash v-if="actionLoadingId !== m.id_miembro" class="icon-svg" />
-            <span>{{ actionLoadingId === m.id_miembro ? 'Eliminando...' : 'Eliminar' }}</span>
-          </button>
-        </div>
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-overlay" @mousedown.self="cerrarModal">
-      <div class="modal-card">
-        <h3>Editar Miembro Familiar</h3>
-
-        <div class="form-group-modal">
-          <label>Nombre Completo</label>
-          <input v-model="formMiembro.nombre" class="modal-input" />
-
-          <label>Parentesco</label>
-          <Select v-model="formMiembro.parentesco" :options="opcionesParentesco" class="modal-select" appendTo="self" />
-
-          <label>Fecha de Nacimiento</label>
-          <input type="date" v-model="formMiembro.fecha_nacimiento" class="modal-input" />
-
-          <label>Correo Electrónico (Opcional)</label>
-          <input type="email" v-model="formMiembro.correo" class="modal-input" placeholder="correo@ejemplo.com" />
-
-          <label>Género</label>
-          <Select v-model="formMiembro.genero" :options="opcionesGenero" optionLabel="label" optionValue="value"
-            class="modal-select" appendTo="self" />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="cerrarModal" :disabled="modalLoading">Cancelar</button>
-          <button class="btn-primary-modal" @click="confirmarEdicion" :disabled="modalLoading">
-            {{ modalLoading ? 'Procesando...' : 'Guardar Cambios' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showQrModal" class="modal-overlay" @mousedown.self="cerrarModalQR">
-      <div class="modal-card qr-modal">
-        <h3>Código QR de Acceso</h3>
-        <p class="text-muted">Este es el código QR de <strong>{{ selectedMember.nombre_completo }}</strong></p>
+    <!-- Modal QR -->
+    <div v-if="showQrModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
+      <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
+        <h3 class="text-xl font-bold text-surface-900 mb-2">Código QR de Acceso</h3>
+        <p class="text-surface-600 font-medium text-sm mb-6">Este es el código QR de <strong class="text-surface-900 font-medium">{{ selectedMember.nombre_completo }}</strong></p>
         
-        <div class="qr-display-container">
+        <div class="bg-surface-50 p-4 border border-dashed border-surface-300 rounded-xl mb-6 flex justify-center w-full">
           <img 
             :src="generarQrUrl(selectedMember.codigo_qr)" 
             alt="QR Code" 
-            class="qr-image-large" 
+            class="w-48 h-48 md:w-56 md:h-56 rounded-lg bg-white object-contain" 
           />
-          </div>
+        </div>
 
-        <div class="modal-actions-center">
-          <button class="btn-copy" @click="copiarImagenAlPortapapeles(generarQrUrl(selectedMember.codigo_qr))">
+        <div class="w-full flex flex-col gap-3">
+          <button 
+            @click="copiarImagenAlPortapapeles(generarQrUrl(selectedMember.codigo_qr))"
+            class="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm focus:outline-none"
+          >
             Copiar Imagen QR
           </button>
-          <button class="btn-cancel" @click="cerrarModalQR" style="width: 100%; margin-top: 5px;">Cerrar</button>
+          <button 
+            @click="cerrarModalQR"
+            class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 focus:outline-none"
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     </div>
-
   </div>
 </template>
-
-<style scoped>
-
-.container { padding: 20px; font-family: var(--p-font-family); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header h2 { font-size: 22px; font-weight: 700; color: var(--p-surface-900); margin: 0; }
-.header p { color: var(--p-surface-500); font-size: 14px; margin-top: 4px; }
-
-.search { width: 100%; padding: 10px; border-radius: var(--p-border-radius-medium); border: 1px solid var(--p-surface-200); margin-bottom: 12px; outline: none;}
-.search:focus { border-color: var(--p-primary-700); }
-
-/* ESTADO VACÍO */
-.empty-state {
-  background: white;
-  border-radius: var(--p-border-radius-medium);
-  padding: 20px 40px;
-  text-align: center;
-  color: var(--p-surface-900);
-  font-size: 16px;
-  font-weight: 500;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
-  border: 1px solid var(--p-surface-200);
-  margin: 40px auto;
-  max-width: 600px;
-}
-
-.card { display: flex; justify-content: space-between; align-items: center; background: white; border-radius: var(--p-border-radius-medium); padding: 14px; margin-bottom: 12px; border: 1px solid var(--p-surface-200); }
-.left { display: flex; gap: 12px; }
-.avatar { width: 42px; height: 42px; background: var(--p-surface-100); color: var(--p-primary-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-.nombre { font-weight: 600; font-size: 15px; color: var(--p-surface-900); }
-.info { font-size: 13px; color: var(--p-surface-500); }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.btn-edit, .btn-delete { 
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none; 
-  padding: 6px 10px; 
-  border-radius: var(--p-border-radius-medium); 
-  cursor: pointer; 
-  transition: background 0.2s; 
-  font-weight: 600;
-  font-size: 13px;
-}
-.btn-edit { background: var(--p-surface-200); color: var(--p-surface-900); }
-.btn-edit:hover { background: #d1d5db; }
-
-/* AJUSTE PARA ESTADO DISABLED EN ELIMINAR */
-.btn-delete { background: #fee2e2; color: #b91c1c; transition: 0.2s; }
-.btn-delete:hover:not(:disabled) { background: #fecaca; }
-.btn-delete:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-qr {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--p-surface-100);
-  color: var(--p-primary-700);
-  border: 1px solid var(--p-primary-700);
-  padding: 6px 10px;
-  border-radius: var(--p-border-radius-medium);
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 600;
-  font-size: 13px;
-}
-.btn-qr:hover {
-  color: white;
-  background: var(--p-primary-800);
-  border-color: var(--p-primary-500);
-}
-
-.icon-svg {
-  width: 16px;
-  height: 16px;
-}
-.btn-qr .icon-svg { fill: currentColor; stroke: none; }
-.btn-edit .icon-svg, .btn-delete .icon-svg { fill: none; stroke: currentColor; }
-.btn-edit .icon-svg *, .btn-delete .icon-svg * { fill: none; stroke: currentColor; }
-
-.btn-primary {
-  background-color: var(--p-primary-700);
-  color: white;
-  padding: 8px 14px;
-  border-radius: var(--p-border-radius-medium);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/*  ESTILOS DEL MODAL */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-card { background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-.modal-card h3 { margin-top: 0; margin-bottom: 16px; font-size: 20px; font-weight: 700; color: var(--p-surface-900); }
-.form-group-modal { display: flex; flex-direction: column; gap: 8px; }
-.form-group-modal label { font-size: 14px; font-weight: 600; margin-top: 8px; color: var(--p-surface-900); }
-.form-group-modal label:first-child { margin-top: 0; }
-.modal-input { padding: 10px 12px; border: 1px solid var(--p-surface-200); border-radius: 8px; outline: none; font-family: inherit; font-size: 14px; color: var(--p-surface-900); transition: border-color 0.2s, box-shadow 0.2s; }
-.modal-input:focus { border-color: var(--p-primary-700); box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2); }
-
-:deep(.modal-select) { width: 100%; border-radius: 8px !important; border: 1px solid var(--p-surface-200) !important; font-family: inherit !important; background-color: white; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: none !important; }
-:deep(.modal-select:hover), :deep(.modal-select.p-focus) { border-color: var(--p-primary-700) !important; box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2) !important; }
-:deep(.modal-select .p-select-label) { padding: 10px 12px !important; font-size: 14px !important; color: var(--p-surface-900) !important; }
-
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
-.btn-cancel { background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-200); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; }
-.btn-cancel:hover { background: var(--p-surface-100); }
-.btn-primary-modal { background: var(--p-primary-700); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; }
-.btn-primary-modal:hover { background: var(--p-primary-800); }
-.loading { text-align: center; padding: 20px; color: var(--p-surface-500); }
-
-/* ESTILOS PARA EL MODAL DE QR */
-.qr-modal {
-  text-align: center;
-  max-width: 350px !important;
-}
-.qr-display-container {
-  margin: 20px 0;
-  padding: 15px;
-  background: var(--p-surface-50);
-  border-radius: 12px;
-  border: 1px dashed var(--p-surface-300);
-}
-.qr-image-large {
-  width: 200px;
-  height: 200px;
-  border-radius: 8px;
-}
-.modal-actions-center {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-.btn-copy {
-  background: var(--p-primary-700);
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.btn-copy:hover {
-  background: var(--p-primary-800);
-}
-</style>

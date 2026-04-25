@@ -101,7 +101,7 @@ class ReservacionController extends Controller
                     'fecha_reserva'    => $request->fecha_reserva,
                     'hora_inicio'      => $request->hora_inicio,
                     'hora_fin'         => $request->hora_fin,
-                    'fecha_expiracion' => Carbon::now()->addMinutes(60),
+                    'fecha_expiracion' => Carbon::now()->addMinutes(10),
                 ]
             );
 
@@ -262,7 +262,7 @@ class ReservacionController extends Controller
         ], 200);
     }
 
-    // 2. CONFIRMAR RESERVA
+    // 2. CONFIRMAR RESERVA (Step 5 del Front)
     public function confirm(Request $request)
     {
         $id = $request->id_reserva;
@@ -277,20 +277,69 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'No se encontró la reservación'], 404);
         }
 
-        if (!$reserva->fecha_expiracion) {
-            return response()->json(['success' => false, 'message' => 'La reservación no tiene fecha de expiración'], 400);
+        // Protección contra doble envío
+        if ($reserva->estatus_operativo === 'ACTIVA' || $reserva->estatus_operativo === 'CONFIRMADA') {
+            return response()->json(['success' => false, 'message' => 'Esta reservación ya fue confirmada previamente.'], 409);
         }
 
-        if (Carbon::parse($reserva->fecha_expiracion)->isPast()) {
-            return response()->json(['success' => false, 'message' => 'La reservación ha expirado'], 400);
+        if ($reserva->estatus_operativo !== 'PENDIENTE') {
+            return response()->json(['success' => false, 'message' => 'La reservación no está en estado PENDIENTE.'], 400);
         }
 
-        $reserva->update([
-            'estatus_operativo' => 'ACTIVA',
-            'fecha_expiracion' => null,
-        ]);
+        // Validar que no haya expirado
+        if ($reserva->fecha_expiracion && Carbon::parse($reserva->fecha_expiracion)->isPast()) {
+            return response()->json(['success' => false, 'message' => 'La reservación ha expirado. Por favor, crea una nueva.'], 400);
+        }
 
-        return response()->json(['success' => true, 'message' => 'Reservación confirmada correctamente']);
+        // Verificar propiedad
+        if ($reserva->id_socio_titular !== $request->user()->user_id) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para confirmar esta reservación.'], 403);
+        }
+
+        try {
+            return DB::transaction(function () use ($reserva) {
+                // Leer acompañantes del draft almacenado en BD
+                $draft = $reserva->acompanantes_draft;
+                
+                if (is_string($draft)) {
+                    $draft = json_decode($draft, true) ?? [];
+                }
+                
+                if (!is_array($draft)) {
+                    $draft = [];
+                }
+
+                // Validar capacidad del espacio
+                $espacio = EspacioFisico::where('id_espacio', $reserva->id_espacio)->first();
+                
+                if ($espacio && $espacio->capacidad_maxima) {
+                    $totalAsistentes = count($draft) + 1; // +1 por el titular
+                    
+                    if ($totalAsistentes > $espacio->capacidad_maxima) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "La cancha tiene capacidad para {$espacio->capacidad_maxima} personas. Tienes " . count($draft) . " acompañantes + tú = {$totalAsistentes}."
+                        ], 422);
+                    }
+                }
+
+                // Cambiar estatus a ACTIVA y limpiar datos temporales
+                $reserva->estatus_operativo = 'ACTIVA';
+                $reserva->fecha_expiracion = null;
+                // Mantenemos el draft para referencia histórica pero limpiamos la expiración
+                $reserva->save();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Reservación confirmada exitosamente'
+                ]);
+            });
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la confirmación: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // 3. CANCELAR RESERVA (Si el usuario se sale a la mitad)

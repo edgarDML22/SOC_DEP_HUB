@@ -28,7 +28,10 @@ class SocioController extends Controller
         // Se utiliza ILIKE asumiendo la conexión de PostgreSQL configurada en Neon
         $titulares = DB::table('socios_titulares')
             ->select('id_socio as id', 'nombre_completo as nombre', 'numero_accion as numero_socio')
-            ->where('nombre_completo', 'ILIKE', "%{$queryParam}%")
+            ->where(function ($q) use ($queryParam) {
+                $q->where('nombre_completo', 'ILIKE', "%{$queryParam}%")
+                  ->orWhere('numero_accion', 'ILIKE', "%{$queryParam}%");
+            })
             ->limit(10)
             ->get()
             ->map(function ($item) {

@@ -8,7 +8,7 @@ import { useProfileStore } from '@/stores/profiles/socioStore';
 const router = useRouter();
 const profileStore = useProfileStore();
 const reservationStore = useReservationStore();
-const { reservaPayload, cargando, errorNavegacion } = storeToRefs(reservationStore);
+const { reservaPayload, cargando, errorNavegacion, acompanantesSeleccionados } = storeToRefs(reservationStore);
 
 const isConfirming = ref(false);
 
@@ -70,48 +70,54 @@ const formatTime = (timeStr) => {
                   <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-50 text-primary-600 rounded-full mb-4">
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
-                  <h3 class="text-3xl font-extrabold text-surface-900 tracking-tight">Resumen de Reserva</h3>
+                  <h3 class="text-2xl font-bold text-surface-900 tracking-tight">Resumen de Reserva</h3>
                   <p class="text-surface-500 font-medium mt-1 capitalize">{{ dateToday }}</p>
               </div>
 
               <div class="bg-surface-50 rounded-2xl p-6 grid grid-cols-2 gap-y-6 gap-x-4">
                   <div class="col-span-2 sm:col-span-1">
-                      <p class="text-[11px] text-surface-500 font-bold uppercase tracking-widest mb-1">Deporte</p>
-                      <p class="text-lg font-bold text-surface-900">{{ reservaPayload.disciplinaSeleccionada }}</p>
+                      <p class="text-[11px] text-surface-500 font-semibold uppercase tracking-wider mb-1">Deporte</p>
+                      <p class="text-base font-bold text-surface-900">{{ reservaPayload.disciplinaSeleccionada }}</p>
                   </div>
                   <div class="col-span-2 sm:col-span-1">
-                      <p class="text-[11px] text-surface-500 font-bold uppercase tracking-widest mb-1">Cancha</p>
-                      <p class="text-lg font-bold text-surface-900">{{ reservaPayload.espacioSeleccionado }}</p>
+                      <p class="text-[11px] text-surface-500 font-semibold uppercase tracking-wider mb-1">Cancha</p>
+                      <p class="text-base font-bold text-surface-900">{{ reservaPayload.espacioSeleccionado }}</p>
                   </div>
                   <div class="col-span-2">
-                      <p class="text-[11px] text-surface-500 font-bold uppercase tracking-widest mb-1">Horario</p>
+                      <p class="text-[11px] text-surface-500 font-semibold uppercase tracking-wider mb-1">Horario</p>
                       <div class="flex items-center gap-3">
-                          <span class="text-xl font-extrabold text-primary-700">{{ formatTime(reservaPayload.hora_inicio) }}</span>
-                          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                          <span class="text-xl font-extrabold text-primary-700">{{ formatTime(reservaPayload.hora_fin) }}</span>
+                          <span class="text-lg font-bold text-primary-700">{{ formatTime(reservaPayload.hora_inicio) }}</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                          <span class="text-lg font-bold text-primary-700">{{ formatTime(reservaPayload.hora_fin) }}</span>
                       </div>
                   </div>
               </div>
           </div>
 
-          <div class="p-8 md:p-10 bg-white">
-              <p class="text-[11px] text-surface-500 font-bold uppercase tracking-widest mb-4">Acompañantes ({{ reservaPayload.acompanantes.length }})</p>
+          <div class="p-6 md:p-8 bg-white">
+              <p class="text-[11px] text-surface-500 font-semibold uppercase tracking-wider mb-4">Acompañantes ({{ acompanantesSeleccionados.length }})</p>
               
-              <ul v-if="reservaPayload.acompanantes.length > 0" class="space-y-3">
-                  <li v-for="acompanante in reservaPayload.acompanantes" :key="acompanante.id + acompanante.tipo" class="flex items-center justify-between p-3 rounded-xl border border-surface-100 bg-surface-50/50">
-                      <div class="flex items-center gap-3">
-                          <div class="w-8 h-8 rounded-full bg-surface-200 flex items-center justify-center text-surface-600 font-bold text-xs uppercase shrink-0">
-                              {{ acompanante.nombre?.charAt(0) || 'A' }}
+              <div v-if="acompanantesSeleccionados.length > 0" class="space-y-2">
+                  <div v-for="acompanante in acompanantesSeleccionados" :key="acompanante.id + acompanante.tipo" class="flex items-center justify-between px-4 py-3 rounded-xl border border-surface-100 bg-surface-50/50">
+                      <div class="flex items-center gap-3 min-w-0">
+                          <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                              {{ acompanante.nombre?.charAt(0) || '?' }}
                           </div>
-                          <span class="font-bold text-surface-900">{{ acompanante.nombre }}</span>
+                          <span class="font-bold text-surface-900 text-sm truncate">{{ acompanante.nombre }}</span>
                       </div>
-                      <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 shrink-0">
-                          {{ acompanante.tipo }}
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0"
+                            :class="{
+                              'bg-green-50 text-green-700 border-green-200': acompanante.tipo === 'Amigo',
+                              'bg-purple-50 text-purple-700 border-purple-200': acompanante.tipo === 'Familiar',
+                              'bg-orange-50 text-orange-700 border-orange-200': acompanante.tipo === 'Invitado'
+                            }">
+                          {{ acompanante.tipo === 'Familiar' ? 'FAMILIAR' : acompanante.tipo === 'Amigo' ? 'AMIGO' : 'INVITADO' }}
                       </span>
-                  </li>
-              </ul>
-              <div v-else class="text-center p-6 border-2 border-dashed border-surface-100 rounded-xl bg-surface-50/50">
-                  <p class="text-surface-500 font-medium">Jugarás solo</p>
+                  </div>
+              </div>
+              <div v-else class="text-center p-5 border-2 border-dashed border-surface-100 rounded-xl bg-surface-50/50">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-surface-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <p class="text-surface-400 font-medium text-sm">No has elegido a ningún acompañante</p>
               </div>
           </div>
       </div>

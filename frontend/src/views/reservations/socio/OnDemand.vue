@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, defineAsyncComponent, ref, computed, watch } from 'vue';
+import { onMounted, onUnmounted, defineAsyncComponent, ref, computed, watch, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useReservationStore } from '@/stores/reservationStore';
 import { useProfileStore } from '@/stores/profiles/socioStore'; 
@@ -127,11 +127,50 @@ const isHoraBloqueada = (horaInicio) => {
         return (startMins < bkEnd && endMins > bkStart);
     });
 };
+
+// --- Step 3: Sticky status bar visibility ---
+const bottomStatusRef = ref(null);
+const bottomStatusVisible = ref(false);
+let observer = null;
+
+watch(pasoActual, (val) => {
+  if (val === '3') {
+    nextTick(() => {
+      if (bottomStatusRef.value && window.IntersectionObserver) {
+        observer = new IntersectionObserver(([entry]) => {
+          bottomStatusVisible.value = entry.isIntersecting;
+        }, { threshold: 0.3 });
+        observer.observe(bottomStatusRef.value);
+      }
+    });
+  } else {
+    if (observer) { observer.disconnect(); observer = null; }
+    bottomStatusVisible.value = false;
+  }
+});
+
+onUnmounted(() => { if (observer) observer.disconnect(); });
 </script>
 
 <template>
   <div class="w-full min-h-screen bg-surface-50 p-4 md:p-6 lg:p-8 font-sans pb-24 md:pb-8 flex flex-col items-center">
-        
+
+        <!-- STICKY STATUS BAR (Step 3 móvil) -->
+        <Transition name="slide-down">
+          <div v-if="pasoActual === '3' && !bottomStatusVisible && (errorValidacion || esHorarioValidoParaPreview)" 
+               class="fixed top-0 left-0 right-0 z-[100] md:hidden px-4 pt-2 pb-3 shadow-lg border-b"
+               :class="errorValidacion ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'">
+            <div v-if="errorValidacion" class="flex items-center gap-2 text-red-600 font-semibold text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+              {{ errorValidacion }}
+            </div>
+            <div v-else-if="esHorarioValidoParaPreview" class="flex items-center gap-2 text-green-700 font-semibold text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+              <span>Tu lugar: <strong>{{ formatearHora(horaInicioTemp) }} — {{ formatearHora(horaFinTemp) }}</strong></span>
+            </div>
+          </div>
+        </Transition>
+
         <!-- HERO BANNER DRAFT (Reemplazo del Modal Popup) -->
         <div v-if="mostrarModalDraft" class="w-full max-w-5xl mb-6 bg-gradient-to-br from-primary-800 to-primary-600 text-white rounded-[2.5rem] p-6 md:p-10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 border-4 border-primary-500/20 relative overflow-hidden transition-all animate-fade-in relative z-10">
             <div class="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -144,7 +183,7 @@ const isHoraBloqueada = (horaInicio) => {
                    </span>
                 </div>
                 <h3 class="text-2xl md:text-3xl font-extrabold mb-3 tracking-tight">
-                    Tienes un borrador pendiente
+                    ¿Deseas reanudar tu reservación?
                 </h3>
                 <p class="text-primary-100 font-medium text-sm md:text-base mb-6 opacity-95 max-w-xl leading-relaxed">
                     Aún cuentas con una reservación de <strong class="text-white">{{reservaPayload.disciplinaSeleccionada}}</strong> que no terminaste de confirmar. Se te ha guardado el horario de <strong class="text-white">{{ formatearHora(reservaPayload.hora_inicio) }} a {{ formatearHora(reservaPayload.hora_fin) }}</strong>.
@@ -186,10 +225,10 @@ const isHoraBloqueada = (horaInicio) => {
                     </button>
                     
                     <div class="flex-1">
-                         <span class="text-sm font-semibold tracking-wider text-primary-600 uppercase mb-1.5 block">
+                         <span class="text-xs font-semibold tracking-wider text-primary-600 uppercase mb-1.5 block">
                             Paso {{ pasoActual }} de 5
                          </span>
-                         <h2 class="text-3xl md:text-4xl font-extrabold text-surface-900 m-0 tracking-tight leading-none">
+                         <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight leading-none">
                              <template v-if="pasoActual === '1'">¿Qué jugarás hoy?</template>
                              <template v-if="pasoActual === '2'">Selecciona la Cancha</template>
                              <template v-if="pasoActual === '3'">Elige tu Horario</template>
@@ -205,8 +244,8 @@ const isHoraBloqueada = (horaInicio) => {
                        <i class="pi pi-users text-xs"></i> Capacidad: {{ reservationStore.espaciosPorDisciplina[0]?.capacidad_maxima }} personas p/cancha
                    </span>
                 </p>
-                <p v-if="pasoActual === '3'" class="text-surface-500 font-medium text-base md:text-lg mt-4 ml-0 md:ml-[72px] flex flex-wrap gap-2 items-center">
-                   Espacio elegido: <span class="bg-primary-50 text-primary-800 border border-primary-200 px-4 py-1.5 rounded-xl font-bold ml-1 text-lg md:text-xl">{{reservaPayload.espacioSeleccionado}}</span>
+                <p v-if="pasoActual === '3'" class="text-surface-500 font-medium text-sm mt-4 ml-0 md:ml-[72px] flex flex-wrap gap-2 items-center">
+                   Espacio elegido: <span class="bg-primary-50 text-primary-800 border border-primary-200 px-3 py-1 rounded-xl font-bold ml-1 text-sm">{{reservaPayload.espacioSeleccionado}}</span>
                 </p>
 
             </div>
@@ -234,7 +273,7 @@ const isHoraBloqueada = (horaInicio) => {
                          <div class="w-16 h-16 md:w-20 md:h-20 text-white flex justify-center items-center transition-transform group-hover:scale-110 mb-4">
                              <component :is="IconoDeporte(disciplina)" class="w-full h-full fill-current" />
                          </div>
-                         <span class="text-white text-base md:text-lg text-center leading-tight tracking-widest">
+                         <span class="text-white text-sm md:text-base font-bold text-center leading-tight tracking-tight">
                              {{ disciplina }}
                          </span>
                      </button>
@@ -257,8 +296,8 @@ const isHoraBloqueada = (horaInicio) => {
                                      <component :is="IconoDeporte(reservaPayload.disciplinaSeleccionada)" class="w-8 h-8 fill-current" />
                                  </div>
                                  <div class="min-w-0 flex-1">
-                                     <div class="font-extrabold text-xl text-surface-900 truncate mb-1">{{ cancha.nombre_espacio }}</div>
-                                     <div class="text-[11px] text-surface-500 font-bold uppercase mt-0.5 tracking-widest flex items-center gap-1.5">
+                                     <div class="font-bold text-lg text-surface-900 truncate mb-0.5">{{ cancha.nombre_espacio }}</div>
+                                     <div class="text-xs text-surface-500 font-semibold uppercase mt-0.5 tracking-wide flex items-center gap-1.5">
                                          {{ reservaPayload.disciplinaSeleccionada }}
                                      </div>
                                  </div>
@@ -266,7 +305,7 @@ const isHoraBloqueada = (horaInicio) => {
 
                              <div class="shrink-0 ml-4 hidden sm:block">
                                  <span 
-                                     class="px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-sm"
+                                     class="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                                      :class="{
                                          'bg-green-100 text-green-800 border border-green-200': (cancha.estatus === 'Disponible' || cancha.estatus === 'DISPONIBLE'),
                                          'bg-red-100 text-red-800 border border-red-200': cancha.estatus === 'Bloqueado por Mantenimiento' || cancha.estatus === 'MANTENIMIENTO',
@@ -289,8 +328,8 @@ const isHoraBloqueada = (horaInicio) => {
                                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                              </div>
                              <div>
-                                 <div class="font-bold text-surface-900 text-base leading-tight">Duración de reserva</div>
-                                 <div class="text-[11px] text-surface-500 font-medium uppercase tracking-wider mt-0.5">Define cuánto tiempo jugarás</div>
+                                 <div class="font-bold text-surface-900 text-sm leading-tight">Duración de reserva</div>
+                                 <div class="text-xs text-surface-500 font-medium mt-0.5">Define cuánto tiempo jugarás</div>
                              </div>
                          </div>
                          <div class="flex p-1 bg-surface-200/50 rounded-xl w-full md:w-auto overflow-hidden">
@@ -308,7 +347,7 @@ const isHoraBloqueada = (horaInicio) => {
                                  <svg v-if="nomGrupo === 'Tarde'" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="m17.66 17.66 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/></svg>
                                  <svg v-if="nomGrupo === 'Noche'" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
                                  
-                                 <h4 class="text-sm font-extrabold uppercase tracking-widest text-surface-900 m-0">{{ nomGrupo }}</h4>
+                                 <h4 class="text-xs font-bold uppercase tracking-wider text-surface-900 m-0">{{ nomGrupo }}</h4>
                              </div>
                              
                              <div v-if="horas.length === 0" class="text-surface-400 font-medium text-sm p-4 border-2 border-dashed border-surface-200 rounded-2xl text-center">
@@ -336,17 +375,17 @@ const isHoraBloqueada = (horaInicio) => {
                      </div>
 
                      <!-- Status Flotante -->
-                     <div class="mt-12 p-6 md:p-8 bg-surface-50 border border-surface-200 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                     <div ref="bottomStatusRef" class="mt-12 p-6 md:p-8 bg-surface-50 border border-surface-200 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
                          <div class="flex-1">
-                             <div v-if="errorValidacion" class="flex items-center gap-3 text-red-600 font-bold text-sm md:text-base animate-pulse bg-red-100/50 p-4 rounded-xl">
+                             <div v-if="errorValidacion" class="flex items-center gap-3 text-red-600 font-semibold text-sm bg-red-50 p-4 rounded-xl border border-red-200">
                                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
                                  {{ errorValidacion }}
                              </div>
-                             <div v-else-if="esHorarioValidoParaPreview" class="flex items-center gap-3 text-green-700 font-extrabold text-sm md:text-base bg-green-100/50 p-4 rounded-xl">
+                             <div v-else-if="esHorarioValidoParaPreview" class="flex items-center gap-3 text-green-700 font-semibold text-sm bg-green-50 p-4 rounded-xl border border-green-200">
                                  <div class="w-8 h-8 rounded-full bg-green-200 text-green-800 flex items-center justify-center shrink-0">
                                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                                  </div>
-                                 <span class="leading-tight">Aseguraremos tu lugar de <br class="md:hidden"><span class="text-green-900 border-b-2 border-green-300">{{ formatearHora(horaInicioTemp) }} a {{ formatearHora(horaFinTemp) }}</span></span>
+                                 <span class="leading-tight text-sm">Aseguraremos tu lugar de <br class="md:hidden"><span class="text-green-800 font-bold">{{ formatearHora(horaInicioTemp) }} a {{ formatearHora(horaFinTemp) }}</span></span>
                              </div>
                              <div v-else class="text-surface-500 font-medium text-sm md:text-base flex items-center gap-3 bg-white p-4 rounded-xl border border-surface-200">
                                  <i class="pi pi-info-circle text-xl"></i>
@@ -355,10 +394,16 @@ const isHoraBloqueada = (horaInicio) => {
                          </div>
                          <button 
                              @click="validarHorario()"
-                             :disabled="!esHorarioValidoParaPreview"
-                             class="w-full md:w-auto px-10 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(37,99,235,0.5)] transition-all flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 border-none text-lg active:scale-95"
+                             :disabled="!esHorarioValidoParaPreview || cargando"
+                             class="w-full md:w-auto px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-md transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-none text-base active:scale-95"
                          >
-                             Continuar Reservación <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                             <template v-if="cargando">
+                               <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                               Reservando...
+                             </template>
+                             <template v-else>
+                               Confirmar Horario <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                             </template>
                          </button>
                      </div>
                  </div>
@@ -376,4 +421,15 @@ const isHoraBloqueada = (horaInicio) => {
             </div>
         </div>
     </div>
+
 </template>
+
+<style scoped>
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+</style>
