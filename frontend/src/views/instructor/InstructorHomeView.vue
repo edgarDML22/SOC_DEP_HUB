@@ -97,397 +97,119 @@ const handleGoToDetails = (sessionObj) => {
 </script>
 
 <template>
-  <main class="home-instructor">
-
-    <!-- Saludo personalizado con datos del profileStore -->
-    <header class="home-header">
-      <div>
-        <p class="greeting-label">Bienvenido de vuelta,</p>
-        <h1 class="greeting-name">{{ profileStore.fullName || 'Instructor' }}</h1>
+  <main class="w-full bg-surface-50 min-h-screen font-sans pb-24 md:pb-8">
+    <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
+      
+      <!-- ESTADO DE CARGA -->
+      <div v-if="isLoading" class="flex justify-center items-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
-    </header>
 
-    <!-- Estado de carga centralizado (Opcional) -->
-    <section v-if="isLoading" style="text-align:center; padding: 2rem;">
-      <span class="text-gray-400">Cargando dashboard...</span>
-    </section>
-
-    <div v-else style="display: flex; flex-direction: column; gap: 1.5rem;">
-      <!-- Stats -->
-      <section class="stats-section">
-        <article v-for="stat in stats" :key="stat.id" class="stat-card">
-          <div class="stat-icon-wrapper" :class="stat.iconColor">
-            <component :is="stat.icon" class="icon-svg" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stat.value }}</span>
-            <span class="stat-label">{{ stat.label }}</span>
-          </div>
-        </article>
-      </section>
-
-      <!-- PRÓXIMA SESIÓN -->
-      <section class="next-session-section">
-        <h2 class="section-title">PRÓXIMA SESIÓN</h2>
-
-        <div v-if="!nextSession" class="empty-state">
-          <div class="empty-icon-circle">
-            <IconInbox class="icon-svg-large" />
-          </div>
-          <h3 class="empty-title">Ninguna sesión inminente</h3>
-          <p class="empty-text">No tienes sesiones programadas para las próximas horas.</p>
+      <template v-else>
+        <!-- SECCIÓN 1: BIENVENIDA -->
+        <div class="flex flex-col gap-1 md:gap-1.5 pt-2 animate-fade-in">
+          <p class="text-surface-500 font-medium text-sm md:text-base m-0">Bienvenido de vuelta,</p>
+          <h2 class="text-2xl md:text-3xl font-bold text-surface-900 tracking-tight m-0 drop-shadow-sm">
+            {{ profileStore.fullName || 'Instructor' }}
+          </h2>
         </div>
 
-        <article v-else class="session-card clickable" @click="handleGoToDetails(nextSession)">
-          <div class="time-block">
-            <span class="time-start">{{ nextSession.startTime }}</span>
-            <span class="time-end">{{ nextSession.endTime }}</span>
-          </div>
-
-          <div class="session-details">
-            <h4 class="client-name">{{ nextSession.client }}</h4>
-            <p class="location-name">{{ nextSession.location }}</p>
-          </div>
-
-          <div class="session-actions">
-            <span class="status-badge" :class="`badge-${nextSession.statusType}`">
-              {{ nextSession.status }}
-            </span>
-            <span class="arrow-right">›</span>
-          </div>
-        </article>
-      </section>
-
-      <!-- SESIONES DE HOY -->
-      <section class="today-sessions-section">
-        <header class="section-header">
-          <h2 class="section-title">SESIONES DE HOY</h2>
-          <router-link to="/instructor/sessions" class="link-view-all">
-            Ver Semana &rarr;
-          </router-link>
-        </header>
-
-        <div class="sessions-list" v-if="todaySessions.length > 0">
-          <article v-for="session in todaySessions" :key="session.id" class="session-card clickable"
-            @click="handleGoToDetails(session)">
-            <div class="time-block">
-              <span class="time-start">{{ session.startTime }}</span>
-              <span class="time-end">{{ session.endTime }}</span>
-            </div>
-
-            <div class="session-details">
-              <h4 class="client-name">{{ session.client }}</h4>
-              <p class="location-name">{{ session.location }}</p>
-            </div>
-
-            <div class="session-actions">
-              <span class="status-badge" :class="`badge-${session.statusType}`">
-                {{ session.status }}
+        <!-- SECCIÓN 2: PRÓXIMA SESIÓN (Highlight) -->
+        <div class="bg-linear-to-br from-primary-800 to-primary-600 text-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 relative overflow-hidden shadow-xl shadow-primary-700/20 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all hover:shadow-2xl hover:shadow-primary-700/30 animate-fade-in">
+          <!-- Elementos decorativos (Glassmorphism blobs) -->
+          <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div class="relative z-10 flex-1">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+                Próxima Sesión
               </span>
-              <span class="arrow-right">›</span>
             </div>
-          </article>
+            
+            <div v-if="!nextSession">
+              <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">Ninguna sesión inminente</h3>
+              <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
+                No tienes sesiones programadas para las próximas horas.
+              </p>
+            </div>
+            <div v-else>
+              <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">{{ nextSession.client }}</h3>
+              <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
+                {{ nextSession.location }} • {{ nextSession.startTime }} a {{ nextSession.endTime }}
+              </p>
+            </div>
+          </div>
+
+          <div class="relative z-10 shrink-0 flex flex-col sm:flex-row gap-3 w-full md:w-auto" v-if="nextSession">
+            <button @click="handleGoToDetails(nextSession)" class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-8 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-black/20 text-center border border-primary-500 flex items-center justify-center gap-2 hover:-translate-y-0.5">
+              Ver detalles <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
 
-        <!-- Estado si no hay sesiones hoy (sección aislada) -->
-        <div v-else class="empty-state" style="padding: 1.5rem 1rem;">
-          <p class="empty-text">Sin sesiones registradas este día.</p>
+        <!-- SECCIÓN 3: ESTADÍSTICAS RÁPIDAS -->
+        <div class="animate-fade-in">
+          <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Resumen de hoy</h3>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+            <div v-for="stat in stats" :key="stat.id" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 transition-all duration-300 ease-out">
+              <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
+                <component :is="stat.icon" class="w-7 h-7 md:w-8 md:h-8" />
+              </div>
+              <span class="font-bold text-xl md:text-2xl text-surface-900 group-hover:text-primary-700 transition-colors leading-tight">{{ stat.value }}</span>
+              <span class="font-medium text-surface-500 text-xs md:text-sm mt-1 leading-tight">{{ stat.label }}</span>
+            </div>
+          </div>
         </div>
-      </section>
+
+        <!-- SECCIÓN 4: SESIONES DE HOY -->
+        <div class="bg-white rounded-3xl border border-surface-200 p-6 md:p-8 shadow-sm animate-fade-in">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl md:text-2xl font-bold text-surface-900 tracking-tight">Sesiones de hoy</h3>
+            <router-link to="/instructor/sessions" class="text-primary-600 font-semibold text-sm hover:text-primary-700 hover:underline transition-all hidden md:block">
+              Ver Semana &rarr;
+            </router-link>
+          </div>
+          
+          <div v-if="todaySessions.length === 0" class="h-32 flex items-center justify-center rounded-2xl border border-dashed border-surface-300 bg-surface-50 transition-colors hover:bg-surface-100">
+            <p class="text-surface-500 font-medium text-xs md:text-sm tracking-widest text-center px-4 uppercase">Sin sesiones registradas este día</p>
+          </div>
+          
+          <div v-else class="flex flex-col gap-3">
+            <article v-for="session in todaySessions" :key="session.id" @click="handleGoToDetails(session)" class="bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-2xl p-4 flex items-center gap-4 cursor-pointer transition-all hover:border-primary-400 hover:-translate-y-0.5 active:scale-95 group">
+              <div class="bg-white border border-surface-200 rounded-xl px-3 py-2 flex flex-col items-center justify-center min-w-[70px] shadow-sm">
+                <span class="font-bold text-surface-900 text-sm">{{ session.startTime }}</span>
+                <span class="text-xs text-surface-500">{{ session.endTime }}</span>
+              </div>
+
+              <div class="flex-1 flex flex-col">
+                <h4 class="font-bold text-surface-900 text-base m-0">{{ session.client }}</h4>
+                <p class="text-surface-500 text-sm m-0 line-clamp-1">{{ session.location }}</p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1.5 rounded-full text-xs font-bold text-white capitalize shadow-sm" :class="{
+                  'bg-green-500': session.statusType === 'success',
+                  'bg-blue-500': session.statusType === 'info',
+                  'bg-primary-600': session.statusType === 'success-dark',
+                  'bg-surface-400': !['success', 'info', 'success-dark'].includes(session.statusType)
+                }">
+                  {{ session.status }}
+                </span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-surface-400 group-hover:text-primary-600 transition-colors hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </article>
+          </div>
+          
+          <!-- Botón móvil para ver semana -->
+          <router-link to="/instructor/sessions" class="block text-center w-full mt-4 bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 md:hidden">
+              Ver Semana
+          </router-link>
+        </div>
+      </template>
     </div>
-
   </main>
 </template>
-
-<style scoped>
-/* Variables base integradas al sistema */
-
-/* Header de bienvenida */
-.home-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.greeting-label {
-  font-size: 0.8rem;
-  color: var(--p-surface-500, #6b7280);
-  margin: 0 0 0.15rem 0;
-}
-
-.greeting-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-  margin: 0;
-}
-
-.home-instructor {
-  background-color: var(--p-surface-50, #f8fafc);
-  padding: 1rem;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  font-family: inherit;
-  padding-bottom: 90px;
-}
-
-/* Títulos de sección generales */
-.section-title {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: var(--p-surface-400, #9ca3af);
-  letter-spacing: 0.5px;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-}
-
-/* =========================================
-   SECCIÓN 1: ESTADÍSTICAS
-   ========================================= */
-.stats-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.stat-card {
-  background-color: #ffffff;
-  border: 1px solid var(--p-surface-200, #e2e8f0);
-  border-radius: 12px;
-  padding: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-}
-
-.stat-icon-wrapper {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.icon-svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* Colores simulados para iconos */
-.text-green {
-  color: #10b981;
-  background-color: #d1fae5;
-}
-
-.text-blue {
-  color: #3b82f6;
-  background-color: #dbeafe;
-}
-
-.text-yellow {
-  color: #f59e0b;
-  background-color: #fef3c7;
-}
-
-.text-gray {
-  color: var(--p-surface-500, #64748b);
-  background-color: var(--p-surface-100, #f1f5f9);
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--p-surface-900, #111827);
-  line-height: 1.1;
-}
-
-.stat-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--p-surface-500, #6b7280);
-  text-transform: uppercase;
-}
-
-/* =========================================
-   SECCIÓN 2: PRÓXIMA SESIÓN (EMPTY STATE)
-   ========================================= */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 2.5rem 1rem;
-  background: white;
-  border-radius: 12px;
-  border: 1px dashed var(--p-surface-300, #cbd5e1);
-}
-
-.empty-icon-circle {
-  width: 60px;
-  height: 60px;
-  background-color: var(--p-surface-100, #f1f5f9);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  color: var(--p-surface-400, #9ca3af);
-}
-
-.icon-svg-large {
-  width: 28px;
-  height: 28px;
-}
-
-.empty-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-  margin: 0 0 0.4rem 0;
-}
-
-.empty-text {
-  font-size: 0.85rem;
-  color: var(--p-surface-500, #64748b);
-  margin: 0;
-}
-
-/* =========================================
-   SECCIÓN 3: SESIONES DE HOY
-   ========================================= */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.section-header .section-title {
-  margin-bottom: 0;
-}
-
-.link-view-all {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--p-primary-600, #2563eb);
-  text-decoration: none;
-}
-
-.sessions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.session-card {
-  background-color: #ffffff;
-  border: 1px solid var(--p-surface-200, #e2e8f0);
-  border-radius: 12px;
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s, border-color 0.2s;
-}
-
-.session-card.clickable {
-  cursor: pointer;
-}
-
-.session-card.clickable:hover {
-  border-color: var(--p-primary-400, #60a5fa);
-  transform: translateY(-1px);
-}
-
-.time-block {
-  background-color: var(--p-surface-100, #f1f5f9);
-  border-radius: 8px;
-  padding: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 55px;
-}
-
-.time-start {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-}
-
-.time-end {
-  font-size: 0.65rem;
-  color: var(--p-surface-500, #64748b);
-  margin-top: 2px;
-}
-
-.session-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.client-name {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--p-surface-900, #111827);
-  margin: 0 0 0.2rem 0;
-}
-
-.location-name {
-  font-size: 0.75rem;
-  color: var(--p-surface-500, #64748b);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.session-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.status-badge {
-  padding: 0.35rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: white;
-  text-transform: capitalize;
-}
-
-.badge-success-dark {
-  background-color: var(--p-primary-600, #2563eb);
-}
-
-.badge-success {
-  background-color: #10b981;
-}
-
-.badge-info {
-  background-color: #3b82f6;
-}
-
-.arrow-right {
-  color: var(--p-surface-400, #9ca3af);
-  font-weight: bold;
-  font-size: 1.2rem;
-  line-height: 1;
-}
-</style>

@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useInstructorStore } from '@/stores/profiles/instructorStore'
-import { IconHome, IconCalendar, IconClock, IconUser, IconBell } from '@/components/icons';
+import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby } from '@/components/icons';
 
 const profileStore = useInstructorStore();
 
@@ -9,435 +9,191 @@ const menuOpen = ref(false)
 const notifications = ref(2)
 const showNotifications = ref(false)
 
+const profileDropdown = ref(null)
+const notifDropdownDesktop = ref(null)
+const notifDropdownMobile = ref(null)
+
 const toggleMenu = () => {
     menuOpen.value = !menuOpen.value
+    if (menuOpen.value) showNotifications.value = false;
 }
 
 const toggleNotifications = () => {
     showNotifications.value = !showNotifications.value
+    if (showNotifications.value) menuOpen.value = false;
 }
+
+const handleClickOutside = (event) => {
+    if (profileDropdown.value && !profileDropdown.value.contains(event.target)) {
+        menuOpen.value = false;
+    }
+    
+    const clickedDesktopNotif = notifDropdownDesktop.value && notifDropdownDesktop.value.contains(event.target);
+    const clickedMobileNotif = notifDropdownMobile.value && notifDropdownMobile.value.contains(event.target);
+    
+    if (!clickedDesktopNotif && !clickedMobileNotif) {
+        showNotifications.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
-<template>
-    <nav class="top-navbar">
-        <div class="navbar-left">
-            <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="brand-logo" />
-            <span class="brand-name">SOC-DEP HUB</span>
+<<template>
+  <div class="font-sans">
+    <!-- ESPACIADORES PARA EVITAR SUPERPOSICIÓN -->
+    <div class="hidden md:block h-[90px] w-full"></div>
+    <div class="md:hidden h-[68px] w-full"></div>
+
+    <!-- ========================================= -->
+    <!-- DESKTOP: FLOATING ISLAND NAVIGATION       -->
+    <!-- ========================================= -->
+    <nav class="hidden md:flex w-full fixed top-0 z-100 px-4 pt-4 pb-4 backdrop-blur-sm pointer-events-none justify-center">
+      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
+        
+        <!-- Izquierda: Logo -->
+        <router-link to="/instructor/home" class="flex items-center gap-3 shrink-0 group">
+          <div class="p-1 bg-white rounded-xl shadow-sm border border-surface-100 group-hover:scale-105 transition-transform">
+              <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
+          </div>
+          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">SOC-DEP</span>
+        </router-link>
+
+        <!-- Centro: Enlaces (Isla de navegación) con Active State Notorio -->
+        <div class="flex items-center gap-1 lg:gap-2 justify-center flex-1 mx-4">
+            <router-link to="/instructor/home" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
+                <IconHome class="w-[18px] h-[18px] group-[.router-link-active]:text-white" /> Inicio
+            </router-link>
+
+            <router-link to="/instructor/agenda" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
+                <IconCalendar class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Agenda
+            </router-link>
+
+            <router-link to="/instructor/sessions" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
+                <IconClock class="w-[18px] h-[18px] group-[.router-link-active]:text-white" /> Sesiones
+            </router-link>
+
+            <!-- Pestaña Reactiva de Ludoteca -->
+            <router-link v-if="profileStore.isCuidador" to="/instructor/ludoteca" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
+                <IconBaby class="w-[18px] h-[18px] group-[.router-link-active]:text-white" /> Ludoteca
+            </router-link>
         </div>
 
-        <div class="navbar-right">
-
-            <div class="notification-wrapper">
-                <button class="notification-btn" @click="toggleNotifications">
-                    <IconBell />
-
-                    <span class="notification-badge">{{ notifications }}</span>
+        <!-- Derecha: Perfil & Notificaciones -->
+        <div class="flex items-center gap-3 shrink-0">
+            <!-- Notificaciones -->
+            <div class="relative" ref="notifDropdownDesktop">
+                <button class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 hover:bg-surface-100 hover:text-surface-900 active:scale-95 transition-all" @click="toggleNotifications">
+                    <IconBell class="w-5 h-5" />
+                    <span v-if="notifications > 0" class="absolute top-2 right-2.5 bg-primary-600 text-white text-[10px] font-bold h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
                 </button>
 
-                <div v-if="showNotifications" class="notification-dropdown">
-                    <p class="empty">No hay notificaciones</p>
+                <div v-if="showNotifications" class="absolute top-14 right-0 w-72 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-5 z-50 transition-all">
+                    <h4 class="font-bold text-lg text-surface-900 mb-2">Notificaciones</h4>
+                    <div class="h-px w-full bg-surface-100 mb-4"></div>
+                    <p class="text-sm font-medium text-surface-400 text-center py-6">No hay notificaciones nuevas</p>
                 </div>
             </div>
 
-            <div class="avatar-wrapper">
-                <div class="nav-avatar" @click="toggleMenu">
-                    {{ profileStore.userInitials }}
+            <!-- Avatar -->
+            <div class="relative" ref="profileDropdown">
+                <button class="w-10 h-10 bg-primary-600 outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
+                    <span v-if="profileStore.isLoading">...</span>
+                    <span v-else>{{ profileStore.userInitials }}</span>
+                </button>
+
+                <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
+                    <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100">
+                        <span class="block text-xs font-medium text-surface-500 uppercase tracking-wider mb-1">Mi Cuenta</span>
+                        <strong class="block text-sm font-bold text-surface-900">{{ profileStore.userInitials }} (Instructor)</strong>
+                    </div>
+                    
+                    <router-link to="/instructor/profile" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">
+                        <IconUser class="w-[18px] h-[18px]" /> Mi Perfil
+                    </router-link>
+                    
+                    <button @click="profileStore.getSupportLink" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors text-left flex items-center gap-3 w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px] opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Ayuda
+                    </button>
+                    
+                    <div class="h-px bg-surface-100 w-full my-1 rounded-full"></div>
+                    
+                    <button class="px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors text-left flex items-center gap-3 w-full" @click="profileStore.logout">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Cerrar Sesión
+                    </button>
                 </div>
-
             </div>
+        </div>
 
-            <div v-if="menuOpen" class="dropdown">
-                <router-link to="/instructor/profile">Perfil</router-link>
-                <router-link to="/instructor/configuration">Configuración</router-link>
-                <button @click="profileStore.getSupportLink">Ayuda</button>
-                <hr />
-                <button class="logout" @click="profileStore.logout">Cerrar sesión</button>
+      </div>
+    </nav>
+
+
+    <!-- ========================================= -->
+    <!-- MOBILE: TOP NAVBAR & BOTTOM NAVIGATION    -->
+    <!-- ========================================= -->
+    
+    <!-- Top Bar (Mobile) - Logo & Notifications -->
+    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-3">
+            <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
+            <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
+        </div>
+        
+        <div class="relative" ref="notifDropdownMobile">
+            <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
+                <IconBell class="w-5 h-5" />
+                <span v-if="notifications > 0" class="absolute top-2 right-2.5 bg-primary-600 text-white text-[10px] font-bold h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
+            </button>
+
+            <!-- Notificaciones Dropdown (Móvil) -->
+            <div v-if="showNotifications" class="absolute top-12 right-0 w-72 bg-white rounded-2xl border border-surface-200 shadow-2xl p-5 z-60 animate-fade-in">
+               <h4 class="font-bold text-lg text-surface-900 mb-2">Notificaciones</h4>
+               <div class="h-px w-full bg-surface-100 mb-4"></div>
+               <p class="text-sm font-medium text-surface-400 text-center py-4">No hay notificaciones</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar (Mobile) -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
+        <div class="flex items-center justify-around h-[64px] pb-1 gap-1">
+            
+            <router-link to="/instructor/home" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+                <IconHome class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Inicio</span>
+            </router-link>
+
+            <router-link to="/instructor/agenda" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+                <IconCalendar class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Agenda</span>
+            </router-link>
+
+            <router-link to="/instructor/sessions" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+                <IconClock class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Sesiones</span>
+            </router-link>
+
+            <router-link to="/instructor/profile" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+                <IconUser class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Perfil</span>
+            </router-link>
+
+            <!-- Pestaña Reactiva de Ludoteca -->
+            <router-link v-if="profileStore.isCuidador" to="/instructor/ludoteca" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+                <IconBaby class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Ludoteca</span>
+            </router-link>
 
         </div>
     </nav>
-
-    <nav class="bottom-navbar">
-        <router-link to="/instructor/home" class="nav-item">
-            <div class="icon-wrapper">
-                <IconHome class="icon" />
-            </div>
-            <span>Inicio</span>
-        </router-link>
-
-        <router-link to="/instructor/agenda" class="nav-item">
-            <div class="icon-wrapper">
-                <IconCalendar class="icon" />
-            </div>
-            <span>Agenda</span>
-        </router-link>
-
-        <router-link to="/instructor/sessions" class="nav-item">
-            <div class="icon-wrapper">
-                <IconClock class="icon" />
-            </div>
-            <span>Sesiones</span>
-        </router-link>
-
-        <router-link to="/instructor/profile" class="nav-item">
-            <div class="icon-wrapper">
-                <IconUser class="icon" />
-            </div>
-            <span>Perfil</span>
-        </router-link>
-    </nav>
-
+  </div>
 </template>
-
-<style scoped>
-.notification-wrapper {
-    position: relative;
-}
-
-.notification-btn {
-    cursor: pointer;
-    position: relative;
-    background: none;
-    border: none;
-    color: var(--p-surface-500);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.notification-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
-.notification-btn:hover {
-    color: #111827;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -3px;
-    right: -5px;
-    background: #ef4444;
-    color: white;
-    font-size: 9px;
-    border-radius: 999px;
-    height: 15px;
-    width: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    border: 2px solid white;
-}
-
-.notification-dropdown {
-    position: absolute;
-    top: 45px;
-    right: 0;
-    width: 220px;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid var(--p-surface-200);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    padding: 12px;
-}
-
-
-
-.top-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ffffff;
-    padding: 0 2rem;
-    min-height: 70px;
-    border-bottom: 1px solid var(--p-surface-200);
-    flex-wrap: wrap;
-    /* Permite que los elementos bajen en pantallas chicas */
-}
-
-.navbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Ajustes del Logo */
-.brand-logo {
-    height: 36px;
-    width: 36px;
-    object-fit: cover;
-    border-radius: var(--p-border-radius);
-    display: block;
-}
-
-.brand-name {
-    font-weight: 700;
-    font-size: 1.2rem;
-    letter-spacing: -0.5px;
-    color: #111827;
-}
-
-.navbar-center {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.nav-link {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-    color: var(--p-surface-500);
-    font-size: 14px;
-    font-weight: 500;
-    padding: 8px 12px;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.nav-link:hover {
-    background-color: var(--p-surface-100);
-    color: #111827;
-}
-
-.nav-link.router-link-active {
-    background-color: var(--p-primary-100);
-    color: var(--p-primary-700);
-}
-
-.nav-link .icon {
-    width: 18px;
-    height: 18px;
-}
-
-.navbar-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.notification-btn {
-    background: none;
-    border: none;
-    color: var(--p-surface-500);
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.notification-btn svg {
-    width: 24px;
-    height: 24px;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -2px;
-    right: -4px;
-    background-color: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #ffffff;
-}
-
-.nav-avatar {
-    width: 36px;
-    height: 36px;
-    background-color: var(--p-primary-700);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-
-.dropdown {
-    position: absolute;
-    top: 60px;
-    right: 20px;
-    width: 200px;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid var(--p-surface-200);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.dropdown button,
-.dropdown a {
-    padding: 12px 14px;
-    border: none;
-    background: white;
-    cursor: pointer;
-    color: #111827;
-    text-decoration: none;
-    text-align: center;
-    font-size: 14px;
-    font-family: inherit;
-}
-
-
-.dropdown button:hover,
-.dropdown a:hover {
-    background: var(--p-surface-100);
-}
-
-.dropdown a.router-link-exact-active {
-    pointer-events: none;
-    color: #9ca3af;
-    background: transparent;
-}
-
-.dropdown .logout {
-    color: #ef4444;
-    font-weight: bold;
-}
-
-@media (min-width: 1050px) {
-    .qr-link {
-        display: none !important;
-    }
-}
-
-/* DISEÑO PARA MÓVILES (Menos de 1050px)*/
-@media (max-width: 1049px) {
-    .top-navbar {
-        padding: 10px 1rem;
-
-    }
-
-    .navbar-left {
-        order: 1;
-    }
-
-    .navbar-right {
-        order: 2;
-        margin-left: auto;
-    }
-
-    .navbar-center {
-        order: 3;
-        width: 100%;
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px solid var(--p-surface-200);
-        justify-content: flex-start;
-        overflow-x: auto;
-
-        scrollbar-width: thin;
-        scrollbar-color: #cbd5e1 transparent;
-        padding-bottom: 8px;
-    }
-
-    .navbar-center::-webkit-scrollbar {
-        height: 6px;
-    }
-
-    .navbar-center::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .navbar-center::-webkit-scrollbar-thumb {
-        background-color: #e2e8f0;
-        border-radius: 10px;
-    }
-
-    .navbar-center::-webkit-scrollbar-thumb:hover {
-        background-color: #cbd5e1;
-    }
-
-    .nav-link {
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-}
-
-/* Contenedor principal fijado en la parte inferior */
-.bottom-navbar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #ffffff;
-    display: flex;
-    justify-content: space-around;
-    /* Distribuye equitativamente */
-    align-items: center;
-    padding: 8px 0 12px 0;
-    /* Espaciado superior e inferior */
-    border-top: 1px solid var(--p-surface-200, #e5e7eb);
-    /* Borde sutil arriba */
-    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
-    /* Sombra ligera para resaltar */
-    z-index: 1000;
-}
-
-/* Estilo individual de cada botón */
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: var(--p-surface-500, #6b7280);
-    /* Color gris inactivo */
-    gap: 4px;
-    /* Espacio entre icono y texto */
-    min-width: 64px;
-}
-
-/* Contenedor del icono (para el fondo azul cuando está activo) */
-.icon-wrapper {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    /* Bordes redondeados como en la imagen */
-    transition: all 0.2s ease-in-out;
-}
-
-.icon {
-    width: 22px;
-    height: 22px;
-}
-
-/* Texto debajo del icono */
-.nav-item span {
-    font-size: 11px;
-    font-weight: 500;
-    font-family: inherit;
-}
-
-/* =========================================
-   ESTADOS ACTIVOS (El equivalente a "Inicio" azul)
-   ========================================= */
-.nav-item.router-link-active {
-    color: var(--p-primary-600, #2563eb);
-    /* Texto azul */
-}
-
-.nav-item.router-link-active .icon-wrapper {
-    background-color: var(--p-primary-100, #dbeafe);
-    /* Fondo azul clarito */
-    color: var(--p-primary-600, #2563eb);
-    /* Icono azul */
-}
-</style>

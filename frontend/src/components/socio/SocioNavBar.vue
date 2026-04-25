@@ -10,7 +10,8 @@ const notifications = ref(2)
 const showNotifications = ref(false)
 
 const profileDropdown = ref(null)
-const notifDropdown = ref(null)
+const notifDropdownDesktop = ref(null) 
+const notifDropdownMobile = ref(null)  
 
 const toggleMenu = () => {
     menuOpen.value = !menuOpen.value;
@@ -23,12 +24,14 @@ const toggleNotifications = () => {
 }
 
 const handleClickOutside = (event) => {
-    // Si el clic no fue dentro del profile dropdown, lo cerramos
     if (profileDropdown.value && !profileDropdown.value.contains(event.target)) {
         menuOpen.value = false;
     }
-    // Si el clic no fue dentro del dropdown de notificaciones, lo cerramos
-    if (notifDropdown.value && !notifDropdown.value.contains(event.target)) {
+    
+    const clickDesktop = notifDropdownDesktop.value && notifDropdownDesktop.value.contains(event.target);
+    const clickMobile = notifDropdownMobile.value && notifDropdownMobile.value.contains(event.target);
+
+    if (!clickDesktop && !clickMobile) {
         showNotifications.value = false;
     }
 }
@@ -51,7 +54,7 @@ onUnmounted(() => {
     <!-- ========================================= -->
     <!-- DESKTOP: FLOATING ISLAND NAVIGATION       -->
     <!-- ========================================= -->
-    <nav class="hidden md:flex w-full fixed top-0 z-[100] px-4 pt-4 pb-4 backdrop-blur-sm pointer-events-none justify-center">
+    <nav class="hidden md:flex w-full fixed top-0 z-100 px-4 pt-4 pb-4 backdrop-blur-sm pointer-events-none justify-center">
       <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
         
         <!-- Izquierda: Logo -->
@@ -92,7 +95,7 @@ onUnmounted(() => {
         <!-- Derecha: Perfil & Notificaciones -->
         <div class="flex items-center gap-3 shrink-0">
             <!-- Notificaciones -->
-            <div class="relative" ref="notifDropdown">
+            <div class="relative" ref="notifDropdownDesktop">
                 <button class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 hover:bg-surface-100 hover:text-surface-900 active:scale-95 transition-all" @click="toggleNotifications">
                     <IconBell class="w-5 h-5" />
                     <span v-if="notifications > 0" class="absolute top-2 right-2.5 bg-primary-600 text-white text-[10px] font-bold h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
@@ -107,7 +110,7 @@ onUnmounted(() => {
 
             <!-- Avatar -->
             <div class="relative" ref="profileDropdown">
-                <button class="w-10 h-10 bg-primary-600 outline outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
+                <button class="w-10 h-10 bg-primary-600 outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
                     {{ profileStore.userInitials }}
                 </button>
 
@@ -149,13 +152,13 @@ onUnmounted(() => {
     <!-- ========================================= -->
     
     <!-- Top Bar (Mobile) - Logo & Notifications -->
-    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-[110] flex items-center justify-between shadow-sm">
+    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
             <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
             <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
         </div>
         
-        <div class="relative" ref="notifDropdown">
+        <div class="relative" ref="notifDropdownMobile">
             <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
                 <IconBell class="w-5 h-5" />
                 <span v-if="notifications > 0" class="absolute top-2 right-2.5 bg-primary-600 text-white text-[10px] font-bold h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
@@ -171,7 +174,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Bottom Navigation Bar (Mobile) -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-[100] px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
         <div class="flex items-center justify-between h-[64px] pb-1 gap-1">
             
             <router-link to="/socio/home" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
@@ -184,9 +187,12 @@ onUnmounted(() => {
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Agenda</span>
             </router-link>
 
-            <router-link to="/socio/qr" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconQr class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Pase QR</span>
+            <router-link to="/socio/qr" class="flex flex-col items-center justify-center group w-[20%] relative active:scale-90 transition-all -mt-6">
+                <!-- Círculo con degradado premium (mismo que PRÓXIMA RESERVA) -->
+                <div class="w-14 h-14 rounded-full bg-linear-to-br from-primary-800 to-primary-600 shadow-[0_6px_24px_rgba(37,99,235,0.45)] flex items-center justify-center ring-4 ring-white">
+                    <IconQr class="w-7 h-7 text-white drop-shadow-sm" />
+                </div>
+                <span class="text-[9px] font-bold text-primary-700 mt-1 uppercase tracking-wide">Pase QR</span>
             </router-link>
 
             <router-link to="/socio/community" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">

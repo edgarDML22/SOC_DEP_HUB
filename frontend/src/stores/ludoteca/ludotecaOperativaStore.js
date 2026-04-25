@@ -80,7 +80,7 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
     };
 
     // Rollback Optimista: Cambiar estatus de un niño sin esperar al servidor
-    const cambiarEstatusEstancia = async (idEstancia, nuevoEstatus) => {
+    const cambiarEstatusEstancia = async (idEstancia, nuevoEstatus, extraData = {}) => {
         // Asumi que la llave primaria puede llamarse "id" o "id_estancia"
         const estanciaIndex = estanciasDelDia.value.findIndex(e => e.id === idEstancia || e.id_estancia === idEstancia);
         if (estanciaIndex === -1) return;
@@ -95,7 +95,8 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
         try {
 
             const res = await api.patch(`/ludoteca/estancia/${idEstancia}/status`, {
-                estatus: nuevoEstatus
+                estatus: nuevoEstatus,
+                ...extraData
             });
 
             if (!res.data.success) {

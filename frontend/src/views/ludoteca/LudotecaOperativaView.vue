@@ -1,9 +1,13 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useLudotecaOperativaStore } from '@/stores/ludoteca/ludotecaOperativaStore';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
 
-const activeTab = ref('activos');
+const searchQuery = ref('');
+
+// Estado para modales
+const modalIngresoInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR' });
+const modalSalidaInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
 
 const store = useLudotecaOperativaStore();
 let timer = null;
@@ -28,13 +32,37 @@ const moverAInactivo = (id) => {
     store.cambiarEstatusEstancia(id, 'Inactivo');
 };
 
-const marcarSalida = (id) => {
-    store.cambiarEstatusEstancia(id, 'Entregado');
+const abrirModalSalida = (id) => {
+    modalSalidaInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR', correo: '' };
 };
 
-const reingresarActivo = (id) => {
-    store.cambiarEstatusEstancia(id, 'Activo');
+const confirmarSalida = () => {
+    store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'Entregado', {
+        tipo_usuario: modalSalidaInfo.value.tipoUsuario,
+        correo_receptor: modalSalidaInfo.value.correo
+    });
+    modalSalidaInfo.value.visible = false;
 };
+
+const abrirModalIngreso = (id) => {
+    modalIngresoInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR' };
+};
+
+const confirmarIngreso = () => {
+    store.cambiarEstatusEstancia(modalIngresoInfo.value.idEstancia, 'Activo', {
+        tipo_usuario: modalIngresoInfo.value.tipoUsuario
+    });
+    modalIngresoInfo.value.visible = false;
+};
+
+const inactivosFiltrados = computed(() => {
+    if (searchQuery.value.length < 2) return [];
+    const query = searchQuery.value.toLowerCase();
+    return store.estanciasInactivas.filter(nino => 
+        nino.nombre_nino?.toLowerCase().includes(query) || 
+        nino.nombre_tutor?.toLowerCase().includes(query)
+    );
+});
 </script>
 
 <template>
@@ -100,7 +128,7 @@ const reingresarActivo = (id) => {
                         <button @click="moverAInactivo(nino.id)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
                             Incidencia
                         </button>
-                        <button @click="marcarSalida(nino.id)" class="bg-green-600 hover:bg-green-700 text-white rounded-xl px-2 py-3 font-bold shadow-lg shadow-green-700/20 active:scale-95 transition-all flex-1 text-center border border-green-500 text-sm">
+                        <button @click="abrirModalSalida(nino.id)" class="bg-green-600 hover:bg-green-700 text-white rounded-xl px-2 py-3 font-bold shadow-lg shadow-green-700/20 active:scale-95 transition-all flex-1 text-center border border-green-500 text-sm">
                             Marcar Salida
                         </button>
                     </div>
@@ -110,19 +138,37 @@ const reingresarActivo = (id) => {
 
         <!-- CONTENIDO PESTAÑA: INACTIVOS -->
         <div v-show="activeTab === 'inactivos'" class="animate-fade-in">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div v-if="store.estanciasInactivas.length === 0" class="col-span-full h-32 flex items-center justify-center rounded-2xl border border-dashed border-surface-300 bg-surface-50">
-                    <p class="text-surface-500 font-medium text-sm text-center">No hay incidencias activas.</p>
+            <!-- BUSCADOR -->
+            <div class="mb-6 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
                 </div>
+                <input 
+                    v-model="searchQuery" 
+                    type="text" 
+                    placeholder="Buscar a otros niños por nombre para agregarlos a la ludoteca..." 
+                    class="w-full pl-10 pr-4 py-3 bg-surface-50 border border-surface-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow outline-none text-surface-900"
+                />
+            </div>
 
-                <div v-for="nino in store.estanciasInactivas" :key="nino.id" class="bg-red-50/30 rounded-3xl border border-red-200 p-5 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
+            <div v-if="searchQuery.length < 2" class="col-span-full h-32 flex items-center justify-center rounded-2xl border border-dashed border-surface-300 bg-surface-50">
+                <p class="text-surface-500 font-medium text-sm text-center">Ingresa al menos 2 caracteres para comenzar la búsqueda.</p>
+            </div>
+            <div v-else-if="inactivosFiltrados.length === 0" class="col-span-full h-32 flex items-center justify-center rounded-2xl border border-dashed border-surface-300 bg-surface-50">
+                <p class="text-surface-500 font-medium text-sm text-center">No se encontraron coincidencias.</p>
+            </div>
+            
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div v-for="nino in inactivosFiltrados" :key="nino.id" class="bg-surface-50 rounded-3xl border border-surface-200 p-5 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
                     <div>
-                        <h4 class="font-bold text-lg text-red-900 leading-tight">{{ nino.nombre_nino }}</h4>
-                        <p class="text-red-700/70 text-sm mt-1">Tutor: {{ nino.nombre_tutor }}</p>
+                        <h4 class="font-bold text-lg text-surface-900 leading-tight">{{ nino.nombre_nino }}</h4>
+                        <p class="text-surface-500 text-sm mt-1">Tutor: {{ nino.nombre_tutor }}</p>
                     </div>
                     <div class="flex gap-2 mt-5">
-                        <button @click="reingresarActivo(nino.id)" class="bg-white hover:bg-red-50 text-red-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-red-200 active:scale-95">
-                            Resolver / Reingresar
+                        <button @click="abrirModalIngreso(nino.id)" class="bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm shadow-md active:scale-95">
+                            Ingresar / Activar
                         </button>
                     </div>
                 </div>
@@ -158,5 +204,55 @@ const reingresarActivo = (id) => {
       </div>
 
     </div>
+
+    <!-- Modal Ingreso -->
+    <div v-if="modalIngresoInfo.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl animate-fade-in">
+            <h3 class="text-xl font-bold text-surface-900 mb-4">Registrar Ingreso</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">¿Quién entrega al menor?</label>
+                    <select v-model="modalIngresoInfo.tipoUsuario" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none">
+                        <option value="SOCIO_TITULAR">Socio Titular</option>
+                        <option value="MIEMBRO_FAMILIAR">Miembro Familiar</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-8">
+                <button @click="modalIngresoInfo.visible = false" class="flex-1 py-3 bg-surface-100 hover:bg-surface-200 text-surface-700 rounded-xl font-bold transition-colors">Cancelar</button>
+                <button @click="confirmarIngreso" class="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors shadow-md">Confirmar Entrada</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Salida -->
+    <div v-if="modalSalidaInfo.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl animate-fade-in">
+            <h3 class="text-xl font-bold text-surface-900 mb-4">Registrar Salida</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">¿Quién recibe al menor?</label>
+                    <select v-model="modalSalidaInfo.tipoUsuario" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none">
+                        <option value="SOCIO_TITULAR">Socio Titular</option>
+                        <option value="MIEMBRO_FAMILIAR">Miembro Familiar</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo de quien recibe</label>
+                    <input v-model="modalSalidaInfo.correo" type="email" placeholder="ejemplo@correo.com" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none" />
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-8">
+                <button @click="modalSalidaInfo.visible = false" class="flex-1 py-3 bg-surface-100 hover:bg-surface-200 text-surface-700 rounded-xl font-bold transition-colors">Cancelar</button>
+                <button @click="confirmarSalida" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-colors shadow-md">Confirmar Salida</button>
+            </div>
+        </div>
+    </div>
+
   </main>
 </template>
