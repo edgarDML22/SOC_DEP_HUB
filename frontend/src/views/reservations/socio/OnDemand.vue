@@ -4,6 +4,8 @@ import { storeToRefs } from 'pinia';
 import { useReservationStore } from '@/stores/reservationStore';
 import { useProfileStore } from '@/stores/profiles/socioStore'; 
 import { IconArrowLeft } from '@/components/icons';
+import StepAcompanantes from './StepAcompanantes.vue';
+import StepConfirmacion from './StepConfirmacion.vue';
 
 const reservationStore = useReservationStore();
 
@@ -217,7 +219,7 @@ const isHoraBloqueada = (horaInicio) => {
 
             <div v-if="cargando" class="text-center py-24 text-surface-500">
                 <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
-                <span class="font-bold tracking-wider uppercase text-sm">Cargando datos...</span>
+                <span class="font-bold tracking-wider uppercase text-sm">Cargando...</span>
             </div>
 
             <div v-else>
@@ -232,7 +234,7 @@ const isHoraBloqueada = (horaInicio) => {
                          <div class="w-16 h-16 md:w-20 md:h-20 text-white flex justify-center items-center transition-transform group-hover:scale-110 mb-4">
                              <component :is="IconoDeporte(disciplina)" class="w-full h-full fill-current" />
                          </div>
-                         <span class="text-white font-extrabold text-base md:text-lg text-center leading-tight uppercase tracking-widest">
+                         <span class="text-white text-base md:text-lg text-center leading-tight tracking-widest">
                              {{ disciplina }}
                          </span>
                      </button>
@@ -363,21 +365,12 @@ const isHoraBloqueada = (horaInicio) => {
 
                  <!-- PASO 4 -->
                  <div v-if="pasoActual === '4'">
-                     <div class="text-center py-20 text-surface-400 font-bold border-2 border-dashed bg-surface-50 rounded-[2.5rem] border-surface-200">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto mb-4 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-                         Paso 4: Acompañantes (En desarrollo para el entorno actual)
-                     </div>
+                     <StepAcompanantes />
                  </div>
                     
                  <!-- PASO 5 -->
                  <div v-if="pasoActual === '5'">
-                     <div class="text-center py-24 text-surface-400 font-bold border-2 border-dashed bg-surface-50 rounded-[2.5rem] border-surface-200 mb-8">
-                         <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-200">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                         </div>
-                         <h3 class="text-2xl font-extrabold text-surface-900 mb-2">¡Todo listo para jugar!</h3>
-                         <p class="text-surface-500 font-medium">Confirma tu reserva de <strong class="text-surface-900">{{reservaPayload.disciplinaSeleccionada}}</strong></p>
-                     </div>
+                     <StepConfirmacion />
                  </div>
 
             </div>

@@ -382,6 +382,42 @@ export const useReservationStore = defineStore("reservation", () => {
 
   // Cancelar reserva
 
+  const toggleAcompanante = (item) => {
+    // Límite de capacidad (restando 1 para el titular)
+    const limite = espaciosPorDisciplina.value[0]?.capacidad_maxima || 999;
+    
+    const index = reservaPayload.value.acompanantes.findIndex(a => a.id === item.id && a.tipo === item.tipo);
+    if (index !== -1) {
+      // Si ya está en la lista, lo quitamos
+      reservaPayload.value.acompanantes.splice(index, 1);
+    } else {
+      // Si no está, validamos el límite antes de agregarlo
+      if (reservaPayload.value.acompanantes.length >= limite - 1) {
+         return; // Límite alcanzado
+      }
+      reservaPayload.value.acompanantes.push(item);
+    }
+  };
+
+  const confirmarReserva = async () => {
+    cargando.value = true;
+    errorApi.value = null;
+    try {
+      const res = await api.post("/reservations/confirm", {
+        id_reserva: reservaPayload.value.id_reserva,
+        acompanantes: reservaPayload.value.acompanantes
+      });
+      return { success: true, data: res.data };
+    } catch (error) {
+      console.error("Error al confirmar reserva:", error);
+      const msg = error.response?.data?.message || "Ocurrió un error al confirmar la reserva.";
+      errorNavegacion.value = msg;
+      return { success: false, error: msg, status: error.response?.status };
+    } finally {
+      cargando.value = false;
+    }
+  };
+
   const resetearReserva = () => {
     pasoActual.value = "1";
     reservaPayload.value = {
@@ -448,5 +484,7 @@ export const useReservationStore = defineStore("reservation", () => {
     seleccionarHorario,
     buscarReservaActiva,
     descartarBorrador,
+    toggleAcompanante,
+    confirmarReserva,
   };
 });
