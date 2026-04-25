@@ -18,3 +18,8 @@ Schedule::command('passes:expire')
 Schedule::command('app:calcular-no-shows')
     ->dailyAt('23:50')
     ->timezone('America/Mexico_City');
+
+
+Schedule::command('ludoteca:wipe-daily')
+    ->dailyAt('03:00')
+    ->timezone('America/Mexico_City');
