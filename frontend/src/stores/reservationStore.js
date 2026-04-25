@@ -23,6 +23,11 @@ export const useReservationStore = defineStore("reservation", () => {
     id_reserva: null, // <-- 2. NUEVO ESPACIO PARA GUARDAR EL ID
   });
 
+  const acompanantesSeleccionados = ref([]);
+  const capacidadMaximaEspacio = ref(0);
+  let debounceTimeout = null;
+
+
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
   // Solo agrégale el ref( y el ) al final
   const opcionesHoras = ref([
@@ -193,6 +198,17 @@ export const useReservationStore = defineStore("reservation", () => {
         const horaInicioLimpia = r.hora_inicio.substring(0, 5); // Pasa de "11:00:00" a "11:00"
         const horaFinLimpia = r.hora_fin.substring(0, 5);
 
+        // Hidratación de acompañantes desde el borrador
+        if (typeof r.acompanantes_draft === 'string') {
+          try {
+            acompanantesSeleccionados.value = JSON.parse(r.acompanantes_draft);
+          } catch(e) {
+            acompanantesSeleccionados.value = [];
+          }
+        } else {
+          acompanantesSeleccionados.value = r.acompanantes_draft || [];
+        }
+
         //En automatico se guardan los datos en reservaPayload
 
         reservaPayload.value = {
@@ -267,7 +283,7 @@ export const useReservationStore = defineStore("reservation", () => {
       // Guardamos el ID real en el payload
       reservaPayload.value.id_disciplina = disciplinaExacta ? disciplinaExacta.id_disciplina : null;
       reservaPayload.value.espacioSeleccionado = canchaSeleccionada.nombre_espacio;
-
+      capacidadMaximaEspacio.value = canchaSeleccionada.capacidad_maxima || 0;
     }
 
     fetchHorarioEspacio(id_espacio);
@@ -380,6 +396,48 @@ export const useReservationStore = defineStore("reservation", () => {
     pasoActual.value = nuevoPaso;
   };
 
+  // --- ACOMPAÑANTES ---
+  const sincronizarAcompanantesBorrador = () => {
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+    
+    debounceTimeout = setTimeout(async () => {
+      const id_reserva = reservaPayload.value.id_reserva;
+      if (!id_reserva) return; // Si no hay borrador activo, no hacemos PUT
+
+      try {
+        await api.put(`/reservations/${id_reserva}/draft/acompanantes`, {
+          acompanantes: acompanantesSeleccionados.value
+        });
+      } catch (error) {
+        console.error("Error al sincronizar acompañantes del borrador:", error);
+      }
+    }, 500);
+  };
+
+  const toggleAcompanante = (acompanante) => {
+    const maxPermitidos = capacidadMaximaEspacio.value - 1; // -1 porque el titular ya cuenta
+    
+    const index = acompanantesSeleccionados.value.findIndex(a => 
+      a.id_socio === acompanante.id_socio || a.id === acompanante.id
+    ); 
+    
+    if (index !== -1) {
+      // Si ya está, lo quitamos
+      acompanantesSeleccionados.value.splice(index, 1);
+    } else {
+      // Si no está, validamos capacidad
+      if (acompanantesSeleccionados.value.length >= maxPermitidos) {
+        return false; // Retornamos falso para que la UI muestre el Toast de error
+      }
+      acompanantesSeleccionados.value.push(acompanante);
+    }
+    
+    sincronizarAcompanantesBorrador();
+    return true; // Éxito
+  };
+
   // Cancelar reserva
 
   const toggleAcompanante = (item) => {
@@ -435,6 +493,9 @@ export const useReservationStore = defineStore("reservation", () => {
     horaFinTemp.value = null
     errorNavegacion.value = null
     horariosDisponibles.value = null
+    acompanantesSeleccionados.value = []
+    capacidadMaximaEspacio.value = 0
+    if (debounceTimeout) clearTimeout(debounceTimeout);
   };
 
   const obtenerIconoName = (disciplina) => {
@@ -462,6 +523,8 @@ export const useReservationStore = defineStore("reservation", () => {
     errorApi,
     reservaPayload,
     disciplinasUnicas,
+    acompanantesSeleccionados,
+    capacidadMaximaEspacio,
     // --- NUEVAS VARIABLES DEL STEP 3 ---
     opcionesHoras,
     horaInicioTemp,
@@ -486,5 +549,7 @@ export const useReservationStore = defineStore("reservation", () => {
     descartarBorrador,
     toggleAcompanante,
     confirmarReserva,
+    toggleAcompanante,
+    sincronizarAcompanantesBorrador,
   };
 });

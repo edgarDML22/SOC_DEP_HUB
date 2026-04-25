@@ -120,6 +120,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Agregar acompañantes a una reservación
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
 
+    Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
+
     // Búsqueda dinámica de socios/familiares (Autocompletado)
     Route::get('/v1/socios/search', [SocioController::class, 'search']);
 
