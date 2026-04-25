@@ -14,6 +14,7 @@ class SocioTitular extends Model
     protected $fillable = [
         'fecha_nacimiento',
         'genero',
+        'modalidad_plan',
     ];
 
     public function invitados()

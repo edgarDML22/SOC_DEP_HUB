@@ -16,7 +16,12 @@ class RegistroLudotecaMongo extends Model
         'menor_id',
         'tipo_evento',
         'timestamp',
-        'metadata'
+        'metadata',
+        'hora_ingreso',
+        'hora_egreso',
+        'instructor_ingreso',
+        'instructor_egreso'
+
     ];
 
     protected $casts = [

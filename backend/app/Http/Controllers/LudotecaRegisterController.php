@@ -16,7 +16,17 @@ class LudotecaRegisterController extends Controller
         $request->validate([
             'id_miembro' => 'required|exists:miembros_familiares,id_miembro',
             'id_socio' => 'required|exists:socios_titulares,id_socio',
+
         ]);
+        //VALIDACION 1: MODALIDAD DE PLAN DEL SOCIO
+        $modalidad_plan = SocioTitular::where('id_socio', $request->id_socio)->first();
+
+        if ($modalidad_plan->tipo_socio != 'FAMILIAR') {
+            return response()->json([
+                'message' => 'El socio no cuenta con Plan Familiar',
+            ], 403);
+        }
+
 
 
         $existe = RegistrosLudoteca::where('id_menor', $request->id_miembro)
@@ -27,7 +37,6 @@ class LudotecaRegisterController extends Controller
                 'message' => 'El menor ya se encuentra registrado',
             ]);
         }
-
 
         $familiar = MiembrosFamiliares::where('id_miembro', $request->id_miembro)
             ->where('socio_id', $request->id_socio)
@@ -50,6 +59,7 @@ class LudotecaRegisterController extends Controller
             'id_adulto_ingreso' => $request->id_socio,
             'hora_egreso' => null,
             'id_adulto_egreso' => null,
+            'id_instructor_ingreso' => $request->id_instructor,
         ]);
         RegistroLudotecaMongo::insert([
             'tutor_id' => $request->id_socio,
@@ -58,6 +68,7 @@ class LudotecaRegisterController extends Controller
             'timestamp' => now('America/Mexico_City'),
             'metadata' => [
                 'id_registro' => $registro->id_registro,
+
             ]
         ]);
 
@@ -66,6 +77,7 @@ class LudotecaRegisterController extends Controller
             'registro' => $registro->id_menor,
         ]);
     }
+
 
 
 

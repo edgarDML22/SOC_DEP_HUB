@@ -83,6 +83,26 @@ Route::post('/v1/ludoteca/update-status', [LudotecaStatusController::class, 'upd
 Route::post('/v1/ludoteca/register', [LudotecaRegisterController::class, 'store']);
 //Ludoteca Lista de menores
 Route::get('/v1/ludoteca/list', [MiembrosFamiliaresList::class, 'show']);
+
+//Ludoteca SDH-163
+
+// Registrar ingreso del menor
+Route::post(
+    '/v1/ludoteca/ingreso',
+    [LudotecaStatusController::class, 'checkIn']
+);
+
+// Cambiar estado / registrar salida
+Route::patch(
+    '/v1/ludoteca/estancia/{id}/status',
+    [LudotecaStatusController::class, 'updateStatus']
+);
+
+// Consultar estado actual de hijos del socio
+Route::get(
+    '/v1/socio/ludoteca/status',
+    [LudotecaStatusController::class, 'getChildrenStatus']
+);
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
