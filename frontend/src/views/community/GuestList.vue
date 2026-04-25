@@ -1,34 +1,16 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useGuestStore } from '@/stores/community/guestStore'
 import { useAlerts } from '@/composables/useAlerts' 
-import api from '@/services/api'
-
 import IconQR from '@/components/icons/IconQr.vue'
-import IconEdit from '@/components/icons/IconEdit.vue'      
-import IconTrash from '@/components/icons/IconTrash.vue'
 
-// Alertas personalizadas
-const { toastInfo, confirmDelete, confirmWarning, successModal } = useAlerts()
+const router = useRouter()
+const { toastInfo } = useAlerts()
 const guestStore = useGuestStore()
 
 const filtro = ref('TODOS')
 const search = ref('')
-
-// VARIABLES PARA CONTROLAR LOS BOTONES DE CARGA
-const actionLoadingId = ref(null)
-const actionTypeLoading = ref('') // 'cancelar' o 'eliminar'
-
-// ESTADO PARA EL MODAL DE EDICIÓN
-const showModal = ref(false)
-const modalLoading = ref(false)
-
-const formInvitado = ref({
-  id: null,
-  nombre: '',
-  correo: '',
-  telefono: ''
-})
 
 onMounted(() => {
   guestStore.fetchInvitados()
@@ -56,93 +38,9 @@ const invitadosFiltrados = computed(() => {
   return resultado
 })
 
-const handleCancel = async (inv) => {
-  const result = await confirmWarning(
-    '¿Estás seguro?', 
-    `Se cancelará el pase de ${inv.nombre}. Esta acción liberará tu cuota de invitados.`,
-    'Sí, cancelar pase'
-  )
-
-  if (result.isConfirmed) {
-    // Prendemos el loading
-    actionLoadingId.value = inv.id
-    actionTypeLoading.value = 'cancelar'
-
-    try {
-      await api.put(`guests/passes/${inv.id}/cancel`)
-      inv.estatus_acceso = 'EXPIRADO'
-      
-      successModal('¡Cancelado!', 'El pase ha sido revocado correctamente.')
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || 'No se pudo procesar la cancelación.'
-      toastInfo('Error', errorMsg, 'error')
-    } finally {
-      // Apagamos el loading
-      actionLoadingId.value = null
-      actionTypeLoading.value = ''
-    }
-  }
-}
-
-// --- FUNCIONES (Editar usa Vue HTML, Eliminar usa SWAL de diseño) ---
-const abrirModalEditar = (inv) => {
-  formInvitado.value = { id: inv.id, nombre: inv.nombre, correo: inv.correo, telefono: inv.telefono }
-  showModal.value = true
-}
-
-const abrirModalEliminar = async (inv) => {
-  const result = await confirmDelete(
-    'Eliminar Invitado',
-    `¿Estás seguro de que deseas eliminar a ${inv.nombre}? Esta acción no se puede deshacer.`
-  )
-  
-  if (result.isConfirmed) {
-    // Prendemos el loading
-    actionLoadingId.value = inv.id
-    actionTypeLoading.value = 'eliminar'
-
-    try {
-      await guestStore.deleteInvitado(inv.id)
-      toastInfo('Eliminado', 'El invitado ha sido removido de la comunidad', 'success')
-    } catch (error) {
-      toastInfo('Error', 'No se pudo completar la operación', 'error')
-    } finally {
-      // Apagamos el loading
-      actionLoadingId.value = null
-      actionTypeLoading.value = ''
-    }
-  }
-}
-
-const cerrarModal = () => {
-  showModal.value = false
-  setTimeout(() => {
-    formInvitado.value = { id: null, nombre: '', correo: '', telefono: '' }
-  }, 200)
-}
-
-const confirmarEdicion = async () => {
-  modalLoading.value = true
-  try {
-    await guestStore.updateInvitado(formInvitado.value.id, {
-      nombre_invitado: formInvitado.value.nombre,
-      correo: formInvitado.value.correo,
-      telefono: formInvitado.value.telefono
-    })
-    toastInfo('Actualizado', 'El invitado se editó con éxito', 'success')
-    cerrarModal()
-  } catch (error) {
-    toastInfo('Error', 'No se pudo editar el invitado', 'error')
-  } finally {
-    modalLoading.value = false
-  }
-}
-
-// Variables de estado para el Modal del QR
 const showQrModal = ref(false)
 const selectedGuest = ref(null)
 
-// Función para abrir el modal del QR
 const abrirModalQR = (inv) => {
   selectedGuest.value = inv
   showQrModal.value = true
@@ -153,13 +51,11 @@ const cerrarModalQR = () => {
   selectedGuest.value = null
 }
 
-// Lógica para generar la URL del QR
 const generarQrUrl = (codigo) => {
   const data = JSON.stringify({ codigo_qr: codigo, tipo: 'invitado' })
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`
 }
 
-// Lógica para copiar el código al portapapeles
 const copiarImagenAlPortapapeles = async (url) => {
   try {
     toastInfo('Procesando', 'Preparando imagen...', 'info')
@@ -179,274 +75,165 @@ const copiarImagenAlPortapapeles = async (url) => {
 </script>
 
 <template>
-  <div class="container">
-    <div class="header">
-      <div>
-        <h2>Mis Invitados</h2>
-        <p>Consulta el estatus de tus invitados</p>
+  <!-- Quité bg-surface-50 y min-h-screen aquí para que no se duplique con el Layout -->
+  <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
+    <div class="max-w-7xl mx-auto flex flex-col gap-6">
+      
+      <!-- BOTÓN VOLVER UNIVERSAL -->
+      <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Volver
+      </button>
 
-        <div class="quota-info" :class="{ 'limit-reached': activeCount >= 5 }">
-           Invitados Activos: <strong>{{ activeCount }} / 5</strong>
+      <!-- Encabezado -->
+      <div class="flex flex-col gap-2">
+        <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Mis Invitados</h2>
+        <p class="text-surface-500 text-sm md:text-base m-0 font-medium">Consulta el estatus de tus invitados</p>
+        <div class="mt-2 text-sm" :class="activeCount >= 5 ? 'text-red-500 font-medium' : 'text-primary-700'">
+           Invitados Activos: <span class="font-bold">{{ activeCount }} / 5</span>
         </div>
       </div>
 
-      <router-link class="btn-primary" :to="{ name: 'guests-add' }">
-        + Agregar Invitado
-      </router-link>
-    </div>
+      <!-- Buscador y Filtros Nivel 2 -->
+      <div class="flex flex-col gap-4">
+        <input 
+          v-model="search" 
+          placeholder="Buscar invitado por nombre..." 
+          class="w-full md:max-w-md px-4 py-3 bg-white border border-surface-200 rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 font-medium shadow-sm" 
+        />
+        
+        <!-- Pestañas Nivel 2 (Minimalistas) -->
+        <div class="flex gap-6 border-b border-surface-200 w-full overflow-x-auto scrollbar-thin">
+          <button 
+            @click="cambiarFiltro('TODOS')" 
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap focus:outline-none"
+            :class="filtro === 'TODOS' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+          >
+            Todos
+          </button>
+          <button 
+            @click="cambiarFiltro('ACTIVO')" 
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap focus:outline-none"
+            :class="filtro === 'ACTIVO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+          >
+            Activos
+          </button>
+          <button 
+            @click="cambiarFiltro('EXPIRADO')" 
+            class="pb-3 text-sm font-medium transition-all whitespace-nowrap focus:outline-none"
+            :class="filtro === 'EXPIRADO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+          >
+            Expirados
+          </button>
+        </div>
+      </div>
 
-    <input v-model="search" placeholder="Buscar invitado por nombre..." class="search" />
+      <!-- Estado de Carga -->
+      <div v-if="guestStore.loading" class="text-center py-12 text-surface-500 font-medium">
+        <span class="animate-pulse">Cargando invitados...</span>
+      </div>
 
-    <div class="tabs">
-      <button @click="cambiarFiltro('TODOS')" :class="['tab', filtro === 'TODOS' && 'active']">Todos</button>
-      <button @click="cambiarFiltro('ACTIVO')" :class="['tab', filtro === 'ACTIVO' && 'active']">Activos</button>
-      <button @click="cambiarFiltro('EXPIRADO')" :class="['tab', filtro === 'EXPIRADO' && 'active']">Expirados</button>
-    </div>
+      <!-- Empty State -->
+      <div v-else-if="invitadosFiltrados.length === 0" class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200">
+        <p v-if="filtro === 'TODOS'" class="text-lg font-medium">No hay invitados registrados en este momento</p>
+        <p v-else-if="filtro === 'ACTIVO'" class="text-lg font-medium">No hay invitados con su pase activo en este momento</p>
+        <p v-else-if="filtro === 'EXPIRADO'" class="text-lg font-medium">No hay invitados con pase expirado en este momento</p>
+      </div>
 
-    <div v-if="guestStore.loading" class="loading">Cargando invitados...</div>
-
-    <div v-else-if="invitadosFiltrados.length === 0" class="empty-state">
-      <p v-if="filtro === 'TODOS'">No hay invitados registrados en este momento</p>
-      <p v-else-if="filtro === 'ACTIVO'">No hay invitados con su pase activo en este momento</p>
-      <p v-else-if="filtro === 'EXPIRADO'">No hay invitados con pase expirado en este momento</p>
-    </div>
-
-    <div v-else>
-      <div v-for="inv in invitadosFiltrados" :key="inv.id" class="card">
-        <div class="left">
-          <div class="avatar">{{ inv.nombre.charAt(0) }}</div>
-          <div>
-            <div class="nombre">
-              {{ inv.nombre }}
-              <span class="badge" :class="inv.estatus_acceso.toLowerCase()">
-                {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
-              </span>
+      <!-- Lista de Tarjetas (Grid) -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div 
+          v-for="inv in invitadosFiltrados" 
+          :key="inv.id" 
+          class="bg-white rounded-2xl p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col h-full"
+        >
+          <!-- Header de tarjeta -->
+          <div class="flex items-start gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-medium text-lg uppercase shrink-0">
+              {{ inv.nombre.charAt(0) }}
             </div>
-            <div class="info" v-if="inv.telefono">Teléfono: {{ inv.telefono }}</div>
-            <div class="info" v-if="inv.correo">Correo: {{ inv.correo }}</div>
-            <div class="info" v-if="inv.fecha_expiracion">Expira: {{ inv.fecha_expiracion }}</div>
+            <div class="flex-1 flex flex-col min-w-0">
+              <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="inv.nombre">{{ inv.nombre }}</h3>
+              <div class="mt-1">
+                 <span 
+                   class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border"
+                   :class="{
+                     'bg-green-50 text-green-700 border-green-200': inv.estatus_acceso === 'ACTIVO',
+                     'bg-red-50 text-red-700 border-red-200': inv.estatus_acceso === 'EXPIRADO' || inv.estatus_acceso === 'INACTIVO'
+                   }"
+                 >
+                   {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
+                 </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Body de tarjeta -->
+          <div class="flex-1 flex flex-col gap-3 text-sm text-surface-600 mb-5 font-medium">
+            <div v-if="inv.telefono" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+              </svg>
+              <span class="truncate">{{ inv.telefono }}</span>
+            </div>
+            <div v-if="inv.correo" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+              <span class="truncate" :title="inv.correo">{{ inv.correo }}</span>
+            </div>
+            <div v-if="inv.fecha_expiracion" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+              </svg>
+              <span>Expira: {{ inv.fecha_expiracion }}</span>
+            </div>
+          </div>
+
+          <!-- Footer de tarjeta -->
+          <div class="mt-auto">
+            <button 
+              @click="abrirModalQR(inv)" 
+              class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <IconQR class="w-4 h-4 text-surface-500" />
+              Ver código QR
+            </button>
           </div>
         </div>
-
-        <div class="actions">
-          <button class="btn-qr" @click="abrirModalQR(inv)" title="Ver Código QR">
-            <IconQR class="icon-svg" />
-            <span>QR</span>
-          </button>
-          
-          <button class="btn-edit" @click="abrirModalEditar(inv)" title="Editar">
-            <IconEdit class="icon-svg" />
-            <span>Editar</span>
-          </button>
-          
-          <button 
-            class="btn-delete" 
-            @click="abrirModalEliminar(inv)" 
-            title="Eliminar"
-            :disabled="actionLoadingId === inv.id"
-          >
-            <IconTrash v-if="!(actionLoadingId === inv.id && actionTypeLoading === 'eliminar')" class="icon-svg" />
-            <span>{{ actionLoadingId === inv.id && actionTypeLoading === 'eliminar' ? 'Eliminando...' : 'Eliminar' }}</span>
-          </button>
-          
-          <button
-            v-if="inv.estatus_acceso === 'ACTIVO'"
-            class="btn-revoke"
-            @click="handleCancel(inv)"
-            :disabled="actionLoadingId === inv.id"
-          >
-            {{ actionLoadingId === inv.id && actionTypeLoading === 'cancelar' ? 'Cancelando...' : 'Cancelar Pase' }}
-          </button>
-        </div>
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-overlay" @mousedown.self="cerrarModal">
-      <div class="modal-card">
-        <h3>Editar Invitado</h3>
-        <div class="form-group">
-          <label>Nombre</label>
-          <input v-model="formInvitado.nombre" class="modal-input" />
-          <label>Correo</label>
-          <input v-model="formInvitado.correo" class="modal-input" />
-          <label>Teléfono</label>
-          <input v-model="formInvitado.telefono" class="modal-input" />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="cerrarModal" :disabled="modalLoading">Cancelar</button>
-          <button class="btn-primary" @click="confirmarEdicion" :disabled="modalLoading">
-            {{ modalLoading ? 'Procesando...' : 'Guardar Cambios' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showQrModal" class="modal-overlay" @mousedown.self="cerrarModalQR">
-      <div class="modal-card qr-modal">
-        <h3>Código QR de Acceso</h3>
-        <p class="text-muted">Este es el código QR de <strong>{{ selectedGuest.nombre }}</strong></p>
+    <!-- Modal QR -->
+    <div v-if="showQrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
+      <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
+        <h3 class="text-xl font-bold text-surface-900 mb-2">Código QR de Acceso</h3>
+        <p class="text-surface-600 font-medium text-sm mb-6">Este es el código QR de <strong class="text-surface-900 font-medium">{{ selectedGuest.nombre }}</strong></p>
         
-        <div class="qr-display-container">
+        <div class="bg-surface-50 p-4 border border-dashed border-surface-300 rounded-xl mb-6 flex justify-center w-full">
           <img 
             :src="generarQrUrl(selectedGuest.codigo_qr)" 
             alt="QR Code" 
-            class="qr-image-large" 
+            class="w-48 h-48 md:w-56 md:h-56 rounded-lg bg-white object-contain" 
           />
         </div>
 
-        <div class="modal-actions-center">
-          <button class="btn-copy" @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))">
+        <div class="w-full flex flex-col gap-3">
+          <button 
+            @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))"
+            class="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm focus:outline-none"
+          >
             Copiar Imagen QR
           </button>
-          <button class="btn-cancel" @click="cerrarModalQR" style="width: 100%; margin-top: 5px;">Cerrar</button>
+          <button 
+            @click="cerrarModalQR"
+            class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 focus:outline-none"
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     </div>
-
   </div>
 </template>
-
-<style scoped>
-.container { padding: 20px; font-family: var(--p-font-family); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header h2 { font-size: 22px; font-weight: 700; color: var(--p-surface-900); margin:0; }
-.header p { color: var(--p-surface-500); font-size: 14px; margin-top: 4px;}
-
-.quota-info { margin-top: 8px; font-size: 14px; color: var(--p-primary-700); }
-.limit-reached { color: var(--state-error); }
-
-.search { width: 100%; padding: 10px; border-radius: var(--p-border-radius-medium); border: 1px solid var(--p-surface-200); margin-bottom: 12px; outline: none;}
-.search:focus { border-color: var(--p-primary-700); }
-
-.tabs { display: flex; gap: 10px; margin-bottom: 16px; }
-.tab { flex: 1; padding: 10px; border-radius: var(--p-border-radius-medium); background: var(--p-surface-100); color: var(--p-surface-900); border: none; cursor: pointer; transition: background 0.2s ease; }
-.tab:hover { background: var(--p-surface-200); }
-.tab.active { background: var(--p-primary-100); color: var(--p-primary-700); font-weight: 600; }
-
-.empty-state { background: white; border-radius: var(--p-border-radius-medium); padding: 20px 40px; text-align: center; color: var(--p-surface-900); font-size: 18px; font-weight: 500; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--p-surface-200); margin: 40px auto; max-width: 600px; }
-
-.card { display: flex; justify-content: space-between; align-items: center; background: white; border-radius: var(--p-border-radius-medium); padding: 14px; margin-bottom: 12px; border: 1px solid var(--p-surface-200); }
-.left { display: flex; gap: 12px; align-items: center; }
-.avatar { width: 42px; height: 42px; background: var(--p-surface-100); color: var(--p-primary-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-.nombre { font-weight: 600; font-size: 15px; color: var(--p-surface-900); margin-bottom: 4px; }
-.info { font-size: 13px; color: var(--p-surface-500); line-height: 1.4; }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.btn-edit { background: var(--p-surface-200); color: var(--p-surface-900); border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500;}
-.btn-edit:hover { background: #d1d5db; }
-
-/* AJUSTES PARA ESTADO DISABLED EN ELIMINAR Y CANCELAR */
-.btn-delete { background: #fee2e2; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #b91c1c; cursor: pointer; font-weight: 500; transition: 0.2s;}
-.btn-delete:hover:not(:disabled) { background: #fecaca; }
-.btn-delete:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-revoke { background: #fef08a; border: none; padding: 6px 10px; border-radius: var(--p-border-radius-medium); color: #854d0e; cursor: pointer; font-weight: 600; transition: 0.2s; }
-.btn-revoke:hover:not(:disabled) { background: #fde047; }
-.btn-revoke:disabled { background: #fef9c3; cursor: not-allowed; opacity: 0.7; }
-
-.badge { margin-left: 10px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: transparent; border: 1.5px solid; }
-.badge.activo { color: var(--state-success); border-color: var(--state-success); }
-.badge.expirado { color: var(--state-error); border-color: var(--state-error); }
-
-.btn-primary { background-color: var(--p-primary-700); color: white; border: none; padding: 8px 14px; border-radius: var(--p-border-radius-medium); cursor: pointer; text-decoration: none; transition: background-color 0.2s ease; font-weight: 500; font-size: 14px;}
-.btn-primary:hover { background-color: var(--p-primary-800); }
-.btn-cancel { background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-200); padding: 8px 16px; border-radius: var(--p-border-radius-medium); cursor: pointer; font-weight: 500; transition: background 0.2s ease; margin-right: 10px; }
-.btn-cancel:hover { background: var(--p-surface-100); }
-
-/* MODAL DE VUE (Para Editar) */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-card { background: white; padding: 24px; border-radius: var(--p-border-radius-medium); width: 90%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-.modal-card h3 { margin-top: 0; margin-bottom: 16px; font-size: 18px; color: var(--p-surface-900); }
-.form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-group label { font-size: 13px; font-weight: 600; color: var(--p-surface-900); margin-top: 4px; }
-.modal-input { padding: 10px; border: 1px solid var(--p-surface-200); border-radius: var(--p-border-radius-medium); outline: none; transition: border-color 0.2s; color: var(--p-surface-900); }
-.modal-input:focus { border-color: var(--p-primary-700); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.loading { text-align: center; padding: 20px; color: var(--p-surface-500); }
-
-/* ESTILOS PARA ICONOS Y MODAL QR */
-.btn-edit,
-.btn-delete {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.btn-qr {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--p-surface-100);
-  color: var(--p-primary-700);
-  border: 1px solid var(--p-primary-700);
-  padding: 6px 10px;
-  border-radius: var(--p-border-radius-medium);
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 600;
-  font-size: 13px;
-}
-.btn-qr:hover {
-  color: white;
-  background: var(--p-primary-800);
-  border-color: var(--p-primary-500);
-}
-
-.icon-svg {
-  width: 16px;
-  height: 16px;
-}
-.btn-qr .icon-svg {
-  fill: currentColor;
-  stroke: none;
-}
-.btn-edit .icon-svg,
-.btn-delete .icon-svg {
-  fill: none;
-  stroke: currentColor;
-}
-.btn-edit .icon-svg *,
-.btn-delete .icon-svg * {
-  fill: none;
-  stroke: currentColor;
-}
-
-.qr-modal {
-  text-align: center;
-  max-width: 350px !important;
-}
-.qr-display-container {
-  margin: 20px 0;
-  padding: 15px;
-  background: var(--p-surface-50);
-  border-radius: 12px;
-  border: 1px dashed var(--p-surface-300);
-}
-.qr-image-large {
-  width: 200px;
-  height: 200px;
-  border-radius: 8px;
-}
-.modal-actions-center {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-.btn-copy {
-  background: var(--p-primary-700);
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.btn-copy:hover {
-  background: var(--p-primary-800);
-}
-</style>
