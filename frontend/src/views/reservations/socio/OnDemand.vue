@@ -177,8 +177,8 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
             
             <div class="flex-1 relative z-10">
                 <div class="flex items-center gap-3 mb-3">
-                   <span class="bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                   <span class="bg-white/20 text-white border border-white/30 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 backdrop-blur-sm">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                        Reserva en curso
                    </span>
                 </div>
@@ -196,7 +196,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
             </div>
             
             <div class="shrink-0 flex flex-col sm:flex-row w-full lg:w-auto gap-4 relative z-10">
-                 <button class="w-full sm:w-auto px-6 py-3.5 bg-transparent border-2 border-white/30 text-white font-bold rounded-xl hover:bg-white/10 transition-colors focus:outline-none flex justify-center items-center active:scale-95" @click="ignorarReserva">
+                 <button class="w-full sm:w-auto px-6 py-3.5 bg-white/10 border border-white/30 text-white font-bold rounded-xl hover:bg-white/20 shadow-sm transition-all focus:outline-none flex justify-center items-center active:scale-95" @click="ignorarReserva">
                      Cancelar
                  </button>
                  <button class="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-800 font-extrabold rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all focus:outline-none flex justify-center items-center gap-2 active:scale-95" @click="reanudarReserva">

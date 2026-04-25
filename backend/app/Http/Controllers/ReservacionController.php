@@ -11,6 +11,7 @@ use App\Models\EspacioFisico;
 use App\Models\Reservacion;
 use Illuminate\Support\Facades\Validator;
 use App\Models\SesionActiva;
+use Illuminate\Support\Facades\Mail;
 
 class ReservacionController extends Controller
 {
@@ -329,6 +330,25 @@ class ReservacionController extends Controller
                 // Mantenemos el draft para referencia histórica pero limpiamos la expiración
                 $reserva->save();
 
+                // Enviar correo de confirmación
+                try {
+                    $user = $reserva->id_socio_titular == $request->user()->user_id ? $request->user() : \App\Models\User::find($reserva->id_socio_titular);
+                    if ($user && $user->email) {
+                        $disciplina = $reserva->disciplina->nombre_disciplina ?? 'Deporte';
+                        $espacio = $reserva->espacioFisico->nombre_espacio ?? 'Espacio';
+                        $hora = $reserva->hora_inicio . ' - ' . $reserva->hora_fin;
+                        $fecha = $reserva->fecha_reserva;
+
+                        Mail::raw("Tu reservación para $disciplina en $espacio ha sido confirmada para el día $fecha en el horario $hora.", function ($message) use ($user) {
+                            $message->to($user->email)
+                                    ->subject('Confirmación de Reservación - SOC-DEP HUB');
+                        });
+                    }
+                } catch (\Exception $mailEx) {
+                    // Loggeamos el error del correo pero no bloqueamos la respuesta de éxito de la reserva
+                    \Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Reservación confirmada exitosamente'
@@ -378,6 +398,38 @@ class ReservacionController extends Controller
         return response()->json([
             'success' => !!$reserva,
             'reserva' => $reserva
+        ]);
+    }
+
+    public function myReservations(Request $request)
+    {
+        $socioId = $request->user()->user_id;
+        $status = $request->query('status', 'TODAS');
+        $limit = $request->query('limit', 10);
+
+        $query = Reservacion::where('id_socio_titular', $socioId)
+            ->with(['espacioFisico:id_espacio,nombre_espacio', 'disciplina:id_disciplina,nombre_disciplina'])
+            ->orderBy('fecha_reserva', 'desc')
+            ->orderBy('hora_inicio', 'desc');
+
+        if ($status !== 'TODAS') {
+            $query->where('estatus_operativo', $status);
+        } else {
+            // En 'TODAS', mostramos todo menos borradores (PENDIENTE) expirados
+            $query->where(function($q) {
+                $q->where('estatus_operativo', '!=', 'PENDIENTE')
+                  ->orWhere('fecha_expiracion', '>', now());
+            });
+        }
+
+        $reservas = $query->paginate($limit);
+
+        return response()->json([
+            'success' => true,
+            'data' => $reservas->items(),
+            'current_page' => $reservas->currentPage(),
+            'last_page' => $reservas->lastPage(),
+            'total' => $reservas->total()
         ]);
     }
 }

@@ -440,22 +440,28 @@ export const useReservationStore = defineStore("reservation", () => {
 
   const confirmarReserva = async () => {
     cargando.value = true;
-    errorApi.value = null;
     try {
-      const res = await api.post("/reservations/confirm", {
-        id_reserva: reservaPayload.value.id_reserva,
-        acompanantes: acompanantesSeleccionados.value
-      });
-      return { success: true, data: res.data };
+        const res = await api.post("/reservations/confirm", {
+            id_reserva: reservaPayload.value.id_reserva,
+            acompanantes: acompanantesSeleccionados.value
+        });
+        
+        // Retornamos un mensaje de éxito incluyendo el aviso del correo
+        return { 
+            success: true, 
+            data: res.data,
+            message: "¡Reservación confirmada exitosamente! Se ha enviado un correo con los detalles." 
+        };
     } catch (error) {
-      console.error("Error al confirmar reserva:", error);
-      const msg = error.response?.data?.message || "Ocurrió un error al confirmar la reserva.";
-      errorNavegacion.value = msg;
-      return { success: false, error: msg, status: error.response?.status };
+        console.error("Error al confirmar reserva:", error);
+        const msg = error.response?.data?.message || "Error al confirmar.";
+        return { success: false, error: msg };
     } finally {
-      cargando.value = false;
+        cargando.value = false;
     }
-  };
+};
+
+
 
   const resetearReserva = () => {
     pasoActual.value = "1";
