@@ -21,6 +21,11 @@ class Reservacion extends Model
         'hora_fin',
         'estatus_operativo',
         'fecha_expiracion',
+        'acompanantes_draft',
+    ];
+
+    protected $casts = [
+        'acompanantes_draft' => 'array',
     ];
 
     public function espacioFisico(){

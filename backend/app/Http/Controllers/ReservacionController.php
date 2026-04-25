@@ -232,6 +232,36 @@ class ReservacionController extends Controller
         ], 201);
     }
 
+    public function syncAcompanantesDraft(Request $request, $id)
+    {
+        $request->validate([
+            'acompanantes' => 'array'
+        ]);
+
+        $reserva = Reservacion::where('id_reserva', $id)->first();
+
+        if (!$reserva) {
+            return response()->json(['success' => false, 'message' => 'Reservación no encontrada'], 404);
+        }
+
+        if ($reserva->id_socio_titular !== $request->user()->user_id) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para modificar este borrador'], 403);
+        }
+
+        if ($reserva->estatus_operativo !== 'PENDIENTE') {
+            return response()->json(['success' => false, 'message' => 'La reservación ya no es un borrador (estatus: ' . $reserva->estatus_operativo . ')'], 400);
+        }
+
+        // Guardamos los acompañantes (Laravel lo serializa automáticamente gracias a $casts)
+        $reserva->acompanantes_draft = $request->acompanantes ?? [];
+        $reserva->save();
+
+        return response()->json([
+            'success' => true, 
+            'message' => 'Acompañantes del borrador sincronizados'
+        ], 200);
+    }
+
     // 2. CONFIRMAR RESERVA
     public function confirm(Request $request)
     {
