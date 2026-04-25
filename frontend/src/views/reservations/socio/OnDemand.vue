@@ -171,41 +171,39 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
           </div>
         </Transition>
 
-        <!-- HERO BANNER DRAFT (Reemplazo del Modal Popup) -->
-        <div v-if="mostrarModalDraft" class="w-full max-w-5xl mb-6 bg-gradient-to-br from-primary-800 to-primary-600 text-white rounded-[2.5rem] p-6 md:p-10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 border-4 border-primary-500/20 relative overflow-hidden transition-all animate-fade-in relative z-10">
+        <!-- HERO BANNER DRAFT (NUEVO DISEÑO) -->
+        <div v-if="mostrarModalDraft" class="w-full max-w-5xl mb-6 bg-gradient-to-br from-primary-800 to-primary-600 text-white rounded-[2.5rem] p-6 md:p-10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 border border-primary-500/30 overflow-hidden transition-all animate-fade-in relative z-10">
             <div class="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
             
             <div class="flex-1 relative z-10">
-                <div class="flex items-center gap-3 mb-3">
-                   <span class="bg-white/20 text-white border border-white/30 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 backdrop-blur-sm">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                       Reserva en curso
-                   </span>
+                <div class="flex items-center gap-3 mb-4">
+                    <!-- NUEVO BADGE SOFISTICADO -->
+                    <span class="bg-surface-900/40 text-white border border-white/20 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-2 backdrop-blur-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Reserva Pendiente
+                    </span>
                 </div>
                 <h3 class="text-2xl md:text-3xl font-extrabold mb-3 tracking-tight">
                     ¿Deseas reanudar tu reservación?
                 </h3>
-                <p class="text-primary-100 font-medium text-sm md:text-base mb-6 opacity-95 max-w-xl leading-relaxed">
-                    Aún cuentas con una reservación de <strong class="text-white">{{reservaPayload.disciplinaSeleccionada}}</strong> que no terminaste de confirmar. Se te ha guardado el horario de <strong class="text-white">{{ formatearHora(reservaPayload.hora_inicio) }} a {{ formatearHora(reservaPayload.hora_fin) }}</strong>.
+                <p class="text-primary-100 font-medium text-sm md:text-base mb-2 opacity-95 max-w-xl leading-relaxed">
+                    Aún cuentas con una reservación de <strong class="text-white">{{reservaPayload.disciplinaSeleccionada}}</strong> que no terminaste de confirmar...
                 </p>
-                <div class="flex flex-wrap items-center gap-3">
-                   <span class="px-4 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm font-bold tracking-wider text-white">
-                       <i class="pi pi-map-marker text-xs mr-1 opacity-70"></i> {{reservaPayload.espacioSeleccionado}}
-                   </span>
-                </div>
             </div>
             
             <div class="shrink-0 flex flex-col sm:flex-row w-full lg:w-auto gap-4 relative z-10">
-                 <button class="w-full sm:w-auto px-6 py-3.5 bg-white/10 border border-white/30 text-white font-bold rounded-xl hover:bg-white/20 shadow-sm transition-all focus:outline-none flex justify-center items-center active:scale-95" @click="ignorarReserva">
-                     Cancelar
+                 <!-- NUEVO BOTÓN DE CANCELAR -->
+                 <button @click="ignorarReserva" class="w-full sm:w-auto px-6 py-3.5 bg-surface-100 border border-surface-200 text-surface-800 font-bold rounded-xl hover:bg-surface-200 shadow-sm transition-all focus:outline-none">
+                     Cancelar borrador
                  </button>
-                 <button class="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-800 font-extrabold rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all focus:outline-none flex justify-center items-center gap-2 active:scale-95" @click="reanudarReserva">
-                     Continuar <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                 <!-- BOTÓN DE CONTINUAR -->
+                 <button @click="reanudarReserva" class="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-800 font-extrabold rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none">
+                     Continuar reserva
                  </button>
             </div>
         </div>
 
-        <!-- MAIN CARD WRAPPER -->
+        <!-- MAIN CARD WRAPPER (ESTE ES EL CONTENIDO QUE HABÍA DESAPARECIDO) -->
         <div v-if="!mostrarModalDraft" class="w-full max-w-5xl bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-surface-200 h-fit">
 
             <!-- MINIMALIST PROGRESS INDICATOR -->
