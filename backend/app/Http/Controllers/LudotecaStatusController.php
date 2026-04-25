@@ -33,7 +33,7 @@ class LudotecaStatusController extends Controller
 
         $alreadyActiveToday = RegistrosLudoteca::where('id_menor', $id_menor)
             ->whereDate('hora_ingreso', today())
-            ->where('estatus_visita', 'ACTIVA')
+            ->where('estatus_ludoteca', 'ACTIVA')
             ->exists();
 
         if ($alreadyActiveToday) {
@@ -53,7 +53,7 @@ class LudotecaStatusController extends Controller
             ]);
         }
         $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
-            'estatus_visita' => 'ACTIVA',
+            'estatus_ludoteca' => 'ACTIVA',
             'hora_ingreso' => now(),
             'id_adulto_ingreso' => $request->id_socio,
             'hora_egreso' => null,
@@ -74,51 +74,75 @@ class LudotecaStatusController extends Controller
         $request->validate([
             'id_socio' => 'required|exists:socios_titulares,id_socio',
             'id_instructor' => 'required|exists:instructores,id_instructor',
+            'estatus_ludoteca' => 'required|in:INACTIVO,ENTREGADO,ACTIVA'
         ]);
 
+        // Si solo pasa a inactivo
+        if ($request->estatus_ludoteca == 'INACTIVO') {
 
-        //Si el check_in es OUT
+            RegistrosLudoteca::where('id_registro', $id)->update([
+                'estatus_ludoteca' => 'INACTIVO'
+            ]);
 
-
-        $estatus = 'COMPLETADA_A_TIEMPO';
-        $time = now();
-        $limite = RegistrosLudoteca::where('id_registro', $id)->value('hora_limite');
-        if ($time > $limite) {
-            $estatus = 'COMPLETADA_CON_RETRASO';
+            return response()->json([
+                'message' => 'Menor marcado como inactivo'
+            ]);
         }
-        $registro = RegistrosLudoteca::where('id_registro', $id)->update([
-            'estatus_visita' => $estatus,
-            'hora_egreso' => now(),
-            'id_adulto_egreso' => $request->id_socio,
-            'id_instructor_egreso' => $request->id_instructor,
-        ]);
 
+        // Si ya fue entregado
+        if ($request->estatus_ludoteca == 'ENTREGADO') {
 
-        //Mongo
-        RegistroLudotecaMongo::insert([
-            'tutor_id' => $request->id_socio,
-            'menor_id' => RegistrosLudoteca::where('id_registro', $id)->value('id_menor'),
-            'hora_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('hora_ingreso'),
-            'hora_egreso' => now('America/Mexico_City'),
-            'instructor_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('id_instructor_ingreso'),
-            'instructor_egreso' => $request->id_instructor,
-            'metadata' => [
-                'id_registro' => $id,
-                'estatus_final' => $estatus
-            ]
-        ]);
-        return response()->json([
-            'message' => 'Salida registrada correctamente'
-        ]);
+            $estatusFinal = 'COMPLETADA_A_TIEMPO';
+
+            $time = now();
+            $limite = RegistrosLudoteca::where('id_registro', $id)
+                ->value('hora_limite');
+
+            if ($time > $limite) {
+                $estatusFinal = 'COMPLETADA_CON_RETRASO';
+            }
+
+            RegistrosLudoteca::where('id_registro', $id)->update([
+                'estatus_ludoteca' => $estatusFinal,
+                'hora_egreso' => now(),
+                'id_adulto_egreso' => $request->id_socio,
+                'id_instructor_egreso' => $request->id_instructor,
+            ]);
+
+            RegistroLudotecaMongo::insert([
+                'tutor_id' => $request->id_socio,
+                'menor_id' => RegistrosLudoteca::where('id_registro', $id)->value('id_menor'),
+                'hora_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('hora_ingreso'),
+                'hora_egreso' => now('America/Mexico_City'),
+                'instructor_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('id_instructor_ingreso'),
+                'instructor_egreso' => $request->id_instructor,
+                'metadata' => [
+                    'id_registro' => $id,
+                    'estatus_final' => $estatusFinal
+                ]
+            ]);
+
+            return response()->json([
+                'message' => 'Salida registrada correctamente'
+            ]);
+        }
     }
-    /* ISRA MIRA ESTO */
-    /* ESTE REGRESA LOS REGISTROS DE HOY, EN LA TASK SALE CON NOMBRE DIFERENTE*/
+
     public function getChildrenStatus(Request $request)
     {
         $request->validate([
             'id_socio' => 'required|exists:socios_titulares,id_socio',
         ]);
-        //REGISTROS DE HOYs
-        return RegistrosLudoteca::whereDate('hora_ingreso', today())->where('id_adulto_ingreso', $request->id_socio)->get();
+        //REGISTROS DE HOY
+        $registros = RegistrosLudoteca::whereDate('hora_ingreso', today())->where('id_adulto_ingreso', $request->id_socio)->get();
+        return response()->json([
+            'activos' => $registros->where('estatus_ludoteca', 'ACTIVA')->values(),
+            'inactivos' => $registros->where('estatus_ludoteca', 'INACTIVO')->values(),
+
+            'completados' => $registros->whereIn('estatus_ludoteca', [
+                'COMPLETADA_A_TIEMPO',
+                'COMPLETADA_CON_RETRASO'
+            ])->values()
+        ]);
     }
 }
