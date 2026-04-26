@@ -24,4 +24,13 @@ class Instructor extends Model
     {
         return $this->belongsTo(User::class, 'id_usuario', 'id');
     }
+    public function disciplinas()
+    {
+        return $this->belongsToMany(
+            Disciplina::class,
+            'instructor_disciplina',
+            'id_instructor',
+            'id_disciplina'
+        );
+    }
 }

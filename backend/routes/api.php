@@ -29,6 +29,7 @@ use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
 use App\Http\Controllers\RegisterEventController;
+use App\Http\Controllers\AdminLudotecaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -83,6 +84,16 @@ Route::post('/v1/ludoteca/update-status', [LudotecaStatusController::class, 'upd
 Route::post('/v1/ludoteca/register', [LudotecaRegisterController::class, 'store']);
 //Ludoteca Lista de menores
 Route::get('/v1/ludoteca/list', [MiembrosFamiliaresList::class, 'show']);
+//SDH-164
+Route::post('/v1/ludoteca/admin/turnos', [AdminLudotecaController::class, 'store']);
+// SDH-164 protec por middleware que el insturctor que tenga el turno pueda acceder a estas rutas
+Route::middleware(['check.turno'])->group(function () {
+    Route::get('/v1/ludoteca/test-turno-ludoteca', function () {
+        return response()->json([
+            'message' => 'Middleware funcionando correctamente'
+        ]);
+    });
+});
 
 //Ludoteca SDH-163
 
