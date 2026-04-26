@@ -23,11 +23,12 @@ use App\Http\Controllers\GuestStatusController;
 use App\Http\Controllers\MiembrosFamiliaresController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\SessionController;
-
+use App\Http\Controllers\FriendsController;
 use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
+use App\Http\Controllers\RegisterEventController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -62,21 +63,18 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
+Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+
+
+
+
+
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
 
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
-Route::get('/nombres', function () {
-    $nombres = SocioTitular::limit(5)->pluck('nombre_completo');
 
-    return response()->json([
-        'names' => $nombres
-    ]);
-});
-// SDH 119
-Route::post('/v1/guest-pass', [GuestPassController::class, 'store']);
-// get status of guest
-Route::post('/v1/guest-status', [GuestStatusController::class, 'store']);
+
 //Ludoteca SDH-131
 Route::get('/v1/ludoteca/validar-tutor', [LudotecaController::class, 'validarTutor']);
 //Ludoteca  cambio estatus
@@ -163,8 +161,34 @@ Route::middleware('auth:sanctum')->group(function () {
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
+    // GUESTS 
+    Route::post('/v1/guest-create', [GuestStatusController::class, 'store']);
+    Route::get('/v1/guest-list', [GuestStatusController::class, 'show']);
+    Route::put('/v1/guests/{id}', [GuestStatusController::class, 'update']);
+    Route::delete('/v1/guests/{id}', [GuestStatusController::class, 'destroy']);
+
+    // FAMILY MEMBERS 
+    Route::post('/v1/family-member-create', [MiembrosFamiliaresController::class, 'store']);
+    Route::get('/v1/family-member-list', [MiembrosFamiliaresController::class, 'show']);
+    Route::put('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'update']);
+    Route::delete('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'destroy']);
+
+    // FRIENDS
+    Route::get('/v1/friends-list', [FriendsController::class, 'show']);
+    Route::post('/v1/friend-add', [FriendsController::class, 'store']);
+    Route::delete('/v1/friend-remove', [FriendsController::class, 'destroy']);
+    Route::post('/v1/friend-accept', [FriendsController::class, 'accept']);
+    Route::post('/v1/friend-reject', [FriendsController::class, 'reject']);
+
+
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
+
+    // SDH-23: Register event (Asistencia de sesión)
+    Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
+    Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
+
 });
+
 
 
 

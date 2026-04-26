@@ -1,166 +1,34 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-
-const route = useRoute()
+import { useRouter } from "vue-router";
 const router = useRouter()
-
-const items = ref([
-  { route: '/socio/socio-ludoteca/ludoteca-list', label: 'Lista ludoteca' }
-])
-
-onMounted(() => {
-  if (route.path === '/socio/socio-ludoteca') {
-    router.replace('/socio/socio-ludoteca/ludoteca-list')
-  }
-})
 </script>
 
 <template>
-  <div class="layout-wrapper">
-    <div class="layout-container">
-        
-      <!-- TABS -->
-      <div class="tabs-card">
-        <Tabs :value="route.path" class="custom-tabs">
-          <TabList>
-            <Tab 
-              v-for="tab in items" 
-              :key="tab.route" 
-              :value="tab.route"
-            >
-              <router-link 
-                :to="tab.route"
-                class="tab-link"
-                active-class="is-active"
-              >
-                
-              </router-link>
-            </Tab>
-          </TabList>
-        </Tabs>
-
-        <router-link class="btn-primary" :to="{ name: 'add-register' }">
-          + Agregar registro
-        </router-link>
+  <div class="min-h-screen w-full bg-surface-50 font-sans p-4 md:p-6 lg:p-8 pb-24 md:pb-8 flex flex-col items-center">
+    
+    <div class="w-full max-w-5xl flex flex-col gap-6">
+      <!-- HEADER CON BOTÓN -->
+      <div>
+        <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 transition-colors mb-4 font-medium text-sm w-fit group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Volver
+        </button>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-200 pb-4">
+            <div>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-surface-900 m-0 tracking-tight">Ludoteca</h2>
+                <p class="text-surface-500 font-medium text-sm md:text-base m-0 mt-1">Gestiona los ingresos de tus pequeños</p>
+            </div>
+            <router-link class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-sm transition-all w-full sm:w-auto text-center active:scale-95" :to="{ name: 'add-register' }">
+              + Agregar registro
+            </router-link>
+        </div>
       </div>
 
       <!-- CONTENIDO -->
-      <div class="content-area">
+      <div class="w-full">
         <router-view />
       </div>
 
     </div>
   </div>
 </template>
-<style scoped>
-/* BOTÓN */
-.btn-primary {
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  text-decoration: none;
-}
-/* =========================================
-   1. CONTENEDORES PRINCIPALES
-========================================= */
-.layout-wrapper {
-    min-height: 100vh;
-    background-color: var(--p-surface-50); /* Fondo gris súper clarito global */
-    font-family: var(--p-font-family);
-    padding: 1.5rem;
-}
-
-@media (min-width: 768px) {
-    .layout-wrapper {
-        padding: 2.5rem;
-    }
-}
-
-.layout-container {
-    max-width: 80rem; /* Equivale a max-w-7xl */
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem; /* Separación entre las pestañas y el contenido */
-}
-
-/* =========================================
-   2. ESTILOS DE LA TARJETA DE PESTAÑAS
-========================================= */
-.tabs-card {
-    background-color: #ffffff;
-    border-radius: 1rem;
-    padding: 0.5rem 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--p-surface-200);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    overflow-x: auto; /* Para que en móviles se pueda hacer scroll horizontal si hay muchas pestañas */
-}
-
-.tab-link {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-decoration: none;
-    color: var(--p-surface-600);
-    font-weight: 600;
-    font-size: 1rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
-}
-
-.tab-icon {
-    font-size: 1.1rem;
-    transition: transform 0.3s ease;
-}
-
-/* Estado normal hover */
-.tab-link:hover:not(.is-active) {
-    background-color: var(--p-surface-100);
-    color: var(--p-surface-900);
-}
-
-
-.tab-link.is-active .tab-icon {
-    transform: scale(1.1); /* Efecto sutil al estar activo */
-}
-
-/* =========================================
-   3. REESCRITURA DE PRIMEVUE (Force Clean)
-========================================= */
-/* Obligamos a PrimeVue a quitar sus bordes y fondos predeterminados para usar los nuestros */
-:deep(.p-tablist-tab-list) {
-    border: none !important; 
-    background: transparent !important;
-}
-
-:deep(.p-tab) {
-    border: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin-right: 0.5rem !important;
-}
-
-:deep(.p-tab-active) {
-    border: none !important;
-}
-
-/* =========================================
-   4. ÁREA DE CONTENIDO
-========================================= */
-.content-area {
-    width: 100%;
-
-}
-</style>

@@ -27,7 +27,6 @@ const router = createRouter({
       component: () => import("@/views/auth/ResetPassword.vue"),
     },
 
-
     // Socio Routes
     {
       path: "/socio",
@@ -42,32 +41,30 @@ const router = createRouter({
           name: "socio-home",
           component: () => import("@/views/socio/SocioHomeView.vue"),
         },
-
         {
           path: "reservations",
           name: "socio-reservations",
-          component: () =>
-            import("@/views/reservations/socio/Reservations.vue"),
+          component: () => import("@/views/reservations/socio/Reservations.vue"),
           meta: {
             requiresAuth: true,
             allowedRoles: ["socio_titular", "miembro_familiar"],
           },
+          // 1. CORRECCIÓN: Agregamos el '/' al inicio para que sea una ruta absoluta
+          redirect: "/socio/reservations/manage",
           children: [
             {
               path: "on-demand",
-              name: "on-demand",
-              component: () =>
-                import("@/views/reservations/socio/OnDemand.vue"),
+              name: "socio-reservations-on-demand", // Mejor usar nombres únicos
+              component: () => import("@/views/reservations/socio/OnDemand.vue"),
             },
             {
               path: "active-sessions",
-              name: "active-sessions",
-              component: () =>
-                import("@/views/reservations/socio/ActiveSessions.vue"),
+              name: "socio-reservations-active-sessions",
+              component: () => import("@/views/reservations/socio/ActiveSessions.vue"),
             },
             {
               path: "manage",
-              name: "manage",
+              name: "socio-reservations-manage",
               component: () => import("@/views/reservations/socio/Manage.vue"),
             },
           ],
@@ -83,21 +80,12 @@ const router = createRouter({
             }
 
             if (profileStore.isAccountInactive) {
-              return '/socio/home';
+              return "/socio/home";
             }
-          }
+          },
         },
-        {
-          path: "reservations/on-demand",
-          name: "socio-reservations-on-demand",
-          component: () => import("@/views/reservations/socio/OnDemand.vue"),
-        },
-        {
-          path: "reservations/active-sessions",
-          name: "socio-reservations-active-sessions",
-          component: () =>
-            import("@/views/reservations/socio/ActiveSessions.vue"),
-        },
+
+
         {
           path: "tournaments",
           name: "socio-tournaments",
@@ -132,38 +120,53 @@ const router = createRouter({
 
 
         {
-          path: "guests",
+          path: "community",
           name: "socio-guests",
-          component: () => import("@/views/socio/SocioGuestsView.vue"),
-
+          component: () => import("@/views/socio/SocioCommunityView.vue"),
+          redirect: '/socio/community/guests-list',
           children: [
+            // CRUD GUESTS
             {
-              path: "",
-              redirect: "guests"
+              path: "guests-list",
+              name: "guests-list",
+              component: () => import("@/views/community/GuestList.vue"),
             },
             {
-              path: "guests",
-              name: "guests-guests",
-              component: () => import("@/views/guest/guestLists/guestList.vue"),
-            },
-            {
-              path: "family-members",
-              name: "guests-family-members",
-              component: () => import("@/views/guest/guestLists/familyMembers.vue"),
-            },
-            {
-              path: "friends",
-              name: "guests-friends",
-              component: { template: "<div></div>" },
-            },
-            {
-              path: "add",
+              path: "guests-add",
               name: "guests-add",
-              component: () => import("@/views/guest/guestLists/addGuest.vue")
+              component: () => import("@/views/community/AddGuest.vue"),
             },
-          ]
+
+            // CRUD FAMILY MEMBERS
+            // -- SHOW
+            {
+              path: "family-members-list",
+              name: "family-members-list",
+              component: () => import("@/views/community/FamilyMembersList.vue"),
+            },
+            // -- CREATE
+            {
+              path: "family-members-add",
+              name: "family-members-add",
+              component: () => import("@/views/community/AddFamilyMember.vue"),
+            },
 
 
+
+            // CRUD FRIENDS
+
+            {
+              // PENDIENTE
+              path: "friends-list",
+              name: "friends-list",
+              component: () => import("@/views/community/friends/FriendsList.vue"),
+            },
+            {
+              path: "friends-add",
+              name: "friends-add",
+              component: () => import("@/views/community/friends/FriendsAdd.vue"),
+            },
+          ],
         },
         {
           path: "history",
@@ -176,9 +179,9 @@ const router = createRouter({
           component: () => import("../views/socio/SocioProfileView.vue"),
         },
         {
-          path: 'qr',
-          name: 'socio-qr',
-          component: () => import('../views/socio/SocioQrView.vue'),
+          path: "qr",
+          name: "socio-qr",
+          component: () => import("../views/socio/SocioQrView.vue"),
           beforeEnter: async (to, from) => {
             const profileStore = useProfileStore();
 
@@ -191,11 +194,11 @@ const router = createRouter({
             }
 
             if (profileStore.isAccountInactive) {
-              return '/socio/home';
+              return "/socio/home";
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
 
     // Instructor Routes
@@ -237,29 +240,29 @@ const router = createRouter({
 
     // Admin Routes
     {
-      path: '/admin',
-      component: () => import('@/views/layout/GerenteLayout.vue'),
-      meta: { requiresAuth: true, allowedRoles: ['gerente', 'subgerente'] },
+      path: "/admin",
+      component: () => import("@/views/layout/GerenteLayout.vue"),
+      meta: { requiresAuth: true, allowedRoles: ["gerente", "subgerente"] },
       children: [
         {
-          path: 'dashboard',
-          component: () => import('@/views/admin/Dashboard.vue'),
+          path: "dashboard",
+          component: () => import("@/views/admin/Dashboard.vue"),
         },
         {
-          path: 'tournaments',
-          component: () => import('@/views/admin/TournamentForm.vue'),
+          path: "tournaments",
+          component: () => import("@/views/admin/TournamentForm.vue"),
         },
         {
-          path: 'reservations',
-          component: () => import('@/views/admin/Reservation.vue'),
+          path: "reservations",
+          component: () => import("@/views/admin/Reservation.vue"),
         },
         {
-          path: 'spaces',
-          component: () => import('@/views/admin/Spaces.vue'),
+          path: "spaces",
+          component: () => import("@/views/admin/Spaces.vue"),
         },
         {
-          path: 'instructors',
-          component: () => import('@/views/admin/Instructors.vue'),
+          path: "instructors",
+          component: () => import("@/views/admin/Instructors.vue"),
         },
         {
           path: 'instructors/:id',
@@ -283,24 +286,22 @@ const router = createRouter({
           ]
         },
         {
-          path: 'reports',
-          component: () => import('@/views/admin/Reports.vue'),
+          path: "reports",
+          component: () => import("@/views/admin/Reports.vue"),
         },
         {
-          path: 'tournaments/create',
-          component: () => import('@/views/admin/CreateTournament.vue'),
+          path: "tournaments/create",
+          component: () => import("@/views/admin/CreateTournament.vue"),
         },
         {
-          path: '/tournaments/details',
-          component: () => import('@/views/admin/DetailsTournament.vue'),
+          path: "/tournaments/details",
+          component: () => import("@/views/admin/DetailsTournament.vue"),
         },
         {
-          path: 'categories/create',
-          component: () => import('@/views/admin/CreateCategories.vue'),
-        }
-
-
-      ]
+          path: "categories/create",
+          component: () => import("@/views/admin/CreateCategories.vue"),
+        },
+      ],
     },
   ],
 });
