@@ -21,5 +21,5 @@ Schedule::command('app:calcular-no-shows')
 
 
 Schedule::command('ludoteca:wipe-daily')
-    ->dailyAt('03:00')
+    ->dailyAt('04:00')
     ->timezone('America/Mexico_City');
