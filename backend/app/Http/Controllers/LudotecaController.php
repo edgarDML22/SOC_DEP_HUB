@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\MiembrosFamiliares;
 use App\Models\SocioTitular;
 use App\Models\User;
+use App\Models\TurnosLudoteca;
 class LudotecaController extends Controller
 {
     //rgresa lista de ludoteca
@@ -41,6 +42,42 @@ class LudotecaController extends Controller
                 ]);
             }
         }
+        if ($type->rol == 'instructor') {
+
+            $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
+                ->whereDate('hora_ingreso', today())
+                ->whereIn('estatus_ludoteca', [
+                    'ACTIVA',
+                    'INACTIVO'
+                ])
+                ->get();
+
+
+            $turno = TurnosLudoteca::where('id_instructor', $request->id_socio)
+                ->where('fecha', today())
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'turno' => [
+                        'hora_inicio' => $turno->hora_inicio,
+                        'hora_fin' => $turno->hora_fin
+                    ],
+                    'estancias' => $registros->map(function ($registro) {
+                        return [
+                            'id_registro' => $registro->id_registro,
+                            'id_socio' => $registro->id_adulto_ingreso,
+                            'nombre_nino' => $registro->menor->nombre_completo,
+                            'nombre_tutor' => $registro->adultoIngreso->nombre_completo,
+                            'estatus' => $registro->estatus_ludoteca,
+                            'hora_ingreso' => $registro->hora_ingreso,
+                            'hora_salida' => $registro->hora_egreso
+                        ];
+                    })
+                ]
+            ]);
+        }
         //si es tutor, mostrar solo sus registros
         $tutor = RegistrosLudoteca::where('id_adulto_ingreso', $request->id_socio)->first();
         if (!$tutor) {
@@ -57,6 +94,7 @@ class LudotecaController extends Controller
             return response()->json([
                 'message' => 'No se encontraron registros activos',
             ], 404);
+            //Si es instructor 
         } else {
             return response()->json([
                 'data' => $registros->map(function ($registro) {
@@ -68,6 +106,10 @@ class LudotecaController extends Controller
                         'estatus_visita' => $registro->estatus_visita,
                         'rol' => 'tutor',
                         'id_registro' => $registro->id_registro,
+                        'hora_egreso' => $registro->hora_egreso,
+                        'id_adulto_egreso' => $registro->id_adulto_egreso,
+                        'id_instructor_egreso' => $registro->id_instructor_egreso
+
 
 
 
