@@ -39,6 +39,11 @@ import {
         <span>Espacios</span>
       </router-link>
 
+      <router-link to="/admin/socios" class="item">
+        <IconUser class="icon" />
+        <span>Socios</span>
+      </router-link>
+
       <router-link to="/admin/instructors" class="item">
         <IconUser class="icon" />
         <span>Instructores</span>
@@ -119,4 +124,3 @@ import {
   height: 18px;
 }
 </style>
-

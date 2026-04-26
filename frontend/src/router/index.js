@@ -262,6 +262,10 @@ const router = createRouter({
           component: () => import('@/views/admin/Instructors.vue'),
         },
         {
+          path: 'instructors/:id',
+          component: () => import('@/views/admin/InstructorsDetails.vue'),
+        },
+        {
           path: 'ludoteca',
           component: () => import('@/views/ludoteca/LudotecaAdmin.vue'),
           redirect: { name: 'admin-ludoteca-list' }, // 🔥 ESTO FALTABA
