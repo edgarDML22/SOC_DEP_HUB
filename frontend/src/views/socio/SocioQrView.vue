@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import QrcodeVue from 'qrcode.vue';
 import { useProfileStore } from '@/stores/profiles/socioStore';
 import api from '@/services/api';
@@ -13,24 +13,24 @@ const qrPayload = ref('');
 const loading = ref(true);
 const error = ref('');
 
-// Intervalo para refrescar el código QR por seguridad
-let refreshInterval = null;
-
 const fetchQrData = async () => {
   try {
     loading.value = true;
     error.value = '';
+    
+    // Solo hace la petición una vez para obtener su código permanente
     const response = await api.get('/profile/qr-data');
+    
     if (response.data.success) {
       qrPayload.value = response.data.data.qr_payload;
     }
   } catch (err) {
     if (err.response?.status === 403) {
-      error.value = err.response.data?.message ?? 'Tu cuenta no puede generar el código QR en este momento.';
+      error.value = err.response.data?.message ?? 'Tu cuenta no puede acceder al código QR en este momento.';
     } else {
-      error.value = 'No se pudo generar el código de acceso. Verifica tu conexión.';
+      error.value = 'No se pudo cargar tu código de acceso. Verifica tu conexión.';
     }
-    console.error('Error al generar QR:', err);
+    console.error('Error al obtener QR:', err);
   } finally {
     loading.value = false;
   }
@@ -38,14 +38,6 @@ const fetchQrData = async () => {
 
 onMounted(() => {
   fetchQrData();
-  // Refresca el token cada 60 segundos por seguridad
-  refreshInterval = setInterval(() => {
-    fetchQrData();
-  }, 60000); 
-});
-
-onUnmounted(() => {
-  if (refreshInterval) clearInterval(refreshInterval);
 });
 </script>
 
@@ -64,7 +56,7 @@ onUnmounted(() => {
         <div v-if="profileStore.isAccountInactive" class="absolute inset-0 bg-white/80 backdrop-blur-md z-20 flex flex-col items-center justify-center p-8 text-center text-red-600">
            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" /></svg>
            <h3 class="text-xl font-bold mb-2">Cuenta {{ profileStore.statusAccount }}</h3>
-           <p class="font-medium text-sm text-surface-600 leading-relaxed">No puedes generar el Pase de Acceso en este momento. Por favor contacta administración.</p>
+           <p class="font-medium text-sm text-surface-600 leading-relaxed">No puedes acceder al Pase en este momento. Por favor contacta administración.</p>
         </div>
 
         <div class="p-8 pb-6 flex flex-col items-center text-center">
@@ -82,7 +74,7 @@ onUnmounted(() => {
                 
                 <div v-if="loading && !qrPayload" class="flex flex-col items-center gap-4 text-surface-400">
                     <div class="w-10 h-10 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin"></div>
-                    <span class="font-bold text-sm tracking-widest uppercase">Generando...</span>
+                    <span class="font-bold text-sm tracking-widest uppercase">Cargando...</span>
                 </div>
 
                 <div v-else-if="error" class="text-red-500 font-medium text-sm text-center">
@@ -90,6 +82,7 @@ onUnmounted(() => {
                    {{ error }}
                 </div>
 
+                <!-- Código Estático -->
                 <qrcode-vue v-else-if="qrPayload"
                   :value="qrPayload" 
                   :size="220" 
@@ -99,11 +92,10 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="bg-surface-50 border-t border-surface-100 p-5 w-full flex items-center justify-center gap-2 group cursor-pointer" @click="fetchQrData">
-           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" :class="{'animate-spin text-primary-600': loading}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-           <span class="text-[11px] font-bold text-surface-500 uppercase tracking-widest group-hover:text-primary-600 transition-colors">
-               Código dinámico (Actualizado)
+        <div class="bg-surface-50 border-t border-surface-100 p-4 w-full flex items-center justify-center gap-2 text-surface-400">
+           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+           <span class="text-[11px] font-bold uppercase tracking-widest">
+               Identificador Único y Personal
            </span>
         </div>
 

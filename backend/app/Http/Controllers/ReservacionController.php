@@ -11,6 +11,7 @@ use App\Models\EspacioFisico;
 use App\Models\Reservacion;
 use Illuminate\Support\Facades\Validator;
 use App\Models\SesionActiva;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ReservacionController extends Controller
@@ -51,7 +52,6 @@ class ReservacionController extends Controller
 
             $id_socio = $request->user()->user_id;
             // 1. VALIDAR EMPALMES CON OTRAS RESERVACIONES
-            // ... dentro del transaction ...
             $conflictoReserva = Reservacion::where('id_espacio', $request->id_espacio)
                 ->where('fecha_reserva', $request->fecha_reserva)
                 ->where(function ($q) use ($id_socio) { // <-- Pasamos la variable
@@ -102,7 +102,8 @@ class ReservacionController extends Controller
                     'fecha_reserva'    => $request->fecha_reserva,
                     'hora_inicio'      => $request->hora_inicio,
                     'hora_fin'         => $request->hora_fin,
-                    'fecha_expiracion' => Carbon::now()->addMinutes(10),
+                    'fecha_expiracion' => Carbon::now()->addMinutes(15),
+                    'estatus_operativo' => 'PENDIENTE'
                 ]
             );
 
@@ -298,7 +299,7 @@ class ReservacionController extends Controller
         }
 
         try {
-            return DB::transaction(function () use ($reserva) {
+            return DB::transaction(function () use ($request, $reserva) {
                 // Leer acompañantes del draft almacenado en BD
                 $draft = $reserva->acompanantes_draft;
                 
@@ -345,8 +346,7 @@ class ReservacionController extends Controller
                         });
                     }
                 } catch (\Exception $mailEx) {
-                    // Loggeamos el error del correo pero no bloqueamos la respuesta de éxito de la reserva
-                    \Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
+                    Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
                 }
 
                 return response()->json([
@@ -391,10 +391,6 @@ class ReservacionController extends Controller
             ])
             ->first();
 
-        //Hacerlo más eficiente para que sólo me devuelva los nombres de
-        //espacio y disciplina de la reserva pls
-        // para no devolver todo el objeto (solo id y nombre)
-
         return response()->json([
             'success' => !!$reserva,
             'reserva' => $reserva
@@ -404,32 +400,25 @@ class ReservacionController extends Controller
     public function myReservations(Request $request)
     {
         $socioId = $request->user()->user_id;
-        $status = $request->query('status', 'TODAS');
-        $limit = $request->query('limit', 10);
+        $limit = $request->query('limit', 20); // Traemos hasta 20 para tener datos con qué jugar localmente
 
         $query = Reservacion::where('id_socio_titular', $socioId)
             ->with(['espacioFisico:id_espacio,nombre_espacio', 'disciplina:id_disciplina,nombre_disciplina'])
             ->orderBy('fecha_reserva', 'desc')
             ->orderBy('hora_inicio', 'desc');
 
-        if ($status !== 'TODAS') {
-            $query->where('estatus_operativo', $status);
-        } else {
-            // En 'TODAS', mostramos todo menos borradores (PENDIENTE) expirados
-            $query->where(function($q) {
-                $q->where('estatus_operativo', '!=', 'PENDIENTE')
-                  ->orWhere('fecha_expiracion', '>', now());
-            });
-        }
+        // Omitimos SOLO los borradores que ya expiraron, el resto (Activas, Canceladas, Completadas y Borradores vivos) los mandamos.
+        $query->where(function($q) {
+            $q->where('estatus_operativo', '!=', 'PENDIENTE')
+                ->orWhere('fecha_expiracion', '>', now());
+        });
 
-        $reservas = $query->paginate($limit);
+        // Hacemos el get en lugar de paginate para que el frontend maneje todo en memoria
+        $reservas = $query->take($limit)->get();
 
         return response()->json([
             'success' => true,
-            'data' => $reservas->items(),
-            'current_page' => $reservas->currentPage(),
-            'last_page' => $reservas->lastPage(),
-            'total' => $reservas->total()
+            'data' => $reservas
         ]);
     }
 }

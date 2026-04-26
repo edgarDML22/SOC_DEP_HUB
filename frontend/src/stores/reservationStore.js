@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api";
-import { useProfileStore } from "@/stores/profiles/socioStore"; // <--- ASEGÚRATE DE TENER ESTA LÍNEA AQUÍ TAMBIÉN
+import { useProfileStore } from "@/stores/profiles/socioStore"; 
 
 export const useReservationStore = defineStore("reservation", () => {
   // --- STATE ---
@@ -20,22 +20,18 @@ export const useReservationStore = defineStore("reservation", () => {
     hora_inicio: null,
     hora_fin: null,
     acompanantes: [],
-    id_reserva: null, // <-- 2. NUEVO ESPACIO PARA GUARDAR EL ID
+    id_reserva: null, 
   });
 
   const acompanantesSeleccionados = ref([]);
   const capacidadMaximaEspacio = ref(0);
   let debounceTimeout = null;
 
-  // --- VARIABLES PARA LISTA DE MIS RESERVAS (CACHE) ---
-  const misReservaciones = ref([]);
+  // --- VARIABLES PARA LISTA LOCAL (NUEVO MÉTODO) ---
+  const misReservacionesTotales = ref([]);
   const misReservacionesCargadas = ref(false);
-  const misReservacionesTotal = ref(0);
-  const misReservacionesLastPage = ref(1);
-
 
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
-  // Solo agrégale el ref( y el ) al final
   const opcionesHoras = ref([
     "07:00",
     "08:00",
@@ -58,30 +54,23 @@ export const useReservationStore = defineStore("reservation", () => {
   const horaInicioTemp = ref(null);
   const horaFinTemp = ref(null);
 
-  // 1. ELIMINA "const errorValidacion = ref(null);" (si la tienes arriba)
-  // 2. CREA la validación de forma REACTIVA (computed):
   const errorValidacion = computed(() => {
-    // Si aún no elige ambas horas, no mostramos error
     if (!horaInicioTemp.value || !horaFinTemp.value) return null;
 
     const numInicio = parseInt(horaInicioTemp.value.split(":")[0]);
     const numFin = parseInt(horaFinTemp.value.split(":")[0]);
 
-    // A) Validar inicio < fin
     if (numInicio >= numFin) {
       return "La hora de inicio debe ser menor a la hora de fin.";
     }
 
-    // B) Validar máximo 2 horas
     if (numFin - numInicio > 2) {
       return "La reserva máxima permitida es de 2 horas.";
     }
 
-    // C) Validar empalmes con el backend en tiempo real
     const hayEmpalme = horariosDisponibles.value.some((bloque) => {
       const bloqueInicio = parseInt(bloque.inicio.split(":")[0]);
       const bloqueFin = parseInt(bloque.fin.split(":")[0]);
-      // Fórmula para detectar intersección de rangos de tiempo
       return numInicio < bloqueFin && numFin > bloqueInicio;
     });
 
@@ -89,13 +78,10 @@ export const useReservationStore = defineStore("reservation", () => {
       return "El horario seleccionado ya ha sido ocupado. Elija uno nuevo para continuar.";
     }
 
-    // Todo está perfecto
     return null;
   });
 
-  // 3. ACTUALIZAR la variable del Preview y del Botón
   const esHorarioValidoParaPreview = computed(() => {
-    // El horario es válido SOLO si tiene horas asignadas y NO hay ningún error
     return (
       horaInicioTemp.value &&
       horaFinTemp.value &&
@@ -103,7 +89,6 @@ export const useReservationStore = defineStore("reservation", () => {
     );
   });
 
-  // 4. SIMPLIFICAR tu acción, ya que el 'computed' hace todo el trabajo pesado
   const validarHorario = () => {
     if (!errorValidacion.value && esHorarioValidoParaPreview.value) {
       seleccionarHorario(horaInicioTemp.value, horaFinTemp.value);
@@ -129,20 +114,18 @@ export const useReservationStore = defineStore("reservation", () => {
     if (!seleccion) return [];
 
     return espaciosDisponibles.value.filter((espacio) => {
-      // Buscamos si la cancha tiene al menos una disciplina que coincida
       return espacio.disciplinas.some((d) => d.nombre_disciplina.includes(seleccion));
     });
   });
-
 
   const fechaHoy = () => {
     const hoy = new Date();
     const anio = hoy.getFullYear();
     const mes = String(hoy.getMonth() + 1).padStart(2, "0");
     const dia = String(hoy.getDate()).padStart(2, "0");
-
     return `${anio}-${mes}-${dia}`;
   };
+
   // --- ACTIONS ---
   const fetchDisponibilidadEspacios = async () => {
     if (disciplinasUnicas.value && disciplinasUnicas.value.length > 0) return;
@@ -166,31 +149,25 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
-  // --- FETCH LISTA DE RESERVACIONES (Manage.vue) ---
-  const fetchMisReservaciones = async (status = 'TODAS', page = 1, loadMore = false) => {
-    // Si ya cargamos la primera página para este status y no estamos pidiendo más, retornamos cache
-    if (!loadMore && misReservacionesCargadas.value && page === 1 && status === 'TODAS') {
+  // --- FETCH LISTA PARA FILTRADO LOCAL (SOLO SE LLAMA UNA VEZ) ---
+  const fetchMisReservaciones = async (forceRefresh = false) => {
+    // Si ya cargamos y no forzamos, nos salimos sin molestar al servidor
+    if (!forceRefresh && misReservacionesCargadas.value) {
       return;
     }
 
+    cargando.value = true;
     try {
-      const res = await api.get('/reservations/my-list', {
-        params: { status, limit: 10, page }
-      });
+      const res = await api.get('/reservations/my-list', { params: { limit: 20 } });
 
       if (res.data.success) {
-        if (loadMore) {
-          misReservaciones.value = [...misReservaciones.value, ...res.data.data];
-        } else {
-          misReservaciones.value = res.data.data;
-          if (status === 'TODAS') misReservacionesCargadas.value = true;
-        }
-        misReservacionesLastPage.value = res.data.last_page;
-        misReservacionesTotal.value = res.data.total;
+        misReservacionesTotales.value = res.data.data;
+        misReservacionesCargadas.value = true;
       }
     } catch (error) {
       console.error("Error fetching reservations list:", error);
-      throw error;
+    } finally {
+      cargando.value = false;
     }
   };
 
@@ -206,7 +183,6 @@ export const useReservationStore = defineStore("reservation", () => {
         },
       });
       horariosDisponibles.value = res.data.data;
-      console.log(horariosDisponibles.value);
     } catch (error) {
       console.error("Error al cargar horarios:", error);
       errorApi.value = "No se pudieron cargar los horarios del espacio elegido";
@@ -215,24 +191,16 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
-  // MANEJAR RESERVAS PENDIENTES (ACTIVE DRAFTS)
-
   const buscarReservaActiva = async () => {
-    // Ya no necesitamos validar if(!profileStore.idSocio) porque 
-    // Laravel sabrá quiénes somos gracias a la cookie/token de sesión.
-
-
-    // -- Se busca su última reserva que dejó como PENDIENTE
     try {
       const res = await api.get('/reservations/draft/active');
 
       if (res.data.success && res.data.reserva) {
         const r = res.data.reserva;
 
-        const horaInicioLimpia = r.hora_inicio.substring(0, 5); // Pasa de "11:00:00" a "11:00"
+        const horaInicioLimpia = r.hora_inicio.substring(0, 5); 
         const horaFinLimpia = r.hora_fin.substring(0, 5);
 
-        // Hidratación de acompañantes desde el borrador
         if (typeof r.acompanantes_draft === 'string') {
           try {
             acompanantesSeleccionados.value = JSON.parse(r.acompanantes_draft);
@@ -242,8 +210,6 @@ export const useReservationStore = defineStore("reservation", () => {
         } else {
           acompanantesSeleccionados.value = r.acompanantes_draft || [];
         }
-
-        //En automatico se guardan los datos en reservaPayload
 
         reservaPayload.value = {
           id_disciplina: r.id_disciplina,
@@ -269,16 +235,9 @@ export const useReservationStore = defineStore("reservation", () => {
     return false;
   };
 
-  // -- FLUJO A: Cuando el usuario decide continuar con su reserva
-  // Los datos que llevaba se guardan en reservaPayload para que pueda continuar
-
-
-  // -- FLUJO B: Cuando el usuario descarta su reserva PENDIENTE
-  // Es devuelto al principio de la reserva
   const descartarBorrador = async () => {
     if (reservaPayload.value.id_reserva) {
       try {
-        // Le avisamos al backend que la cancele para liberar la cancha
         await api.post("/reservations/cancel", {
           id_reserva: reservaPayload.value.id_reserva,
         });
@@ -286,13 +245,10 @@ export const useReservationStore = defineStore("reservation", () => {
         console.error("Error al cancelar el borrador");
       }
     }
+    misReservacionesCargadas.value = false; // Forzar recarga la próxima vez en Gestor
     resetearReserva();
-    fetchDisponibilidadEspacios(); // Cargamos las canchas normales
+    fetchDisponibilidadEspacios(); 
   };
-
-  // GO FOWARD
-  // --- 3. LIMPIAR EL ERROR CUANDO EL USUARIO HACE LO CORRECTO ---
-  // Actualiza tus funciones de selección para que limpien 'errorNavegacion'
 
   const seleccionarDisciplina = (disciplina) => {
     reservaPayload.value.disciplinaSeleccionada = disciplina;
@@ -305,16 +261,12 @@ export const useReservationStore = defineStore("reservation", () => {
   };
 
   const seleccionarEspacio = (id_espacio) => {
-    // Magia pro: Buscar la disciplina exacta dentro de la cancha seleccionada
     const canchaSeleccionada = espaciosDisponibles.value.find(e => e.id_espacio === id_espacio);
 
-
     if (canchaSeleccionada) {
-
       const disciplinaExacta = canchaSeleccionada.disciplinas.find(d =>
         d.nombre_disciplina.includes(reservaPayload.value.disciplinaSeleccionada)
       );
-      // Guardamos el ID real en el payload
       reservaPayload.value.id_disciplina = disciplinaExacta ? disciplinaExacta.id_disciplina : null;
       reservaPayload.value.espacioSeleccionado = canchaSeleccionada.nombre_espacio;
       capacidadMaximaEspacio.value = canchaSeleccionada.capacidad_maxima || 0;
@@ -322,25 +274,19 @@ export const useReservationStore = defineStore("reservation", () => {
 
     fetchHorarioEspacio(id_espacio);
     reservaPayload.value.id_espacio = id_espacio;
-
     errorNavegacion.value = null;
     pasoActual.value = "3";
   };
 
-  // reservationStore.js
-
   const seleccionarHorario = async (hora_inicio, hora_fin) => {
     const profileStore = useProfileStore();
 
-    // 1. EL GUARDIÁN: Si el ID es null, esperamos a que el perfil se cargue
     if (!profileStore.idSocio) {
       await profileStore.fetchProfile();
     }
 
-    // Si después de intentar cargar sigue sin haber ID (ej. sesión expirada), cancelamos
     if (!profileStore.idSocio) {
-      errorNavegacion.value =
-        "No se pudo identificar al socio. Por favor, reintenta iniciar sesión.";
+      errorNavegacion.value = "No se pudo identificar al socio. Por favor, reintenta iniciar sesión.";
       return;
     }
 
@@ -359,11 +305,11 @@ export const useReservationStore = defineStore("reservation", () => {
         hora_fin: hora_fin,
       };
 
-      // Usamos la ruta en inglés como la definiste en api.php
       const res = await api.post("/reservations", payloadBackend);
 
       if (res.data.success) {
         reservaPayload.value.id_reserva = res.data.id_reserva;
+        misReservacionesCargadas.value = false; // Forzamos actualización porque hay un borrador nuevo
         pasoActual.value = "4";
       }
     } catch (error) {
@@ -376,7 +322,6 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
-  // GO BACK
   const volverADisciplinas = () => {
     reservaPayload.value.disciplinaSeleccionada = null;
     pasoActual.value = "1";
@@ -393,19 +338,16 @@ export const useReservationStore = defineStore("reservation", () => {
     pasoActual.value = "3";
   };
 
-  // --- 2. EL GUARDIÁN DE RUTAS (Sin animaciones que desaparecen) ---
   const intentarCambioPaso = (nuevoPaso) => {
     const destino = parseInt(nuevoPaso);
     const actual = parseInt(pasoActual.value);
 
-    // Si va hacia atrás, limpiamos errores y lo dejamos pasar
     if (destino < actual) {
       errorNavegacion.value = null;
       pasoActual.value = nuevoPaso;
       return;
     }
 
-    // Reglas de validación
     if (destino >= 2 && !reservaPayload.value.disciplinaSeleccionada) {
       errorNavegacion.value = "Primero debes elegir un deporte para continuar.";
       return;
@@ -416,21 +358,15 @@ export const useReservationStore = defineStore("reservation", () => {
       return;
     }
 
-    if (
-      destino >= 4 &&
-      (!horaInicioTemp.value || !horaFinTemp.value || errorValidacion.value)
-    ) {
-      errorNavegacion.value =
-        "Primero debes elegir y confirmar un horario válido.";
+    if (destino >= 4 && (!horaInicioTemp.value || !horaFinTemp.value || errorValidacion.value)) {
+      errorNavegacion.value = "Primero debes elegir y confirmar un horario válido.";
       return;
     }
 
-    // Si todo está bien, limpiamos el error y avanzamos
     errorNavegacion.value = null;
     pasoActual.value = nuevoPaso;
   };
 
-  // --- ACOMPAÑANTES ---
   const sincronizarAcompanantesBorrador = () => {
     if (debounceTimeout) {
       clearTimeout(debounceTimeout);
@@ -438,7 +374,7 @@ export const useReservationStore = defineStore("reservation", () => {
 
     debounceTimeout = setTimeout(async () => {
       const id_reserva = reservaPayload.value.id_reserva;
-      if (!id_reserva) return; // Si no hay borrador activo, no hacemos PUT
+      if (!id_reserva) return; 
 
       try {
         await api.put(`/reservations/${id_reserva}/draft/acompanantes`, {
@@ -451,25 +387,23 @@ export const useReservationStore = defineStore("reservation", () => {
   };
 
   const toggleAcompanante = (acompanante) => {
-    const maxPermitidos = capacidadMaximaEspacio.value - 1; // -1 porque el titular ya cuenta
+    const maxPermitidos = capacidadMaximaEspacio.value - 1; 
 
     const index = acompanantesSeleccionados.value.findIndex(a =>
       a.id === acompanante.id && a.tipo === acompanante.tipo
     );
 
     if (index !== -1) {
-      // Si ya está, lo quitamos
       acompanantesSeleccionados.value.splice(index, 1);
     } else {
-      // Si no está, validamos capacidad
       if (acompanantesSeleccionados.value.length >= maxPermitidos) {
-        return false; // Retornamos falso para que la UI muestre el Toast de error
+        return false; 
       }
       acompanantesSeleccionados.value.push(acompanante);
     }
 
     sincronizarAcompanantesBorrador();
-    return true; // Éxito
+    return true; 
   };
 
   const confirmarReserva = async () => {
@@ -480,7 +414,8 @@ export const useReservationStore = defineStore("reservation", () => {
         acompanantes: acompanantesSeleccionados.value
       });
 
-      // Retornamos un mensaje de éxito incluyendo el aviso del correo
+      misReservacionesCargadas.value = false; // El estado cambió a ACTIVA, hay que forzar recarga de historial
+
       return {
         success: true,
         data: res.data,
@@ -494,8 +429,6 @@ export const useReservationStore = defineStore("reservation", () => {
       cargando.value = false;
     }
   };
-
-
 
   const resetearReserva = () => {
     pasoActual.value = "1";
@@ -546,7 +479,6 @@ export const useReservationStore = defineStore("reservation", () => {
     disciplinasUnicas,
     acompanantesSeleccionados,
     capacidadMaximaEspacio,
-    // --- NUEVAS VARIABLES DEL STEP 3 ---
     opcionesHoras,
     horaInicioTemp,
     horaFinTemp,
@@ -555,13 +487,11 @@ export const useReservationStore = defineStore("reservation", () => {
     errorValidacion,
     errorNavegacion,
     intentarCambioPaso,
-    // --- VARIABLES CACHÉ LISTA RESERVAS ---
-    misReservaciones,
+    // --- VARIABLES VUE DE RESERVAS ---
+    misReservacionesTotales,
     misReservacionesCargadas,
-    misReservacionesTotal,
-    misReservacionesLastPage,
-    // -----------------------------------
     fetchMisReservaciones,
+    // -----------------------------------
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,
     resetearReserva,

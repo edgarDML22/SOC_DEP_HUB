@@ -100,7 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Perfil del usuario
     Route::get('/v1/profile', [ProfileController::class, 'show']);
 
-    // Generar payload encriptado para QR
+    // Obtener QR del usuario
     Route::get('/v1/profile/qr-data', [QrController::class, 'generateQrPayload']);
 
     // Ruta de prueba para verificar al usuario autenticado (Opcional)
@@ -129,7 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Consultar los horarios de un espacio fisico que han sido ocupados
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
 
-    // SDH-17: Endpoint para crear reservaciones
+    // RESERVACIONES ON DEMAND
     Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 
     Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);

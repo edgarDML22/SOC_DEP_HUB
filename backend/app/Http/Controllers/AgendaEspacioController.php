@@ -21,10 +21,6 @@ class AgendaEspacioController extends Controller
         $resultado = collect([]);
 
         // PASO 1
-        // Revisamos otras reservas TABLE reservaciones_on_demand
-        // con fecha de hoy y con el mismo $id_espacio
-        // ver si hay una forma más eficiente de hacerlo con with()
-        // PASO 1
         // Revisamos otras reservas con fecha de hoy y con el mismo $id_espacio
         $id_socio = $request->user()->user_id;  
 

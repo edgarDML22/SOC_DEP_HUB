@@ -10,7 +10,6 @@ class SocioTitular extends Model
     protected $primaryKey = 'id_socio';
     public $timestamps = false;
 
-    // Solo estos campos se podrán editar mediante asignación masiva
     protected $fillable = [
         'fecha_nacimiento',
         'genero',
@@ -19,5 +18,16 @@ class SocioTitular extends Model
     public function invitados()
     {
         return $this->hasMany(Invitados::class, 'socio_id', 'id_socio');
+    }
+
+    public function codigoQrActivo()
+    {
+        return $this->morphOne(CodigoQr::class, 'usuario', 'tipo_usuario_qr', 'usuario_id')
+                    ->where('estatus_codigo_qr', 'ACTIVO'); //quitar despues
+    }
+
+    public function codigosQr()
+    {
+        return $this->morphMany(CodigoQr::class, 'usuario', 'tipo_usuario_qr', 'usuario_id');
     }
 }

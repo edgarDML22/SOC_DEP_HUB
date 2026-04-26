@@ -3,32 +3,29 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log; // <-- Importamos el Log
 
 class CleanExpiredReservations extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:clean-expired-reservations';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
+    protected $description = 'Limpia las reservaciones On Demand que superaron sus 15 minutos en estado PENDIENTE';
 
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
+        $ahora = now();
+        $this->info("Ejecutando limpieza a las: " . $ahora);
+
         $afectados = \App\Models\Reservacion::where('estatus_operativo', 'PENDIENTE')
-            ->where('fecha_expiracion', '<', now())
+            ->where('fecha_expiracion', '<', $ahora)
             ->update(['estatus_operativo' => 'CANCELADA']);
 
-        $this->info("Se limpiaron {$afectados} reservaciones expiradas.");
+        if ($afectados > 0) {
+            // Guardamos rastro en storage/logs/laravel.log
+            Log::info("Job CleanExpiredReservations: Se cancelaron {$afectados} reservaciones expiradas a las {$ahora}.");
+            $this->info("Se limpiaron {$afectados} reservaciones expiradas.");
+        } else {
+            $this->info("No se encontraron reservaciones expiradas.");
+        }
     }
 }

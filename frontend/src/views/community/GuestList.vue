@@ -83,12 +83,6 @@ const copiarImagenAlPortapapeles = async (url) => {
   <!-- Quité bg-surface-50 y min-h-screen aquí para que no se duplique con el Layout -->
   <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
     <div class="max-w-7xl mx-auto flex flex-col gap-6">
-      
-      <!-- BOTÓN VOLVER UNIVERSAL -->
-      <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        Volver
-      </button>
 
       <!-- Encabezado -->
       <div class="flex flex-col gap-2">
