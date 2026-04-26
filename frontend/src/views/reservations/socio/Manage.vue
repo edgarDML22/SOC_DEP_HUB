@@ -1,9 +1,12 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import api from '@/services/api';
 import { useAlerts } from '@/composables/useAlerts';
+import { useReservationStore } from '@/stores/reservationStore';
+import { storeToRefs } from 'pinia';
 
 const { showAlert } = useAlerts();
+const reservationStore = useReservationStore();
+const { misReservaciones, misReservacionesLastPage, misReservacionesTotal } = storeToRefs(reservationStore);
 
 // TABS: Agenda Completa, Mis Reservas, Mis actividades
 const activeTab = ref('mis-reservas');
@@ -36,11 +39,8 @@ const filters = [
 ];
 
 const activeFilter = ref('TODAS');
-const reservations = ref([]);
 const loading = ref(false);
 const currentPage = ref(1);
-const lastPage = ref(1);
-const total = ref(0);
 
 // Modal state
 const showModal = ref(false);
@@ -53,27 +53,14 @@ const fetchReservations = async (loadMore = false) => {
     
     if (!loadMore) {
         currentPage.value = 1;
-        reservations.value = [];
+        // Solo vaciamos si no es 'TODAS' para no perder el caché visual si ya estaba cargado
+        if (activeFilter.value !== 'TODAS') {
+            misReservaciones.value = [];
+        }
     }
 
     try {
-        const res = await api.get('/reservations/my-list', {
-            params: {
-                status: activeFilter.value,
-                limit: 10,
-                page: currentPage.value
-            }
-        });
-
-        if (res.data.success) {
-            if (loadMore) {
-                reservations.value = [...reservations.value, ...res.data.data];
-            } else {
-                reservations.value = res.data.data;
-            }
-            lastPage.value = res.data.last_page;
-            total.value = res.data.total;
-        }
+        await reservationStore.fetchMisReservaciones(activeFilter.value, currentPage.value, loadMore);
     } catch (error) {
         console.error("Error fetching reservations:", error);
         showAlert("Error al cargar las reservaciones", "error");
@@ -83,7 +70,7 @@ const fetchReservations = async (loadMore = false) => {
 };
 
 const handleLoadMore = () => {
-    if (currentPage.value < lastPage.value) {
+    if (currentPage.value < misReservacionesLastPage.value) {
         currentPage.value++;
         fetchReservations(true);
     }
@@ -170,13 +157,13 @@ const selectTab = (id) => {
                 </div>
 
                 <!-- LOADING STATE -->
-                <div v-if="loading && reservations.length === 0" class="flex flex-col items-center py-20">
+                <div v-if="loading && misReservaciones.length === 0" class="flex flex-col items-center py-20">
                     <div class="w-10 h-10 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin"></div>
                     <p class="mt-4 text-surface-500 font-medium">Cargando tus reservaciones...</p>
                 </div>
 
                 <!-- EMPTY STATE -->
-                <div v-else-if="reservations.length === 0" class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm">
+                <div v-else-if="misReservaciones.length === 0" class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm">
                     <div class="w-16 h-16 bg-surface-50 rounded-full flex items-center justify-center text-surface-300 mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </div>
@@ -187,7 +174,7 @@ const selectTab = (id) => {
                 <!-- LISTA DE RESERVAS (Cards) -->
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div 
-                        v-for="reserva in reservations" 
+                        v-for="reserva in misReservaciones" 
                         :key="reserva.id_reserva"
                         class="bg-white p-5 rounded-2xl border border-surface-200 shadow-sm flex items-center justify-between hover:border-primary-300 hover:shadow-md transition-all"
                     >
@@ -228,7 +215,7 @@ const selectTab = (id) => {
                 </div>
 
                 <!-- BOTÓN CARGAR MÁS -->
-                <div v-if="currentPage < lastPage" class="flex justify-center mt-4">
+                <div v-if="currentPage < misReservacionesLastPage" class="flex justify-center mt-4">
                     <button 
                         @click="handleLoadMore"
                         :disabled="loading"

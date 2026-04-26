@@ -27,6 +27,12 @@ export const useReservationStore = defineStore("reservation", () => {
   const capacidadMaximaEspacio = ref(0);
   let debounceTimeout = null;
 
+  // --- VARIABLES PARA LISTA DE MIS RESERVAS (CACHE) ---
+  const misReservaciones = ref([]);
+  const misReservacionesCargadas = ref(false);
+  const misReservacionesTotal = ref(0);
+  const misReservacionesLastPage = ref(1);
+
 
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
   // Solo agrégale el ref( y el ) al final
@@ -160,6 +166,34 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
+  // --- FETCH LISTA DE RESERVACIONES (Manage.vue) ---
+  const fetchMisReservaciones = async (status = 'TODAS', page = 1, loadMore = false) => {
+    // Si ya cargamos la primera página para este status y no estamos pidiendo más, retornamos cache
+    if (!loadMore && misReservacionesCargadas.value && page === 1 && status === 'TODAS') {
+      return;
+    }
+
+    try {
+      const res = await api.get('/reservations/my-list', {
+        params: { status, limit: 10, page }
+      });
+
+      if (res.data.success) {
+        if (loadMore) {
+          misReservaciones.value = [...misReservaciones.value, ...res.data.data];
+        } else {
+          misReservaciones.value = res.data.data;
+          if (status === 'TODAS') misReservacionesCargadas.value = true;
+        }
+        misReservacionesLastPage.value = res.data.last_page;
+        misReservacionesTotal.value = res.data.total;
+      }
+    } catch (error) {
+      console.error("Error fetching reservations list:", error);
+      throw error;
+    }
+  };
+
   const fetchHorarioEspacio = async (id_espacio) => {
     cargando.value = true;
     errorApi.value = null;
@@ -190,7 +224,7 @@ export const useReservationStore = defineStore("reservation", () => {
 
     // -- Se busca su última reserva que dejó como PENDIENTE
     try {
-      
+      const res = await api.get('/reservations/draft/active');
 
       if (res.data.success && res.data.reserva) {
         const r = res.data.reserva;
@@ -202,7 +236,7 @@ export const useReservationStore = defineStore("reservation", () => {
         if (typeof r.acompanantes_draft === 'string') {
           try {
             acompanantesSeleccionados.value = JSON.parse(r.acompanantes_draft);
-          } catch(e) {
+          } catch (e) {
             acompanantesSeleccionados.value = [];
           }
         } else {
@@ -401,7 +435,7 @@ export const useReservationStore = defineStore("reservation", () => {
     if (debounceTimeout) {
       clearTimeout(debounceTimeout);
     }
-    
+
     debounceTimeout = setTimeout(async () => {
       const id_reserva = reservaPayload.value.id_reserva;
       if (!id_reserva) return; // Si no hay borrador activo, no hacemos PUT
@@ -418,11 +452,11 @@ export const useReservationStore = defineStore("reservation", () => {
 
   const toggleAcompanante = (acompanante) => {
     const maxPermitidos = capacidadMaximaEspacio.value - 1; // -1 porque el titular ya cuenta
-    
-    const index = acompanantesSeleccionados.value.findIndex(a => 
+
+    const index = acompanantesSeleccionados.value.findIndex(a =>
       a.id === acompanante.id && a.tipo === acompanante.tipo
-    ); 
-    
+    );
+
     if (index !== -1) {
       // Si ya está, lo quitamos
       acompanantesSeleccionados.value.splice(index, 1);
@@ -433,7 +467,7 @@ export const useReservationStore = defineStore("reservation", () => {
       }
       acompanantesSeleccionados.value.push(acompanante);
     }
-    
+
     sincronizarAcompanantesBorrador();
     return true; // Éxito
   };
@@ -441,25 +475,25 @@ export const useReservationStore = defineStore("reservation", () => {
   const confirmarReserva = async () => {
     cargando.value = true;
     try {
-        const res = await api.post("/reservations/confirm", {
-            id_reserva: reservaPayload.value.id_reserva,
-            acompanantes: acompanantesSeleccionados.value
-        });
-        
-        // Retornamos un mensaje de éxito incluyendo el aviso del correo
-        return { 
-            success: true, 
-            data: res.data,
-            message: "¡Reservación confirmada exitosamente! Se ha enviado un correo con los detalles." 
-        };
+      const res = await api.post("/reservations/confirm", {
+        id_reserva: reservaPayload.value.id_reserva,
+        acompanantes: acompanantesSeleccionados.value
+      });
+
+      // Retornamos un mensaje de éxito incluyendo el aviso del correo
+      return {
+        success: true,
+        data: res.data,
+        message: "¡Reservación confirmada exitosamente! Se ha enviado un correo con los detalles."
+      };
     } catch (error) {
-        console.error("Error al confirmar reserva:", error);
-        const msg = error.response?.data?.message || "Error al confirmar.";
-        return { success: false, error: msg };
+      console.error("Error al confirmar reserva:", error);
+      const msg = error.response?.data?.message || "Error al confirmar.";
+      return { success: false, error: msg };
     } finally {
-        cargando.value = false;
+      cargando.value = false;
     }
-};
+  };
 
 
 
@@ -521,7 +555,13 @@ export const useReservationStore = defineStore("reservation", () => {
     errorValidacion,
     errorNavegacion,
     intentarCambioPaso,
+    // --- VARIABLES CACHÉ LISTA RESERVAS ---
+    misReservaciones,
+    misReservacionesCargadas,
+    misReservacionesTotal,
+    misReservacionesLastPage,
     // -----------------------------------
+    fetchMisReservaciones,
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,
     resetearReserva,
