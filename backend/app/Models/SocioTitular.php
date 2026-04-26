@@ -15,6 +15,7 @@ class SocioTitular extends Model
         'fecha_nacimiento',
         'genero',
         'modalidad_plan',
+        'retrasos_ludoteca',
     ];
 
     public function invitados()

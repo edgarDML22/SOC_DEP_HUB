@@ -20,7 +20,7 @@ class RegistrosLudoteca extends Model
         'id_adulto_egreso',
         'hora_ingreso',
         'hora_egreso',
-        'estatus_visita',
+        'estatus_ludoteca',
         'id_instructor_ingreso',
         'id_instructor_egreso',
     ];

@@ -9,6 +9,7 @@ use App\Models\MiembrosFamiliares;
 use App\Models\MongoDB\RegistroLudotecaMongo;
 class LudotecaStatusController extends Controller
 {
+    //Modificado completamente en la SDH-163 por el cambio de la logica de la ludoteca
     public function checkIn(Request $request)
     {
         //VALIDACION DE CAMPOS REQUERIDOS, es necesario que el front envie el tipo de check, ya sea 'in' o 'out'
@@ -39,6 +40,16 @@ class LudotecaStatusController extends Controller
         if ($alreadyActiveToday) {
             return response()->json([
                 'message' => 'El menor ya tiene una estancia activa hoy'
+            ], 409);
+        }
+        // registro ya usado 
+        $alreadyUsedToday = RegistrosLudoteca::where('id_menor', $id_menor)
+            ->whereDate('hora_ingreso', today())
+            ->exists();
+
+        if ($alreadyUsedToday) {
+            return response()->json([
+                'message' => 'El menor ya tiene una estancia usada hoy'
             ], 409);
         }
 
@@ -77,7 +88,6 @@ class LudotecaStatusController extends Controller
             'estatus_ludoteca' => 'required|in:INACTIVO,ENTREGADO,ACTIVA'
         ]);
 
-        // Si solo pasa a inactivo
         if ($request->estatus_ludoteca == 'INACTIVO') {
 
             RegistrosLudoteca::where('id_registro', $id)->update([
@@ -89,7 +99,6 @@ class LudotecaStatusController extends Controller
             ]);
         }
 
-        // Si ya fue entregado
         if ($request->estatus_ludoteca == 'ENTREGADO') {
 
             $estatusFinal = 'COMPLETADA_A_TIEMPO';
@@ -100,8 +109,14 @@ class LudotecaStatusController extends Controller
 
             if ($time > $limite) {
                 $estatusFinal = 'COMPLETADA_CON_RETRASO';
+
+                SocioTitular::where(
+                    'id_socio',
+                    $request->id_socio
+                )->increment('retrasos_ludoteca', 1);
             }
 
+            // esto corre para ambos casos
             RegistrosLudoteca::where('id_registro', $id)->update([
                 'estatus_ludoteca' => $estatusFinal,
                 'hora_egreso' => now(),
