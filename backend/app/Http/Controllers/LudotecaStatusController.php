@@ -42,6 +42,16 @@ class LudotecaStatusController extends Controller
                 'message' => 'El menor ya tiene una estancia activa hoy'
             ], 409);
         }
+        // registro ya usado 
+        $alreadyUsedToday = RegistrosLudoteca::where('id_menor', $id_menor)
+            ->whereDate('hora_ingreso', today())
+            ->exists();
+
+        if ($alreadyUsedToday) {
+            return response()->json([
+                'message' => 'El menor ya tiene una estancia usada hoy'
+            ], 409);
+        }
 
         //Si el check_in es IN
         $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
