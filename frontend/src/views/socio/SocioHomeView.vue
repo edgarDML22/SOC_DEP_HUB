@@ -193,9 +193,10 @@ const handleClick = async (action) => {
         </div>
 
       </div>
+    </div>
 
-      <!-- Modal QR -->
-      <QrCredentialModal v-if="isQrModalOpen" :payloadText="qrPayload" :isLoading="qrIsLoading"
-        @close="isQrModalOpen = false" />
+    <!-- Modal QR -->
+    <QrCredentialModal v-if="isQrModalOpen" :payloadText="qrPayload" :isLoading="qrIsLoading"
+      @close="isQrModalOpen = false" />
   </main>
 </template>
