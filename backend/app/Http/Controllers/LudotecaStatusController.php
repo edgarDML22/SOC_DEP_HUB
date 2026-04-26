@@ -9,7 +9,7 @@ use App\Models\MiembrosFamiliares;
 use App\Models\MongoDB\RegistroLudotecaMongo;
 class LudotecaStatusController extends Controller
 {
-    //Modificado completamente en la SDH-163 por el cambio de la logica de la ludoteca
+    //Modificado completamente en la SDH-163 por el cambio de la logica de la ludotecaen
     public function checkIn(Request $request)
     {
         //VALIDACION DE CAMPOS REQUERIDOS, es necesario que el front envie el tipo de check, ya sea 'in' o 'out'
@@ -55,9 +55,13 @@ class LudotecaStatusController extends Controller
 
         //Si el check_in es IN
         $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
+
         $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
             ->where('socio_id', $request->id_socio)
             ->first();
+        /* return response()->json([
+            'familiar' => $familiar
+        ]); */
         if ($familiar == null) {
             return response()->json([
                 'message' => 'Familiar no encontrado',
@@ -136,6 +140,13 @@ class LudotecaStatusController extends Controller
                     'estatus_final' => $estatusFinal
                 ]
             ]);
+            // enviar encuesta automática
+            $socio = SocioTitular::find($request->id_socio);
+
+            $socio->notify(
+                new EncuestaLudotecaNotification($id)
+            );
+
 
             return response()->json([
                 'message' => 'Salida registrada correctamente'
