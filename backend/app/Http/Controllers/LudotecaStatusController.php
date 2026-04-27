@@ -73,7 +73,6 @@ class LudotecaStatusController extends Controller
         $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
             'estatus_ludoteca' => 'ACTIVA',
             'hora_ingreso' => now(),
-            'hora_limite' => now()->addHours(2), // Por defecto 2 horas (ajústalo si es distinto)
             'id_adulto_ingreso' => $request->id_socio,
             'hora_egreso' => null,
             'id_adulto_egreso' => null,
@@ -93,6 +92,7 @@ class LudotecaStatusController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
+            'id_registro' => 'required|exists:registros_ludoteca,id_registro',
             'id_socio' => 'required|exists:socios_titulares,id_socio',
             'id_instructor' => 'required|exists:instructores,id_instructor',
             'estatus_ludoteca' => 'required|in:INACTIVO,ENTREGADO,ACTIVA'
@@ -100,14 +100,40 @@ class LudotecaStatusController extends Controller
 
         if ($request->estatus_ludoteca == 'INACTIVO') {
 
-            RegistrosLudoteca::where('id_registro', $id)->update([
+            /* RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
                 'estatus_ludoteca' => 'INACTIVO'
-            ]);
+            ]); */
+
+            RegistrosLudoteca::whereNotNull('hora_ingreso')
+                ->where('id_registro', $request->id_registro)
+                ->update([
+                    'estatus_ludoteca' => 'INACTIVO',
+                    'hora_egreso' => null,
+                    'id_adulto_ingreso' => null,
+                    'id_adulto_egreso' => null,
+                    'id_instructor_ingreso' => null,
+                    'id_instructor_egreso' => null,
+                    'alerta_30_enviada' => false,
+                    'alerta_10_enviada' => false,
+                ]);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Menor marcado como inactivo'
             ]);
         }
+
+        $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
+
+        $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
+            ->where('socio_id', $request->id_socio)
+            ->first();
+        if ($familiar == null) {
+            return response()->json([
+                'message' => 'Familiar no encontrado',
+            ]);
+        }
+
 
         if ($request->estatus_ludoteca == 'ENTREGADO') {
 
@@ -160,6 +186,7 @@ class LudotecaStatusController extends Controller
 
 
             return response()->json([
+                'success' => true,
                 'message' => 'Salida registrada correctamente'
             ]);
         }

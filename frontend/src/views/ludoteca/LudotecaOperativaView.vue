@@ -1,19 +1,30 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useLudotecaOperativaStore } from '@/stores/ludoteca/ludotecaOperativaStore';
+import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
 
 const searchQuery = ref('');
-
+const activeTab = ref('activos'); 
+ 
 // Estado para modales
 const modalIngresoInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR' });
 const modalSalidaInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
 
 const store = useLudotecaOperativaStore();
+const instructorStore = useInstructorStore();
 let timer = null;
 
+watch(() => instructorStore.idInstructor, (newId) => {
+    if (newId) {
+        store.fetchEstancias();
+    }
+});
+
 onMounted(() => {
-  store.fetchEstancias();
+  if (instructorStore.idInstructor) {
+      store.fetchEstancias();
+  }
 
   // Validar el turno cada minuto
   timer = setInterval(() => {
@@ -29,7 +40,7 @@ onUnmounted(() => {
 
 // Helpers para la UI
 const moverAInactivo = (id) => {
-    store.cambiarEstatusEstancia(id, 'Inactivo');
+    store.cambiarEstatusEstancia(id, 'INACTIVO');
 };
 
 const abrirModalSalida = (id) => {
@@ -37,7 +48,8 @@ const abrirModalSalida = (id) => {
 };
 
 const confirmarSalida = () => {
-    store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'Entregado', {
+    // Al store se le sigue pasando 'Entregado', él se encarga de enviarlo al PATCH para que el back lo valide
+    store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'ENTREGADO', {
         tipo_usuario: modalSalidaInfo.value.tipoUsuario,
         correo_receptor: modalSalidaInfo.value.correo
     });
@@ -49,7 +61,7 @@ const abrirModalIngreso = (id) => {
 };
 
 const confirmarIngreso = () => {
-    store.cambiarEstatusEstancia(modalIngresoInfo.value.idEstancia, 'Activo', {
+    store.cambiarEstatusEstancia(modalIngresoInfo.value.idEstancia, 'ACTIVA', {
         tipo_usuario: modalIngresoInfo.value.tipoUsuario
     });
     modalIngresoInfo.value.visible = false;
@@ -63,6 +75,41 @@ const inactivosFiltrados = computed(() => {
         nino.nombre_tutor?.toLowerCase().includes(query)
     );
 });
+
+const formatTime = (timeString) => {
+    if (!timeString) return 'Sin registrar';
+    
+    try {
+        const date = new Date(timeString);
+        
+        // Si la fecha no es válida (por ejemplo si solo viene la hora "HH:mm:ss")
+        if (isNaN(date.getTime())) {
+            // Intentamos parsear asumiendo que es una hora del día de hoy
+            const today = new Date().toISOString().split('T')[0];
+            const normalizedDate = new Date(`${today}T${timeString}`);
+            if (!isNaN(normalizedDate.getTime())) {
+                return new Intl.DateTimeFormat('es-MX', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                    timeZone: 'America/Mexico_City'
+                }).format(normalizedDate);
+            }
+            return timeString;
+        }
+
+        return new Intl.DateTimeFormat('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: 'America/Mexico_City'
+        }).format(date);
+    } catch (e) {
+        return timeString;
+    }
+};
 </script>
 
 <template>
@@ -118,17 +165,17 @@ const inactivosFiltrados = computed(() => {
                 </div>
 
                 <!-- Tarjetas de Niños Activos -->
-                <div v-for="nino in store.estanciasActivas" :key="nino.id" class="bg-white rounded-3xl border border-green-200 p-5 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
+                <div v-for="nino in store.estanciasActivas" :key="nino.id_registro" class="bg-white rounded-3xl border border-green-200 p-5 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
                     <div>
                         <h4 class="font-bold text-lg text-surface-900 leading-tight">{{ nino.nombre_nino || 'Niño sin nombre' }}</h4>
                         <p class="text-surface-500 text-sm mt-1">Tutor: {{ nino.nombre_tutor || 'No especificado' }}</p>
                     </div>
                     
                     <div class="flex gap-2 mt-5">
-                        <button @click="moverAInactivo(nino.id)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
+                        <button @click="moverAInactivo(nino.id_registro)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
                             Incidencia
                         </button>
-                        <button @click="abrirModalSalida(nino.id)" class="bg-green-600 hover:bg-green-700 text-white rounded-xl px-2 py-3 font-bold shadow-lg shadow-green-700/20 active:scale-95 transition-all flex-1 text-center border border-green-500 text-sm">
+                        <button @click="abrirModalSalida(nino.id_registro)" class="bg-green-600 hover:bg-green-700 text-white rounded-xl px-2 py-3 font-bold shadow-lg shadow-green-700/20 active:scale-95 transition-all flex-1 text-center border border-green-500 text-sm">
                             Marcar Salida
                         </button>
                     </div>
@@ -161,13 +208,13 @@ const inactivosFiltrados = computed(() => {
             </div>
             
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div v-for="nino in inactivosFiltrados" :key="nino.id" class="bg-surface-50 rounded-3xl border border-surface-200 p-5 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
+                <div v-for="nino in inactivosFiltrados" :key="nino.id_registro" class="bg-surface-50 rounded-3xl border border-surface-200 p-5 shadow-sm transition-all hover:shadow-md flex flex-col justify-between">
                     <div>
                         <h4 class="font-bold text-lg text-surface-900 leading-tight">{{ nino.nombre_nino }}</h4>
                         <p class="text-surface-500 text-sm mt-1">Tutor: {{ nino.nombre_tutor }}</p>
                     </div>
                     <div class="flex gap-2 mt-5">
-                        <button @click="abrirModalIngreso(nino.id)" class="bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm shadow-md active:scale-95">
+                        <button @click="abrirModalIngreso(nino.id_registro)" class="bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm shadow-md active:scale-95">
                             Ingresar / Activar
                         </button>
                     </div>
@@ -182,14 +229,14 @@ const inactivosFiltrados = computed(() => {
                     <p class="text-surface-500 font-medium text-sm text-center">No se han entregado niños hoy.</p>
                 </div>
 
-                <div v-for="nino in store.estanciasEntregadas" :key="nino.id" class="bg-surface-50 rounded-3xl border border-blue-200 p-5 shadow-sm transition-all flex flex-col justify-between opacity-90">
+                <div v-for="nino in store.estanciasEntregadas" :key="nino.id_registro" class="bg-surface-50 rounded-3xl border border-blue-200 p-5 shadow-sm transition-all flex flex-col justify-between opacity-90">
                     <div>
                         <h4 class="font-bold text-lg text-surface-900 leading-tight">{{ nino.nombre_nino }}</h4>
                         <p class="text-surface-500 text-sm mt-1">Tutor: {{ nino.nombre_tutor }}</p>
                     </div>
                     <div class="mt-4 flex">
                         <span class="text-xs font-semibold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg inline-block border border-blue-200">
-                            Entregado a las: {{ nino.hora_salida || 'Sin registrar' }}
+                            Entregado a las: {{ formatTime(nino.hora_salida) }}
                         </span>
                     </div>
                 </div>

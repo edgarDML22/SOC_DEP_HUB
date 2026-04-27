@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api";
 
-
 import { useInstructorStore } from "@/stores/profiles/instructorStore";
 
 export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => {
@@ -39,17 +38,21 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
 
     // Filtros de Tablero
     const estanciasActivas = computed(() => {
-        return estanciasDelDia.value.filter(estancia => estancia.estatus === 'Activo');
+        return estanciasDelDia.value.filter(estancia => estancia.estatus === 'ACTIVA');
     });
 
     const estanciasInactivas = computed(() => {
-        return estanciasDelDia.value.filter(estancia => estancia.estatus === 'Inactivo');
+        return estanciasDelDia.value.filter(estancia => estancia.estatus === 'INACTIVO');
     });
 
+    // ¡CAMBIO APLICADO! Se aceptan los estatus que manda el backend para no vaciar la pestaña azul
     const estanciasEntregadas = computed(() => {
-        return estanciasDelDia.value.filter(estancia => estancia.estatus === 'Entregado');
+        return estanciasDelDia.value.filter(estancia =>
+            estancia.estatus === 'ENTREGADO' ||
+            estancia.estatus === 'COMPLETADA_A_TIEMPO' ||
+            estancia.estatus === 'COMPLETADA_CON_RETRASO'
+        );
     });
-
 
     // ACTIONS
 
@@ -64,8 +67,8 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
         error.value = null;
 
         try {
-            // NOTA: Cuando el backend esté listo, ajustar esta ruta GET si cambia
-            const res = await api.get(`/ludoteca/operativa?id_instructor=${instructorStore.idInstructor}`);
+            // ¡CAMBIO APLICADO! Se ajustó la ruta y la variable id_socio para hacer match con el controlador de Jorge
+            const res = await api.get(`/ludoteca/validar-tutor?id_socio=${instructorStore.idInstructor}`);
 
             if (res.data.success) {
                 estanciasDelDia.value = res.data.data.estancias || [];
@@ -81,8 +84,8 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
 
     // Rollback Optimista: Cambiar estatus de un niño sin esperar al servidor
     const cambiarEstatusEstancia = async (idEstancia, nuevoEstatus, extraData = {}) => {
-        // Asumi que la llave primaria puede llamarse "id" o "id_estancia"
-        const estanciaIndex = estanciasDelDia.value.findIndex(e => e.id === idEstancia || e.id_estancia === idEstancia);
+        // ¡CAMBIO APLICADO! Se agregó e.id_registro por si el backend manda esa llave primaria
+        const estanciaIndex = estanciasDelDia.value.findIndex(e => e.id === idEstancia || e.id_estancia === idEstancia || e.id_registro === idEstancia);
         if (estanciaIndex === -1) return;
 
         // GUARDAR ESTADO ANTERIOR
@@ -93,9 +96,11 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
         error.value = null;
 
         try {
-
             const res = await api.patch(`/ludoteca/estancia/${idEstancia}/status`, {
-                estatus: nuevoEstatus,
+                id_registro: idEstancia,
+                estatus_ludoteca: nuevoEstatus,
+                id_instructor: instructorStore.idInstructor,
+                id_socio: estanciasDelDia.value[estanciaIndex].id_socio,
                 ...extraData
             });
 
@@ -103,13 +108,11 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
                 throw new Error("El backend rechazó el cambio.");
             }
 
-
-            if (nuevoEstatus === 'Entregado' && res.data.data?.hora_salida) {
+            if (nuevoEstatus === 'ENTREGADO' && res.data.data?.hora_salida) {
                 estanciasDelDia.value[estanciaIndex].hora_salida = res.data.data.hora_salida;
             }
 
         } catch (err) {
-
             console.error("Falló la actualización optimista:", err);
 
             // Regresamos la tarjeta a la pestaña original
