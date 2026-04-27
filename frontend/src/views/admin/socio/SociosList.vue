@@ -1,13 +1,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useSocioStore } from '@/stores/socioStore';
+import { storeToRefs } from 'pinia';
 
 const router = useRouter();
+const socioStore = useSocioStore();
 
-const socios = ref([]);
-const isLoading = ref(true);
-const errorMsg = ref('');
+const { socios, isLoading, error: errorMsg } = storeToRefs(socioStore);
+const { fetchSocios } = socioStore;
 
 // FILTERS
 const search = ref('');
@@ -19,22 +20,6 @@ const filterEstatus = ref('TODAS');
 onMounted(async () => {
   await fetchSocios();
 });
-
-const fetchSocios = async () => {
-    isLoading.value = true;
-    errorMsg.value = '';
-    try {
-        const response = await api.get('/socios/all');
-        if (response.data && response.data.success) {
-            socios.value = response.data.data;
-        }
-    } catch (error) {
-        console.error("Error cargando los socios:", error);
-        errorMsg.value = "Hubo un problema al cargar la lista de socios titulares.";
-    } finally {
-        isLoading.value = false;
-    }
-};
 
 const filteredSocios = computed(() => {
   let result = socios.value;
