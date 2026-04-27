@@ -96,8 +96,8 @@ class SocioController extends Controller
 
         DB::beginTransaction();
         try {
-            // Actualizar tabla socios_titulares
-            $socio->update($request->only([
+            // Datos base para actualizar
+            $updateData = $request->only([
                 'nombre_completo',
                 'correo_electronico',
                 'tipo_socio',
@@ -107,16 +107,30 @@ class SocioController extends Controller
                 'retrasos_ludoteca',
                 'fecha_nacimiento',
                 'genero'
-            ]));
+            ]);
 
-            // Si el nombre cambió o el estatus de cuenta cambió, podríamos actualizar la tabla users.
-            // La relación es User.user_id = SocioTitular.id_socio AND User.rol = 'socio_titular'
-            if ($request->has('nombre_completo')) {
+            // Lógica específica para penalización
+            if ($request->input('estatus_cuenta') === 'PENALIZADO') {
+                if (!$socio->fecha_fin_penalizacion || $socio->estatus_cuenta !== 'PENALIZADO') {
+                    // Usar Carbon directamente para mayor precisión
+                    // $updateData['fecha_fin_penalizacion'] = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
+                    $updateData['fecha_fin_penalizacion'] = \Carbon\Carbon::now('America/Mexico_City')->addMinutes(5);
+                }
+            } elseif ($request->input('estatus_cuenta') === 'AL_CORRIENTE') {
+                $updateData['fecha_fin_penalizacion'] = null;
+                $updateData['contador_no_shows'] = 0;
+            }
+
+            $socio->update($updateData);
+
+            // Sincronizar con la tabla 'users' si hay campos en común (email)
+            if ($request->has('correo_electronico')) {
                 $usuarioLogin = User::where('user_id', $socio->id_socio)
-                                    ->where('rol', 'socio_titular')
-                                    ->first();
+                    ->where('rol', 'socio_titular')
+                    ->first();
                 if ($usuarioLogin) {
-                    $usuarioLogin->name = $request->input('nombre_completo');
+                    $usuarioLogin->email = $request->input('correo_electronico');
+                    // NOTA: No se actualiza 'name' porque la columna no existe en la tabla 'users'.
                     $usuarioLogin->save();
                 }
             }
@@ -129,6 +143,13 @@ class SocioController extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            \Illuminate\Support\Facades\Log::error("Error en SocioController@update: " . $e->getMessage(), [
+                'id' => $id,
+                'request' => $request->all(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar socio: ' . $e->getMessage()
@@ -159,7 +180,7 @@ class SocioController extends Controller
             ->select('id_socio as id', 'nombre_completo as nombre', 'numero_accion as numero_socio')
             ->where(function ($q) use ($queryParam) {
                 $q->where('nombre_completo', 'ILIKE', "%{$queryParam}%")
-                  ->orWhere('numero_accion', 'ILIKE', "%{$queryParam}%");
+                    ->orWhere('numero_accion', 'ILIKE', "%{$queryParam}%");
             })
             ->limit(10)
             ->get()

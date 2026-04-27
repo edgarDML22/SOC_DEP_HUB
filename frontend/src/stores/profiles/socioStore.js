@@ -38,11 +38,18 @@ export const useProfileStore = defineStore("profile", () => {
   const fechaNacimiento = computed(() => profileData.value?.fecha_nacimiento || "");
   const genero = computed(() => profileData.value?.genero || "");
   const correoElectronico = computed(() => profileData.value?.correo_electronico || "");
+  const fechaFinPenalizacion = computed(() => profileData.value?.fecha_fin_penalizacion || null);
+
+  const isPenalized = computed(() => {
+    if (!profileData.value) return false;
+    const status = profileData.value?.estatus_cuenta?.toUpperCase();
+    return status === "PENALIZADO";
+  });
 
   const isAccountInactive = computed(() => {
     if (!profileData.value) return false;
     const status = profileData.value?.estatus_cuenta?.toUpperCase();
-    return status === "INACTIVO" || status === "SUSPENDIDO";
+    return status === "INACTIVO" || status === "SUSPENDIDO" || status === "PENALIZADO";
   });
 
   // Da color al badge dinámicamente
@@ -86,6 +93,8 @@ export const useProfileStore = defineStore("profile", () => {
     fechaNacimiento,
     genero,
     correoElectronico,
+    fechaFinPenalizacion,
+    isPenalized,
     modalidadPlan,
     idSocio,
     esAdmin,

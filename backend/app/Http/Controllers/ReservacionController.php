@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\SesionActiva;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Models\SocioTitular;
 
 class ReservacionController extends Controller
 {
@@ -46,6 +47,18 @@ class ReservacionController extends Controller
 
         if ($inicio->diffInMinutes($fin) > 120) {
             return response()->json(['success' => false, 'message' => 'La reservación no puede exceder las 2 horas.'], 400);
+        }
+
+        // VALIDAR PENALIZACIÓN
+        $user = $request->user();
+        if ($user->rol === 'socio_titular') {
+            $socio = SocioTitular::find($user->user_id);
+            if ($socio && $socio->estatus_cuenta === 'PENALIZADO') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta se encuentra PENALIZADA por acumulacion de No Shows. No puedes realizar nuevas reservaciones hasta que expire la sanción.'
+                ], 403);
+            }
         }
 
         return DB::transaction(function () use ($request) {
@@ -298,6 +311,18 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'No tienes permiso para confirmar esta reservación.'], 403);
         }
 
+        // VALIDAR PENALIZACIÓN AL CONFIRMAR
+        $user = $request->user();
+        if ($user->rol === 'socio_titular') {
+            $socio = SocioTitular::find($user->user_id);
+            if ($socio && $socio->estatus_cuenta === 'PENALIZADO') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta se encuentra PENALIZADA. No puedes confirmar reservaciones en este momento.'
+                ], 403);
+            }
+        }
+
         try {
             return DB::transaction(function () use ($request, $reserva) {
                 // Leer acompañantes del draft almacenado en BD
@@ -408,9 +433,9 @@ class ReservacionController extends Controller
                 // Regla de negocio: al acumular 3 no_shows se bloquea por 7 días naturales
                 if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
                     $socio->estatus_cuenta = 'PENALIZADO';
-                    // Guardar la fecha en que vence la penalización
+                    // Guardar la fecha en que vence la penalización (con hora 00:00)
                     if (\Illuminate\Support\Facades\Schema::hasColumn('socios_titulares', 'fecha_fin_penalizacion')) {
-                        $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7);
+                        $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
                     }
                 }
 

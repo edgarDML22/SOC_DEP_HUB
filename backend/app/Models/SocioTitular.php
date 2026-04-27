@@ -23,6 +23,12 @@ class SocioTitular extends Model
         'fecha_fin_penalizacion',
     ];
 
+    protected $casts = [
+        'fecha_fin_penalizacion' => 'datetime',
+        'contador_no_shows' => 'integer',
+        'retrasos_ludoteca' => 'integer',
+    ];
+
     public function invitados()
     {
         return $this->hasMany(Invitados::class, 'socio_id', 'id_socio');
