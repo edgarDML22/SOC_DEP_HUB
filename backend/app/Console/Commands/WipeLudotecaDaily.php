@@ -60,6 +60,8 @@ class WipeLudotecaDaily extends Command
                 'id_adulto_egreso' => null,
                 'id_instructor_ingreso' => null,
                 'id_instructor_egreso' => null,
+                'alerta_30_enviada' => false,
+                'alerta_10_enviada' => false,
             ]);
 
         return 0;
