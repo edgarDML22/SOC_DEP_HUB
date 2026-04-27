@@ -96,13 +96,20 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
         error.value = null;
 
         try {
-            const res = await api.patch(`/ludoteca/estancia/${idEstancia}/status`, {
+            // Construimos el payload dinámicamente
+            const payload = {
                 id_registro: idEstancia,
                 estatus_ludoteca: nuevoEstatus,
                 id_instructor: instructorStore.idInstructor,
-                id_socio: estanciasDelDia.value[estanciaIndex].id_socio,
                 ...extraData
-            });
+            };
+
+            // Si NO estamos enviando un correo nuevo, usamos el id_socio que ya tiene el registro
+            if (!extraData.correo_receptor && !extraData.correo && !extraData.id_socio) {
+                payload.id_socio = estanciasDelDia.value[estanciaIndex].id_socio;
+            }
+
+            const res = await api.patch(`/ludoteca/estancia/${idEstancia}/status`, payload);
 
             if (!res.data.success) {
                 throw new Error("El backend rechazó el cambio.");
@@ -114,11 +121,39 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
 
         } catch (err) {
             console.error("Falló la actualización optimista:", err);
-
             // Regresamos la tarjeta a la pestaña original
             estanciasDelDia.value[estanciaIndex].estatus = estatusAnterior;
-
             error.value = "Error de red: El cambio no se guardó. La tarjeta regresó a su posición original.";
+        }
+    };
+
+    // Registrar ingreso (Check-In) usando la ruta POST dedicada
+    const registrarIngreso = async (idEstancia, extraData = {}) => {
+        const estanciaIndex = estanciasDelDia.value.findIndex(e => e.id_registro === idEstancia);
+        if (estanciaIndex === -1) return;
+
+        const estatusAnterior = estanciasDelDia.value[estanciaIndex].estatus;
+
+        // Optimista
+        estanciasDelDia.value[estanciaIndex].estatus = 'ACTIVA';
+        error.value = null;
+
+        try {
+            const res = await api.post('/ludoteca/ingreso', {
+                id_registro: idEstancia,
+                id_instructor: instructorStore.idInstructor,
+                id_socio: estanciasDelDia.value[estanciaIndex].id_socio,
+                ...extraData
+            });
+
+            if (!res.data.success && !res.data.registro) {
+                // Algunos endpoints devuelven el registro en lugar de success: true
+                // pero si el status no es 2xx, Axios lanzará error
+            }
+        } catch (err) {
+            console.error("Error en check-in:", err);
+            estanciasDelDia.value[estanciaIndex].estatus = estatusAnterior;
+            error.value = err.response?.data?.message || "Error al registrar el ingreso.";
         }
     };
 
@@ -135,6 +170,7 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
         estanciasEntregadas,
         // Actions
         fetchEstancias,
-        cambiarEstatusEstancia
+        cambiarEstatusEstancia,
+        registrarIngreso
     };
 });

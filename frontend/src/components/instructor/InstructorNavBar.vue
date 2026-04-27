@@ -167,30 +167,32 @@ onUnmounted(() => {
     <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
         <div class="flex items-center justify-around h-[64px] pb-1 gap-1">
             
-            <router-link to="/instructor/home" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+            <router-link to="/instructor/home" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconHome class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Inicio</span>
             </router-link>
 
-            <router-link to="/instructor/agenda" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+            <router-link to="/instructor/agenda" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconCalendar class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Agenda</span>
             </router-link>
 
-            <router-link to="/instructor/sessions" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+            <!-- Botón Central Flotante de Ludoteca -->
+            <router-link v-if="profileStore.isCuidador" to="/instructor/ludoteca" class="flex flex-col items-center justify-center group w-[20%] relative active:scale-90 transition-all -mt-6">
+                <div class="w-14 h-14 rounded-full bg-linear-to-br from-primary-800 to-primary-600 shadow-[0_6px_24px_rgba(37,99,235,0.45)] flex items-center justify-center ring-4 ring-white">
+                    <IconBaby class="w-7 h-7 text-white drop-shadow-sm" />
+                </div>
+                <span class="text-[9px] font-bold text-primary-700 mt-1 uppercase tracking-wide">Ludoteca</span>
+            </router-link>
+
+            <router-link to="/instructor/sessions" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconClock class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Sesiones</span>
             </router-link>
 
-            <router-link to="/instructor/profile" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+            <router-link to="/instructor/profile" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconUser class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Perfil</span>
-            </router-link>
-
-            <!-- Pestaña Reactiva de Ludoteca -->
-            <router-link v-if="profileStore.isCuidador" to="/instructor/ludoteca" class="flex flex-col items-center justify-center gap-1 group w-1/5 h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconBaby class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Ludoteca</span>
             </router-link>
 
         </div>

@@ -21,7 +21,7 @@ class LudotecaRegisterController extends Controller
         //VALIDACION 1: MODALIDAD DE PLAN DEL SOCIO
         $modalidad_plan = SocioTitular::where('id_socio', $request->id_socio)->first();
 
-        if ($modalidad_plan->tipo_socio != 'FAMILIAR') {
+        if ($modalidad_plan->modalidad_plan != 'FAMILIAR') {
             return response()->json([
                 'message' => 'El socio no cuenta con Plan Familiar',
             ], 403);

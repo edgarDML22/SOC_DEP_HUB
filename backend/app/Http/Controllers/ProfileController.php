@@ -50,9 +50,12 @@ class ProfileController extends Controller
                 $perfil = DB::table('miembros_familiares as mf')
                     ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
                     ->select(
+                        'mf.id_miembro',
                         'mf.nombre_completo',
+                        'mf.socio_id',
                         'st.numero_accion',
                         'st.tipo_socio',
+                        'st.modalidad_plan',
                         'st.estatus_cuenta'
                     )
                     ->where('mf.id_miembro', $usuario->user_id)
@@ -60,9 +63,12 @@ class ProfileController extends Controller
 
                 if ($perfil) {
                     $data = [
+                        'id_miembro' => $perfil->id_miembro,
+                        'id_socio' => $perfil->socio_id,
                         'nombre_completo' => $perfil->nombre_completo,
                         'numero_accion' => $perfil->numero_accion,
                         'tipo_socio' => $perfil->tipo_socio,
+                        'modalidad_plan' => $perfil->modalidad_plan,
                         'estatus_cuenta' => $perfil->estatus_cuenta
                     ];
                 }

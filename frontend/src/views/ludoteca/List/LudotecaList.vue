@@ -40,7 +40,7 @@ const fetchMiembros = async () => {
 
   loading.value = true
   try {
-    const res = await api.get(`validar-tutor?id_socio=${idSocio.value}`)
+    const res = await api.get('ludoteca/validar-tutor')
     miembros.value = res.data.data || []
   } catch (error) {
     console.log(error)

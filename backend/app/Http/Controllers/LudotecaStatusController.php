@@ -15,15 +15,35 @@ class LudotecaStatusController extends Controller
     //Modificado completamente en la SDH-163 por el cambio de la logica de la ludotecaen
     public function checkIn(Request $request)
     {
-        //VALIDACION DE CAMPOS REQUERIDOS, es necesario que el front envie el tipo de check, ya sea 'in' o 'out'
+        // VALIDACION DE CAMPOS REQUERIDOS
         $request->validate([
-            'id_socio' => 'required|exists:socios_titulares,id_socio',
+            'id_socio' => 'nullable|exists:socios_titulares,id_socio',
             'id_registro' => 'required|exists:registros_ludoteca,id_registro',
             'id_instructor' => 'required|exists:instructores,id_instructor',
+            'correo' => 'nullable|email'
         ]);
 
-        //VALIDACION 1: MODALIDAD DE PLAN DEL SOCIO
-        $modalidad_plan = SocioTitular::where('id_socio', $request->id_socio)->first();
+        $id_socio = $request->id_socio;
+
+        // Si no viene id_socio, intentamos buscar por correo (para re-ingresos de inactivos)
+        if (!$id_socio && $request->correo) {
+            $socio = SocioTitular::where('correo_electronico', $request->correo)->first();
+            if ($socio) {
+                $id_socio = $socio->id_socio;
+            }
+        }
+
+        if (!$id_socio) {
+            return response()->json([
+                'message' => 'No se pudo identificar al socio. Por favor verifique el correo o el ID.',
+                'errors' => ['id_socio' => ['El socio es requerido.']]
+            ], 422);
+        }
+
+        $request->merge(['id_socio' => $id_socio]);
+
+        // VALIDACION 1: MODALIDAD DE PLAN DEL SOCIO
+        $modalidad_plan = SocioTitular::where('id_socio', $id_socio)->first();
         if ($modalidad_plan->modalidad_plan != 'FAMILIAR') {
             return response()->json([
                 'message' => 'Actualice a plan familiar para usar este servicio',
@@ -93,17 +113,39 @@ class LudotecaStatusController extends Controller
     {
         $request->validate([
             'id_registro' => 'required|exists:registros_ludoteca,id_registro',
-            'id_socio' => 'required|exists:socios_titulares,id_socio',
+            'id_socio' => 'nullable|exists:socios_titulares,id_socio',
             'id_instructor' => 'required|exists:instructores,id_instructor',
-            'estatus_ludoteca' => 'required|in:INACTIVO,ENTREGADO,ACTIVA'
+            'estatus_ludoteca' => 'required|in:INACTIVO,ENTREGADO,ACTIVA',
+            'correo_receptor' => 'nullable|email'
         ]);
 
+        $id_socio = $request->id_socio;
+
+        // Si se proporciona un correo de receptor, buscamos a ese socio para validar la salida
+        if ($request->correo_receptor) {
+            $socio = SocioTitular::where('correo_electronico', $request->correo_receptor)->first();
+            $id_socio = $socio ? $socio->id_socio : null;
+        }
+
+        $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
+
+        // Validamos que el socio (identificado por ID o Correo) sea familiar del menor
+        $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
+            ->where('socio_id', $id_socio)
+            ->first();
+
+        if ($familiar == null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El socio indicado no tiene parentesco con el menor o no existe.',
+                'errors' => ['correo_receptor' => ['Socio no autorizado para esta acción.']]
+            ], 403);
+        }
+
+        // Actualizamos el request para que el resto del código use el socio validado
+        $request->merge(['id_socio' => $id_socio]);
+
         if ($request->estatus_ludoteca == 'INACTIVO') {
-
-            /* RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
-                'estatus_ludoteca' => 'INACTIVO'
-            ]); */
-
             RegistrosLudoteca::whereNotNull('hora_ingreso')
                 ->where('id_registro', $request->id_registro)
                 ->update([
@@ -123,20 +165,8 @@ class LudotecaStatusController extends Controller
             ]);
         }
 
-        $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
-
-        $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
-            ->where('socio_id', $request->id_socio)
-            ->first();
-        if ($familiar == null) {
-            return response()->json([
-                'message' => 'Familiar no encontrado',
-            ]);
-        }
-
-
         if ($request->estatus_ludoteca == 'ENTREGADO') {
-
+            // ... (existing code for ENTREGADO)
             $estatusFinal = 'COMPLETADA_A_TIEMPO';
 
             $time = now();
