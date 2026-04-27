@@ -2,33 +2,32 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Http\Request;
-use App\Models\RegistrosLudoteca;
+use Illuminate\Notifications\Messages\MailMessage;
 
 class EncuestaLudotecaNotification extends Notification
 {
-    public function submitSurvey(Request $request)
+    public $idRegistro;
+
+    public function __construct($idRegistro)
     {
-        $request->validate([
-            'id_registro' => 'required',
-            'calificacion' => 'required',
-            'comentarios' => 'nullable'
-        ]);
+        $this->idRegistro = $idRegistro;
+    }
 
-        RegistrosLudoteca::where(
-            'id_registro',
-            $request->id_registro
-        )->update([
-                    'calificacion_servicio' => $request->calificacion,
-                    'comentarios_padre' => $request->comentarios
-                ]);
+    public function via($notifiable)
+    {
+        return ['mail'];
+    }
 
-        return response()->json([
-            'message' => 'Encuesta guardada'
-        ]);
+    public function toMail($notifiable)
+    {
+        return (new MailMessage)
+            ->subject('Encuesta de satisfacción Ludoteca')
+            ->line('Gracias por utilizar nuestro servicio.')
+            ->line('Ayúdanos contestando esta encuesta.')
+            ->action(
+                'Responder encuesta',
+                "http://localhost:3000/encuesta/{$this->idRegistro}"
+            );
     }
 }

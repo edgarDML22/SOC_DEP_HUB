@@ -7,6 +7,7 @@ use App\Models\MiembrosFamiliares;
 use App\Models\SocioTitular;
 use App\Models\User;
 use App\Models\TurnosLudoteca;
+use App\Models\Instructor;
 class LudotecaController extends Controller
 {
     //rgresa lista de ludoteca
@@ -43,6 +44,7 @@ class LudotecaController extends Controller
             }
         }
         if ($type->rol == 'instructor') {
+
 
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
                 ->whereDate('hora_ingreso', today())

@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\SocioTitular;
 use App\Models\MiembrosFamiliares;
 use App\Models\MongoDB\RegistroLudotecaMongo;
+use Illuminate\Support\Facades\DB;
+use App\Notifications\AlertaRecogidaNotification;
+use App\Notifications\EncuestaLudotecaNotification;
 class LudotecaStatusController extends Controller
 {
     //Modificado completamente en la SDH-163 por el cambio de la logica de la ludotecaen
@@ -70,10 +73,13 @@ class LudotecaStatusController extends Controller
         $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
             'estatus_ludoteca' => 'ACTIVA',
             'hora_ingreso' => now(),
+            'hora_limite' => now()->addHours(2), // Por defecto 2 horas (ajústalo si es distinto)
             'id_adulto_ingreso' => $request->id_socio,
             'hora_egreso' => null,
             'id_adulto_egreso' => null,
             'id_instructor_ingreso' => $request->id_instructor,
+            'alerta_30_enviada' => false,
+            'alerta_10_enviada' => false,
         ]);
 
         return response()->json([
@@ -119,6 +125,22 @@ class LudotecaStatusController extends Controller
                     $request->id_socio
                 )->increment('retrasos_ludoteca', 1);
             }
+            try {
+                RegistroLudotecaMongo::insert([
+                    'tutor_id' => $request->id_socio,
+                    'menor_id' => RegistrosLudoteca::where('id_registro', $id)->value('id_menor'),
+                    'hora_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('hora_ingreso'),
+                    'hora_egreso' => now('America/Mexico_City'),
+                    'instructor_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('id_instructor_ingreso'),
+                    'instructor_egreso' => $request->id_instructor,
+                    'metadata' => [
+                        'id_registro' => $id,
+                        'estatus_final' => $estatusFinal
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Mongo falló: ' . $e->getMessage());
+            }
 
             // esto corre para ambos casos
             RegistrosLudoteca::where('id_registro', $id)->update([
@@ -128,18 +150,7 @@ class LudotecaStatusController extends Controller
                 'id_instructor_egreso' => $request->id_instructor,
             ]);
 
-            RegistroLudotecaMongo::insert([
-                'tutor_id' => $request->id_socio,
-                'menor_id' => RegistrosLudoteca::where('id_registro', $id)->value('id_menor'),
-                'hora_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('hora_ingreso'),
-                'hora_egreso' => now('America/Mexico_City'),
-                'instructor_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('id_instructor_ingreso'),
-                'instructor_egreso' => $request->id_instructor,
-                'metadata' => [
-                    'id_registro' => $id,
-                    'estatus_final' => $estatusFinal
-                ]
-            ]);
+
             // enviar encuesta automática
             $socio = SocioTitular::find($request->id_socio);
 

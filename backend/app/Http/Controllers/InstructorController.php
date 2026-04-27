@@ -159,17 +159,21 @@ class InstructorController extends Controller
                 'message' => 'Instructor no encontrado'
             ], 404);
         }
-
+        $tieneLudoteca = DB::table('instructor_disciplina')
+            ->where('id_instructor', $instructorId)
+            ->where('id_disciplina', 26)
+            ->exists();
         return response()->json([
             'success' => true,
             'data' => [
-                'nombre_completo'    => $instructor->nombre_completo,
+                'nombre_completo' => $instructor->nombre_completo,
                 'correo_electronico' => $instructor->correo_electronico,
-                'telefono'           => $instructor->telefono,
-                'estatus_cuenta'     => $instructor->estatus,
-                'fecha_nacimiento'   => $instructor->fecha_nacimiento,
+                'telefono' => $instructor->telefono,
+                'estatus_cuenta' => $instructor->estatus,
+                'fecha_nacimiento' => $instructor->fecha_nacimiento,
                 'fecha_contratacion' => $instructor->fecha_contratacion,
-                'rol'                => 'Instructor',
+                'rol' => 'Instructor',
+                'tieneLudoteca' => $tieneLudoteca,
             ]
         ], 200);
     }

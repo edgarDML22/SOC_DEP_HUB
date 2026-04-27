@@ -23,25 +23,26 @@ class CheckLudotecaAlerts extends Command
 
             $socio = SocioTitular::find($registro->id_adulto_ingreso);
 
-            if ($minutosRestantes <= 30 && !$registro->alerta_30_enviada) {
+            if ($minutosRestantes <= 10 && !$registro->alerta_10_enviada) {
+                // Mandar la de 10 minutos
+                $socio->notify(
+                    new AlertaRecogidaNotification(10)
+                );
 
+                // Marcamos ambas como enviadas por si el cron se saltó la de 30 min
+                $registro->update([
+                    'alerta_10_enviada' => true,
+                    'alerta_30_enviada' => true
+                ]);
+
+            } elseif ($minutosRestantes <= 30 && !$registro->alerta_30_enviada) {
+                // Mandar la de 30 minutos
                 $socio->notify(
                     new AlertaRecogidaNotification(30)
                 );
 
                 $registro->update([
                     'alerta_30_enviada' => true
-                ]);
-            }
-
-            if ($minutosRestantes <= 10 && !$registro->alerta_10_enviada) {
-
-                $socio->notify(
-                    new AlertaRecogidaNotification(10)
-                );
-
-                $registro->update([
-                    'alerta_10_enviada' => true
                 ]);
             }
         }

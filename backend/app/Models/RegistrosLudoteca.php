@@ -23,6 +23,17 @@ class RegistrosLudoteca extends Model
         'estatus_ludoteca',
         'id_instructor_ingreso',
         'id_instructor_egreso',
+        'hora_limite',
+        'alerta_30_enviada',
+        'alerta_10_enviada',
+    ];
+
+    protected $casts = [
+        'hora_limite' => 'datetime',
+        'hora_ingreso' => 'datetime',
+        'hora_egreso' => 'datetime',
+        'alerta_30_enviada' => 'boolean',
+        'alerta_10_enviada' => 'boolean',
     ];
 
 
