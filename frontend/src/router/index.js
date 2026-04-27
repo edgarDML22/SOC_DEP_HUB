@@ -261,6 +261,14 @@ const router = createRouter({
           component: () => import("@/views/admin/Spaces.vue"),
         },
         {
+          path: "socios",
+          component: () => import("@/views/admin/socio/SociosList.vue"),
+        },
+        {
+          path: "socios/:id",
+          component: () => import("@/views/admin/socio/SocioDetails.vue"),
+        },
+        {
           path: "instructors",
           component: () => import("@/views/admin/Instructors.vue"),
         },

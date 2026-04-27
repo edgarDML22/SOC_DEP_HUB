@@ -4,9 +4,138 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\SocioTitular;
+use App\Models\User;
 
 class SocioController extends Controller
 {
+    /**
+     * Listado de todos los socios titulares
+     * 
+     * GET /api/v1/socios
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        if (!in_array($user->rol, ['gerente', 'subgerente'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado.'
+            ], 403);
+        }
+
+        // Retornar los socios titulares ordenados por estatus (por ejemplo, AL_CORRIENTE primero)
+        $socios = SocioTitular::orderByRaw("
+            CASE 
+                WHEN estatus_cuenta = 'AL_CORRIENTE' THEN 1
+                WHEN estatus_cuenta = 'MOROSO' THEN 2
+                WHEN estatus_cuenta = 'SUSPENDIDO' THEN 3
+                ELSE 4
+            END
+        ")->orderBy('nombre_completo', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $socios
+        ], 200);
+    }
+
+    /**
+     * Detalles de un socio titular específico
+     * 
+     * GET /api/v1/socios/{id}
+     */
+    public function show(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!in_array($user->rol, ['gerente', 'subgerente'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado.'
+            ], 403);
+        }
+
+        $socio = SocioTitular::with('miembrosFamiliares')->find($id);
+
+        if (!$socio) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Socio no encontrado'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $socio
+        ], 200);
+    }
+
+    /**
+     * Actualizar los datos y penalizaciones de un socio titular
+     * 
+     * PUT /api/v1/socios/update/{id}
+     */
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!in_array($user->rol, ['gerente', 'subgerente'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado.'
+            ], 403);
+        }
+
+        $socio = SocioTitular::find($id);
+
+        if (!$socio) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Socio no encontrado'
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Actualizar tabla socios_titulares
+            $socio->update($request->only([
+                'nombre_completo',
+                'correo_electronico',
+                'tipo_socio',
+                'modalidad_plan',
+                'estatus_cuenta',
+                'contador_no_shows',
+                'retrasos_ludoteca',
+                'fecha_nacimiento',
+                'genero'
+            ]));
+
+            // Si el nombre cambió o el estatus de cuenta cambió, podríamos actualizar la tabla users.
+            // La relación es User.user_id = SocioTitular.id_socio AND User.rol = 'socio_titular'
+            if ($request->has('nombre_completo')) {
+                $usuarioLogin = User::where('user_id', $socio->id_socio)
+                                    ->where('rol', 'socio_titular')
+                                    ->first();
+                if ($usuarioLogin) {
+                    $usuarioLogin->name = $request->input('nombre_completo');
+                    $usuarioLogin->save();
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'data' => $socio->load('miembrosFamiliares')
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar socio: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Buscar socios y familiares para autocompletado en reservaciones u otros flujos.
      * 

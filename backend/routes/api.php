@@ -124,6 +124,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Búsqueda dinámica de socios/familiares (Autocompletado)
     Route::get('/v1/socios/search', [SocioController::class, 'search']);
+    // Rutas para listado y detalle de socios titulares (CRUD para Gerente/Subgerente)
+    Route::get('/v1/socios/all', [SocioController::class, 'index']);
+    Route::get('/v1/socios/{id}', [SocioController::class, 'show']);
+    Route::put('/v1/socios/update/{id}', [SocioController::class, 'update']);
 
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     // Consultar los horarios de un espacio fisico que han sido ocupados
@@ -135,6 +139,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);
 
     Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
+
+    Route::post('/v1/reservations/discard', [ReservacionController::class, 'discard']);
+
 
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
     Route::get('/v1/reservations/my-list', [ReservacionController::class, 'myReservations']);

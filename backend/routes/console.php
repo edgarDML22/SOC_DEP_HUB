@@ -18,3 +18,8 @@ Schedule::command('passes:expire')
 Schedule::command('app:calcular-no-shows')
     ->dailyAt('23:50')
     ->timezone('America/Mexico_City');
+
+// Revisar y levantar penalizaciones de 7 días que hayan vencido
+Schedule::command('app:levantar-penalizaciones')
+    ->dailyAt('00:05')
+    ->timezone('America/Mexico_City');

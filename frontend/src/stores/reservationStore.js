@@ -235,19 +235,43 @@ export const useReservationStore = defineStore("reservation", () => {
     return false;
   };
 
-  const descartarBorrador = async () => {
-    if (reservaPayload.value.id_reserva) {
+  const descartarBorrador = async (id_reserva_param) => {
+    // Soporta id pasado por param (desde Manage.vue) o del payload del flujo OnDemand
+    const idAUsar = id_reserva_param || reservaPayload.value.id_reserva;
+    if (idAUsar) {
       try {
-        await api.post("/reservations/cancel", {
-          id_reserva: reservaPayload.value.id_reserva,
+        await api.post("/reservations/discard", {
+          id_reserva: idAUsar,
         });
       } catch (e) {
-        console.error("Error al cancelar el borrador");
+        console.error("Error al descartar el borrador");
       }
     }
     misReservacionesCargadas.value = false; // Forzar recarga la próxima vez en Gestor
     resetearReserva();
-    fetchDisponibilidadEspacios(); 
+    fetchDisponibilidadEspacios();
+  };
+
+  // Cancelar una reservación ACTIVA desde el historial (Manage.vue)
+  // El backend determinará si es CANCELADA o NO_SHOW según el tiempo restante
+  const cancelarReservacion = async (id_reserva) => {
+    cargando.value = true;
+    try {
+      const res = await api.post("/reservations/cancel", { id_reserva });
+      if (res.data.success) {
+        // Actualizar localmente para evitar recarga completa
+        const idx = misReservacionesTotales.value.findIndex(r => r.id_reserva === id_reserva);
+        if (idx !== -1) {
+          misReservacionesTotales.value[idx].estatus_operativo = res.data.nuevo_estatus;
+        }
+        return { success: true, nuevo_estatus: res.data.nuevo_estatus, message: res.data.message };
+      }
+    } catch (e) {
+      const msg = e.response?.data?.message || "Error al cancelar la reservación.";
+      return { success: false, error: msg };
+    } finally {
+      cargando.value = false;
+    }
   };
 
   const seleccionarDisciplina = (disciplina) => {
@@ -504,6 +528,7 @@ export const useReservationStore = defineStore("reservation", () => {
     seleccionarHorario,
     buscarReservaActiva,
     descartarBorrador,
+    cancelarReservacion,
     toggleAcompanante,
     confirmarReserva,
     sincronizarAcompanantesBorrador,

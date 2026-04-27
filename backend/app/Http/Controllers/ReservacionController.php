@@ -371,10 +371,86 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'Falta el ID de la reservación'], 400);
         }
 
-        Reservacion::where('id_reserva', $id)
-            ->update(['estatus_operativo' => 'CANCELADA']);
+        $reservacion = Reservacion::where('id_reserva', $id)
+            ->where('id_socio_titular', $request->user()->user_id)
+            ->first();
 
-        return response()->json(['success' => true, 'message' => 'Reservación cancelada correctamente']);
+        if (!$reservacion) {
+            return response()->json(['success' => false, 'message' => 'Reservación no encontrada'], 404);
+        }
+
+        // Solo se pueden cancelar reservaciones ACTIVAS
+        if ($reservacion->estatus_operativo !== 'ACTIVA') {
+            return response()->json(['success' => false, 'message' => 'Solo se pueden cancelar reservaciones activas'], 400);
+        }
+
+        // Determinar si aplica NO_SHOW según tiempo restante
+        $now = \Carbon\Carbon::now('America/Mexico_City');
+        $fechaHoraReserva = \Carbon\Carbon::parse(
+            $reservacion->fecha_reserva . ' ' . $reservacion->hora_inicio,
+            'America/Mexico_City'
+        );
+        $minutosRestantes = $now->diffInMinutes($fechaHoraReserva, false);
+
+        $nuevoEstatus = ($minutosRestantes >= 0 && $minutosRestantes < 120)
+            ? 'NO_SHOW'
+            : 'CANCELADA';
+
+        $reservacion->estatus_operativo = $nuevoEstatus;
+        $reservacion->save();
+
+        // Si es NO_SHOW, incrementar el contador del socio y evaluar penalización
+        if ($nuevoEstatus === 'NO_SHOW') {
+            $socio = \App\Models\SocioTitular::find($reservacion->id_socio_titular);
+            if ($socio) {
+                $socio->contador_no_shows = ($socio->contador_no_shows ?? 0) + 1;
+
+                // Regla de negocio: al acumular 3 no_shows se bloquea por 7 días naturales
+                if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
+                    $socio->estatus_cuenta = 'PENALIZADO';
+                    // Guardar la fecha en que vence la penalización
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('socios_titulares', 'fecha_fin_penalizacion')) {
+                        $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7);
+                    }
+                }
+
+                $socio->save();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'nuevo_estatus' => $nuevoEstatus,
+            'message' => $nuevoEstatus === 'NO_SHOW'
+                ? 'Reservación cancelada tardíamente. Se registró un No Show en tu cuenta.'
+                : 'Reservación cancelada correctamente. El espacio ha sido liberado.'
+        ]);
+    }
+
+    public function discard(Request $request)
+    {
+        $id = $request->id_reserva;
+
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Falta el ID de la reservación'], 400);
+        }
+
+        $reservacion = Reservacion::where('id_reserva', $id)
+            ->where('id_socio_titular', $request->user()->user_id)
+            ->where('estatus_operativo', 'PENDIENTE')
+            ->first();
+
+        if (!$reservacion) {
+            return response()->json(['success' => false, 'message' => 'Borrador no encontrado'], 404);
+        }
+
+        $reservacion->estatus_operativo = 'CANCELADA';
+        $reservacion->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Borrador descartado correctamente.'
+        ]);
     }
 
     public function getActiveDraft(Request $request)

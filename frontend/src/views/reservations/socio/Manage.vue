@@ -4,9 +4,10 @@ import { useAlerts } from '@/composables/useAlerts';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
 
-const { showAlert } = useAlerts();
+const { toastInfo, confirmWarning, confirmDelete } = useAlerts();
 const reservationStore = useReservationStore();
 const { misReservacionesTotales, cargando } = storeToRefs(reservationStore);
+const { cancelarReservacion, descartarBorrador } = reservationStore;
 
 // TABS: Agenda Completa, Mis Reservas, Mis actividades
 const activeTab = ref('mis-reservas');
@@ -67,6 +68,52 @@ onMounted(() => {
 const openDetails = (reserva) => {
     selectedReserva.value = reserva;
     showModal.value = true;
+};
+
+// Lógica de Cancelación con SweetAlert2
+const isCancelling = ref(false);
+
+const openCancelModal = async (reserva, event) => {
+    event.stopPropagation();
+
+    // Calcular si faltan menos de 2 horas
+    const ahora = new Date();
+    const fechaHoraReserva = new Date(`${reserva.fecha_reserva}T${reserva.hora_inicio}`);
+    const minutosRestantes = (fechaHoraReserva - ahora) / 60000;
+    const esTardia = minutosRestantes >= 0 && minutosRestantes < 120;
+
+    const titulo = esTardia ? 'Cancelación con Penalización' : 'Cancelar Reservación';
+    const mensaje = esTardia
+        ? `Faltan menos de 2 horas para tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}. Al cancelar se registrará un No Show en tu cuenta, lo cual repercutirá en tus privilegios como socio. Esta acción no se puede revertir.`
+        : `El espacio y horario que habías elegido quedará disponible para otros socios. Esta acción no se puede revertir.`;
+
+    const result = esTardia
+        ? await confirmDelete(titulo, mensaje)
+        : await confirmWarning(titulo, mensaje, 'Sí, Cancelar');
+
+    if (result.isConfirmed) {
+        isCancelling.value = true;
+        const res = await cancelarReservacion(reserva.id_reserva);
+        if (res?.success) {
+            toastInfo(
+                res.nuevo_estatus === 'NO_SHOW' ? 'No Show registrado' : 'Reservación cancelada',
+                res.nuevo_estatus === 'NO_SHOW'
+                    ? 'Se registró un No Show en tu cuenta.'
+                    : 'El espacio ha sido liberado.',
+                res.nuevo_estatus === 'NO_SHOW' ? 'warning' : 'success'
+            );
+        } else {
+            toastInfo('Error', res?.error || 'No se pudo cancelar la reservación.', 'error');
+        }
+        isCancelling.value = false;
+    }
+};
+
+const confirmarDescarte = async (reserva, event) => {
+    event.stopPropagation();
+    if (!confirm('\u00bfDeseas descartar este borrador? Se cancelará permanentemente.')) return;
+    await descartarBorrador(reserva.id_reserva);
+    showAlert('Borrador descartado correctamente.', 'info');
 };
 
 const closeDetails = () => {
@@ -207,20 +254,45 @@ const selectTab = (id) => {
                                 </div>
                             </div>
 
-                            <button @click="openDetails(reserva)"
-                                class="shrink-0 w-11 h-11 bg-blue-50 text-blue-600 rounded-[0.85rem] flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm focus:outline-none group/btn"
-                                title="Ver detalles">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    class="w-5 h-5 group-hover/btn:scale-110 transition-transform" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <path d="M14 2v6h6" />
-                                    <path d="M16 13H8" />
-                                    <path d="M16 17H8" />
-                                    <path d="M10 9H8" />
-                                </svg>
-                            </button>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <!-- Botón X: Cancelar reservación ACTIVA -->
+                                <button
+                                    v-if="reserva.estatus_operativo === 'ACTIVA'"
+                                    @click="openCancelModal(reserva, $event)"
+                                    class="w-9 h-9 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm focus:outline-none"
+                                    title="Cancelar reservación">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+
+                                <!-- Botón descarte: Solo para borradores PENDIENTE -->
+                                <button
+                                    v-if="reserva.estatus_operativo === 'PENDIENTE'"
+                                    @click="confirmarDescarte(reserva, $event)"
+                                    class="w-9 h-9 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center hover:bg-yellow-500 hover:text-white transition-all shadow-sm focus:outline-none"
+                                    title="Descartar borrador">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+
+                                <!-- Botón Ver Detalles -->
+                                <button @click="openDetails(reserva)"
+                                    class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm focus:outline-none"
+                                    title="Ver detalles">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="w-4 h-4" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <path d="M14 2v6h6" />
+                                        <path d="M16 13H8" />
+                                        <path d="M16 17H8" />
+                                        <path d="M10 9H8" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -355,8 +427,10 @@ const selectTab = (id) => {
                 </div>
             </div>
         </Transition>
+
     </div>
 </template>
+
 
 <style scoped>
 .scrollbar-none::-webkit-scrollbar {

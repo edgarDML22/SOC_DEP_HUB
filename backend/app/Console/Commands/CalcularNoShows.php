@@ -49,11 +49,20 @@ class CalcularNoShows extends Command
                         // 1. Cambiar estatus a FALTA
                         $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
 
-                        // 2. Incrementar contador 
-                        SocioTitular::where('id_socio', $inscripcion->id_usuario)->increment('contador_no_shows');
-
-                        // 3. Obtener datos para el correo 
+                        // 2. Incrementar contador y evaluar penalización
                         $socio = SocioTitular::find($inscripcion->id_usuario);
+
+                        if ($socio) {
+                            $socio->increment('contador_no_shows');
+                            $socio->refresh();
+
+                            // Al acumular 3 no_shows, penalizar por 7 días naturales
+                            if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
+                                $socio->estatus_cuenta = 'PENALIZADO';
+                                $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7);
+                                $socio->save();
+                            }
+                        }
 
                         // Traemos la sesión y cargamos su espacio físico
                         $sesion = ActividadPlantilla::with('espacioFisico')->find($inscripcion->id_sesion);
