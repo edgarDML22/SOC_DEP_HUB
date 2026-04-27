@@ -3,9 +3,11 @@ import { ref, onMounted, computed } from 'vue';
 import { useAlerts } from '@/composables/useAlerts';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 
 const { toastInfo, confirmWarning, confirmDelete } = useAlerts();
 const reservationStore = useReservationStore();
+const router = useRouter(); 
 const { misReservacionesTotales, cargando } = storeToRefs(reservationStore);
 const { cancelarReservacion, descartarBorrador } = reservationStore;
 
@@ -49,12 +51,26 @@ const activeFilterLabel = computed(() => {
 
 // Filtrado local instantáneo
 const reservasFiltradas = computed(() => {
-    if (activeFilter.value === 'TODAS') {
-        return misReservacionesTotales.value;
+    let list = misReservacionesTotales.value;
+    if (activeFilter.value !== 'TODAS') {
+        list = list.filter(r => r.estatus_operativo === activeFilter.value);
     }
-    return misReservacionesTotales.value.filter(r => r.estatus_operativo === activeFilter.value);
+    
+    // Sort / Ordenamiento
+    return [...list].sort((a, b) => {
+        const orderA = orderMap[a.estatus_operativo] || 99;
+        const orderB = orderMap[b.estatus_operativo] || 99;
+        
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        
+        // Si tienen el mismo estatus, la más reciente primero
+        const dateA = new Date(`${a.fecha_reserva}T${a.hora_inicio}`);
+        const dateB = new Date(`${b.fecha_reserva}T${b.hora_inicio}`);
+        return dateB - dateA;
+    });
 });
-
 
 // Modal state
 const showModal = ref(false);
@@ -87,9 +103,8 @@ const openCancelModal = async (reserva, event) => {
         ? `Faltan menos de 2 horas para tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}. Al cancelar se registrará un No Show en tu cuenta, lo cual repercutirá en tus privilegios como socio. Esta acción no se puede revertir.`
         : `El espacio y horario que habías elegido quedará disponible para otros socios. Esta acción no se puede revertir.`;
 
-    const result = esTardia
-        ? await confirmDelete(titulo, mensaje)
-        : await confirmWarning(titulo, mensaje, 'Sí, Cancelar');
+    // Usamos SIEMPRE confirmDelete para mantener el diseño rojo (btn-delete-confirm)
+    const result = await confirmDelete(titulo, mensaje, 'Sí, Cancelar');
 
     if (result.isConfirmed) {
         isCancelling.value = true;
@@ -109,11 +124,53 @@ const openCancelModal = async (reserva, event) => {
     }
 };
 
+// 1. Agrega esta variable para controlar el spinner del botón individual:
+const actionLoadingId = ref(null);
+
+// 2. Actualiza la función confirmarDescarte (Ahora usa spinner):
 const confirmarDescarte = async (reserva, event) => {
     event.stopPropagation();
-    if (!confirm('\u00bfDeseas descartar este borrador? Se cancelará permanentemente.')) return;
-    await descartarBorrador(reserva.id_reserva);
-    showAlert('Borrador descartado correctamente.', 'info');
+    
+    const result = await confirmDelete(
+        'Descartar Borrador',
+        '¿Estás seguro de que deseas eliminar permanentemente esta reservación pendiente? Esta acción no se puede deshacer.',
+        'Sí, Descartar'
+    );
+    
+    if (result.isConfirmed) {
+        actionLoadingId.value = reserva.id_reserva; // Activa spinner
+        await descartarBorrador(reserva.id_reserva);
+        await reservationStore.fetchMisReservaciones(true); 
+        toastInfo('Descartado', 'El borrador ha sido eliminado.', 'success');
+        actionLoadingId.value = null; // Apaga spinner
+    }
+};
+
+// 3. Actualiza continuarBorrador (Apaga el modal azul antes de redirigir):
+const continuarBorrador = async (reserva, event) => {
+    event.stopPropagation();
+    
+    const result = await confirmWarning(
+        'Continuar Reservación',
+        '¿Deseas reanudar esta reservación donde la dejaste?',
+        'Sí, Continuar'
+    );
+    
+    if (result.isConfirmed) {
+        reservationStore.mostrarModalDraft = false; // <-- ESTO MATA AL MODAL
+        await reservationStore.buscarReservaActiva();
+        reservationStore.pasoActual = "4"; 
+        router.push({ name: 'socio-reservations-on-demand' }); 
+    }
+};
+
+const orderMap = {
+    'PENDIENTE': 1,
+    'ACTIVA': 2,
+    'NO_SHOW': 3,
+    'NO SHOW': 3,
+    'COMPLETADA': 4,
+    'CANCELADA': 5
 };
 
 const closeDetails = () => {
@@ -227,30 +284,23 @@ const selectTab = (id) => {
                         <div class="flex items-end justify-between gap-4 w-full mt-1">
                             <div class="flex flex-col gap-2 min-w-0">
                                 <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
-                                    <div
-                                        class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24"
-                                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                            stroke-linejoin="round">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                             <circle cx="12" cy="12" r="10" />
                                             <polyline points="12 6 12 12 16 14" />
                                         </svg>
                                     </div>
-                                    <span class="truncate">{{ formatearHora(reserva.hora_inicio) }} - {{
-                                        formatearHora(reserva.hora_fin) }}</span>
+                                    <span class="truncate">{{ formatearHora(reserva.hora_inicio) }} - {{ formatearHora(reserva.hora_fin) }}</span>
                                 </div>
 
                                 <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
-                                    <div
-                                        class="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24"
-                                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                            stroke-linejoin="round">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                                             <circle cx="12" cy="10" r="3" />
                                         </svg>
                                     </div>
-                                    <span class="truncate">{{ reserva.espacio_fisico?.nombre_espacio || 'Espacio no asignada' }}</span>
+                                    <span class="truncate">{{ reserva.espacio_fisico?.nombre_espacio || 'Espacio no asignado' }}</span>
                                 </div>
                             </div>
 
@@ -269,12 +319,25 @@ const selectTab = (id) => {
                                 <!-- Botón descarte: Solo para borradores PENDIENTE -->
                                 <button
                                     v-if="reserva.estatus_operativo === 'PENDIENTE'"
+                                    @click="continuarBorrador(reserva, $event)"
+                                    class="w-9 h-9 bg-green-50 text-green-600 rounded-xl flex items-center justify-center hover:bg-green-600 hover:text-white transition-all shadow-sm focus:outline-none"
+                                    title="Continuar reservación">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 12h14"/>
+                                        <path d="m12 5 7 7-7 7"/>
+                                    </svg>
+                                </button>
+
+                                <button
+                                    v-if="reserva.estatus_operativo === 'PENDIENTE'"
                                     @click="confirmarDescarte(reserva, $event)"
-                                    class="w-9 h-9 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center hover:bg-yellow-500 hover:text-white transition-all shadow-sm focus:outline-none"
+                                    :disabled="actionLoadingId === reserva.id_reserva"
+                                    class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Descartar borrador">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <svg v-if="actionLoadingId !== reserva.id_reserva" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
+                                    <span v-else class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></span>
                                 </button>
 
                                 <!-- Botón Ver Detalles -->

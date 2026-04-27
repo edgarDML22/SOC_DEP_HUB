@@ -20,7 +20,8 @@ const {
     horaFinTemp,
     esHorarioValidoParaPreview,
     errorValidacion,
-    errorNavegacion
+    errorNavegacion,
+    mostrarModalDraft 
 } = storeToRefs(reservationStore);
 
 const {
@@ -33,13 +34,14 @@ const {
 
 onMounted(async () => {
     reservationStore.fetchDisponibilidadEspacios();
-
     const profileStore = useProfileStore();
     await profileStore.fetchProfile();
-
     const tieneDraft = await reservationStore.buscarReservaActiva();
-    if (tieneDraft) {
+    
+    if (tieneDraft && reservationStore.pasoActual === "1") {
         mostrarModalDraft.value = true;
+    } else {
+        mostrarModalDraft.value = false;
     }
 });
 
@@ -71,7 +73,6 @@ watch(formDuration, () => {
     }
 });
 
-const mostrarModalDraft = ref(false);
 
 const reanudarReserva = () => {
     mostrarModalDraft.value = false;
@@ -215,12 +216,12 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                 <!-- NUEVO BOTÓN DE CANCELAR CORREGIDO (Glassmorphism) -->
                 <button @click="ignorarReserva"
                     class="w-full sm:w-auto px-6 py-3.5 bg-white/10 border border-white/20 text-white hover:bg-white/20 font-bold rounded-xl transition-all focus:outline-none">
-                    Cancelar borrador
+                    Descartar Reservación Pendiente
                 </button>
                 <!-- BOTÓN DE CONTINUAR -->
                 <button @click="reanudarReserva"
                     class="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-800 font-extrabold rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none">
-                    Continuar reserva
+                    Continuar Reservación
                 </button>
             </div>
         </div>

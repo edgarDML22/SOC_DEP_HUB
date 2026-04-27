@@ -36,16 +36,16 @@ export const useAlerts = () => {
     }
 
     // Modal de Eliminar 
-    const confirmDelete = async (title, text) => {
+    const confirmDelete = async (title, text, confirmText = 'Sí, Eliminar') => {
         return await swalApp.fire({
             title: title,
             text: text,
             showCancelButton: true,
-            confirmButtonText: 'Sí, Eliminar',
+            confirmButtonText: confirmText, // <-- Ahora acepta texto personalizado
             cancelButtonText: 'Cancelar',
             customClass: {
                 ...baseClasses,
-                confirmButton: 'btn-delete-confirm'
+                confirmButton: 'btn-delete-confirm' // <-- Esto mantiene el color rojo
             }
         });
     }

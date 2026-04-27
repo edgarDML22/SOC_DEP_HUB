@@ -11,6 +11,7 @@ export const useReservationStore = defineStore("reservation", () => {
   const cargando = ref(false);
   const errorApi = ref(null);
   const errorNavegacion = ref(null);
+  const mostrarModalDraft = ref(false);
 
   const reservaPayload = ref({
     espacioSeleccionado: null,
@@ -25,30 +26,18 @@ export const useReservationStore = defineStore("reservation", () => {
 
   const acompanantesSeleccionados = ref([]);
   const capacidadMaximaEspacio = ref(0);
-  let debounceTimeout = null;
+  
+  // ELIMINADO: let debounceTimeout = null; (Ya no necesitamos auto-guardado)
 
-  // --- VARIABLES PARA LISTA LOCAL (NUEVO MÉTODO) ---
+  // --- VARIABLES PARA LISTA LOCAL ---
   const misReservacionesTotales = ref([]);
   const misReservacionesCargadas = ref(false);
 
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
   const opcionesHoras = ref([
-    "07:00",
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "12:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-    "18:00",
-    "19:00",
-    "20:00",
-    "21:00",
-    "22:00",
+    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
+    "13:00", "14:00", "15:00", "16:00", "17:00", "18:00",
+    "19:00", "20:00", "21:00", "22:00",
   ]);
 
   const horaInicioTemp = ref(null);
@@ -149,17 +138,12 @@ export const useReservationStore = defineStore("reservation", () => {
     }
   };
 
-  // --- FETCH LISTA PARA FILTRADO LOCAL (SOLO SE LLAMA UNA VEZ) ---
   const fetchMisReservaciones = async (forceRefresh = false) => {
-    // Si ya cargamos y no forzamos, nos salimos sin molestar al servidor
-    if (!forceRefresh && misReservacionesCargadas.value) {
-      return;
-    }
+    if (!forceRefresh && misReservacionesCargadas.value) return;
 
     cargando.value = true;
     try {
       const res = await api.get('/reservations/my-list', { params: { limit: 20 } });
-
       if (res.data.success) {
         misReservacionesTotales.value = res.data.data;
         misReservacionesCargadas.value = true;
@@ -197,7 +181,6 @@ export const useReservationStore = defineStore("reservation", () => {
 
       if (res.data.success && res.data.reserva) {
         const r = res.data.reserva;
-
         const horaInicioLimpia = r.hora_inicio.substring(0, 5); 
         const horaFinLimpia = r.hora_fin.substring(0, 5);
 
@@ -224,9 +207,7 @@ export const useReservationStore = defineStore("reservation", () => {
 
         horaInicioTemp.value = horaInicioLimpia;
         horaFinTemp.value = horaFinLimpia;
-
         fetchHorarioEspacio(r.id_espacio);
-
         return true;
       }
     } catch (e) {
@@ -236,30 +217,25 @@ export const useReservationStore = defineStore("reservation", () => {
   };
 
   const descartarBorrador = async (id_reserva_param) => {
-    // Soporta id pasado por param (desde Manage.vue) o del payload del flujo OnDemand
+    mostrarModalDraft.value = false;
     const idAUsar = id_reserva_param || reservaPayload.value.id_reserva;
     if (idAUsar) {
       try {
-        await api.post("/reservations/discard", {
-          id_reserva: idAUsar,
-        });
+        await api.post("/reservations/discard", { id_reserva: idAUsar });
       } catch (e) {
         console.error("Error al descartar el borrador");
       }
     }
-    misReservacionesCargadas.value = false; // Forzar recarga la próxima vez en Gestor
+    misReservacionesCargadas.value = false; 
     resetearReserva();
     fetchDisponibilidadEspacios();
   };
 
-  // Cancelar una reservación ACTIVA desde el historial (Manage.vue)
-  // El backend determinará si es CANCELADA o NO_SHOW según el tiempo restante
   const cancelarReservacion = async (id_reserva) => {
     cargando.value = true;
     try {
       const res = await api.post("/reservations/cancel", { id_reserva });
       if (res.data.success) {
-        // Actualizar localmente para evitar recarga completa
         const idx = misReservacionesTotales.value.findIndex(r => r.id_reserva === id_reserva);
         if (idx !== -1) {
           misReservacionesTotales.value[idx].estatus_operativo = res.data.nuevo_estatus;
@@ -333,7 +309,7 @@ export const useReservationStore = defineStore("reservation", () => {
 
       if (res.data.success) {
         reservaPayload.value.id_reserva = res.data.id_reserva;
-        misReservacionesCargadas.value = false; // Forzamos actualización porque hay un borrador nuevo
+        misReservacionesCargadas.value = false; 
         pasoActual.value = "4";
       }
     } catch (error) {
@@ -391,25 +367,40 @@ export const useReservationStore = defineStore("reservation", () => {
     pasoActual.value = nuevoPaso;
   };
 
-  const sincronizarAcompanantesBorrador = () => {
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
+  // ----------------------------------------------------------------------
+  // NUEVO: LA FUNCIÓN SE EJECUTA SÓLO CUANDO SE DA CLIC EN EL BOTÓN
+  // ----------------------------------------------------------------------
+  const confirmarAcompanantes = async () => {
+    const id_reserva = reservaPayload.value.id_reserva;
+    if (!id_reserva) return; 
 
-    debounceTimeout = setTimeout(async () => {
-      const id_reserva = reservaPayload.value.id_reserva;
-      if (!id_reserva) return; 
+    cargando.value = true;
+    errorNavegacion.value = null;
 
-      try {
-        await api.put(`/reservations/${id_reserva}/draft/acompanantes`, {
-          acompanantes: acompanantesSeleccionados.value
-        });
-      } catch (error) {
-        console.error("Error al sincronizar acompañantes del borrador:", error);
+    try {
+      await api.put(`/reservations/${id_reserva}/draft/acompanantes`, {
+        acompanantes: acompanantesSeleccionados.value
+      });
+      
+      // Si sale bien, avanzamos al resumen (Paso 5)
+      pasoActual.value = "5";
+    } catch (error) {
+      console.error("Error al sincronizar acompañantes del borrador:", error);
+      // Aquí capturamos si el borrador expiró (EJ: Error 400 "La reservación ya no es un borrador...")
+      errorNavegacion.value = error.response?.data?.message || "Tu reservación caducó por inactividad. Por favor inicia de nuevo.";
+      
+      // Si ya expiró, reseteamos la reserva local para obligar al usuario a empezar otra vez
+      if (error.response?.status === 400 || error.response?.status === 404) {
+          setTimeout(() => {
+              resetearReserva();
+          }, 3500); // Le damos 3.5 segundos para leer el error y lo sacamos.
       }
-    }, 500);
+    } finally {
+      cargando.value = false;
+    }
   };
 
+  // MODIFICADO: Ya no hace llamada a la API, solo manipula la lista en Vue (JS).
   const toggleAcompanante = (acompanante) => {
     const maxPermitidos = capacidadMaximaEspacio.value - 1; 
 
@@ -426,7 +417,6 @@ export const useReservationStore = defineStore("reservation", () => {
       acompanantesSeleccionados.value.push(acompanante);
     }
 
-    sincronizarAcompanantesBorrador();
     return true; 
   };
 
@@ -438,7 +428,7 @@ export const useReservationStore = defineStore("reservation", () => {
         acompanantes: acompanantesSeleccionados.value
       });
 
-      misReservacionesCargadas.value = false; // El estado cambió a ACTIVA, hay que forzar recarga de historial
+      misReservacionesCargadas.value = false; 
 
       return {
         success: true,
@@ -467,13 +457,12 @@ export const useReservationStore = defineStore("reservation", () => {
       acompanantes: [],
     };
 
-    horaInicioTemp.value = null
-    horaFinTemp.value = null
-    errorNavegacion.value = null
-    horariosDisponibles.value = null
-    acompanantesSeleccionados.value = []
-    capacidadMaximaEspacio.value = 0
-    if (debounceTimeout) clearTimeout(debounceTimeout);
+    horaInicioTemp.value = null;
+    horaFinTemp.value = null;
+    errorNavegacion.value = null;
+    horariosDisponibles.value = null;
+    acompanantesSeleccionados.value = [];
+    capacidadMaximaEspacio.value = 0;
   };
 
   const obtenerIconoName = (disciplina) => {
@@ -511,11 +500,9 @@ export const useReservationStore = defineStore("reservation", () => {
     errorValidacion,
     errorNavegacion,
     intentarCambioPaso,
-    // --- VARIABLES VUE DE RESERVAS ---
     misReservacionesTotales,
     misReservacionesCargadas,
     fetchMisReservaciones,
-    // -----------------------------------
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,
     resetearReserva,
@@ -531,6 +518,7 @@ export const useReservationStore = defineStore("reservation", () => {
     cancelarReservacion,
     toggleAcompanante,
     confirmarReserva,
-    sincronizarAcompanantesBorrador,
+    confirmarAcompanantes, 
+    mostrarModalDraft
   };
 });

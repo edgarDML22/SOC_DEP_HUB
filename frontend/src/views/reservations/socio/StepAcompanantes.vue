@@ -50,6 +50,7 @@ const isSelected = (id, tipo) => {
 const handleToggle = (id, tipo, nombre) => {
     if (!isSelected(id, tipo) && remaining.value <= 0) return;
     
+    // Solo hace el toggle local (Sin POST)
     reservationStore.toggleAcompanante({
         id: id,
         tipo: tipo,
@@ -58,18 +59,21 @@ const handleToggle = (id, tipo, nombre) => {
 };
 
 const removeAcompanante = (acomp) => {
+    // Solo hace el toggle local (Sin POST)
     reservationStore.toggleAcompanante(acomp);
 };
 
-const nextStep = () => {
-    reservationStore.intentarCambioPaso("5");
+// --- AQUI ESTA LA MAGIA ---
+const nextStep = async () => {
+    // LLama a la API explícitamente y si todo sale bien, avanza de paso internamente
+    await reservationStore.confirmarAcompanantes();
 };
 
-const skipToConfirm = () => {
-    // Limpiar acompañantes y avanzar directo al Step 5
+const skipToConfirm = async () => {
+    // Limpiar acompañantes y avanzar directo
     acompanantesSeleccionados.value.splice(0);
-    reservationStore.sincronizarAcompanantesBorrador();
-    reservationStore.intentarCambioPaso("5");
+    // Hacemos el POST de un array vacío
+    await reservationStore.confirmarAcompanantes();
 };
 </script>
 

@@ -51,15 +51,18 @@ class ReservacionController extends Controller
         return DB::transaction(function () use ($request) {
 
             $id_socio = $request->user()->user_id;
-            // 1. VALIDAR EMPALMES CON OTRAS RESERVACIONES
+            
+            // 1. VALIDAR EMPALMES CON OTRAS RESERVACIONES (Forzando Timezone de México)
+            $ahoraMexico = Carbon::now('America/Mexico_City');
+            
             $conflictoReserva = Reservacion::where('id_espacio', $request->id_espacio)
                 ->where('fecha_reserva', $request->fecha_reserva)
-                ->where(function ($q) use ($id_socio) { // <-- Pasamos la variable
+                ->where(function ($q) use ($id_socio, $ahoraMexico) { 
                     $q->where('estatus_operativo', 'ACTIVA')
-                        ->orWhere(function ($sub) use ($id_socio) { // <-- Pasamos la variable
+                        ->orWhere(function ($sub) use ($id_socio, $ahoraMexico) { 
                             $sub->where('estatus_operativo', 'PENDIENTE')
-                                ->where('fecha_expiracion', '>', now())
-                                ->where('id_socio_titular', '!=', $id_socio); // <-- LA EXCEPCIÓN
+                                ->where('fecha_expiracion', '>', $ahoraMexico) // Corrección Timezone
+                                ->where('id_socio_titular', '!=', $id_socio); 
                         });
                 })
                 ->where(function ($query) use ($request) {
@@ -78,31 +81,24 @@ class ReservacionController extends Controller
                 })
                 ->exists();
 
-            // ** PENDIENTE ** VALIDAR EMPALMES CON encuentros_torneos
-            //meterlo en el OR de aqui abajo
-
             if ($conflictoReserva || $conflictoSesion) {
                 return response()->json(['success' => false, 'message' => 'Espacio agotado. Ya existe una actividad en este horario'], 409);
             }
 
             // SI TODO ESTÁ LIBRE, CREAMOS LA RESERVA
-
             $nuevaReserva = Reservacion::updateOrCreate(
                 [
-                    // 1. CONDICIÓN DE BÚSQUEDA: 
-                    // Búscame una reserva de este socio que esté pendiente...
                     'id_socio_titular'  => $id_socio,
                     'estatus_operativo' => 'PENDIENTE'
                 ],
                 [
-                    // 2. VALORES A ACTUALIZAR (o a insertar si es nueva):
-                    // Le actualizamos el espacio, la disciplina y las horas nuevas.
                     'id_espacio'       => $request->id_espacio,
                     'id_disciplina'    => $request->id_disciplina,
                     'fecha_reserva'    => $request->fecha_reserva,
                     'hora_inicio'      => $request->hora_inicio,
                     'hora_fin'         => $request->hora_fin,
-                    'fecha_expiracion' => Carbon::now()->addMinutes(15),
+                    // BLINDAMOS LA HORA DE CREACIÓN EXACTA A MÉXICO:
+                    'fecha_expiracion' => Carbon::now('America/Mexico_City')->addMinutes(15),
                     'estatus_operativo' => 'PENDIENTE'
                 ]
             );
@@ -115,125 +111,7 @@ class ReservacionController extends Controller
         });
     }
 
-    public function addAcompanante(Request $request, $id)
-    {
-        // Validación de datos entrantes (se asume que se recibe acompanante_id)
-        $validator = Validator::make($request->all(), [
-            'acompanante_id' => 'required|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Faltan parámetros requeridos o son inválidos',
-                'errors' => $validator->errors()
-            ], 400);
-        }
-
-        $acompananteId = $request->acompanante_id;
-
-        // 1. El usuario (acompañante) debe existir
-        // Se valida en la tabla 'users' y/o 'socios_titulares' y 'miembros_familiares'
-        $existeEnUsers = DB::table('users')->where('id', $acompananteId)->exists();
-        $existeEnSocios = DB::table('socios_titulares')->where('id_socio', $acompananteId)->exists();
-        $existeEnFamiliares = DB::table('miembros_familiares')->where('id_miembro', $acompananteId)->exists();
-
-        if (!$existeEnUsers && !$existeEnSocios && !$existeEnFamiliares) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El acompañante especificado no existe.'
-            ], 404);
-        }
-
-        // Obtener datos de la reservación padre
-        $reservacion = DB::table('reservaciones_on_demand')->where('id_reserva', $id)->first();
-        if (!$reservacion) {
-            return response()->json([
-                'success' => false,
-                'message' => 'La reservación a la que intentas agregar el acompañante no existe.'
-            ], 404);
-        }
-
-        // 2. Validación de conflicto de horario
-        // Validar que el acompañante no tenga otra reservación activa en el mismo horario
-        $tieneConflicto = DB::table('reservaciones_usuarios')
-            ->join('reservaciones_on_demand as rod', 'rod.id_reserva', '=', 'reservaciones_usuarios.reservacion_id')
-            ->where('reservaciones_usuarios.usuario_id', $acompananteId)
-            ->where('rod.fecha_reserva', $reservacion->fecha_reserva)
-            ->where('rod.estatus_operativo', '!=', 'CANCELADA')
-            ->where(function ($query) use ($reservacion) {
-                // Hay conflicto si el inicio de otra es antes del fin, y su fin es después del inicio
-                $query->where('rod.hora_inicio', '<', $reservacion->hora_fin)
-                    ->where('rod.hora_fin', '>', $reservacion->hora_inicio);
-            })
-            ->where('rod.id_reserva', '!=', $id) // Excluir esta misma reservación
-            ->exists();
-
-        // Si es titular y hace sus propias reservas, verificamos con tabla "reservaciones_on_demand"
-        $tieneConflictoTitular = DB::table('reservaciones_on_demand')
-            ->where('id_socio_titular', $acompananteId) // dueño de reserva
-            ->where('fecha_reserva', $reservacion->fecha_reserva)
-            ->where('estatus_operativo', '!=', 'CANCELADA')
-            ->where(function ($query) use ($reservacion) {
-                $query->where('hora_inicio', '<', $reservacion->hora_fin)
-                    ->where('hora_fin', '>', $reservacion->hora_inicio);
-            })
-            ->where('id_reserva', '!=', $id)
-            ->exists();
-
-        if ($tieneConflicto || $tieneConflictoTitular) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El acompañante tiene conflicto de horario con otra reservación.'
-            ], 409);
-        }
-
-        // 3. Validación: No superar la capacidad máxima del espacio
-        $espacio = DB::table('espacios_fisicos')->where('id_espacio', $reservacion->id_espacio)->first();
-        if ($espacio && isset($espacio->capacidad_maxima)) {
-            // Contar asistentes (1 titular + cantidad en tabla pivote para esta reservacion)
-            $asistentesAdicionales = DB::table('reservaciones_usuarios')
-                ->where('reservacion_id', $id)
-                ->count();
-
-            $totalAsistentes = 1 + $asistentesAdicionales;
-
-            if ($totalAsistentes >= $espacio->capacidad_maxima) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Se ha alcanzado la capacidad máxima del espacio'
-                ], 400);
-            }
-        }
-
-        // Validar que no se haya agregado ya a este usuario a esta misma reserva
-        $yaAgregado = DB::table('reservaciones_usuarios')
-            ->where('reservacion_id', $id)
-            ->where('usuario_id', $acompananteId)
-            ->exists();
-
-        if ($yaAgregado) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El acompañante ya ha sido agregado a esta reservación o es el titular.'
-            ], 400);
-        }
-
-        // Insertar en tabla pivote de acompañantes
-        DB::table('reservaciones_usuarios')->insert([
-            'reservacion_id' => $id,
-            'usuario_id' => $acompananteId,
-            'agregado_por' => $request->user()->id ?? null,
-            // 'created_at' => now(), // Descomentar si la tabla usa timestamps en DB
-            // 'updated_at' => now()
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Acompañante agregado exitosamente.'
-        ], 201);
-    }
-
+    // SINCRONIZAR ACOMPAÑANTES EN EL BORRADOR (JSONB)
     public function syncAcompanantesDraft(Request $request, $id)
     {
         $request->validate([
@@ -254,7 +132,7 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'La reservación ya no es un borrador (estatus: ' . $reserva->estatus_operativo . ')'], 400);
         }
 
-        // Guardamos los acompañantes (Laravel lo serializa automáticamente gracias a $casts)
+        // Guardamos los acompañantes en la columna JSONB
         $reserva->acompanantes_draft = $request->acompanantes ?? [];
         $reserva->save();
 
@@ -288,9 +166,10 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'La reservación no está en estado PENDIENTE.'], 400);
         }
 
-        // Validar que no haya expirado
-        if ($reserva->fecha_expiracion && Carbon::parse($reserva->fecha_expiracion)->isPast()) {
-            return response()->json(['success' => false, 'message' => 'La reservación ha expirado. Por favor, crea una nueva.'], 400);
+        // Validar expiración asegurando la zona horaria correcta
+        $ahoraMexico = Carbon::now('America/Mexico_City');
+        if ($reserva->fecha_expiracion && $reserva->fecha_expiracion < $ahoraMexico) {
+            return response()->json(['success' => false, 'message' => 'La reservación ha expirado por inactividad. Por favor, crea una nueva.'], 400);
         }
 
         // Verificar propiedad
@@ -300,7 +179,7 @@ class ReservacionController extends Controller
 
         try {
             return DB::transaction(function () use ($request, $reserva) {
-                // Leer acompañantes del draft almacenado en BD
+                // Leer acompañantes del draft almacenado en BD (columna JSONB)
                 $draft = $reserva->acompanantes_draft;
                 
                 if (is_string($draft)) {
@@ -325,10 +204,9 @@ class ReservacionController extends Controller
                     }
                 }
 
-                // Cambiar estatus a ACTIVA y limpiar datos temporales
+                // Cambiar estatus a ACTIVA y limpiar datos temporales de expiración
                 $reserva->estatus_operativo = 'ACTIVA';
                 $reserva->fecha_expiracion = null;
-                // Mantenemos el draft para referencia histórica pero limpiamos la expiración
                 $reserva->save();
 
                 // Enviar correo de confirmación
@@ -362,7 +240,7 @@ class ReservacionController extends Controller
         }
     }
 
-    // 3. CANCELAR RESERVA (Si el usuario se sale a la mitad)
+    // 3. CANCELAR RESERVA ACTIVA (Si el usuario se sale antes de tiempo)
     public function cancel(Request $request)
     {
         $id = $request->id_reserva;
@@ -385,8 +263,8 @@ class ReservacionController extends Controller
         }
 
         // Determinar si aplica NO_SHOW según tiempo restante
-        $now = \Carbon\Carbon::now('America/Mexico_City');
-        $fechaHoraReserva = \Carbon\Carbon::parse(
+        $now = Carbon::now('America/Mexico_City');
+        $fechaHoraReserva = Carbon::parse(
             $reservacion->fecha_reserva . ' ' . $reservacion->hora_inicio,
             'America/Mexico_City'
         );
@@ -405,12 +283,10 @@ class ReservacionController extends Controller
             if ($socio) {
                 $socio->contador_no_shows = ($socio->contador_no_shows ?? 0) + 1;
 
-                // Regla de negocio: al acumular 3 no_shows se bloquea por 7 días naturales
                 if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
                     $socio->estatus_cuenta = 'PENALIZADO';
-                    // Guardar la fecha en que vence la penalización
                     if (\Illuminate\Support\Facades\Schema::hasColumn('socios_titulares', 'fecha_fin_penalizacion')) {
-                        $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7);
+                        $socio->fecha_fin_penalizacion = Carbon::now('America/Mexico_City')->addDays(7);
                     }
                 }
 
@@ -427,6 +303,7 @@ class ReservacionController extends Controller
         ]);
     }
 
+    // 4. DESCARTAR BORRADOR (Eliminación permanente de DB)
     public function discard(Request $request)
     {
         $id = $request->id_reserva;
@@ -444,26 +321,26 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'Borrador no encontrado'], 404);
         }
 
-        $reservacion->estatus_operativo = 'CANCELADA';
-        $reservacion->save();
+        // Eliminación permanente de la base de datos
+        $reservacion->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Borrador descartado correctamente.'
+            'message' => 'Borrador descartado y eliminado permanentemente de la base de datos.'
         ]);
     }
 
     public function getActiveDraft(Request $request)
     {
-
         $id_socio = $request->user()->user_id;
+        $ahoraMexico = Carbon::now('America/Mexico_City');
 
         $reserva = Reservacion::where('id_socio_titular', $id_socio)
             ->where('estatus_operativo', 'PENDIENTE')
-            ->where('fecha_expiracion', '>', now())
+            ->where('fecha_expiracion', '>', $ahoraMexico) // Corrección Timezone
             ->with([
-                'espacioFisico:id_espacio,nombre_espacio', // Trae solo ID y Nombre
-                'disciplina:id_disciplina,nombre_disciplina' // Trae solo ID y Nombre
+                'espacioFisico:id_espacio,nombre_espacio', 
+                'disciplina:id_disciplina,nombre_disciplina' 
             ])
             ->first();
 
@@ -476,20 +353,20 @@ class ReservacionController extends Controller
     public function myReservations(Request $request)
     {
         $socioId = $request->user()->user_id;
-        $limit = $request->query('limit', 20); // Traemos hasta 20 para tener datos con qué jugar localmente
+        $limit = $request->query('limit', 20); 
+        $ahoraMexico = Carbon::now('America/Mexico_City');
 
         $query = Reservacion::where('id_socio_titular', $socioId)
             ->with(['espacioFisico:id_espacio,nombre_espacio', 'disciplina:id_disciplina,nombre_disciplina'])
             ->orderBy('fecha_reserva', 'desc')
             ->orderBy('hora_inicio', 'desc');
 
-        // Omitimos SOLO los borradores que ya expiraron, el resto (Activas, Canceladas, Completadas y Borradores vivos) los mandamos.
-        $query->where(function($q) {
+        // Omitimos SOLO los borradores que ya expiraron (Timezone correcto)
+        $query->where(function($q) use ($ahoraMexico) {
             $q->where('estatus_operativo', '!=', 'PENDIENTE')
-                ->orWhere('fecha_expiracion', '>', now());
+                ->orWhere('fecha_expiracion', '>', $ahoraMexico);
         });
 
-        // Hacemos el get en lugar de paginate para que el frontend maneje todo en memoria
         $reservas = $query->take($limit)->get();
 
         return response()->json([
