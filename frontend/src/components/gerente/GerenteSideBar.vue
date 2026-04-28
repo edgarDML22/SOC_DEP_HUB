@@ -88,7 +88,7 @@ const toggleMenu = (menu) => {
             <router-link to="/admin/gerentes" class="sidebar-submenu-item">
               Gerentes
             </router-link>
-            <router-link to="/admin/instructores" class="sidebar-submenu-item">
+            <router-link to="/admin/instructors" class="sidebar-submenu-item">
               Instructores
             </router-link>
             <router-link to="/admin/socios" class="sidebar-submenu-item">
@@ -114,7 +114,8 @@ const toggleMenu = (menu) => {
   gap: 12px;
   padding: 10px 14px;
   border-radius: 12px;
-  color: #94a3b8; /* slate-400 */
+  color: #94a3b8;
+  /* slate-400 */
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
@@ -126,11 +127,13 @@ const toggleMenu = (menu) => {
 
 .sidebar-menu-item:hover {
   background-color: rgba(255, 255, 255, 0.05);
-  color: #f8fafc; /* slate-50 */
+  color: #f8fafc;
+  /* slate-50 */
 }
 
 .sidebar-menu-item.router-link-active {
-  background-color: #1e3a8a; /* blue-900 */
+  background-color: #1e3a8a;
+  /* blue-900 */
   color: #ffffff;
 }
 
@@ -144,14 +147,16 @@ const toggleMenu = (menu) => {
 .sidebar-submenu-item {
   padding: 8px 12px;
   font-size: 0.8125rem;
-  color: #64748b; /* slate-500 */
+  color: #64748b;
+  /* slate-500 */
   text-decoration: none;
   border-radius: 8px;
   transition: all 0.2s;
 }
 
 .sidebar-submenu-item:hover {
-  color: #cbd5e1; /* slate-300 */
+  color: #cbd5e1;
+  /* slate-300 */
   background-color: rgba(255, 255, 255, 0.03);
 }
 
@@ -159,4 +164,4 @@ const toggleMenu = (menu) => {
   color: #ffffff;
   font-weight: 600;
 }
-</style>
+</style>

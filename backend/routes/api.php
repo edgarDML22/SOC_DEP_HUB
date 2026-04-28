@@ -112,10 +112,32 @@ Route::middleware('auth:sanctum')->group(function () {
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
 
+
+    //CRUD INSTRUCTORES
+    // Para instructor
     // Dashboard dinámico del instructor
     Route::get('/v1/instructor/dashboard', [InstructorController::class, 'getDashboardData']);
     // Profile del instructor
     Route::get('/v1/instructor/profile', [InstructorController::class, 'getProfileData']);
+    // Para admin
+    // Get all instructors
+    Route::get('/v1/instructors/all', [InstructorController::class, 'getAllInstructors']);
+    // Create instructor
+    Route::post('/v1/instructors/create', [InstructorController::class, 'store']);
+    // Get single instructor
+    Route::get('/v1/instructors/{id}', [InstructorController::class, 'show']);
+    // Update instructor
+    Route::put('/v1/instructors/update/{id}', [InstructorController::class, 'update']);
+    // Delete instructor
+    Route::delete('/v1/instructors/delete/{id}', [InstructorController::class, 'destroy']);
+
+    // Traer disciplinas para los filtros/formularios de admin
+    Route::get('/v1/disciplinas/all', function () {
+        return response()->json([
+            'success' => true,
+            'data' => \App\Models\Disciplina::all()
+        ], 200);
+    });
 
     // Agregar acompañantes a una reservación
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);

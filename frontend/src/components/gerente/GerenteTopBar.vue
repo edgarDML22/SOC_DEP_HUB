@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { IconBell } from '@/components/icons'
-import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAdminStore } from '@/stores/profiles/adminSotre'
 
-const profileStore = useProfileStore()
+const profileStore = useAdminStore()
 
 const menuOpen = ref(false)
 const showNotifications = ref(false)
@@ -16,10 +16,10 @@ const toggleNotifications = () => showNotifications.value = !showNotifications.v
 <template>
 
   <header class="topbar">
-    
+
     <!-- LEFT -->
     <div class="left">
-      <input type="text" placeholder="Buscar..." class="search"/>
+      <input type="text" placeholder="Buscar..." class="search" />
     </div>
 
     <!-- RIGHT -->

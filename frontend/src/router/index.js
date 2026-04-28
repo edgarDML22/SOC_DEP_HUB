@@ -270,7 +270,11 @@ const router = createRouter({
         },
         {
           path: "instructors",
-          component: () => import("@/views/admin/Instructors.vue"),
+          component: () => import("@/views/admin/instructors/Instructors.vue"),
+        },
+        {
+          path: 'instructors/:id',
+          component: () => import('@/views/admin/instructors/InstructorsDetails.vue'),
         },
         {
           path: 'ludoteca',
