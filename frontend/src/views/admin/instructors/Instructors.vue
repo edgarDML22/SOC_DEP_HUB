@@ -1,14 +1,16 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
 import api from '@/services/api';
+import { useInstructorStore } from '@/stores/instructorStore';
 
 const router = useRouter();
+const instructorStore = useInstructorStore();
 
-const instructors = ref([]);
+const { instructors, isLoading, error: errorMsg } = storeToRefs(instructorStore);
+
 const disciplinasList = ref([]);
-const isLoading = ref(true);
-const errorMsg = ref('');
 
 // FILTERS
 const search = ref('');
@@ -29,24 +31,8 @@ const newInstructor = ref({
 
 onMounted(async () => {
   await fetchDisciplinas();
-  await fetchInstructors();
+  await instructorStore.fetchInstructors();
 });
-
-const fetchInstructors = async () => {
-    isLoading.value = true;
-    errorMsg.value = '';
-    try {
-        const response = await api.get('/instructors/all');
-        if (response.data && response.data.success) {
-            instructors.value = response.data.data;
-        }
-    } catch (error) {
-        console.error("Error cargando los instructores:", error);
-        errorMsg.value = "Hubo un problema al cargar los instructores.";
-    } finally {
-        isLoading.value = false;
-    }
-};
 
 const fetchDisciplinas = async () => {
     try {
@@ -86,10 +72,7 @@ const filteredInstructors = computed(() => {
 });
 
 const handleSessionClick = (instructor) => {
-  router.push({
-    path: `/admin/instructors/${instructor.id_instructor}`,
-    state: { instructorData: JSON.stringify(instructor) }
-  });
+  router.push(`/admin/instructors/${instructor.id_instructor}`);
 };
 
 const toggleDisciplinaSelection = (id) => {
@@ -112,8 +95,8 @@ const saveNewInstructor = async () => {
         const res = await api.post('/instructors/create', newInstructor.value);
         if(res.data.success) {
             showNewModal.value = false;
-            // Refrescar lista
-            await fetchInstructors();
+            // Refrescar lista forzando fetch
+            await instructorStore.fetchInstructors(true);
             // Reset form
             newInstructor.value = {
                 nombre_completo: '',
@@ -297,12 +280,11 @@ const saveNewInstructor = async () => {
 <style scoped>
 /* Contenedor Principal */
 .home-instructor {
-  background-color: var(--p-surface-50, #f8fafc);
-  padding: 1rem;
+  background-color: var(--p-surface-50);
+  padding: 1.5rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: inherit;
   padding-bottom: 90px;
 }
 
@@ -311,73 +293,89 @@ const saveNewInstructor = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .greeting-label {
-  font-size: 0.8rem;
-  color: var(--p-surface-500, #6b7280);
-  margin: 0 0 0.15rem 0;
+  font-size: 0.75rem;
+  color: var(--p-surface-500);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
 }
 
 .greeting-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--p-surface-900);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
+/* Botones */
 .btn-primary {
-    background-color: var(--p-primary-600, #2563eb);
+    background-color: var(--p-primary-600);
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 14px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .btn-primary:hover {
-    background-color: var(--p-primary-700, #1d4ed8);
+    background-color: var(--p-primary-700);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
 }
 
 .btn-secondary {
     background-color: white;
-    color: var(--p-surface-700, #334155);
-    border: 1px solid var(--p-surface-300, #cbd5e1);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 600;
+    color: var(--p-surface-700);
+    border: 1px solid var(--p-surface-200);
+    padding: 0.75rem 1.5rem;
+    border-radius: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
 }
+
 .btn-secondary:hover {
-    background-color: var(--p-surface-100, #f1f5f9);
+    background-color: var(--p-surface-50);
+    border-color: var(--p-surface-300);
 }
 
 /* Filtros */
 .filters-container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
     background: white;
-    padding: 1rem;
-    border-radius: 12px;
-    border: 1px solid var(--p-surface-200, #e2e8f0);
+    padding: 1.5rem;
+    border-radius: 20px;
+    border: 1px solid var(--p-surface-200);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .search-input {
     width: 100%;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--p-surface-300, #cbd5e1);
+    padding: 0.875rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--p-surface-200);
     font-size: 1rem;
     outline: none;
+    transition: all 0.2s;
+    background: var(--p-surface-50);
 }
+
 .search-input:focus {
-    border-color: var(--p-primary-500, #3b82f6);
+    border-color: var(--p-primary-500);
+    background: white;
+    box-shadow: 0 0 0 4px var(--p-primary-50);
 }
 
 .filter-group {
@@ -387,18 +385,21 @@ const saveNewInstructor = async () => {
 
 .filter-select {
     flex: 1;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--p-surface-300, #cbd5e1);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--p-surface-200);
     background: white;
     font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--p-surface-700);
     outline: none;
+    cursor: pointer;
 }
 
-/* Loading */
-.loading-state {
+/* Loading & Empty States */
+.loading-state, .error-state {
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 4rem 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -406,69 +407,76 @@ const saveNewInstructor = async () => {
 }
 
 .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--p-surface-200, #e2e8f0);
-    border-top-color: var(--p-primary-600, #2563eb);
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--p-surface-200);
+    border-top-color: var(--p-primary-600);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* Error */
-.error-state {
-    text-align: center;
-    padding: 3rem 1rem;
-}
-
-/* Listado */
+/* Listado de Instructores */
 .sessions-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .session-card {
   background-color: #ffffff;
-  border: 1px solid var(--p-surface-200, #e2e8f0);
-  border-radius: 12px;
-  padding: 0.75rem;
+  border: 1px solid var(--p-surface-200);
+  border-radius: 18px;
+  padding: 1rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: border-color 0.2s, transform 0.2s;
+  gap: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.session-card.clickable {
-  cursor: pointer;
+.session-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  transition: background 0.3s;
 }
+
+.session-card.clickable { cursor: pointer; }
 
 .session-card.clickable:hover {
-  border-color: var(--p-primary-400, #60a5fa);
-  transform: translateY(-1px);
+  border-color: var(--p-primary-200);
+  transform: translateX(4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.session-card.clickable:hover::before {
+  background: var(--p-primary-500);
 }
 
 .time-block {
-  background-color: var(--p-surface-100, #f1f5f9);
-  border-radius: 8px;
-  padding: 0.5rem;
+  background-color: var(--p-surface-50);
+  border-radius: 12px;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 60px;
+  min-width: 70px;
+  border: 1px solid var(--p-surface-100);
 }
 
 .time-start {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 60px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--p-primary-600);
+  text-transform: uppercase;
 }
 
 .session-details {
@@ -478,112 +486,113 @@ const saveNewInstructor = async () => {
 }
 
 .client-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--p-surface-900, #111827);
-  margin: 0 0 0.2rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--p-surface-900);
+  margin: 0 0 0.25rem 0;
 }
 
 .location-name {
-  font-size: 0.75rem;
-  color: var(--p-surface-500, #64748b);
-  margin: 0 0 0.4rem 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--p-surface-500);
+  margin: 0 0 0.75rem 0;
 }
 
 .disciplinas-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 
 .chip {
-    background-color: var(--p-primary-50, #eff6ff);
-    color: var(--p-primary-700, #1d4ed8);
-    border: 1px solid var(--p-primary-200, #bfdbfe);
-    font-size: 0.65rem;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    font-weight: 600;
+    background-color: var(--p-primary-50);
+    color: var(--p-primary-700);
+    border: 1px solid var(--p-primary-100);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 700;
 }
 
 .chip-empty {
-    font-size: 0.65rem;
-    color: var(--p-surface-400, #9ca3af);
+    font-size: 0.75rem;
+    color: var(--p-surface-400);
     font-style: italic;
 }
 
 .session-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .status-badge {
-  padding: 0.35rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: white;
-  text-transform: capitalize;
-  white-space: nowrap;
+  padding: 0.4rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.badge-success { background-color: #10b981; }
-.badge-danger { background-color: #ef4444; }
-.badge-warning { background-color: #f59e0b; }
+.badge-success { background-color: #ecfdf5; color: #059669; border: 1px solid #10b98133; }
+.badge-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #ef444433; }
+.badge-warning { background-color: #fffbeb; color: #d97706; border: 1px solid #f59e0b33; }
 
 .arrow-right {
-  color: var(--p-surface-400, #9ca3af);
-  font-weight: bold;
-  font-size: 1.2rem;
-  line-height: 1;
+  color: var(--p-surface-300);
+  font-size: 1.5rem;
+  transition: transform 0.2s;
+}
+
+.session-card:hover .arrow-right {
+  color: var(--p-primary-500);
+  transform: translateX(2px);
 }
 
 /* Empty state */
-.next-session-section {
-  margin-top: 1rem;
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 2.5rem 1rem;
+  padding: 4rem 2rem;
   background: white;
-  border-radius: 12px;
-  border: 1px dashed var(--p-surface-300, #cbd5e1);
+  border-radius: 20px;
+  border: 2px dashed var(--p-surface-200);
 }
 
 .empty-icon-circle {
-  width: 60px;
-  height: 60px;
-  background-color: var(--p-surface-100, #f1f5f9);
-  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  background-color: var(--p-surface-50);
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  color: var(--p-surface-400);
 }
 
 .empty-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-  margin: 0 0 0.4rem 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--p-surface-900);
+  margin-bottom: 0.5rem;
 }
 
 .empty-text {
-  font-size: 0.85rem;
-  color: var(--p-surface-500, #64748b);
-  margin: 0;
+  font-size: 0.9rem;
+  color: var(--p-surface-500);
 }
 
-/* Modal CSS */
+/* Modal Styling */
 .modal-backdrop {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -594,88 +603,125 @@ const saveNewInstructor = async () => {
 .modal-content {
     background: white;
     width: 100%;
-    max-width: 500px;
-    border-radius: 16px;
+    max-width: 550px;
+    border-radius: 24px;
     display: flex;
     flex-direction: column;
     max-height: 90vh;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--p-surface-200);
 }
 
 .modal-header {
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--p-surface-200, #e2e8f0);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--p-surface-100);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-.modal-header h2 { margin: 0; font-size: 1.2rem; }
+
+.modal-header h2 { 
+  margin: 0; 
+  font-size: 1.5rem; 
+  font-weight: 800;
+  color: var(--p-surface-900);
+  letter-spacing: -0.02em;
+}
+
 .btn-close {
-    background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;
+    background: var(--p-surface-50);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--p-surface-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-close:hover {
+    background: var(--p-surface-100);
+    color: var(--p-surface-900);
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: 2rem;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
+
 .form-group label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--p-surface-700, #334155);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--p-surface-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
+
 .form-group input, .form-group select {
-    padding: 0.6rem;
-    border-radius: 8px;
-    border: 1px solid var(--p-surface-300, #cbd5e1);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--p-surface-200);
     outline: none;
+    font-weight: 600;
+    background: var(--p-surface-50);
+    transition: all 0.2s;
 }
+
 .form-group input:focus, .form-group select:focus {
-    border-color: var(--p-primary-500, #3b82f6);
+    border-color: var(--p-primary-500);
+    background: white;
+    box-shadow: 0 0 0 4px var(--p-primary-50);
 }
 
 .form-row {
     display: flex;
     gap: 1rem;
 }
+
 .half { flex: 1; }
 
 .disciplinas-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-top: 0.5rem;
 }
 
-.hidden-checkbox { display: none; }
-
 .checkbox-label {
-    padding: 0.4rem 0.8rem;
-    border: 1px solid var(--p-surface-300, #cbd5e1);
-    border-radius: 999px;
-    font-size: 0.8rem;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--p-surface-200);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
+    background: white;
 }
 
 .checkbox-label.selected {
-    background-color: var(--p-primary-50, #eff6ff);
-    color: var(--p-primary-700, #1d4ed8);
-    border-color: var(--p-primary-400, #60a5fa);
-    font-weight: 600;
+    background-color: var(--p-primary-600);
+    color: white;
+    border-color: var(--p-primary-600);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
 }
 
 .modal-footer {
-    padding: 1.25rem 1.5rem;
-    border-top: 1px solid var(--p-surface-200, #e2e8f0);
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--p-surface-100);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;

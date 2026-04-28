@@ -179,13 +179,12 @@ class InstructorController extends Controller
 
     public function getAllInstructors(Request $request)
     {
-        $user = $request->user();
-
         // Validar acceso
-        if ($user->rol !== 'gerente' || $user->rol !== 'subgerente') {
+        $user = $request->user();
+        if (!in_array($user->rol, ['gerente', 'subgerente'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acceso denegado. No eres administrador.'
+                'message' => 'Acceso denegado.'
             ], 403);
         }
 

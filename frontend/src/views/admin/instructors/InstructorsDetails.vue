@@ -1,17 +1,21 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
 import api from '@/services/api';
+import { useInstructorStore } from '@/stores/instructorStore';
 
 const route = useRoute();
 const router = useRouter();
+const instructorStore = useInstructorStore();
+
+const { isLoading, error: storeError } = storeToRefs(instructorStore);
 
 const instructorId = route.params.id;
 
 const instructor = ref(null);
 const disciplinasList = ref([]);
 const errorMsg = ref('');
-const isLoading = ref(true);
 
 // Modales
 const showEditModal = ref(false);
@@ -44,27 +48,22 @@ const fetchDisciplinas = async () => {
 };
 
 const fetchInstructorDetails = async () => {
-    isLoading.value = true;
     errorMsg.value = '';
     try {
-        const response = await api.get(`/instructors/${instructorId}`);
-        if (response.data && response.data.success) {
-            instructor.value = response.data.data;
-            // Popular formulario de edición
-            editForm.value = {
-                nombre_completo: instructor.value.nombre_completo,
-                telefono: instructor.value.telefono || '',
-                fecha_nacimiento: instructor.value.fecha_nacimiento || '',
-                fecha_contratacion: instructor.value.fecha_contratacion || '',
-                estatus: instructor.value.estatus,
-                disciplinas: instructor.value.disciplinas.map(d => d.id_disciplina)
-            };
-        }
+        const data = await instructorStore.fetchInstructorDetails(instructorId);
+        instructor.value = data;
+        // Popular formulario de edición
+        editForm.value = {
+            nombre_completo: data.nombre_completo,
+            telefono: data.telefono || '',
+            fecha_nacimiento: data.fecha_nacimiento || '',
+            fecha_contratacion: data.fecha_contratacion || '',
+            estatus: data.estatus,
+            disciplinas: data.disciplinas ? data.disciplinas.map(d => d.id_disciplina) : []
+        };
     } catch (error) {
         console.error("Error cargando detalles del instructor:", error);
         errorMsg.value = "Hubo un problema al cargar los detalles del instructor.";
-    } finally {
-        isLoading.value = false;
     }
 };
 
@@ -85,14 +84,17 @@ const saveEditInstructor = async () => {
 
     isSaving.value = true;
     try {
-        const res = await api.put(`/instructors/update/${instructorId}`, editForm.value);
-        if (res.data.success) {
+        const res = await instructorStore.updateInstructor(instructorId, editForm.value);
+        if (res.success) {
             showEditModal.value = false;
-            await fetchInstructorDetails(); // Refrescar datos locales
+            // Al ser reactivo el store y nosotros usar instructor.value = data en fetch,
+            // y el store actualizar la lista, deberíamos refrescar la referencia local.
+            instructor.value = instructorStore.getInstructorById(instructorId);
+        } else {
+            alert(res.error || "Ocurrió un error al actualizar.");
         }
     } catch (error) {
         console.error("Error al actualizar instructor:", error);
-        alert(error.response?.data?.message || "Ocurrió un error al actualizar.");
     } finally {
         isSaving.value = false;
     }
@@ -103,14 +105,15 @@ const darDeBaja = async () => {
     
     isDeleting.value = true;
     try {
-        const res = await api.delete(`/instructors/delete/${instructorId}`);
-        if (res.data.success) {
+        const res = await instructorStore.deleteInstructor(instructorId);
+        if (res.success) {
             alert("Instructor dado de baja exitosamente.");
             router.push('/admin/instructors');
+        } else {
+            alert(res.error || "Error al dar de baja al instructor.");
         }
     } catch (error) {
         console.error("Error al eliminar instructor:", error);
-        alert(error.response?.data?.message || "Error al dar de baja al instructor.");
     } finally {
         isDeleting.value = false;
     }
@@ -135,8 +138,8 @@ const goBack = () => {
         </header>
 
         <!-- Estado de Error -->
-        <section v-if="errorMsg" class="error-state">
-            <p class="error-text">{{ errorMsg }}</p>
+        <section v-if="errorMsg || storeError" class="error-state">
+            <p class="error-text">{{ errorMsg || storeError }}</p>
             <button @click="goBack" class="btn-outline">Volver a los Instructores</button>
         </section>
 
@@ -156,8 +159,8 @@ const goBack = () => {
                 <div class="featured-body">
                     <div class="featured-header">
                         <span class="status-badge" :class="{
-                            'badge-success': instructor.estatus === 'ACTIVO',
-                            'badge-danger': instructor.estatus === 'INACTIVO',
+                            'badge-success': instructor.estatus === 'ACTIVO' || instructor.estatus === 'Activo',
+                            'badge-danger': instructor.estatus === 'INACTIVO' || instructor.estatus === 'Inactivo',
                             'badge-warning': instructor.estatus === 'BAJA_TEMPORAL'
                         }">
                             {{ instructor.estatus }}
@@ -272,174 +275,191 @@ const goBack = () => {
 
 <style scoped>
 .home-instructor {
-  background-color: var(--p-surface-50, #f8fafc);
-  padding: 1rem;
+  background-color: var(--p-surface-50);
+  padding: 1.5rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: inherit;
   padding-bottom: 90px;
 }
 
 .app-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
 }
 
 .btn-back {
     background: white;
-    border: 1px solid var(--p-surface-200, #e2e8f0);
-    border-radius: 12px;
-    width: 40px;
-    height: 40px;
+    border: 1px solid var(--p-surface-200);
+    border-radius: 14px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--p-surface-700, #334155);
+    color: var(--p-surface-700);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
-.btn-back:hover { background-color: var(--p-surface-100, #f1f5f9); }
 
-.icon-back { width: 24px; height: 24px; }
+.btn-back:hover { 
+  background-color: var(--p-surface-50); 
+  border-color: var(--p-surface-300);
+  transform: translateX(-2px);
+}
+
+.icon-back { width: 20px; height: 20px; }
 
 .header-title {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.5rem;
+    font-weight: 800;
     margin: 0;
-    color: var(--p-surface-900, #111827);
+    color: var(--p-surface-900);
+    letter-spacing: -0.02em;
 }
 
 .detail-content {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .featured-card {
     background: white;
-    border-radius: 16px;
-    border: 1px solid var(--p-surface-200, #e2e8f0);
+    border-radius: 24px;
+    border: 1px solid var(--p-surface-200);
     overflow: hidden;
     position: relative;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
 }
 
 .card-accent-bar {
     height: 6px;
-    background: linear-gradient(90deg, var(--p-primary-500, #3b82f6) 0%, var(--p-primary-300, #93c5fd) 100%);
+    background: linear-gradient(90deg, var(--p-primary-600) 0%, var(--p-primary-400) 100%);
 }
 
-.featured-body { padding: 1.5rem; }
+.featured-body { padding: 2rem; }
 
 .featured-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .status-badge {
-    padding: 0.35rem 0.75rem;
-    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    border-radius: 10px;
     font-size: 0.75rem;
-    font-weight: 700;
-    color: white;
+    font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.badge-success { background-color: #10b981; }
-.badge-danger { background-color: #ef4444; }
-.badge-warning { background-color: #f59e0b; }
+.badge-success { background-color: #ecfdf5; color: #059669; border: 1px solid #10b98133; }
+.badge-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #ef444433; }
+.badge-warning { background-color: #fffbeb; color: #d97706; border: 1px solid #f59e0b33; }
 
 .session-type {
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 2.25rem;
+    font-weight: 900;
     margin: 0 0 0.5rem 0;
-    color: var(--p-surface-900, #111827);
+    color: var(--p-surface-900);
+    letter-spacing: -0.03em;
 }
 
 .info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    background-color: var(--p-surface-50, #f8fafc);
-    border-radius: 12px;
-    padding: 1rem;
+    gap: 1.5rem;
+    background-color: var(--p-surface-50);
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid var(--p-surface-100);
 }
 
 .info-cell {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.35rem;
 }
 
 .info-label {
-    font-size: 0.75rem;
-    color: var(--p-surface-500, #64748b);
-    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--p-surface-500);
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .info-value {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--p-surface-900, #111827);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--p-surface-900);
 }
 
 .actions-group {
     display: flex;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .btn-primary {
-    background-color: var(--p-primary-600, #2563eb);
+    background-color: var(--p-primary-600);
     color: white;
     border: none;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
-.btn-primary:hover { background-color: var(--p-primary-700, #1d4ed8); }
+.btn-primary:hover { 
+  background-color: var(--p-primary-700); 
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
 
 .btn-danger {
-    background-color: white;
-    color: #ef4444;
-    border: 1px solid #fca5a5;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-weight: 600;
+    background-color: #fff1f2;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
     text-align: center;
 }
-.btn-danger:hover { background-color: #fef2f2; }
+.btn-danger:hover { 
+  background-color: #ffe4e6; 
+  border-color: #fb7185;
+}
 
 /* Chips */
 .disciplinas-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .chip {
-    background-color: var(--p-primary-50, #eff6ff);
-    color: var(--p-primary-700, #1d4ed8);
-    border: 1px solid var(--p-primary-200, #bfdbfe);
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    font-weight: 600;
+    background-color: var(--p-primary-50);
+    color: var(--p-primary-700);
+    border: 1px solid var(--p-primary-100);
+    font-size: 0.8rem;
+    padding: 0.35rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
 }
 
 .chip-empty {
-    font-size: 0.75rem;
-    color: var(--p-surface-400, #9ca3af);
+    font-size: 0.85rem;
+    color: var(--p-surface-400);
     font-style: italic;
 }
 
@@ -447,7 +467,8 @@ const goBack = () => {
 .modal-backdrop {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -458,51 +479,77 @@ const goBack = () => {
 .modal-content {
     background: white;
     width: 100%;
-    max-width: 500px;
-    border-radius: 16px;
+    max-width: 550px;
+    border-radius: 24px;
     display: flex;
     flex-direction: column;
     max-height: 90vh;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--p-surface-200);
 }
 
 .modal-header {
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--p-surface-200, #e2e8f0);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--p-surface-100);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-.modal-header h2 { margin: 0; font-size: 1.2rem; }
+.modal-header h2 { 
+  margin: 0; 
+  font-size: 1.5rem; 
+  font-weight: 800;
+  color: var(--p-surface-900);
+  letter-spacing: -0.02em;
+}
+
 .btn-close {
-    background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;
+    background: var(--p-surface-50);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--p-surface-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: 2rem;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 .form-group label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--p-surface-700, #334155);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--p-surface-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 .form-group input, .form-group select {
-    padding: 0.6rem;
-    border-radius: 8px;
-    border: 1px solid var(--p-surface-300, #cbd5e1);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--p-surface-200);
     outline: none;
+    font-weight: 600;
+    background: var(--p-surface-50);
+    transition: all 0.2s;
 }
 .form-group input:focus, .form-group select:focus {
-    border-color: var(--p-primary-500, #3b82f6);
+    border-color: var(--p-primary-500);
+    background: white;
+    box-shadow: 0 0 0 4px var(--p-primary-50);
 }
 
 .form-row {
@@ -514,32 +561,32 @@ const goBack = () => {
 .disciplinas-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-top: 0.5rem;
 }
 
-.hidden-checkbox { display: none; }
-
 .checkbox-label {
-    padding: 0.4rem 0.8rem;
-    border: 1px solid var(--p-surface-300, #cbd5e1);
-    border-radius: 999px;
-    font-size: 0.8rem;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--p-surface-200);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
+    background: white;
 }
 
 .checkbox-label.selected {
-    background-color: var(--p-primary-50, #eff6ff);
-    color: var(--p-primary-700, #1d4ed8);
-    border-color: var(--p-primary-400, #60a5fa);
-    font-weight: 600;
+    background-color: var(--p-primary-600);
+    color: white;
+    border-color: var(--p-primary-600);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
 }
 
 .modal-footer {
-    padding: 1.25rem 1.5rem;
-    border-top: 1px solid var(--p-surface-200, #e2e8f0);
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--p-surface-100);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
@@ -547,21 +594,22 @@ const goBack = () => {
 
 .btn-secondary {
     background-color: white;
-    color: var(--p-surface-700, #334155);
-    border: 1px solid var(--p-surface-300, #cbd5e1);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 600;
+    color: var(--p-surface-700);
+    border: 1px solid var(--p-surface-200);
+    padding: 0.75rem 1.5rem;
+    border-radius: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
 }
 .btn-secondary:hover {
-    background-color: var(--p-surface-100, #f1f5f9);
+    background-color: var(--p-surface-50);
+    border-color: var(--p-surface-300);
 }
 
 .loading-state {
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 4rem 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -569,12 +617,12 @@ const goBack = () => {
 }
 
 .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--p-surface-200, #e2e8f0);
-    border-top-color: var(--p-primary-600, #2563eb);
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--p-surface-200);
+    border-top-color: var(--p-primary-600);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes spin { 100% { transform: rotate(360deg); } }
