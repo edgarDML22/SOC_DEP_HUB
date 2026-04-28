@@ -96,8 +96,8 @@ class SocioController extends Controller
 
         DB::beginTransaction();
         try {
-            // Datos base para actualizar
-            $updateData = $request->only([
+            // Datos base para actualizar (Filtrar nulos para evitar sobreescribir con NULL si no vienen en el request)
+            $updateData = array_filter($request->only([
                 'nombre_completo',
                 'correo_electronico',
                 'tipo_socio',
@@ -107,14 +107,16 @@ class SocioController extends Controller
                 'retrasos_ludoteca',
                 'fecha_nacimiento',
                 'genero'
-            ]);
+            ]), function ($value) {
+                return !is_null($value);
+            });
 
             // Lógica específica para penalización
-            if ($request->input('estatus_cuenta') === 'PENALIZADO') {
-                if (!$socio->fecha_fin_penalizacion || $socio->estatus_cuenta !== 'PENALIZADO') {
-                    // Usar Carbon directamente para mayor precisión
-                    // $updateData['fecha_fin_penalizacion'] = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
-                    $updateData['fecha_fin_penalizacion'] = \Carbon\Carbon::now('America/Mexico_City')->addMinutes(5);
+            $penalizadoStatuses = ['PENALIZADO', 'PENALIZADO_AMBOS', 'PENALIZADO_LUDOTECA', 'PENALIZADO_RESERVA'];
+            if (in_array($request->input('estatus_cuenta'), $penalizadoStatuses)) {
+                if (!$socio->fecha_fin_penalizacion || !in_array($socio->estatus_cuenta, $penalizadoStatuses)) {
+                    // Usar helper now() que es más directo en Laravel
+                    $updateData['fecha_fin_penalizacion'] = now('America/Mexico_City')->addDays(7)->startOfDay();
                 }
             } elseif ($request->input('estatus_cuenta') === 'AL_CORRIENTE') {
                 $updateData['fecha_fin_penalizacion'] = null;
@@ -124,13 +126,12 @@ class SocioController extends Controller
             $socio->update($updateData);
 
             // Sincronizar con la tabla 'users' si hay campos en común (email)
-            if ($request->has('correo_electronico')) {
+            if ($request->has('correo_electronico') && $request->input('correo_electronico')) {
                 $usuarioLogin = User::where('user_id', $socio->id_socio)
                     ->where('rol', 'socio_titular')
                     ->first();
                 if ($usuarioLogin) {
                     $usuarioLogin->email = $request->input('correo_electronico');
-                    // NOTA: No se actualiza 'name' porque la columna no existe en la tabla 'users'.
                     $usuarioLogin->save();
                 }
             }
@@ -147,8 +148,7 @@ class SocioController extends Controller
                 'id' => $id,
                 'request' => $request->all(),
                 'line' => $e->getLine(),
-                'file' => $e->getFile(),
-                'trace' => $e->getTraceAsString()
+                'file' => $e->getFile()
             ]);
             return response()->json([
                 'success' => false,

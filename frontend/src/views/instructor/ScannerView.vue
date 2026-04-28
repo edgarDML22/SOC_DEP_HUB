@@ -21,7 +21,7 @@ const playSuccessBeep = () => {
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     oscillator.type = 'sine';
-    oscillator.frequency.value = 880; 
+    oscillator.frequency.value = 880;
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     oscillator.start();
@@ -38,7 +38,7 @@ const playErrorSound = () => {
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     oscillator.type = 'sawtooth';
-    oscillator.frequency.value = 150; 
+    oscillator.frequency.value = 150;
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     oscillator.start();
@@ -50,14 +50,14 @@ const playErrorSound = () => {
 };
 
 const onDetect = async (detectedCodes) => {
-  if (isProcessing.value) return; 
+  if (isProcessing.value) return;
   if (!detectedCodes || detectedCodes.length === 0) return;
-  
+
   const rawValue = detectedCodes[0].rawValue;
   isProcessing.value = true;
   isErrorState.value = false;
   errorAlert.value = '';
-  
+
   if (successTimer) clearTimeout(successTimer);
 
   try {
@@ -75,14 +75,14 @@ const onDetect = async (detectedCodes) => {
 
     const response = await api.post('instructor/register-event', payload);
     playSuccessBeep();
-    
+
     successAlert.value = response.data.message || 'Registro exitoso';
-    
+
     // Alerta viva por 2 segundos
     successTimer = setTimeout(() => {
       successAlert.value = '';
     }, 2000);
-    
+
   } catch (error) {
     playErrorSound();
     isErrorState.value = true;
@@ -99,10 +99,10 @@ const onDetect = async (detectedCodes) => {
 
 const onError = (err) => {
   const errorName = err.name;
-  
+
   // Opcional: Mostramos el borde del escáner en rojo si le negaron los permisos
   isErrorState.value = true;
-  
+
   if (errorName === 'NotAllowedError') {
     errorAlert.value = "Permiso de cámara denegado. Habilita el acceso en tu navegador.";
   } else if (errorName === 'NotFoundError') {
@@ -118,235 +118,107 @@ const onError = (err) => {
 </script>
 
 <template>
-  <main class="scanner-page">
-    <div class="scanner-container">
-      <h2>Escáner de Accesos</h2>
-      <p class="subtitle">Apunta el código QR del socio en el recuadro para registrar su evento.</p>
+  <main class="home-instructor flex items-center justify-center pt-8">
+    <div class="w-full max-w-md bg-white border border-surface-200 rounded-3xl p-8 flex flex-col items-center text-center shadow-xl shadow-surface-900/5 relative">
       
+      <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+        </svg>
+      </div>
+
+      <h2 class="text-xl font-black text-surface-900 mb-2">Escáner de Accesos</h2>
+      <p class="text-sm text-surface-500 font-medium mb-8 leading-relaxed px-4">
+        Apunta el código QR del socio en el recuadro para registrar su entrada o salida.
+      </p>
+
       <!-- Selector de Fase -->
-      <div class="fase-selector">
-        <label :class="{ active: fase === 'ingreso' }">
-          <input type="radio" value="ingreso" v-model="fase" /> Ingreso
+      <div class="flex bg-surface-100 p-1.5 rounded-2xl gap-1 mb-8 w-full max-w-[280px]">
+        <label class="flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2"
+          :class="fase === 'ingreso' ? 'bg-white text-primary-600 shadow-sm' : 'text-surface-400 hover:text-surface-600'">
+          <input type="radio" value="ingreso" v-model="fase" class="hidden" /> 
+          <span class="w-2 h-2 rounded-full" :class="fase === 'ingreso' ? 'bg-primary-600' : 'bg-surface-300'"></span>
+          INGRESO
         </label>
-        <label :class="{ active: fase === 'cierre' }">
-          <input type="radio" value="cierre" v-model="fase" /> Cierre
+        <label class="flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2"
+          :class="fase === 'cierre' ? 'bg-white text-primary-600 shadow-sm' : 'text-surface-400 hover:text-surface-600'">
+          <input type="radio" value="cierre" v-model="fase" class="hidden" /> 
+          <span class="w-2 h-2 rounded-full" :class="fase === 'cierre' ? 'bg-primary-600' : 'bg-surface-300'"></span>
+          CIERRE
         </label>
       </div>
-      
+
       <!-- Alerta de Extio Flotante -->
       <transition name="fade">
-        <div v-if="successAlert" class="floating-alert success">
-          ✅ {{ successAlert }}
+        <div v-if="successAlert" class="absolute top-4 inset-x-8 bg-green-500 text-white p-4 rounded-2xl font-black text-sm shadow-lg shadow-green-500/30 z-50 flex items-center gap-3">
+          <span class="text-xl">✅</span> {{ successAlert }}
         </div>
       </transition>
 
-      <!-- Alerta de Error Manual -->
-      <div v-if="errorAlert" class="static-alert error">
-        <span>❌ {{ errorAlert }} (sesión detectada: {{ id_sesion || 'Ninguna' }})</span>
-        <button @click="errorAlert = ''" class="close-btn">&times;</button>
+      <!-- Alerta de Error -->
+      <div v-if="errorAlert" class="w-full bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start gap-3 text-left mb-6 relative">
+        <span class="text-lg">❌</span>
+        <div class="flex flex-col gap-1">
+          <p class="text-xs font-black text-red-700 leading-tight">{{ errorAlert }}</p>
+          <span class="text-[10px] font-bold text-red-400 uppercase tracking-tight">Sesión: {{ id_sesion || 'Ninguna' }}</span>
+        </div>
+        <button @click="errorAlert = ''" class="absolute top-2 right-2 text-red-300 hover:text-red-500 text-xl font-black">&times;</button>
       </div>
 
-      <div class="camera-wrapper">
-        <qrcode-stream 
-          @detect="onDetect" 
-          @error="onError"
-        ></qrcode-stream>
-        <div class="scanner-overlay">
-          <div :class="['scan-area', { 'error-border': isErrorState, 'success-border': successAlert }]"></div>
+      <div class="w-full aspect-square bg-surface-900 rounded-3xl overflow-hidden relative shadow-inner mb-8">
+        <qrcode-stream @detect="onDetect" @error="onError"></qrcode-stream>
+        
+        <!-- Overlay del Escáner -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <!-- Sombras exteriores -->
+          <div class="absolute inset-0 bg-black/40"></div>
+          
+          <!-- Recuadro de escaneo -->
+          <div class="w-[70%] h-[70%] relative z-10">
+            <!-- Hueco transparente -->
+            <div class="absolute inset-0 bg-transparent mix-blend-multiply"></div>
+            
+            <!-- Bordes del recuadro -->
+            <div class="absolute inset-0 border-2 rounded-3xl transition-colors duration-300"
+              :class="{ 
+                'border-primary-500 shadow-[0_0_0_2px_rgba(59,130,246,0.3)]': !isErrorState && !successAlert,
+                'border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.4)]': isErrorState,
+                'border-green-500 shadow-[0_0_0_4px_rgba(34,197,94,0.4)]': successAlert 
+              }">
+              
+              <!-- Esquinas -->
+              <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 rounded-tl-xl" :class="isErrorState ? 'border-red-500' : (successAlert ? 'border-green-500' : 'border-primary-500')"></div>
+              <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 rounded-tr-xl" :class="isErrorState ? 'border-red-500' : (successAlert ? 'border-green-500' : 'border-primary-500')"></div>
+              <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 rounded-bl-xl" :class="isErrorState ? 'border-red-500' : (successAlert ? 'border-green-500' : 'border-primary-500')"></div>
+              <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 rounded-br-xl" :class="isErrorState ? 'border-red-500' : (successAlert ? 'border-green-500' : 'border-primary-500')"></div>
+              
+              <!-- Línea de escaneo animada -->
+              <div v-if="!isProcessing && !successAlert" class="absolute top-0 left-0 w-full h-0.5 bg-primary-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan-line"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="instructions">
-        <p>Asegúrate de dar permisos de cámara al navegador y de tener buena iluminación para un escaneo rápido.</p>
-      </div>
+      <p class="text-[10px] font-bold text-surface-400 uppercase tracking-[0.1em] px-8">
+        Asegúrate de dar permisos de cámara y tener buena iluminación.
+      </p>
     </div>
   </main>
 </template>
 
 <style scoped>
-.scanner-page {
-  padding: 1rem;
-  background-color: #f9fafb;
-  min-height: calc(100vh - 70px);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+.animate-scan-line {
+  animation: scan 2s linear infinite;
 }
 
-.scanner-container {
-  max-width: 500px;
-  width: 100%;
-  background: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  margin-top: 1rem;
-  border: 1px solid #f3f4f6;
+@keyframes scan {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
-.scanner-container h2 {
-  margin: 0 0 0.5rem 0;
-  color: #111827;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.subtitle {
-  color: #6b7280;
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-}
-
-.fase-selector {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.fase-selector label {
-  cursor: pointer;
-  padding: 0.5rem 1.5rem;
-  border-radius: 9999px;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  font-weight: 500;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.fase-selector label input[type="radio"] {
-  display: none;
-}
-
-.fase-selector label.active {
-  background-color: #e0e7ff;
-  color: #4f46e5;
-  border-color: #c7d2fe;
-}
-
-.camera-wrapper {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background-color: #111827;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 1.5rem;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.camera-wrapper .qrcode-stream-wrapper {
-  width: 100%;
-  height: 100%;
-}
-
-.scanner-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.4);
-}
-
-.scan-area {
-  width: 60%;
-  height: 60%;
-  border: 3px solid #2563eb;
-  border-radius: 12px;
-  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5); /* Oscurece el exterior del recuadro */
-  position: relative;
-}
-
-/* Esquinas destacadas opcionales */
-.scan-area::before, .scan-area::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-color: #3b82f6;
-  border-style: solid;
-}
-
-.scan-area::before {
-  top: -3px; left: -3px;
-  border-width: 3px 0 0 3px;
-}
-
-.scan-area::after {
-  bottom: -3px; right: -3px;
-  border-width: 0 3px 3px 0;
-}
-
-.error-border {
-  border-color: #ef4444 !important;
-}
-.error-border::before, .error-border::after {
-  border-color: #ef4444 !important;
-}
-
-.success-border {
-  border-color: #10b981 !important;
-}
-.success-border::before, .success-border::after {
-  border-color: #10b981 !important;
-}
-
-.floating-alert {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #d1fae5;
-  color: #065f46;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: bold;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  z-index: 1000;
-  white-space: nowrap;
-}
-
-.static-alert {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  border: 1px solid #f87171;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: left;
-}
-
-.close-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  color: #b91c1c;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-.instructions {
-  color: #9ca3af;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
+.fade-enter-active, .fade-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-enter-from { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+.fade-leave-to { opacity: 0; transform: translate(-50%, -10px) scale(0.95); }
 </style>

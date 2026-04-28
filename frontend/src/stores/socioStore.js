@@ -85,10 +85,10 @@ export const useSocioStore = defineStore("socioAdmin", () => {
     };
 
     const penalizeSocio = async (id, data) => {
-        // Reutiliza updateSocio o usa uno específico si el backend lo requiere
-        // Según los requerimientos anteriores, penalizar es cambiar estatus a 'PENALIZADO'
-        // Pero el usuario pidió separar el update de los atributos y la parte de penalizar.
-        return await updateSocio(id, { ...data, estatus_cuenta: 'PENALIZADO' });
+        const status = (data.estatus_cuenta && data.estatus_cuenta.startsWith('PENALIZADO'))
+            ? data.estatus_cuenta
+            : 'PENALIZADO';
+        return await updateSocio(id, { ...data, estatus_cuenta: status });
     };
 
     return {
