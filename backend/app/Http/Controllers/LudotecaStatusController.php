@@ -176,10 +176,51 @@ class LudotecaStatusController extends Controller
             if ($time > $limite) {
                 $estatusFinal = 'COMPLETADA_CON_RETRASO';
 
-                SocioTitular::where(
+                /* SocioTitular::where(
                     'id_socio',
                     $request->id_socio
-                )->increment('retrasos_ludoteca', 1);
+                )->increment('retrasos_ludoteca', 1); */
+                $socio = SocioTitular::find($request->id_socio);
+
+                // aumentar retrasos existentes
+                $socio->increment('retrasos_ludoteca');
+
+                $socio->refresh();
+
+                $retrasos = $socio->retrasos_ludoteca;
+
+                if ($retrasos == 3) {
+                    $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
+
+
+                } elseif ($retrasos == 5) {
+
+                    $socio->update([
+                        'estatus_acceso' => 'SUSPENSION_TEMPORAL',
+                        'fecha_fin_suspension' => now()->addDay()
+                    ]);
+
+                } elseif ($retrasos == 7) {
+
+                    $socio->update([
+                        'estatus_acceso' => 'SUSPENSION_TEMPORAL',
+                        'fecha_fin_suspension' => now()->addDays(3)
+                    ]);
+
+                } elseif ($retrasos == 9) {
+
+                    $socio->update([
+                        'estatus_acceso' => 'SUSPENSION_TEMPORAL',
+                        'fecha_fin_suspension' => now()->addDays(5)
+                    ]);
+
+                } elseif ($retrasos >= 12) {
+
+                    $socio->update([
+                        'estatus_acceso' => 'CANCELADO',
+                        'fecha_fin_suspension' => null
+                    ]);
+                }
             }
             try {
                 RegistroLudotecaMongo::insert([

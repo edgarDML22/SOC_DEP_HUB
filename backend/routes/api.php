@@ -171,12 +171,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // LUDOTECA (RUTAS PROTEGIDAS)
     // ==========================================
     Route::prefix('v1/ludoteca')->group(function () {
+        // Operativas (instructor / socio)
         Route::get('validar-tutor', [LudotecaController::class, 'validarTutor']);
         Route::post('register', [LudotecaRegisterController::class, 'store']);
         Route::get('list', [MiembrosFamiliaresList::class, 'show']);
-        Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
         Route::post('ingreso', [LudotecaStatusController::class, 'checkIn']);
         Route::patch('estancia/{id}/status', [LudotecaStatusController::class, 'updateStatus']);
+        // Administrativas (gerente )
+        Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
+        Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
+        Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
+        Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
     });
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);

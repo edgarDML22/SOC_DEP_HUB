@@ -4,7 +4,7 @@ import {
   IconCalendar,
   IconTrophy,
   IconUser,
-  IconClock,
+  IconBaby,
   IconGuests
 } from '@/components/icons'
 </script>
@@ -45,7 +45,7 @@ import {
       </router-link>
 
       <router-link to="/admin/ludoteca/ludoteca-list" class="item">
-        <IconClock class="icon" />
+        <IconBaby class="icon" />
         <span>Ludoteca</span>
       </router-link>
 

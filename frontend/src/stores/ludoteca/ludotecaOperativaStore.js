@@ -147,8 +147,6 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
             });
 
             if (!res.data.success && !res.data.registro) {
-                // Algunos endpoints devuelven el registro en lugar de success: true
-                // pero si el status no es 2xx, Axios lanzará error
             }
         } catch (err) {
             console.error("Error en check-in:", err);

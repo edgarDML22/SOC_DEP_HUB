@@ -287,15 +287,7 @@ const formatTime = (timeString) => {
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-surface-700 mb-1">¿Quién recibe al menor?</label>
-                    <select v-model="modalSalidaInfo.tipoUsuario" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none">
-                        <option value="SOCIO_TITULAR">Socio Titular</option>
-                        <option value="MIEMBRO_FAMILIAR">Miembro Familiar</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo de quien recibe</label>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo del socio titular</label>
                     <input v-model="modalSalidaInfo.correo" type="email" placeholder="ejemplo@correo.com" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
             </div>
