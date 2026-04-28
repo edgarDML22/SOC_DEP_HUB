@@ -45,8 +45,8 @@ class WipeLudotecaDaily extends Command
                 'instructor_ingreso' => $registro->id_instructor_ingreso,
                 'metadata' => [
                     'id_registro' => $registro->id_registro,
-                    'estatus_final' => 'COMPLETADA_CON_RETRASO'
-                ]
+                    'estatus_final' => 'FORZADO_POR_SISTEMA'
+                ],
             ]);
         }
 

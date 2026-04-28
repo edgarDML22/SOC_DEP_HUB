@@ -1,37 +1,20 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
 
 // Nuevos iconos
 import {
-  IconEnvelope, IconPhone, IconBriefcase, IconClock,
-  IconHistory, IconSupport, IconLock, IconLogout
+  IconArrowLeft, IconEnvelope, IconPhone, IconBriefcase, IconClock,
+  IconHistory, IconSupport, IconLock, IconLogout, IconUser
 } from '@/components/icons';
 
+const router = useRouter();
 const profileStore = useInstructorStore();
 
 onMounted(() => {
   profileStore.fetchProfile();
 });
-
-const passwordData = ref({
-  current: '',
-  new: '',
-  confirm: ''
-});
-
-const handlePasswordUpdate = async () => {
-  if (passwordData.value.new !== passwordData.value.confirm) {
-    alert("Las contraseñas nuevas no coinciden");
-    return;
-  }
-
-  // TODO: Implementar la llamada real a la API para cambiar la contraseña
-  console.log("Actualizar contraseña", passwordData.value);
-  alert("Contraseña actualizada exitosamente (simulación)");
-
-  passwordData.value = { current: '', new: '', confirm: '' };
-};
 
 const handleLogout = () => {
   profileStore.logout();
@@ -39,372 +22,160 @@ const handleLogout = () => {
 </script>
 
 <template>
-  <main class="profile-page">
+  <main class="w-full bg-surface-50 min-h-screen font-sans p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 flex justify-center">
+    
+    <div class="w-full max-w-5xl flex flex-col gap-6">
 
-    <header class="card profile-header">
-      <div class="avatar">
-        <span v-if="profileStore.isLoading">...</span>
-        <span v-else>{{ profileStore.userInitials }}</span>
+      <!-- Header Volver -->
+      <div class="mb-2">
+        <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-6 focus:outline-none w-fit group">
+            <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
+        </button>
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-5 border-b border-surface-200 pb-5">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight" >Mi Perfil</h1>
+                <p class="text-sm md:text-base font-medium text-surface-500 m-0 mt-2">Gestión de Información y Seguridad</p>
+            </div>
+            
+            <button @click="handleLogout" class="px-6 py-2.5 w-full md:w-auto bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Cerrar Sesión
+            </button>
+        </div>
       </div>
-      <h1 class="profile-name">{{ profileStore.fullName || 'Cargando...' }}</h1>
-      <h2 class="profile-specialty">{{ profileStore.role }}</h2>
-      <p class="profile-speciality">{{ profileStore.discipline || 'No disponible' }}</p>
-    </header>
 
-    <section class="card">
-      <article class="info-item">
-        <div class="icon-placeholder">
-          <IconEnvelope />
-        </div>
-        <div class="info-content">
-          <span class="info-label">Email</span>
-          <span class="info-value">{{ profileStore.email || 'No disponible' }}</span>
-        </div>
-      </article>
+      <!-- Grid Layout para Desktop -->
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
 
-      <article class="info-item">
-        <div class="icon-placeholder">
-          <IconPhone />
-        </div>
-        <div class="info-content">
-          <span class="info-label">Teléfono</span>
-          <span class="info-value">{{ profileStore.phone || 'No registrado' }}</span>
-        </div>
-      </article>
+        <!-- Lado Izquierdo (MÁS ANCHO) -->
+        <div class="flex flex-col gap-6">
+          
+          <!-- TARJETA 1: DATOS PERSONALES Y PROFESIONALES -->
+          <div class="bg-white rounded-3xl border border-surface-200 p-6 sm:p-8 shadow-sm">
+            <h3 class="text-xl font-bold text-surface-900 m-0 tracking-tight border-b border-surface-100 pb-5 mb-6">Datos del Instructor</h3>
 
-      <article class="info-item">
-        <div class="icon-placeholder">
-          <IconBriefcase />
-        </div>
-        <div class="info-content">
-          <span class="info-label">Rol</span>
-          <span class="info-value">{{ profileStore.role }}</span>
-        </div>
-      </article>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+              
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                  <IconEnvelope class="w-5 h-5" />
+                </div>
+                <div class="grow min-w-0 flex flex-col justify-center h-12">
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Correo Electrónico</label>
+                  <input type="text" :value="profileStore.email || 'No disponible'" readonly disabled 
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
+                </div>
+              </div>
 
-      <article class="info-item border-none">
-        <div class="icon-placeholder">
-          <IconClock />
-        </div>
-        <div class="info-content">
-          <span class="info-label">Contratación</span>
-          <span class="info-value">{{ profileStore.hireDate || 'Pendiente' }}</span>
-        </div>
-      </article>
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                  <IconPhone class="w-5 h-5" />
+                </div>
+                <div class="grow min-w-0 flex flex-col justify-center h-12">
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Teléfono</label>
+                  <input type="text" :value="profileStore.phone || 'No registrado'" readonly disabled 
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
+                </div>
+              </div>
 
-    </section>
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                  <IconBriefcase class="w-5 h-5" />
+                </div>
+                <div class="grow min-w-0 flex flex-col justify-center h-12">
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Rol Profesional</label>
+                  <input type="text" :value="profileStore.role" readonly disabled 
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
+                </div>
+              </div>
 
-    <section class="card action-menu">
-      <button class="action-item">
-        <div class="action-left">
-          <div class="icon-placeholder">
-            <IconHistory />
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                  <IconClock class="w-5 h-5" />
+                </div>
+                <div class="grow min-w-0 flex flex-col justify-center h-12">
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Contratación</label>
+                  <input type="text" :value="profileStore.hireDate || 'Pendiente'" readonly disabled 
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
+                </div>
+              </div>
+
+            </div>
           </div>
-          <span class="action-label">Historial de sesiones</span>
-        </div>
-        <span class="arrow">></span>
-      </button>
 
-      <button class="action-item border-none">
-        <div class="action-left">
-          <div class="icon-placeholder">
-            <IconSupport />
+
+        </div>
+
+        <!-- Lado Derecho (WIDGETS) -->
+        <div class="flex flex-col gap-6">
+
+          <!-- HERO CARD: RESUMEN Y AVATAR -->
+          <div class="bg-linear-to-br from-primary-800 to-primary-600 rounded-3xl p-6 shadow-lg relative overflow-hidden flex flex-col items-center text-center">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="w-24 h-24 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center text-3xl font-bold shadow-sm border-2 border-white/30 mb-4 z-10">
+              <span v-if="profileStore.isLoading">...</span>
+              <span v-else>{{ profileStore.userInitials }}</span>
+            </div>
+            
+            <h2 class="text-xl font-bold text-white mb-2 z-10">{{ profileStore.fullName || 'Cargando...' }}</h2>
+
+            <div class="flex flex-col gap-2 w-full z-10 mt-3">
+              <div class="bg-white/10 rounded-xl p-3.5 border border-white/10 flex items-center justify-between backdrop-blur-sm">
+                <span class="text-primary-100 text-xs font-medium uppercase tracking-wider">Puesto</span>
+                <span class="px-3 py-1 bg-white text-primary-800 rounded-full text-[10px] font-bold uppercase shadow-sm">{{ profileStore.role || 'INSTRUCTOR' }}</span>
+              </div>
+              <div class="bg-white/10 rounded-xl p-3.5 border border-white/10 flex items-center justify-between backdrop-blur-sm">
+                <span class="text-primary-100 text-xs font-medium uppercase tracking-wider">Especialidad</span>
+                <span class="text-white text-sm font-bold truncate max-w-[140px]">{{ profileStore.discipline || 'No disponible' }}</span>
+              </div>
+            </div>
           </div>
-          <span class="action-label">Soporte</span>
-        </div>
-        <span class="arrow">></span>
-      </button>
-    </section>
+          
+          <!-- TARJETA: SEGURIDAD (WIDGET) -->
+          <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-surface-100 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-600 group-hover:text-primary-600 transition-colors">
+                  <IconLock class="w-5 h-5" />
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-surface-900 m-0 leading-tight">Seguridad</h3>
+                <p class="text-[11px] font-medium text-surface-500 m-0 mt-0.5 uppercase tracking-wider">Contraseña y Acceso</p>
+              </div>
+            </div>
+            
+            <button @click="$router.push('/forgot-password')" class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 flex items-center justify-center mt-1 text-sm shadow-sm group-hover:shadow">
+              Cambiar Contraseña
+            </button>
+          </div>
 
-    <section class="card password-section">
-      <div class="section-header">
-        <div class="icon-placeholder">
-          <IconLock />
+          <!-- MENU DE ACCIONES -->
+          <div class="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
+            <button class="w-full flex items-center justify-between p-5 bg-white hover:bg-surface-50 transition-colors border-b border-surface-100 group">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-surface-50 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-500 group-hover:text-primary-600 transition-colors">
+                  <IconHistory class="w-5 h-5" />
+                </div>
+                <span class="font-semibold text-surface-900">Historial de sesiones</span>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-surface-400 group-hover:text-primary-600 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+            
+            <button @click="profileStore.getSupportLink()" class="w-full flex items-center justify-between p-5 bg-white hover:bg-surface-50 transition-colors group">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-surface-50 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-500 group-hover:text-primary-600 transition-colors">
+                  <IconSupport class="w-5 h-5" />
+                </div>
+                <span class="font-semibold text-surface-900">Soporte y Ayuda</span>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-surface-400 group-hover:text-primary-600 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+
         </div>
-        <h2>Cambiar contraseña</h2>
+
       </div>
-      <p class="section-description">
-        Actualiza tu contraseña para mantener tu cuenta segura.
-      </p>
-
-      <form @submit.prevent="handlePasswordUpdate" class="password-form">
-        <div class="form-group">
-          <label for="currentPassword">Contraseña actual</label>
-          <input type="password" id="currentPassword" v-model="passwordData.current"
-            placeholder="Ingresa tu contraseña actual" class="input-field" required />
-        </div>
-
-        <div class="form-group">
-          <label for="newPassword">Nueva contraseña</label>
-          <input type="password" id="newPassword" v-model="passwordData.new" placeholder="Mínimo 8 caracteres"
-            class="input-field" minlength="8" required />
-        </div>
-
-        <div class="form-group">
-          <label for="confirmPassword">Confirmar nueva contraseña</label>
-          <input type="password" id="confirmPassword" v-model="passwordData.confirm"
-            placeholder="Repite la nueva contraseña" class="input-field" minlength="8" required />
-        </div>
-
-        <button type="submit" class="btn-primary">Actualizar contraseña</button>
-      </form>
-    </section>
-
-    <button @click="handleLogout" class="btn-logout">
-      <span class="icon-placeholder red-text">
-        <IconLogout />
-      </span>
-      Cerrar sesión
-    </button>
-
+    </div>
   </main>
 </template>
-
-<style scoped>
-/* Contenedor Principal (Mobile First) adaptado a tus variables */
-.profile-page {
-  background-color: var(--p-surface-50, #f8fafc);
-  padding: 1rem;
-  padding-bottom: 90px;
-  /* Importante para que el NavBar inferior no cubra el boton de Cerrar sesión */
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  font-family: inherit;
-  /* Utiliza la tipografía global de tu app */
-}
-
-/* Estructura Base de Tarjetas */
-.card {
-  background-color: #ffffff;
-  border: 1px solid var(--p-surface-200, #e2e8f0);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Tarjeta 1: Header de Perfil */
-.profile-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.avatar {
-  width: 72px;
-  height: 72px;
-  background-color: var(--p-primary-600, #2563eb);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.profile-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-  margin: 0 0 0.25rem 0;
-}
-
-.profile-specialty {
-  font-size: 0.85rem;
-  color: var(--p-surface-500, #64748b);
-  margin: 0;
-}
-
-/* Tarjeta 2: Lista de Información */
-.info-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--p-surface-200, #e2e8f0);
-}
-
-.info-item.border-none {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.info-item:first-child {
-  padding-top: 0;
-}
-
-.icon-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--p-surface-500, #64748b);
-  width: 24px;
-  height: 24px;
-}
-
-.info-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.info-label {
-  font-size: 0.75rem;
-  color: var(--p-surface-500, #64748b);
-}
-
-.info-value {
-  font-size: 0.9rem;
-  color: var(--p-surface-900, #111827);
-  font-weight: 500;
-}
-
-/* Tarjeta 3: Menú de Acciones */
-.action-menu {
-  padding: 0.5rem 1.25rem;
-}
-
-.action-item {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--p-surface-200, #e2e8f0);
-  padding: 1rem 0;
-  cursor: pointer;
-  color: var(--p-surface-900, #111827);
-}
-
-.action-item.border-none {
-  border-bottom: none;
-}
-
-.action-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.action-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.arrow {
-  color: var(--p-surface-500, #64748b);
-  font-weight: bold;
-}
-
-/* Tarjeta 4: Formulario de Contraseña */
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.section-header h2 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--p-surface-900, #111827);
-  margin: 0;
-}
-
-.section-description {
-  font-size: 0.85rem;
-  color: var(--p-surface-500, #64748b);
-  margin-bottom: 1.5rem;
-  line-height: 1.4;
-}
-
-.password-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.form-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--p-surface-900, #111827);
-}
-
-.input-field {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--p-surface-200, #e2e8f0);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background-color: transparent;
-  color: var(--p-surface-900, #111827);
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.input-field:focus {
-  border-color: var(--p-primary-500, #3b82f6);
-}
-
-.input-field::placeholder {
-  color: #9ca3af;
-}
-
-/* Botones */
-.btn-primary {
-  width: 100%;
-  background-color: var(--p-primary-600, #2563eb);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.85rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background-color 0.2s;
-}
-
-.btn-primary:hover {
-  background-color: var(--p-primary-700, #1d4ed8);
-}
-
-.btn-logout {
-  width: 100%;
-  background-color: transparent;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 0.85rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  background-color: #fff;
-  transition: all 0.2s;
-}
-
-.btn-logout:hover {
-  background-color: #fef2f2;
-}
-
-.red-text {
-  color: #ef4444;
-}
-</style>

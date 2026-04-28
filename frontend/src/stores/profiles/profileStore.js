@@ -2,9 +2,7 @@ import { ref, computed } from "vue";
 import api from "@/services/api";
 import router from "@/router";
 
-// Creamos un composable de Vue que encapsula el comportamiento común
-export function useProfileLogic() {
-    // 1. STATE (Estado común)
+export function useProfileLogic(endpointUrl = '/profile') {
     const profileData = ref(null);
     const isLoading = ref(false);
     const error = ref(null);
@@ -32,7 +30,7 @@ export function useProfileLogic() {
         isLoading.value = true;
         error.value = null;
 
-        profilePromise = api.get('/profile')
+        profilePromise = api.get(endpointUrl)
             .then(response => {
                 if (response.data.success) {
                     profileData.value = response.data.data;
@@ -103,7 +101,6 @@ export function useProfileLogic() {
             .join(' ');
     };
 
-    // Devolvemos el estado central y los métodos
     return {
         profileData,
         isLoading,

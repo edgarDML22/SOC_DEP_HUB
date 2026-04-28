@@ -25,3 +25,4 @@ export { default as IconMail } from './IconMail.vue';
 export { default as IconGender } from './IconGender.vue';
 export { default as IconStart } from './IconStart.vue';
 export { default as IconArrowLeft } from './IconArrowLeft.vue';
+export { default as IconBaby } from './IconBaby.vue';

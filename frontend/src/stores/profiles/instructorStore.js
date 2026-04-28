@@ -3,10 +3,8 @@ import { defineStore } from "pinia";
 import { useProfileLogic } from "./profileStore";
 
 export const useInstructorStore = defineStore("instructorProfile", () => {
-    // 1. Extraemos todo el comportamiento base de nuestro nuevo composable
-    const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, logout } = useProfileLogic();
+    const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, logout, getSupportLink } = useProfileLogic('/instructor/profile');
 
-    // 2. GETTERS ESPECÍFICOS DEL INSTRUCTOR
     const idInstructor = computed(() => profileData.value?.id_instructor || null);
 
     const status = computed(() => profileData.value?.estatus_cuenta || profileData.value?.estatus || "");
@@ -15,8 +13,12 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
     const role = computed(() => profileData.value?.rol || "Instructor");
     const hireDate = computed(() => profileData.value?.fecha_afiliacion || "");
     const birthDate = computed(() => profileData.value?.fecha_nacimiento || "");
+    const disciplinas = computed(() => profileData.value?.disciplinas || []);
 
-    // 3. RETURN: Retornamos las variables locales combinadas con las del composable
+    const isCuidador = computed(() => {
+        return profileData.value?.tieneLudoteca == true;
+    });
+
     return {
         profileData,
         isLoading,
@@ -30,8 +32,11 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         status,
         birthDate,
         idInstructor,
+        disciplinas,
+        isCuidador,
         fetchProfile,
         updateProfile,
-        logout
+        logout,
+        getSupportLink
     };
 });

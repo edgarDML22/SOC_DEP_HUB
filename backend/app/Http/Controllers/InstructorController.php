@@ -137,20 +137,17 @@ class InstructorController extends Controller
 
         $instructorId = $user->user_id;
 
-        // Consultar perfil del instructor con join a usuarios para obtener correo
-        $instructor = DB::table('instructores as i')
-            ->join('usuarios as u', 'i.id_usuario', '=', 'u.id')
+        $instructor = DB::table('instructores')
             ->select(
-                'i.id_instructor',
-                'i.nombre as nombre_completo',
-                'i.telefono',
-                'i.estatus',
-                'i.fecha_nacimiento',
-                'i.fecha_contratacion',
-                'u.correo as correo_electronico',
-                'u.rol'
+                'id_instructor',
+                'nombre_completo',
+                'telefono',
+                'estatus',
+                'fecha_nacimiento',
+                'fecha_afiliacion',
+                'correo_electronico'
             )
-            ->where('i.id_instructor', $instructorId)
+            ->where('id_instructor', $instructorId)
             ->first();
 
         if (!$instructor) {
@@ -166,12 +163,13 @@ class InstructorController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'id_instructor' => $instructor->id_instructor,
                 'nombre_completo' => $instructor->nombre_completo,
                 'correo_electronico' => $instructor->correo_electronico,
                 'telefono' => $instructor->telefono,
                 'estatus_cuenta' => $instructor->estatus,
                 'fecha_nacimiento' => $instructor->fecha_nacimiento,
-                'fecha_contratacion' => $instructor->fecha_contratacion,
+                'fecha_afiliacion' => $instructor->fecha_afiliacion,
                 'rol' => 'Instructor',
                 'tieneLudoteca' => $tieneLudoteca,
             ]

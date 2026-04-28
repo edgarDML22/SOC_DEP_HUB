@@ -59,7 +59,6 @@ const logout = () => {
     
     <div class="w-full max-w-5xl flex flex-col gap-6">
 
-      <!-- Header Volver -->
       <div class="mb-2">
         <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-6 focus:outline-none w-fit group">
             <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
@@ -77,24 +76,19 @@ const logout = () => {
         </div>
       </div>
 
-      <!-- Alerta -->
       <div v-if="profileStore.profileData?.estatus_cuenta === 'MOROSO'" 
            class="bg-red-50 text-red-700 p-4 border border-red-200 rounded-2xl mb-2 text-sm font-medium flex gap-3 shadow-sm animate-pulse">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
         <span>⚠️ Atención: El estatus de esta cuenta es <strong class="font-bold uppercase">{{ profileStore.statusAccount }}</strong>.</span>
       </div>
 
-      <!-- Grid Layout para Desktop -->
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
 
-        <!-- Lado Izquierdo (MÁS ANCHO) -->
         <div class="flex flex-col gap-6">
           
-          <!-- TARJETA 2: DETALLES -->
           <div class="bg-white rounded-3xl border border-surface-200 p-6 sm:p-8 shadow-sm h-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-surface-100 pb-5 mb-5 md:mb-8 gap-4">
               <h3 class="text-xl font-bold text-surface-900 m-0 tracking-tight">Datos del Socio</h3>
-              <!-- Botones de Acción Estándar -->
               <div class="flex gap-2">
                 <button v-if="!isEditing" @click="toggleEdit" class="bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 w-full sm:w-auto">
                   <IconEdit class="w-4 h-4" /> Editar Datos
@@ -108,7 +102,6 @@ const logout = () => {
               </div>
             </div>
 
-            <!-- Formulario Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
               
               <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
@@ -165,7 +158,6 @@ const logout = () => {
 
             </div>
 
-            <!-- Non editable stats -->
             <div class="mt-8 pt-8 border-t border-surface-100 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-surface-50 rounded-full flex items-center justify-center text-surface-400">
@@ -200,11 +192,9 @@ const logout = () => {
           
         </div>
 
-        <!-- Lado Derecho (WIDGETS) -->
         <div class="flex flex-col gap-6">
 
-          <!-- TARJETA 1: RESUMEN Y AVATAR -->
-          <div class="bg-gradient-to-br from-primary-800 to-primary-600 rounded-3xl p-6 shadow-lg relative overflow-hidden flex flex-col items-center text-center">
+          <div class="bg-linear-to-br from-primary-800 to-primary-600 rounded-3xl p-6 shadow-lg relative overflow-hidden flex flex-col items-center text-center">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             
@@ -238,7 +228,6 @@ const logout = () => {
             </div>
           </div>
           
-          <!-- TARJETA 3: CONTRASEÑA -->
           <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 bg-surface-100 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-600 group-hover:text-primary-600 transition-colors">
@@ -252,23 +241,6 @@ const logout = () => {
             
             <button @click="$router.push('/forgot-password')" class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 flex items-center justify-center mt-1 text-sm shadow-sm group-hover:shadow">
               Cambiar Contraseña
-            </button>
-          </div>
-
-          <!-- TARJETA 4: LUDOTECA -->
-          <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-purple-200 transition-colors">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-purple-50 group-hover:bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/><path d="M6 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/><path d="M22 14a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/></svg>
-              </div>
-              <div>
-                <h3 class="text-base font-bold text-surface-900 m-0 leading-tight">Ludoteca</h3>
-                <p class="text-[11px] font-medium text-surface-500 m-0 mt-0.5 uppercase tracking-wider">Gestión de Familiares</p>
-              </div>
-            </div>
-            
-            <button @click="$router.push('socio-ludoteca')" class="w-full bg-surface-50 hover:bg-surface-100 text-purple-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 mt-1 text-sm shadow-sm group-hover:shadow hover:text-purple-800">
-              Explorar <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
           </div>
 

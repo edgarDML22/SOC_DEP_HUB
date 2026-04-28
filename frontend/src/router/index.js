@@ -235,6 +235,11 @@ const router = createRouter({
           path: 'scanner/:id',
           component: () => import('../views/instructor/ScannerView.vue'),
         },
+        {
+          path: 'ludoteca',
+          name: 'ludoteca-operativa',
+          component: () => import('@/views/ludoteca/LudotecaOperativaView.vue'),
+        },
       ]
     },
 

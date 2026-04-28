@@ -3,6 +3,8 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import TimelineMenor from '@/components/socio/TimelineMenor.vue'
+import RelojRecogida from '@/components/socio/RelojRecogida.vue'
 
 const router = useRouter()
 const profileStore = useProfileStore()
@@ -38,7 +40,7 @@ const fetchMiembros = async () => {
 
   loading.value = true
   try {
-    const res = await api.get(`validar-tutor?id_socio=${idSocio.value}`)
+    const res = await api.get('ludoteca/validar-tutor')
     miembros.value = res.data.data || []
   } catch (error) {
     console.log(error)
@@ -129,11 +131,23 @@ const irAUpdate = (m, tipo) => {
 
         <!-- Body tarjeta -->
         <div class="flex-1 flex flex-col gap-2.5 text-sm text-surface-600 font-medium mb-6">
+
+          <div class="mb-6 px-2">
+             <TimelineMenor :estatus="m.estatus_visita" />
+          </div>
+
           <div class="flex items-center justify-between p-3 rounded-xl bg-surface-50 border border-surface-100 group-hover:border-surface-200 transition-colors">
               <span class="text-[11px] font-semibold uppercase tracking-wider text-surface-500">Ingreso:</span>
               <span class="font-bold text-surface-900">{{ formatearFecha(m.hora_ingreso) }}</span>
           </div>
-          <div class="flex items-center justify-between p-3 rounded-xl bg-surface-50 border border-surface-100 group-hover:border-surface-200 transition-colors">
+
+          <!-- RELOJ REGRESIVO (Solo si está activo) -->
+          <div v-if="m.estatus_visita === 'ACTIVA'">
+            <RelojRecogida :hora_limite="m.hora_limite" />
+          </div>
+
+          <!-- LÍMITE ESTÁTICO (Si ya salió o no hay registro activo) -->
+          <div v-else class="flex items-center justify-between p-3 rounded-xl bg-surface-50 border border-surface-100 group-hover:border-surface-200 transition-colors">
               <span class="text-[11px] font-semibold uppercase tracking-wider text-surface-500">Límite:</span>
               <span class="font-bold text-red-600">{{ formatearFecha(m.hora_limite) }}</span>
           </div>

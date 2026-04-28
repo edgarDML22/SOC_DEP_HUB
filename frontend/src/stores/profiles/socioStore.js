@@ -45,6 +45,11 @@ export const useProfileStore = defineStore("profile", () => {
     return status === "INACTIVO" || status === "SUSPENDIDO";
   });
 
+  const tienePlanFamiliar = computed(() => {
+    if (!profileData.value?.modalidad_plan) return false;
+    return profileData.value.modalidad_plan.toUpperCase() === 'FAMILIAR';
+  });
+
   // Da color al badge dinámicamente
   const statusBadgeClass = computed(() => {
     const status = profileData.value?.estatus_cuenta?.toUpperCase();
@@ -91,6 +96,7 @@ export const useProfileStore = defineStore("profile", () => {
     esAdmin,
     fetchProfile,
     updateProfile,
+    tienePlanFamiliar,
     logout,
     getSupportLink
   };
