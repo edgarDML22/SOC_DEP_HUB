@@ -23,7 +23,7 @@ const toggleMenu = (menu) => {
 
 <template>
   <aside :class="[
-    'h-screen bg-slate-950 text-slate-300 transition-all duration-300 flex flex-col',
+    'h-screen sticky top-0 z-50 bg-slate-950 text-slate-300 transition-all duration-300 flex flex-col',
     isOpen ? 'w-64' : 'w-20'
   ]">
     <!-- HEADER -->
@@ -106,3 +106,57 @@ const toggleMenu = (menu) => {
     </nav>
   </aside>
 </template>
+
+<style scoped>
+.sidebar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #94a3b8; /* slate-400 */
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #f8fafc; /* slate-50 */
+}
+
+.sidebar-menu-item.router-link-active {
+  background-color: #1e3a8a; /* blue-900 */
+  color: #ffffff;
+}
+
+.sidebar-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.sidebar-submenu-item {
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  color: #64748b; /* slate-500 */
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.sidebar-submenu-item:hover {
+  color: #cbd5e1; /* slate-300 */
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.sidebar-submenu-item.router-link-active {
+  color: #ffffff;
+  font-weight: 600;
+}
+</style>

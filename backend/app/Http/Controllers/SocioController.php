@@ -55,7 +55,7 @@ class SocioController extends Controller
             ], 403);
         }
 
-        $socio = SocioTitular::with('miembrosFamiliares')->find($id);
+        $socio = SocioTitular::with(['miembrosFamiliares', 'invitados.pase'])->find($id);
 
         if (!$socio) {
             return response()->json([

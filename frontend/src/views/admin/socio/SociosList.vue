@@ -70,14 +70,16 @@ const openPenalty = (socio) => {
   showPenaltyModal.value = true;
 };
 
-const openFamily = (socio) => {
+const openFamily = async (socio) => {
   selectedSocio.value = socio;
   showFamilyModal.value = true;
+  await fetchSocioDetails(socio.id_socio);
 };
 
-const openGuests = (socio) => {
+const openGuests = async (socio) => {
   selectedSocio.value = socio;
   showGuestsModal.value = true;
+  await fetchSocioDetails(socio.id_socio);
 };
 
 const savePenaltyUpdates = async () => {
@@ -96,6 +98,11 @@ const savePenaltyUpdates = async () => {
   } finally {
     isSaving.value = false;
   }
+};
+
+const applySpecificPenalty = async (status) => {
+  editForm.value.estatus_cuenta = status;
+  await savePenaltyUpdates();
 };
 </script>
 
@@ -251,29 +258,52 @@ const savePenaltyUpdates = async () => {
             </select>
           </div>
 
-          <div class="form-row">
-            <div class="form-group half">
-              <label>No Shows (Reservas)</label>
-              <div class="counter-input">
-                <button @click="editForm.contador_no_shows--" :disabled="editForm.contador_no_shows <= 0">-</button>
-                <input type="number" v-model.number="editForm.contador_no_shows" min="0" />
-                <button @click="editForm.contador_no_shows++">+</button>
-              </div>
+          <div class="stats-grid mb-6">
+            <div class="stat-box">
+              <span class="stat-label">No Shows (Reservas)</span>
+              <span class="stat-value" :class="{ 'text-red-600': editForm.contador_no_shows > 0 }">
+                {{ editForm.contador_no_shows }}
+              </span>
             </div>
-            <div class="form-group half">
-              <label>Retrasos Ludoteca</label>
-              <div class="counter-input">
-                <button @click="editForm.retrasos_ludoteca--" :disabled="editForm.retrasos_ludoteca <= 0">-</button>
-                <input type="number" v-model.number="editForm.retrasos_ludoteca" min="0" />
-                <button @click="editForm.retrasos_ludoteca++">+</button>
-              </div>
+            <div class="stat-box">
+              <span class="stat-label">Retrasos Ludoteca</span>
+              <span class="stat-value" :class="{ 'text-amber-600': editForm.retrasos_ludoteca > 0 }">
+                {{ editForm.retrasos_ludoteca }}
+              </span>
+            </div>
+          </div>
+
+          <div class="penalty-actions">
+            <h4 class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-3">Acciones de Penalización</h4>
+            
+            <div class="flex flex-col gap-3">
+              <button @click="applySpecificPenalty('PENALIZADO_RESERVA')" 
+                class="penalty-action-btn border-red-200 text-red-700 hover:bg-red-50"
+                :disabled="isSaving">
+                <span class="font-bold">Penalizar por Reservas</span>
+                <span class="text-[10px] opacity-70">Bloquea reservaciones por 7 días</span>
+              </button>
+
+              <button @click="applySpecificPenalty('PENALIZADO_LUDOTECA')" 
+                class="penalty-action-btn border-amber-200 text-amber-700 hover:bg-amber-50"
+                :disabled="isSaving">
+                <span class="font-bold">Penalizar por Ludoteca</span>
+                <span class="text-[10px] opacity-70">Bloquea uso de ludoteca por 7 días</span>
+              </button>
+
+              <button @click="applySpecificPenalty('AL_CORRIENTE')" 
+                class="penalty-action-btn border-green-200 text-green-700 hover:bg-green-50"
+                :disabled="isSaving">
+                <span class="font-bold">Quitar todas las penalizaciones</span>
+                <span class="text-[10px] opacity-70">Restablecer estatus "Al Corriente"</span>
+              </button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="showPenaltyModal = false" class="btn-secondary">Cancelar</button>
+          <button @click="showPenaltyModal = false" class="btn-secondary">Cerrar</button>
           <button @click="savePenaltyUpdates" class="btn-primary" :disabled="isSaving">
-            {{ isSaving ? 'Guardando...' : 'Aplicar Cambios' }}
+            {{ isSaving ? 'Guardando...' : 'Guardar Otros Cambios' }}
           </button>
         </div>
       </div>
@@ -312,12 +342,46 @@ const savePenaltyUpdates = async () => {
     <div v-if="showGuestsModal" class="modal-backdrop" @click.self="showGuestsModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Invitados de {{ selectedSocio?.nombre_completo }}</h2>
+          <h2>Pases de Invitados: {{ selectedSocio?.nombre_completo }}</h2>
           <button @click="showGuestsModal = false" class="btn-close">×</button>
         </div>
         <div class="modal-body">
-          <div class="text-center py-8 text-surface-500">
-            Esta sección está en desarrollo. Aquí podrás ver y gestionar los pases de invitados del socio.
+          <div v-if="isLoading" class="flex flex-col items-center py-12">
+            <div class="spinner mb-4"></div>
+            <p class="text-surface-500 animate-pulse">Cargando pases de invitados...</p>
+          </div>
+          <div v-else-if="!selectedSocio?.invitados || selectedSocio.invitados.length === 0" class="text-center py-12 text-surface-500">
+            <div class="text-4xl mb-4">🎫</div>
+            <p class="font-medium">No se encontraron invitados</p>
+            <p class="text-xs">Este socio no tiene pases de invitados registrados.</p>
+          </div>
+          <div v-else class="flex flex-col gap-4">
+            <div v-for="guest in selectedSocio.invitados" :key="guest.id_invitado" class="p-4 border border-surface-200 rounded-2xl flex items-center justify-between hover:border-amber-200 hover:bg-amber-50/30 transition-all">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold text-lg shadow-inner">
+                  {{ guest.nombre_invitado.charAt(0) }}
+                </div>
+                <div>
+                  <p class="font-bold text-surface-900">{{ guest.nombre_invitado }}</p>
+                  <p class="text-xs text-surface-500 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    {{ guest.correo || 'Sin correo' }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                <span class="status-badge text-[10px]" :class="{
+                  'badge-success': guest.pase?.estatus_acceso === 'ACTIVO',
+                  'badge-danger': guest.pase?.estatus_acceso === 'USADO',
+                  'badge-warning': guest.pase?.estatus_acceso === 'EXPIRADO' || !guest.pase?.estatus_acceso
+                }">
+                  {{ guest.pase?.estatus_acceso || 'SIN PASE' }}
+                </span>
+                <p class="text-[10px] font-medium text-surface-600" v-if="guest.pase?.fecha_expiracion">
+                  {{ guest.pase.fecha_expiracion }}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -409,7 +473,7 @@ const savePenaltyUpdates = async () => {
   font-weight: 800;
   color: var(--p-surface-400, #94a3b8);
   text-transform: uppercase;
-  tracking-wider;
+  letter-spacing: 0.05em;
 }
 
 .filter-select {
@@ -577,5 +641,67 @@ const savePenaltyUpdates = async () => {
 .btn-primary:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Nuevos Estilos Penalizaciones */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat-box {
+  background: var(--p-surface-50, #f8fafc);
+  padding: 1rem;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--p-surface-100, #f1f5f9);
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--p-surface-500, #64748b);
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--p-surface-900, #111827);
+}
+
+.penalty-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.penalty-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--p-surface-200, #e2e8f0);
+  border-top-color: var(--p-primary-500, #3b82f6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
