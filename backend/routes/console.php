@@ -23,6 +23,7 @@ Schedule::command('app:calcular-no-shows')
 Schedule::command('ludoteca:wipe-daily')
     ->dailyAt('04:00')
     ->timezone('America/Mexico_City');
+
 Schedule::command('ludoteca:check-alerts')
     ->everyMinute()
     ->timezone('America/Mexico_City');

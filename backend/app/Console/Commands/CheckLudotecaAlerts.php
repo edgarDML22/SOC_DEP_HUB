@@ -38,7 +38,7 @@ class CheckLudotecaAlerts extends Command
             } elseif ($minutosRestantes <= 30 && !$registro->alerta_30_enviada) {
                 // Mandar la de 30 minutos
                 $socio->notify(
-                    new AlertaRecogidaNotification(30)
+                    new AlertaRecogidaNotification(30, 'advertencia')
                 );
 
                 $registro->update([
