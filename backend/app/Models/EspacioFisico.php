@@ -10,11 +10,23 @@ class EspacioFisico extends Model
     protected $primaryKey = 'id_espacio';
     public $timestamps = false;
 
-    public function reservaciones(){
+    public function reservaciones()
+    {
         return $this->hasMany(Reservacion::class, 'id_espacio', 'id_espacio');
     }
 
-    public function disciplinas(){
+    protected $fillable = [
+        'nombre_espacio',
+        'capacidad_maxima',
+        'tipo_espacio',
+        'estatus',
+        'descripcion'
+    ];
+
+
+
+    public function disciplinas()
+    {
         /* Parámetros: 
        1. Modelo destino
        2. Nombre exacto de la tabla pivote

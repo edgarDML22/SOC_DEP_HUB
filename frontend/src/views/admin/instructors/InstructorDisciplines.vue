@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
-import { useInstructorStore } from '@/stores/instructorStore';
+import { useInstructorStore } from '@/stores/admin/instructorStore';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 
@@ -106,7 +106,7 @@ const saveChanges = async () => {
                 message: 'Disciplinas actualizadas exitosamente'
             };
             toast.add({ severity: 'success', summary: 'Éxito', detail: 'Cambios guardados', life: 3000 });
-            
+
             setTimeout(() => {
                 router.push('/admin/instructors');
             }, 1500);
@@ -117,7 +117,7 @@ const saveChanges = async () => {
                 message: res.error || 'Error al guardar cambios'
             };
             toast.add({ severity: 'error', summary: 'Error', detail: res.error || 'No se pudo guardar', life: 5000 });
-            
+
             setTimeout(() => {
                 statusOverlay.value.show = false;
             }, 2500);
@@ -138,14 +138,24 @@ const goBack = () => {
 <template>
     <main class="home-instructor">
         <Toast />
-        
+
         <!-- Status Overlay -->
         <Transition name="fade">
             <div v-if="statusOverlay.show" class="status-overlay" :class="statusOverlay.type">
                 <div class="overlay-content">
                     <div class="icon-wrapper">
-                        <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg"
+                            class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
                     </div>
                     <h2>{{ statusOverlay.message }}</h2>
                 </div>
@@ -154,7 +164,8 @@ const goBack = () => {
         <header class="app-header">
             <button @click="goBack" class="btn-back">
                 <svg class="icon-back" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
             </button>
             <div>
@@ -176,20 +187,24 @@ const goBack = () => {
                         <h3 class="text-emerald-700">Disciplinas que Imparte</h3>
                         <p class="text-sm text-emerald-600/70">Estas son las disciplinas asignadas actualmente.</p>
                     </div>
-                    <span class="badge-count bg-emerald-100 text-emerald-700">{{ assignedDisciplinesList.length }}</span>
+                    <span class="badge-count bg-emerald-100 text-emerald-700">{{ assignedDisciplinesList.length
+                        }}</span>
                 </div>
 
                 <div class="disciplines-grid">
-                    <div v-for="d in assignedDisciplinesList" :key="d.id_disciplina" 
-                         @click="toggleSelection(d.id_disciplina)"
-                         class="discipline-item active">
+                    <div v-for="d in assignedDisciplinesList" :key="d.id_disciplina"
+                        @click="toggleSelection(d.id_disciplina)" class="discipline-item active">
                         <div class="discipline-card-body">
                             <div class="icon-circle">
                                 <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8" />
                             </div>
                             <span class="discipline-name">{{ d.nombre_disciplina }}</span>
                             <div class="check-mark">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
                             </div>
                         </div>
                     </div>
@@ -210,9 +225,8 @@ const goBack = () => {
                 </div>
 
                 <div class="disciplines-grid">
-                    <div v-for="d in availableDisciplinesList" :key="d.id_disciplina" 
-                         @click="toggleSelection(d.id_disciplina)"
-                         class="discipline-item">
+                    <div v-for="d in availableDisciplinesList" :key="d.id_disciplina"
+                        @click="toggleSelection(d.id_disciplina)" class="discipline-item">
                         <div class="discipline-card-body">
                             <div class="icon-circle">
                                 <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8 opacity-40" />
@@ -278,7 +292,10 @@ const goBack = () => {
     transition: all 0.2s;
 }
 
-.icon-back { width: 20px; height: 20px; }
+.icon-back {
+    width: 20px;
+    height: 20px;
+}
 
 .card {
     background: white;
@@ -293,8 +310,14 @@ const goBack = () => {
     background-color: var(--p-emerald-50/30);
 }
 
-.card-header { margin-bottom: 1.5rem; }
-.card-header h3 { font-size: 1.15rem; font-weight: 800; }
+.card-header {
+    margin-bottom: 1.5rem;
+}
+
+.card-header h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
 
 .badge-count {
     padding: 0.25rem 0.75rem;
@@ -378,7 +401,7 @@ const goBack = () => {
     align-items: center;
     justify-content: center;
     border: 3px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .empty-mini-state {
@@ -451,12 +474,19 @@ const goBack = () => {
     animation: spin 1s infinite linear;
 }
 
-@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
 
 /* Status Overlay Styles */
 .status-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 9999;
     display: flex;
     align-items: center;
@@ -465,8 +495,13 @@ const goBack = () => {
     background: rgba(255, 255, 255, 0.8);
 }
 
-.status-overlay.success { color: var(--p-emerald-600); }
-.status-overlay.error { color: var(--p-red-600); }
+.status-overlay.success {
+    color: var(--p-emerald-600);
+}
+
+.status-overlay.error {
+    color: var(--p-red-600);
+}
 
 .overlay-content {
     text-align: center;
@@ -485,15 +520,24 @@ const goBack = () => {
 }
 
 @keyframes popIn {
-    0% { transform: scale(0.5); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
     transition: opacity 0.3s ease;
 }
 
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
     opacity: 0;
 }
 </style>

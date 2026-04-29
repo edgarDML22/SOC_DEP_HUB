@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useSocioStore } from '@/stores/socioStore';
+import { useSocioStore } from '@/stores/admin/socioStore';
 
 const route = useRoute();
 const router = useRouter();
@@ -206,10 +206,21 @@ const goBack = () => {
     height: 8px;
 }
 
-.bar-success { background: #10b981; }
-.bar-warning { background: #f59e0b; }
-.bar-danger { background: #ef4444; }
-.bar-info { background: #3b82f6; }
+.bar-success {
+    background: #10b981;
+}
+
+.bar-warning {
+    background: #f59e0b;
+}
+
+.bar-danger {
+    background: #ef4444;
+}
+
+.bar-info {
+    background: #3b82f6;
+}
 
 .featured-body {
     padding: 2.5rem;
@@ -231,10 +242,21 @@ const goBack = () => {
     text-transform: uppercase;
 }
 
-.badge-success { background-color: #10b981; }
-.badge-warning { background-color: #f59e0b; }
-.badge-danger { background-color: #ef4444; }
-.badge-info { background-color: #3b82f6; }
+.badge-success {
+    background-color: #10b981;
+}
+
+.badge-warning {
+    background-color: #f59e0b;
+}
+
+.badge-danger {
+    background-color: #ef4444;
+}
+
+.badge-info {
+    background-color: #3b82f6;
+}
 
 .session-type {
     font-size: 2rem;
@@ -311,7 +333,11 @@ const goBack = () => {
     margin: 0 auto 1rem;
 }
 
-@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
 
 .error-state {
     text-align: center;
@@ -319,9 +345,23 @@ const goBack = () => {
     color: #ef4444;
 }
 
-.border-t { border-top: 1px solid #e2e8f0; }
-.mt-4 { margin-top: 1rem; }
-.mt-6 { margin-top: 1.5rem; }
-.mt-8 { margin-top: 2rem; }
-.pt-6 { padding-top: 1.5rem; }
+.border-t {
+    border-top: 1px solid #e2e8f0;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mt-6 {
+    margin-top: 1.5rem;
+}
+
+.mt-8 {
+    margin-top: 2rem;
+}
+
+.pt-6 {
+    padding-top: 1.5rem;
+}
 </style>

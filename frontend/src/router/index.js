@@ -258,33 +258,79 @@ const router = createRouter({
         },
         {
           path: "spaces",
-          component: () => import("@/views/admin/Spaces.vue"),
+          redirect: { name: 'spaces-list' },
+          children: [
+            {
+              path: 'list',
+              name: 'spaces-list',
+              component: () => import('@/views/admin/spaces/SpacesList.vue'),
+            },
+            {
+              path: ':id',
+              name: 'spaces-details',
+              component: () => import('@/views/admin/spaces/SpaceDetails.vue'),
+            },
+          ]
+        },
+        {
+          path: "disciplines",
+          redirect: { name: 'disciplines-list' },
+          children: [
+            {
+              path: 'list',
+              name: 'disciplines-list',
+              component: () => import('@/views/admin/Disciplines/DisciplinesList.vue'),
+            },
+            {
+              path: ':id',
+              name: 'disciplines-details',
+              component: () => import('@/views/admin/Disciplines/DisciplineDetails.vue'),
+            },
+          ]
         },
         {
           path: "socios",
           component: () => import("@/views/admin/socio/SociosList.vue"),
-        },
-        {
-          path: "socios/:id",
-          component: () => import("@/views/admin/socio/SocioDetails.vue"),
+          redirect: { name: 'socios-list' },
+          children: [
+            {
+              path: 'socios-list',
+              name: 'socios-list',
+              component: () => import('@/views/admin/socio/SociosList.vue'),
+            },
+            {
+              path: ':id',
+              name: 'socios-details',
+              component: () => import('@/views/admin/socio/SocioDetails.vue'),
+            },
+          ]
         },
         {
           path: "instructors",
           component: () => import("@/views/admin/instructors/Instructors.vue"),
-        },
-        {
-          path: 'instructors/:id',
-          component: () => import('@/views/admin/instructors/InstructorsDetails.vue'),
-        },
-        {
-          path: 'instructors/:id/disciplines',
-          name: 'instructor-disciplines',
-          component: () => import('@/views/admin/instructors/InstructorDisciplines.vue'),
-        },
-        {
-          path: 'instructors/:id/status',
-          name: 'instructor-status',
-          component: () => import('@/views/admin/instructors/InstructorStatus.vue'),
+          redirect: { name: 'instructors-list' },
+          children: [
+            {
+              path: 'instructors-list',
+              name: 'instructors-list',
+              component: () => import('@/views/admin/instructors/Instructors.vue'),
+            },
+            {
+              path: ':id',
+              name: 'instructors-details',
+              component: () => import('@/views/admin/instructors/InstructorsDetails.vue'),
+            },
+            {
+              path: ':id/disciplines',
+              name: 'instructor-disciplines',
+              component: () => import('@/views/admin/instructors/InstructorDisciplines.vue'),
+            },
+            {
+              path: ':id/status',
+              name: 'instructor-status',
+              component: () => import('@/views/admin/instructors/InstructorStatus.vue'),
+            },
+          ]
         },
         {
           path: 'ludoteca',

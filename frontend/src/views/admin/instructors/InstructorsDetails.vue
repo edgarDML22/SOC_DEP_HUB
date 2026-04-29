@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import api from '@/services/api';
-import { useInstructorStore } from '@/stores/instructorStore';
+import { useInstructorStore } from '@/stores/admin/instructorStore';
 
 const route = useRoute();
 const router = useRouter();
@@ -130,16 +130,27 @@ const goBack = () => {
                         }">
                             {{ instructor.estatus }}
                         </span>
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">ID: #{{ instructor.id_instructor }}</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">ID: #{{
+                            instructor.id_instructor }}</span>
                     </div>
 
                     <h2 class="session-type">{{ instructor.nombre_completo }}</h2>
                     <p class="session-location text-gray-500 mt-2 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.19-2.19a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path
+                                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.19-2.19a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
                         {{ instructor.telefono || 'Sin teléfono registrado' }}
                     </p>
                     <p class="session-location text-gray-500 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                            <polyline points="22,6 12,13 2,6" />
+                        </svg>
                         {{ instructor.correo_electronico || 'Sin correo registrado' }}
                     </p>
 
@@ -174,7 +185,8 @@ const goBack = () => {
                     </div>
 
                     <div class="actions-group mt-8">
-                        <button @click="showEditModal = true" class="btn-primary flex-1">Gestionar Información Personal</button>
+                        <button @click="showEditModal = true" class="btn-primary flex-1">Gestionar Información
+                            Personal</button>
                     </div>
                 </div>
             </article>

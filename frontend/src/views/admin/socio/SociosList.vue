@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useSocioStore } from '@/stores/socioStore';
+import { useSocioStore } from '@/stores/admin/socioStore';
 import { storeToRefs } from 'pinia';
 import { useAlerts } from '@/composables/useAlerts';
 
@@ -155,7 +155,8 @@ const applySpecificPenalty = async (status) => {
             <option value="AL_CORRIENTE">Al Corriente</option>
             <option value="MOROSO">Moroso</option>
             <option value="SUSPENDIDO">Suspendido</option>
-            <option v-for="st in ['PENALIZADO', 'PENALIZADO_AMBOS', 'PENALIZADO_LUDOTECA', 'PENALIZADO_RESERVA']" :key="st" :value="st">
+            <option v-for="st in ['PENALIZADO', 'PENALIZADO_AMBOS', 'PENALIZADO_LUDOTECA', 'PENALIZADO_RESERVA']"
+              :key="st" :value="st">
               {{ st.replace('_', ' ') }}
             </option>
           </select>
@@ -203,23 +204,56 @@ const applySpecificPenalty = async (status) => {
           <!-- Acciones Rápidas (4 Botones) -->
           <div class="flex items-center gap-2 mt-4">
             <!-- 1. Más Detalles -->
-            <button @click="openDetails(socio.id_socio)" class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm" title="Ver Perfil Completo">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+            <button @click="openDetails(socio.id_socio)"
+              class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+              title="Ver Perfil Completo">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M16 13H8" />
+                <path d="M16 17H8" />
+                <path d="M10 9H8" />
+              </svg>
             </button>
 
             <!-- 2. Penalizaciones -->
-            <button @click="openPenalty(socio)" class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Gestionar Penalizaciones">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="m4.93 4.93 14.14 14.14"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            <button @click="openPenalty(socio)"
+              class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
+              title="Gestionar Penalizaciones">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+                <path d="m4.93 4.93 14.14 14.14" />
+                <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
             </button>
 
             <!-- 3. Invitados -->
-            <button @click="openGuests(socio)" class="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm" title="Gestionar Invitados">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <button @click="openGuests(socio)"
+              class="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+              title="Gestionar Invitados">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
             </button>
 
             <!-- 4. Miembros Familiares -->
-            <button @click="openFamily(socio)" class="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm" title="Miembros Familiares">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M9 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="4"/></svg>
+            <button @click="openFamily(socio)"
+              class="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+              title="Miembros Familiares">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M9 21v-2a4 4 0 0 0-3-3.87" />
+                <circle cx="9" cy="7" r="4" />
+                <circle cx="17" cy="7" r="4" />
+              </svg>
             </button>
           </div>
         </div>
@@ -243,11 +277,10 @@ const applySpecificPenalty = async (status) => {
         <div class="modal-body">
           <div class="form-group mb-6">
             <label>Estatus de Penalización</label>
-            <select v-model="editForm.estatus_cuenta" class="status-select font-bold text-base p-4"
-              :class="{
-                'text-green-600': editForm.estatus_cuenta === 'AL_CORRIENTE',
-                'text-blue-600': editForm.estatus_cuenta.startsWith('PENALIZADO')
-              }">
+            <select v-model="editForm.estatus_cuenta" class="status-select font-bold text-base p-4" :class="{
+              'text-green-600': editForm.estatus_cuenta === 'AL_CORRIENTE',
+              'text-blue-600': editForm.estatus_cuenta.startsWith('PENALIZADO')
+            }">
               <option value="AL_CORRIENTE">✅ AL CORRIENTE (Sin Bloqueos)</option>
               <option value="PENALIZADO_AMBOS">⏳ PENALIZADO AMBOS (Ludoteca + Reservas)</option>
               <option value="PENALIZADO_RESERVA">⏳ PENALIZADO RESERVAS (No Show)</option>
@@ -275,25 +308,22 @@ const applySpecificPenalty = async (status) => {
 
           <div class="penalty-actions">
             <h4 class="text-xs font-bold text-surface-500 uppercase tracking-wider mb-3">Acciones de Penalización</h4>
-            
+
             <div class="flex flex-col gap-3">
-              <button @click="applySpecificPenalty('PENALIZADO_RESERVA')" 
-                class="penalty-action-btn border-red-200 text-red-700 hover:bg-red-50"
-                :disabled="isSaving">
+              <button @click="applySpecificPenalty('PENALIZADO_RESERVA')"
+                class="penalty-action-btn border-red-200 text-red-700 hover:bg-red-50" :disabled="isSaving">
                 <span class="font-bold">Penalizar por Reservas</span>
                 <span class="text-[10px] opacity-70">Bloquea reservaciones por 7 días</span>
               </button>
 
-              <button @click="applySpecificPenalty('PENALIZADO_LUDOTECA')" 
-                class="penalty-action-btn border-amber-200 text-amber-700 hover:bg-amber-50"
-                :disabled="isSaving">
+              <button @click="applySpecificPenalty('PENALIZADO_LUDOTECA')"
+                class="penalty-action-btn border-amber-200 text-amber-700 hover:bg-amber-50" :disabled="isSaving">
                 <span class="font-bold">Penalizar por Ludoteca</span>
                 <span class="text-[10px] opacity-70">Bloquea uso de ludoteca por 7 días</span>
               </button>
 
-              <button @click="applySpecificPenalty('AL_CORRIENTE')" 
-                class="penalty-action-btn border-green-200 text-green-700 hover:bg-green-50"
-                :disabled="isSaving">
+              <button @click="applySpecificPenalty('AL_CORRIENTE')"
+                class="penalty-action-btn border-green-200 text-green-700 hover:bg-green-50" :disabled="isSaving">
                 <span class="font-bold">Quitar todas las penalizaciones</span>
                 <span class="text-[10px] opacity-70">Restablecer estatus "Al Corriente"</span>
               </button>
@@ -317,12 +347,15 @@ const applySpecificPenalty = async (status) => {
           <button @click="showFamilyModal = false" class="btn-close">×</button>
         </div>
         <div class="modal-body">
-          <div v-if="!selectedSocio?.miembros_familiares || selectedSocio.miembros_familiares.length === 0" class="text-center py-8 text-surface-500">
+          <div v-if="!selectedSocio?.miembros_familiares || selectedSocio.miembros_familiares.length === 0"
+            class="text-center py-8 text-surface-500">
             No hay miembros familiares registrados.
           </div>
           <div v-else class="flex flex-col gap-3">
-            <div v-for="fam in selectedSocio.miembros_familiares" :key="fam.id_miembro" class="p-3 border border-surface-200 rounded-xl flex items-center gap-3">
-              <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
+            <div v-for="fam in selectedSocio.miembros_familiares" :key="fam.id_miembro"
+              class="p-3 border border-surface-200 rounded-xl flex items-center gap-3">
+              <div
+                class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
                 {{ fam.nombre_completo.charAt(0) }}
               </div>
               <div>
@@ -350,21 +383,28 @@ const applySpecificPenalty = async (status) => {
             <div class="spinner mb-4"></div>
             <p class="text-surface-500 animate-pulse">Cargando pases de invitados...</p>
           </div>
-          <div v-else-if="!selectedSocio?.invitados || selectedSocio.invitados.length === 0" class="text-center py-12 text-surface-500">
+          <div v-else-if="!selectedSocio?.invitados || selectedSocio.invitados.length === 0"
+            class="text-center py-12 text-surface-500">
             <div class="text-4xl mb-4">🎫</div>
             <p class="font-medium">No se encontraron invitados</p>
             <p class="text-xs">Este socio no tiene pases de invitados registrados.</p>
           </div>
           <div v-else class="flex flex-col gap-4">
-            <div v-for="guest in selectedSocio.invitados" :key="guest.id_invitado" class="p-4 border border-surface-200 rounded-2xl flex items-center justify-between hover:border-amber-200 hover:bg-amber-50/30 transition-all">
+            <div v-for="guest in selectedSocio.invitados" :key="guest.id_invitado"
+              class="p-4 border border-surface-200 rounded-2xl flex items-center justify-between hover:border-amber-200 hover:bg-amber-50/30 transition-all">
               <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold text-lg shadow-inner">
+                <div
+                  class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold text-lg shadow-inner">
                   {{ guest.nombre_invitado.charAt(0) }}
                 </div>
                 <div>
                   <p class="font-bold text-surface-900">{{ guest.nombre_invitado }}</p>
                   <p class="text-xs text-surface-500 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
                     {{ guest.correo || 'Sin correo' }}
                   </p>
                 </div>
@@ -489,158 +529,158 @@ const applySpecificPenalty = async (status) => {
 
 /* Modales */
 .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
 }
 
 .modal-content {
-    background: white;
-    width: 100%;
-    max-width: 500px;
-    border-radius: 2rem;
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 2rem;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .modal-header {
-    padding: 1.5rem;
-    background: var(--p-primary-600, #2563eb);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  padding: 1.5rem;
+  background: var(--p-primary-600, #2563eb);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .modal-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .btn-close {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-body {
-    padding: 2rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .form-group label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--p-surface-500, #64748b);
-    text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--p-surface-500, #64748b);
+  text-transform: uppercase;
 }
 
 .status-select {
-    width: 100%;
-    padding: 1rem;
-    border-radius: 12px;
-    border: 1px solid var(--p-surface-200, #e2e8f0);
-    font-weight: 700;
-    outline: none;
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--p-surface-200, #e2e8f0);
+  font-weight: 700;
+  outline: none;
 }
 
 .form-row {
-    display: flex;
-    gap: 1rem;
+  display: flex;
+  gap: 1rem;
 }
 
 .half {
-    flex: 1;
+  flex: 1;
 }
 
 .counter-input {
-    display: flex;
-    border: 1px solid var(--p-surface-200, #e2e8f0);
-    border-radius: 12px;
-    overflow: hidden;
+  display: flex;
+  border: 1px solid var(--p-surface-200, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .counter-input button {
-    background: var(--p-surface-50, #f8fafc);
-    border: none;
-    padding: 0.75rem 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
+  background: var(--p-surface-50, #f8fafc);
+  border: none;
+  padding: 0.75rem 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .counter-input button:hover:not(:disabled) {
-    background: var(--p-surface-100, #f1f5f9);
+  background: var(--p-surface-100, #f1f5f9);
 }
 
 .counter-input input {
-    flex: 1;
-    border: none;
-    text-align: center;
-    font-weight: 800;
-    width: 100%;
+  flex: 1;
+  border: none;
+  text-align: center;
+  font-weight: 800;
+  width: 100%;
 }
 
 .modal-footer {
-    padding: 1.5rem;
-    border-top: 1px solid var(--p-surface-100, #f1f5f9);
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--p-surface-100, #f1f5f9);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
 }
 
 .btn-secondary {
-    background: white;
-    border: 1px solid var(--p-surface-200, #e2e8f0);
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
+  background: white;
+  border: 1px solid var(--p-surface-200, #e2e8f0);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .btn-primary {
-    background: var(--p-primary-600, #2563eb);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
+  background: var(--p-primary-600, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Nuevos Estilos Penalizaciones */
@@ -702,6 +742,8 @@ const applySpecificPenalty = async (status) => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
