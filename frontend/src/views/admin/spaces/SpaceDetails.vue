@@ -20,7 +20,9 @@ const showDeleteModal = ref(false);
 const editForm = ref({
     nombre_espacio: '',
     capacidad_maxima: 0,
-    tipo_espacio: '',
+    es_reserva_on_demand: false,
+    es_clase_programada: false,
+    es_uso_libre: false,
     estatus: '',
     descripcion: '',
     disciplinas: []
@@ -47,9 +49,12 @@ const resetForm = () => {
     editForm.value = {
         nombre_espacio: space.value.nombre_espacio,
         capacidad_maxima: space.value.capacidad_maxima,
-        tipo_espacio: space.value.tipo_espacio,
+        es_reserva_on_demand: !!space.value.es_reserva_on_demand,
+        es_clase_programada: !!space.value.es_clase_programada,
+        es_uso_libre: !!space.value.es_uso_libre,
         estatus: space.value.estatus,
         descripcion: space.value.descripcion || '',
+        disciplinas: space.value.disciplinas.map(d => d.id_disciplina)
     };
 };
 
@@ -131,7 +136,12 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                         {{ space.estatus }}
                                     </span>
                                 </div>
-                                <p class="text-indigo-600 font-bold uppercase tracking-widest text-sm">{{ space.tipo_espacio.replace(/_/g, ' ') }}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span v-if="space.es_reserva_on_demand" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100 uppercase tracking-widest">ON DEMAND</span>
+                                    <span v-if="space.es_clase_programada" class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100 uppercase tracking-widest">CLASE</span>
+                                    <span v-if="space.es_uso_libre" class="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100 uppercase tracking-widest">USO LIBRE</span>
+                                </div>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -162,8 +172,12 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                     <p class="text-xl font-black text-indigo-600">{{ space.capacidad_maxima }} <span class="text-xs font-normal text-gray-500">personas</span></p>
                                 </div>
                                 <div class="p-4 bg-gray-50 rounded-2xl">
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Tipo de Uso</label>
-                                    <p class="text-sm font-bold text-gray-700">{{ space.tipo_espacio.replace(/_/g, ' ') }}</p>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Configuración de Uso</label>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        <span v-if="space.es_reserva_on_demand" class="text-[8px] font-black bg-white text-indigo-600 px-2 py-1 rounded-md border border-indigo-100">RESERVA</span>
+                                        <span v-if="space.es_clase_programada" class="text-[8px] font-black bg-white text-blue-600 px-2 py-1 rounded-md border border-blue-100">CLASE</span>
+                                        <span v-if="space.es_uso_libre" class="text-[8px] font-black bg-white text-emerald-600 px-2 py-1 rounded-md border border-emerald-100">LIBRE</span>
+                                    </div>
                                 </div>
                             </div>
                             <div>
@@ -210,11 +224,33 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Tipo de Uso</label>
-                                    <select v-model="editForm.tipo_espacio" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold">
-                                        <option value="RESERVA_ON_DEMAND">RESERVA ON DEMAND</option>
-                                        <option value="CLASE_PROGRAMADA">CLASE PROGRAMADA</option>
-                                    </select>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Configuración de Uso</label>
+                                    <div class="grid grid-cols-1 gap-2">
+                                        <button @click="() => { editForm.es_reserva_on_demand = !editForm.es_reserva_on_demand; if(editForm.es_reserva_on_demand) editForm.es_uso_libre = false; }"
+                                                :class="editForm.es_reserva_on_demand ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-500'"
+                                                class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
+                                            <span>RESERVA ON DEMAND</span>
+                                            <div :class="editForm.es_reserva_on_demand ? 'bg-white text-indigo-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                                {{ editForm.es_reserva_on_demand ? '✓' : '' }}
+                                            </div>
+                                        </button>
+                                        <button @click="() => { editForm.es_clase_programada = !editForm.es_clase_programada; if(editForm.es_clase_programada) editForm.es_uso_libre = false; }"
+                                                :class="editForm.es_clase_programada ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'"
+                                                class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
+                                            <span>CLASE PROGRAMADA</span>
+                                            <div :class="editForm.es_clase_programada ? 'bg-white text-blue-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                                {{ editForm.es_clase_programada ? '✓' : '' }}
+                                            </div>
+                                        </button>
+                                        <button @click="() => { editForm.es_uso_libre = !editForm.es_uso_libre; if(editForm.es_uso_libre) { editForm.es_reserva_on_demand = false; editForm.es_clase_programada = false; } }"
+                                                :class="editForm.es_uso_libre ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-500'"
+                                                class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
+                                            <span>USO LIBRE</span>
+                                            <div :class="editForm.es_uso_libre ? 'bg-white text-emerald-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                                {{ editForm.es_uso_libre ? '✓' : '' }}
+                                            </div>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Descripción</label>

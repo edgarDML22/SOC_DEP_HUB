@@ -31,7 +31,9 @@ const selectedSpace = ref(null);
 const newSpace = ref({
     nombre_espacio: '',
     capacidad_maxima: 10,
-    tipo_espacio: 'RESERVA_ON_DEMAND',
+    es_reserva_on_demand: true,
+    es_clase_programada: false,
+    es_uso_libre: false,
     estatus: 'ACTIVO',
     descripcion: '',
     disciplinas: []
@@ -51,19 +53,16 @@ const filteredSpaces = computed(() => {
         result = result.filter(s => s.nombre_espacio.toLowerCase().includes(q));
     }
     if (filterTipo.value !== 'TODOS') {
-        result = result.filter(s => s.tipo_espacio === filterTipo.value);
+        if (filterTipo.value === 'RESERVA_ON_DEMAND') result = result.filter(s => s.es_reserva_on_demand);
+        else if (filterTipo.value === 'CLASE_PROGRAMADA') result = result.filter(s => s.es_clase_programada);
+        else if (filterTipo.value === 'USO_LIBRE') result = result.filter(s => s.es_uso_libre);
     }
     if (filterStatus.value !== 'TODOS') {
         result = result.filter(s => s.estatus === filterStatus.value);
     }
 
-    // Ordenar: primero por tipo_espacio, luego por estatus
-    result.sort((a, b) => {
-        const typeCompare = a.tipo_espacio.localeCompare(b.tipo_espacio);
-        if (typeCompare !== 0) return typeCompare;
-        
-        return a.estatus.localeCompare(b.estatus);
-    });
+    // Ordenar: primero por nombre
+    result.sort((a, b) => a.nombre_espacio.localeCompare(b.nombre_espacio));
 
     return result;
 });
@@ -114,7 +113,16 @@ const saveNewSpace = async () => {
     isSaving.value = false;
     if (res.success) {
         showNewModal.value = false;
-        newSpace.value = { nombre_espacio: '', capacidad_maxima: 10, tipo_espacio: 'RESERVA_ON_DEMAND', estatus: 'ACTIVO', descripcion: '', disciplinas: [] };
+        newSpace.value = { 
+            nombre_espacio: '', 
+            capacidad_maxima: 10, 
+            es_reserva_on_demand: true, 
+            es_clase_programada: false, 
+            es_uso_libre: false, 
+            estatus: 'ACTIVO', 
+            descripcion: '', 
+            disciplinas: [] 
+        };
     } else {
         alert(res.error);
     }
@@ -159,6 +167,7 @@ const getIcon = (name) => {
                     <option value="TODOS">Todos los tipos</option>
                     <option value="RESERVA_ON_DEMAND">Reserva On Demand</option>
                     <option value="CLASE_PROGRAMADA">Clase Programada</option>
+                    <option value="USO_LIBRE">Uso Libre</option>
                 </select>
             </div>
             <div class="w-full md:w-64">
@@ -194,7 +203,11 @@ const getIcon = (name) => {
                 </div>
                 
                 <h3 class="text-xl font-bold text-gray-900 mb-1">{{ space.nombre_espacio }}</h3>
-                <p class="text-indigo-600 font-semibold text-sm mb-3 uppercase tracking-wide">{{ space.tipo_espacio.replace(/_/g, ' ') }}</p>
+                <div class="flex gap-2 mb-3">
+                    <span v-if="space.es_reserva_on_demand" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100">ON DEMAND</span>
+                    <span v-if="space.es_clase_programada" class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100">CLASE</span>
+                    <span v-if="space.es_uso_libre" class="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100">USO LIBRE</span>
+                </div>
                 
                 <div class="flex flex-wrap gap-1 mb-6">
                     <span v-for="d in space.disciplinas" :key="d.id_disciplina" class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
@@ -270,11 +283,33 @@ const getIcon = (name) => {
                                 <input v-model="newSpace.capacidad_maxima" type="number" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-1">Tipo de Espacio</label>
-                                <select v-model="newSpace.tipo_espacio" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold">
-                                    <option value="RESERVA_ON_DEMAND">RESERVA ON DEMAND</option>
-                                    <option value="CLASE_PROGRAMADA">CLASE PROGRAMADA</option>
-                                </select>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Configuración de Uso</label>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <button @click="() => { newSpace.es_reserva_on_demand = !newSpace.es_reserva_on_demand; if(newSpace.es_reserva_on_demand) newSpace.es_uso_libre = false; }"
+                                            :class="newSpace.es_reserva_on_demand ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-500'"
+                                            class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
+                                        <span>RESERVA ON DEMAND</span>
+                                        <div :class="newSpace.es_reserva_on_demand ? 'bg-white text-indigo-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                            {{ newSpace.es_reserva_on_demand ? '✓' : '' }}
+                                        </div>
+                                    </button>
+                                    <button @click="() => { newSpace.es_clase_programada = !newSpace.es_clase_programada; if(newSpace.es_clase_programada) newSpace.es_uso_libre = false; }"
+                                            :class="newSpace.es_clase_programada ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'"
+                                            class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
+                                        <span>CLASE PROGRAMADA</span>
+                                        <div :class="newSpace.es_clase_programada ? 'bg-white text-blue-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                            {{ newSpace.es_clase_programada ? '✓' : '' }}
+                                        </div>
+                                    </button>
+                                    <button @click="() => { newSpace.es_uso_libre = !newSpace.es_uso_libre; if(newSpace.es_uso_libre) { newSpace.es_reserva_on_demand = false; newSpace.es_clase_programada = false; } }"
+                                            :class="newSpace.es_uso_libre ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-500'"
+                                            class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
+                                        <span>USO LIBRE</span>
+                                        <div :class="newSpace.es_uso_libre ? 'bg-white text-emerald-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                            {{ newSpace.es_uso_libre ? '✓' : '' }}
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="space-y-4">

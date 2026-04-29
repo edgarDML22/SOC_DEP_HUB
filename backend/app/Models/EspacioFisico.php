@@ -19,6 +19,9 @@ class EspacioFisico extends Model
         'nombre_espacio',
         'capacidad_maxima',
         'tipo_espacio',
+        'es_reserva_on_demand',
+        'es_clase_programada',
+        'es_uso_libre',
         'estatus',
         'descripcion'
     ];

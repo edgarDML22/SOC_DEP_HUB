@@ -282,6 +282,11 @@ const router = createRouter({
               name: 'disciplines-details',
               component: () => import('@/views/admin/Disciplines/DisciplineDetails.vue'),
             },
+            {
+              path: 'categories',
+              name: 'disciplines-categories',
+              component: () => import('@/views/admin/Disciplines/CategoryList.vue'),
+            },
           ]
         },
         {

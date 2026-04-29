@@ -12,19 +12,23 @@ class Disciplina extends Model
     //
     protected $fillable = [
         'nombre_disciplina',
-        'categorias_disciplina',
+        'id_categoria',
+        'categoria_disciplina',
+        'descripcion',
         'estatus',
     ];
 
     public function espacios(){
-        /* Parámetros: 
-       1. Modelo destino
-       2. Nombre exacto de la tabla pivote
-       3. Llave foránea de ESTE modelo en el pivote
-       4. Llave foránea del OTRO modelo en el pivote
-        */
         return $this->belongsToMany(EspacioFisico::class, 'espacio_disciplina', 'id_disciplina', 'id_espacio');
     }
 
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaDisciplina::class, 'id_categoria', 'id');
+    }
 
+    public function instructores()
+    {
+        return $this->belongsToMany(Instructor::class, 'instructor_disciplina', 'id_disciplina', 'id_instructor');
+    }
 }

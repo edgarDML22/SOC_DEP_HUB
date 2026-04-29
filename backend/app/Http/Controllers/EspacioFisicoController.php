@@ -44,11 +44,24 @@ class EspacioFisicoController extends Controller
         $data = $request->validate([
             'nombre_espacio' => 'required|string',
             'capacidad_maxima' => 'required|integer',
-            'tipo_espacio' => 'required|string',
+            'tipo_espacio' => 'nullable|string', // Keep for backward compatibility if needed
+            'es_reserva_on_demand' => 'boolean',
+            'es_clase_programada' => 'boolean',
+            'es_uso_libre' => 'boolean',
             'estatus' => 'required|string',
             'descripcion' => 'nullable|string',
             'disciplinas' => 'array'
         ]);
+
+        // Logic validation
+        if ($data['es_uso_libre']) {
+            $data['es_reserva_on_demand'] = false;
+            $data['es_clase_programada'] = false;
+        }
+
+        if (!$data['es_uso_libre'] && !$data['es_reserva_on_demand'] && !$data['es_clase_programada']) {
+            return response()->json(['success' => false, 'message' => 'Al menos un tipo de uso debe estar activo.'], 422);
+        }
 
         $espacio = EspacioFisico::create($data);
         
@@ -82,11 +95,29 @@ class EspacioFisicoController extends Controller
         $data = $request->validate([
             'nombre_espacio' => 'string',
             'capacidad_maxima' => 'integer',
-            'tipo_espacio' => 'string',
+            'tipo_espacio' => 'nullable|string',
+            'es_reserva_on_demand' => 'boolean',
+            'es_clase_programada' => 'boolean',
+            'es_uso_libre' => 'boolean',
             'estatus' => 'string',
             'descripcion' => 'nullable|string',
             'disciplinas' => 'array'
         ]);
+
+        // Logic validation
+        if (isset($data['es_uso_libre']) && $data['es_uso_libre']) {
+            $data['es_reserva_on_demand'] = false;
+            $data['es_clase_programada'] = false;
+        }
+
+        // If updating booleans, check that at least one is true
+        $reserva = $data['es_reserva_on_demand'] ?? $espacio->es_reserva_on_demand;
+        $clase = $data['es_clase_programada'] ?? $espacio->es_clase_programada;
+        $uso = $data['es_uso_libre'] ?? $espacio->es_uso_libre;
+
+        if (!$reserva && !$clase && !$uso) {
+            return response()->json(['success' => false, 'message' => 'Al menos un tipo de uso debe estar activo.'], 422);
+        }
 
         if (isset($data['estatus']) && $data['estatus'] !== $espacio->estatus) {
             if (in_array($data['estatus'], ['DESHABILITADO', 'MANTENIMIENTO'])) {
@@ -175,7 +206,7 @@ class EspacioFisicoController extends Controller
     {
         // 1. LA CONSULTA MAESTRA (¡Ultra ligera!)
         $query = EspacioFisico::select('id_espacio', 'nombre_espacio', 'capacidad_maxima', 'estatus')
-            ->where('tipo_espacio', 'RESERVA_ON_DEMAND')
+            ->where('es_reserva_on_demand', true)
             ->with(['disciplinas:id_disciplina,nombre_disciplina']);
 
         $espacios = $query->get();
@@ -211,6 +242,9 @@ class EspacioFisicoController extends Controller
     {
         // 1. Iniciamos la consulta en sesiones_activas
         $query = SesionActiva::where('fecha_sesion', $fecha)
+            ->whereHas('actividadPlantilla.espacioFisico', function($q) {
+                $q->where('es_clase_programada', true);
+            })
             ->with([
                 'actividadPlantilla.espacioFisico',
                 'actividadPlantilla.disciplina'

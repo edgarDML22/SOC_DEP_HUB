@@ -30,6 +30,7 @@ use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
 use App\Http\Controllers\RegisterEventController;
 use App\Http\Controllers\DisciplinaController;
+use App\Http\Controllers\CategoriaDisciplinaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -149,6 +150,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
     Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
+    
+    // CRUD CATEGORIAS DISCIPLINAS
+    Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
+    Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);
+    Route::get('/v1/disciplinas-categories/{id}', [CategoriaDisciplinaController::class, 'show']);
+    Route::put('/v1/disciplinas-categories/update/{id}', [CategoriaDisciplinaController::class, 'update']);
+    Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
 
     // CRUD ESPACIOS
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
