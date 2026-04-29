@@ -3,55 +3,24 @@
 </script>
 
 <template>
-  <main class="main-content">
-    <div class="page-header">
-      <h1 class="page-title">Agenda</h1>
-      <p class="page-subtitle">Próximos eventos y calendario</p>
+  <main class="home-instructor">
+    <div class="app-header flex-col !items-start gap-1">
+      <h1 class="greeting-name">Calendario y Agenda</h1>
+      <p class="greeting-label">Próximos eventos y clases programadas</p>
     </div>
 
-    <div class="card empty-state">
-      <p>Aquí se mostrará tu agenda de actividades.</p>
+    <div class="empty-state">
+      <div class="empty-icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <h3 class="empty-title">Agenda en desarrollo</h3>
+      <p class="empty-text">Muy pronto podrás visualizar tu calendario semanal completo desde aquí.</p>
     </div>
   </main>
 </template>
 
 <style scoped>
-.main-content {
-  padding: 2rem;
-  padding-bottom: 90px;
-  background-color: var(--p-surface-50, #f8fafc);
-  min-height: 100vh;
-  font-family: inherit;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-  color: var(--p-surface-900, #111827);
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: var(--p-surface-500, #64748b);
-  margin: 0;
-}
-
-.card {
-  background-color: #ffffff;
-  border: 1px solid var(--p-surface-200, #e2e8f0);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: var(--p-surface-500, #64748b);
-}
+/* No styles needed, using global system */
 </style>

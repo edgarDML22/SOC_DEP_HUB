@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\SesionActiva;
 use App\Models\Instructor;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class InstructorController extends Controller
 {
@@ -163,14 +166,213 @@ class InstructorController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'nombre_completo'    => $instructor->nombre_completo,
+                'nombre_completo' => $instructor->nombre_completo,
                 'correo_electronico' => $instructor->correo_electronico,
-                'telefono'           => $instructor->telefono,
-                'estatus_cuenta'     => $instructor->estatus,
-                'fecha_nacimiento'   => $instructor->fecha_nacimiento,
+                'telefono' => $instructor->telefono,
+                'estatus_cuenta' => $instructor->estatus,
+                'fecha_nacimiento' => $instructor->fecha_nacimiento,
                 'fecha_contratacion' => $instructor->fecha_contratacion,
-                'rol'                => 'Instructor',
+                'rol' => 'Instructor',
             ]
         ], 200);
     }
+
+    public function getAllInstructors(Request $request)
+    {
+        // Validar acceso
+        $user = $request->user();
+        if (!in_array($user->rol, ['gerente', 'subgerente'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado.'
+            ], 403);
+        }
+
+        $instructores = Instructor::with('disciplinas')->orderBy('estatus', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $instructores
+        ], 200);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $admin = Auth::user();
+
+        if ($admin->rol !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado. No eres administrador.'
+            ], 403);
+        }
+
+        $instructor = Instructor::with('disciplinas')->find($id);
+
+        if (!$instructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Instructor no encontrado'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $instructor
+        ], 200);
+    }
+
+    public function store(Request $request)
+    {
+        $admin = Auth::user();
+
+        // Validar acceso
+        if ($admin->rol !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado. No eres administrador.'
+            ], 403);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 1. Crear el usuario para el login
+            $nombre = $request->input('nombre_completo');
+            $correoGenerado = strtolower(explode(' ', $nombre)[0]) . '_' . Str::random(4) . '@socdep.com';
+
+            $newUser = User::create([
+                'name' => $nombre,
+                'email' => $correoGenerado,
+                'password' => Hash::make('password'),
+                'rol' => 'instructor',
+                'user_id' => 0 // Temporalmente, actualizaremos esto despues
+            ]);
+
+            // 2. Crear el instructor
+            $instructor = Instructor::create([
+                'id_usuario' => $newUser->id,
+                'nombre_completo' => $nombre,
+                'telefono' => $request->input('telefono'),
+                'estatus' => $request->input('estatus', 'ACTIVO'),
+                'fecha_contratacion' => $request->input('fecha_contratacion'),
+                'fecha_nacimiento' => $request->input('fecha_nacimiento')
+            ]);
+
+            // 3. Ligar user_id en users
+            $newUser->user_id = $instructor->id_instructor;
+            $newUser->save();
+
+            // 4. Sincronizar disciplinas
+            if ($request->has('disciplinas')) {
+                $instructor->disciplinas()->sync($request->input('disciplinas'));
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'data' => $instructor->load('disciplinas')
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear instructor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $admin = Auth::user();
+
+        // Validar acceso
+        if ($admin->rol !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado. No eres administrador.'
+            ], 403);
+        }
+
+        $instructor = Instructor::find($id);
+
+        if (!$instructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Instructor no encontrado'
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Actualizar datos del instructor
+            $instructor->update($request->only([
+                'nombre_completo',
+                'telefono',
+                'estatus',
+                'fecha_contratacion',
+                'fecha_nacimiento'
+            ]));
+
+            // Si el nombre cambió, actualizar en users
+            if ($request->has('nombre_completo')) {
+                $user = User::where('id', $instructor->id_usuario)->first();
+                if ($user) {
+                    $user->name = $request->input('nombre_completo');
+                    $user->save();
+                }
+            }
+
+            // Actualizar disciplinas
+            if ($request->has('disciplinas')) {
+                $instructor->disciplinas()->sync($request->input('disciplinas'));
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'data' => $instructor->load('disciplinas')
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar instructor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $admin = Auth::user();
+
+        // Validar acceso
+        if ($admin->rol !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso denegado. No eres administrador.'
+            ], 403);
+        }
+
+        $instructor = Instructor::find($id);
+
+        if (!$instructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Instructor no encontrado'
+            ], 404);
+        }
+
+        // Borrado lógico (cambio de estatus)
+        $instructor->estatus = 'INACTIVO';
+        $instructor->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Instructor dado de baja temporalmente/inactivado correctamente'
+        ], 200);
+    }
+
+
 }
