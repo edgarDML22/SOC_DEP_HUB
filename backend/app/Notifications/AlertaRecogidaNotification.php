@@ -42,7 +42,7 @@ class AlertaRecogidaNotification extends Notification
         }
 
         // correo de suspensión
-        if ($this->tipo == 'suspension') {
+        if ($this->tipo == 'suspension_ludoteca') {
             return (new MailMessage)
                 ->subject('Suspensión temporal de Ludoteca')
                 ->line('Has acumulado demasiados retrasos.')
@@ -50,11 +50,26 @@ class AlertaRecogidaNotification extends Notification
         }
 
         // correo de cancelación
-        if ($this->tipo == 'cancelacion') {
+        if ($this->tipo == 'cancelacion_ludoteca') {
             return (new MailMessage)
                 ->subject('Cancelación de acceso a Ludoteca')
                 ->line('Has acumulado demasiados retrasos.')
                 ->line('Tu acceso a la ludoteca ha sido cancelado.');
+        }
+        // correo de suspensión
+        if ($this->tipo == 'suspension_reservas') {
+            return (new MailMessage)
+                ->subject('Suspensión temporal de Reservas')
+                ->line('Has acumulado demasiados retrasos.')
+                ->line('Tu acceso ha sido suspendido temporalmente.');
+        }
+
+        // correo de cancelación
+        if ($this->tipo == 'cancelacion_reservas') {
+            return (new MailMessage)
+                ->subject('Cancelación de acceso a Reservas')
+                ->line('Has acumulado demasiados retrasos.')
+                ->line('Tu acceso a las reservas ha sido cancelado.');
         }
     }
 }
