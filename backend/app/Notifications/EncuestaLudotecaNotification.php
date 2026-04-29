@@ -7,11 +7,11 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class EncuestaLudotecaNotification extends Notification
 {
-    public $idRegistro;
+    public $idHistorial;
 
-    public function __construct($idRegistro)
+    public function __construct($idHistorial)
     {
-        $this->idRegistro = $idRegistro;
+        $this->idHistorial = $idHistorial;
     }
 
     public function via($notifiable)
@@ -22,12 +22,12 @@ class EncuestaLudotecaNotification extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Encuesta de satisfacción Ludoteca')
-            ->line('Gracias por utilizar nuestro servicio.')
+            ->subject('Encuesta de satisfacción - Ludoteca')
+            ->line('Gracias por usar el servicio de ludoteca.')
             ->line('Ayúdanos contestando esta encuesta.')
             ->action(
                 'Responder encuesta',
-                "http://localhost:3000/encuesta/{$this->idRegistro}"
+                "http://localhost:5173/ludoteca/encuesta/{$this->idHistorial}"
             );
     }
 }

@@ -28,18 +28,26 @@ class LudotecaController extends Controller
             }
 
             return response()->json([
-                'data' => $registros->map(function ($registro) {
-                    return [
-                        'socio' => optional($registro->adultoIngreso)->nombre_completo ?? 'N/A',
-                        'id_menor' => $registro->menor->id_miembro,
-                        'menor' => $registro->menor->nombre_completo,
-                        'hora_ingreso' => $registro->hora_ingreso,
-                        'hora_limite' => $registro->hora_limite,
-                        'estatus_visita' => $registro->estatus_ludoteca,
-                        'rol' => 'gerente',
-                        'id_registro' => $registro->id_registro,
-                    ];
-                })
+                'success' => true,
+                'data' => [
+                    'turno' => [
+                        'hora_inicio' => '00:00:00',
+                        'hora_fin' => '23:59:59'
+                    ],
+                    'estancias' => $registros->map(function ($registro) {
+                        return [
+                            'socio' => optional($registro->adultoIngreso)->nombre_completo ?? 'N/A',
+                            'id_menor' => $registro->menor->id_miembro,
+                            'nombre_nino' => $registro->menor->nombre_completo, // Cambiado para coincidir con el store
+                            'nombre_tutor' => optional($registro->adultoIngreso)->nombre_completo ?? 'N/A', // Cambiado para coincidir con el store
+                            'hora_ingreso' => $registro->hora_ingreso,
+                            'hora_limite' => $registro->hora_limite,
+                            'estatus' => $registro->estatus_ludoteca, // Cambiado para coincidir con el store
+                            'rol' => 'gerente',
+                            'id_registro' => $registro->id_registro,
+                        ];
+                    })
+                ]
             ]);
         }
 
@@ -47,14 +55,14 @@ class LudotecaController extends Controller
         if ($user->rol == 'instructor') {
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
                 ->where(function ($query) {
-                    $query->whereDate('hora_ingreso', today())
+                    $query->whereDate('hora_ingreso', now('America/Mexico_City')->toDateString())
                         ->orWhere('estatus_ludoteca', 'ACTIVA');
                 })
                 ->has('menor')
                 ->get();
 
             $turno = TurnosLudoteca::where('id_instructor', $user->user_id)
-                ->where('fecha', today())
+                ->where('fecha', now('America/Mexico_City')->toDateString())
                 ->first();
 
             return response()->json([
@@ -93,7 +101,7 @@ class LudotecaController extends Controller
 
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
                 ->whereIn('id_menor', $ids_menores)
-                ->whereDate('hora_ingreso', today())
+                ->whereDate('hora_ingreso', now('America/Mexico_City')->toDateString())
                 ->get();
 
             if ($registros->isEmpty()) {

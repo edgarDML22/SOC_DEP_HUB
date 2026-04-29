@@ -30,6 +30,7 @@ use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
 use App\Http\Controllers\RegisterEventController;
 use App\Http\Controllers\AdminLudotecaController;
+use App\Http\Controllers\EncuestaLudotecaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -92,7 +93,7 @@ Route::middleware(['check.turno'])->group(function () {
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
+Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::class, 'updateStatus']);
 // Grupo protegido con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -141,6 +142,16 @@ Route::middleware('auth:sanctum')->group(function () {
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
+    Route::get(
+        '/v1/ludoteca/encuesta/{idHistorial}',
+        [EncuestaLudotecaController::class, 'obtenerEncuesta']
+    );
+
+    Route::post(
+        '/v1/ludoteca/encuesta/{idHistorial}',
+        [EncuestaLudotecaController::class, 'guardarEncuesta']
+    );
+
     // GUESTS 
     Route::post('/v1/guest-create', [GuestStatusController::class, 'store']);
     Route::get('/v1/guest-list', [GuestStatusController::class, 'show']);
@@ -170,13 +181,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     // LUDOTECA (RUTAS PROTEGIDAS)
     // ==========================================
+
     Route::prefix('v1/ludoteca')->group(function () {
         // Operativas (instructor / socio)
         Route::get('validar-tutor', [LudotecaController::class, 'validarTutor']);
         Route::post('register', [LudotecaRegisterController::class, 'store']);
         Route::get('list', [MiembrosFamiliaresList::class, 'show']);
         Route::post('ingreso', [LudotecaStatusController::class, 'checkIn']);
-        Route::patch('estancia/{id}/status', [LudotecaStatusController::class, 'updateStatus']);
+
         // Administrativas (gerente )
         Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);

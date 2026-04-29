@@ -68,7 +68,7 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
 
         try {
             // ¡CAMBIO APLICADO! Se ajustó la ruta y la variable id_socio para hacer match con el controlador de Jorge
-            const res = await api.get(`/ludoteca/validar-tutor?id_socio=${instructorStore.idInstructor}`);
+            const res = await api.get(`ludoteca/validar-tutor?id_socio=${instructorStore.idInstructor}`);
 
             if (res.data.success) {
                 estanciasDelDia.value = res.data.data.estancias || [];
@@ -109,7 +109,7 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
                 payload.id_socio = estanciasDelDia.value[estanciaIndex].id_socio;
             }
 
-            const res = await api.patch(`/ludoteca/estancia/${idEstancia}/status`, payload);
+            const res = await api.patch(`ludoteca/estancia/${idEstancia}/status`, payload);
 
             if (!res.data.success) {
                 throw new Error("El backend rechazó el cambio.");
@@ -139,7 +139,7 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
         error.value = null;
 
         try {
-            const res = await api.post('/ludoteca/ingreso', {
+            const res = await api.post('ludoteca/ingreso', {
                 id_registro: idEstancia,
                 id_instructor: instructorStore.idInstructor,
                 id_socio: estanciasDelDia.value[estanciaIndex].id_socio,

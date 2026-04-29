@@ -26,6 +26,15 @@ const router = createRouter({
       name: "reset-password",
       component: () => import("@/views/auth/ResetPassword.vue"),
     },
+    {
+      path: "/ludoteca/encuesta/:idHistorial",
+      name: "ludoteca-encuesta",
+      component: () => import("@/views/ludoteca/Survey/SurveyLudoteca.vue"),
+      meta: { 
+        requiresAuth: true, 
+        allowedRoles: ["socio_titular", "miembro_familiar"] 
+      },
+    },
 
     // Socio Routes
     {
@@ -117,7 +126,6 @@ const router = createRouter({
 
           ]
         },
-
 
         {
           path: "community",

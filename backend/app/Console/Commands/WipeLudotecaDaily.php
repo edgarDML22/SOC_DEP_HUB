@@ -6,7 +6,7 @@ use App\Models\RegistrosLudoteca;
 use App\Models\SocioTitular;
 use Illuminate\Support\Facades\DB;
 use App\Models\MongoDB\RegistroLudotecaMongo;
-
+use App\Models\HistorialLudoteca;
 class WipeLudotecaDaily extends Command
 {
     protected $signature = 'ludoteca:wipe-daily';
@@ -37,7 +37,7 @@ class WipeLudotecaDaily extends Command
                     ]);
 
             // guardar auditoría en mongo
-            RegistroLudotecaMongo::insert([
+            /* RegistroLudotecaMongo::insert([
                 'tutor_id' => $registro->id_adulto_ingreso,
                 'menor_id' => $registro->id_menor,
                 'hora_ingreso' => $registro->hora_ingreso,
@@ -45,25 +45,48 @@ class WipeLudotecaDaily extends Command
                 'instructor_ingreso' => $registro->id_instructor_ingreso,
                 'metadata' => [
                     'id_registro' => $registro->id_registro,
-                    'estatus_final' => 'FORZADO_POR_SISTEMA'
+                    'estatus_final' => 'c'
                 ],
+            ]); */
+            //AGREGAR PARTE DE NUEVA TABLA
+            $horaIngreso = \Carbon\Carbon::parse($registro->hora_ingreso);
+            $horaEgreso = now();
+
+            $tiempoTotal = (int) round(
+                $horaIngreso->diffInMinutes($horaEgreso)
+            );
+
+            HistorialLudoteca::create([
+                'id_registro_operativo' => $registro->id_registro,
+                'id_menor' => $registro->id_menor,
+                'id_adulto' => $registro->id_adulto_ingreso,
+                'tiempo_total_minutos' => $tiempoTotal,
+                'id_instructor_ingreso' => $registro->id_instructor_ingreso,
+                'id_instructor_egreso' => null,
+                'hora_egreso' => $horaEgreso,
+                'hora_ingreso' => $horaIngreso,
+                'calificacion_servicio' => $registro->calificacion_servicio,
+                'comentarios_padre' => $registro->comentarios_padre,
+                'creado_el' => now(),
+                'estatus_final' => 'FORZADO_POR_SISTEMA'
             ]);
+
         }
 
         // limpiar tabla operativa
-        RegistrosLudoteca::whereNotNull('hora_ingreso')
+        RegistrosLudoteca::whereDate('hora_ingreso', '<', now('America/Mexico_City')->toDateString())
             ->update([
                 'estatus_ludoteca' => 'INACTIVO',
                 'hora_ingreso' => null,
                 'hora_egreso' => null,
-                'id_adulto_ingreso' => null,
                 'id_adulto_egreso' => null,
-                'id_instructor_ingreso' => null,
                 'id_instructor_egreso' => null,
                 'alerta_30_enviada' => false,
                 'alerta_10_enviada' => false,
             ]);
-
+        $this->info('Wipe diario ejecutado correctamente');
         return 0;
+
+
     }
 }

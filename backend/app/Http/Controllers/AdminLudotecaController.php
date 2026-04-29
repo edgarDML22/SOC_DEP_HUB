@@ -7,7 +7,7 @@ use App\Models\TurnosLudoteca;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\RegistrosLudoteca;
-
+use App\Models\HistorialLudoteca;
 
 class AdminLudotecaController extends Controller
 {
@@ -85,36 +85,129 @@ class AdminLudotecaController extends Controller
         ]);
     }
 
-    public function getStats()
+    public function getStats(Request $request)
     {
+        $rango = $request->query('rango', 'hoy');
 
-        $ocupacion = RegistrosLudoteca::where('estatus_ludoteca', 'ACTIVA')->count();
+        switch ($rango) {
+            case 'semana':
+                $inicio = now()->startOfWeek();
+                $fin = now()->endOfWeek();
+                break;
 
-        $incidencias = RegistrosLudoteca::whereDate('hora_ingreso', today())
-            ->where('estatus_ludoteca', 'COMPLETADA_CON_RETRASO')
-            ->count();
+            case 'mes':
+                $inicio = now()->startOfMonth();
+                $fin = now()->endOfMonth();
+                break;
 
-        // Promedio de calificación de encuestas del día
-        $calificacionPromedio = null;
-        try {
-            $avg = DB::table('encuestas_ludoteca')
-                ->whereDate('created_at', today())
-                ->avg('calificacion');
-
-            $calificacionPromedio = $avg ? round($avg, 1) : null;
-        } catch (\Exception $e) {
+            default:
+                $inicio = now()->startOfDay();
+                $fin = now()->endOfDay();
+                break;
         }
 
+        // historial base
+        $historialQuery = HistorialLudoteca::whereBetween(
+            'hora_ingreso',
+            [$inicio, $fin]
+        );
 
-        $totalHoy = RegistrosLudoteca::whereDate('hora_ingreso', today())->count();
+        /*
+        -------------------------
+        KPI 1: Número niños
+        -------------------------
+        */
+        $numeroNinos = (clone $historialQuery)->count();
+
+        if ($rango === 'hoy') {
+            $activos = RegistrosLudoteca::where(
+                'estatus_ludoteca',
+                'ACTIVA'
+            )->count();
+
+            $numeroNinos += $activos;
+        }
+
+        /*
+        -------------------------
+        KPI 2: Calificación promedio
+        -------------------------
+        */
+        $calificacionPromedio = (clone $historialQuery)
+            ->whereNotNull('calificacion_servicio')
+            ->avg('calificacion_servicio');
+
+        /*
+        -------------------------
+        KPI 3: Incidencias
+        -------------------------
+        */
+        $incidencias = (clone $historialQuery)
+            ->whereIn('estatus_final', [
+                'COMPLETADA_CON_RETRASO',
+                'FORZADO_POR_SISTEMA'
+            ])
+            ->count();
+
+        /*
+        -------------------------
+        KPI 4: Tiempo promedio
+        -------------------------
+        */
+        $tiempoPromedio = (clone $historialQuery)
+            ->whereNotNull('tiempo_total_minutos')
+            ->avg('tiempo_total_minutos');
+
+        /*
+        -------------------------
+        Grafica 1
+        -------------------------
+        */
+        if ($rango === 'hoy') {
+            $afluencia = (clone $historialQuery)
+                ->selectRaw('EXTRACT(HOUR FROM hora_ingreso) as label, COUNT(*) as total')
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+        } else {
+            $afluencia = (clone $historialQuery)
+                ->selectRaw('DATE(hora_ingreso) as label, COUNT(*) as total')
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+        }
+
+        /*
+        -------------------------
+        Grafica 2
+        -------------------------ss
+        */
+        $calificaciones = (clone $historialQuery)
+            ->selectRaw('calificacion_servicio as estrella, COUNT(*) as total')
+            ->whereNotNull('calificacion_servicio')
+            ->groupBy('calificacion_servicio')
+            ->orderBy('calificacion_servicio')
+            ->get();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'ocupacion_actual' => $ocupacion,
-                'calificacion_promedio' => $calificacionPromedio,
-                'incidencias_dia' => $incidencias,
-                'total_hoy' => $totalHoy,
+                'kpis' => [
+                    'numero_ninos' => $numeroNinos,
+                    'calificacion_promedio' => round($calificacionPromedio, 1),
+                    'total_incidencias' => $incidencias,
+                    'tiempo_promedio_min' => round($tiempoPromedio)
+                ],
+                'graficas' => [
+                    'afluencia_temporal' => [
+                        'labels' => $afluencia->pluck('label'),
+                        'data' => $afluencia->pluck('total')
+                    ],
+                    'calificaciones' => [
+                        'labels' => $calificaciones->pluck('estrella'),
+                        'data' => $calificaciones->pluck('total')
+                    ]
+                ]
             ]
         ]);
     }

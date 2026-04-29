@@ -10,6 +10,8 @@ use App\Models\MongoDB\RegistroLudotecaMongo;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\AlertaRecogidaNotification;
 use App\Notifications\EncuestaLudotecaNotification;
+use App\Http\Controllers\SancionesController;
+use App\Models\HistorialLudoteca;
 class LudotecaStatusController extends Controller
 {
     //Modificado completamente en la SDH-163 por el cambio de la logica de la ludotecaen
@@ -151,9 +153,7 @@ class LudotecaStatusController extends Controller
                 ->update([
                     'estatus_ludoteca' => 'INACTIVO',
                     'hora_egreso' => null,
-                    'id_adulto_ingreso' => null,
                     'id_adulto_egreso' => null,
-                    'id_instructor_ingreso' => null,
                     'id_instructor_egreso' => null,
                     'alerta_30_enviada' => false,
                     'alerta_10_enviada' => false,
@@ -181,65 +181,33 @@ class LudotecaStatusController extends Controller
                     $request->id_socio
                 )->increment('retrasos_ludoteca', 1); */
                 $socio = SocioTitular::find($request->id_socio);
+                $socio->increment('retrasos_ludoteca', 1);
+
 
                 // aumentar retrasos existentes
-                $socio->increment('retrasos_ludoteca');
 
-                $socio->refresh();
-
-                $retrasos = $socio->retrasos_ludoteca;
-
-                if ($retrasos == 3) {
-                    $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
-
-
-                } elseif ($retrasos == 5) {
-
-                    $socio->update([
-                        'estatus_acceso' => 'SUSPENSION_TEMPORAL',
-                        'fecha_fin_suspension' => now()->addDay()
-                    ]);
-
-                } elseif ($retrasos == 7) {
-
-                    $socio->update([
-                        'estatus_acceso' => 'SUSPENSION_TEMPORAL',
-                        'fecha_fin_suspension' => now()->addDays(3)
-                    ]);
-
-                } elseif ($retrasos == 9) {
-
-                    $socio->update([
-                        'estatus_acceso' => 'SUSPENSION_TEMPORAL',
-                        'fecha_fin_suspension' => now()->addDays(5)
-                    ]);
-
-                } elseif ($retrasos >= 12) {
-
-                    $socio->update([
-                        'estatus_acceso' => 'CANCELADO',
-                        'fecha_fin_suspension' => null
-                    ]);
-                }
             }
-            try {
-                RegistroLudotecaMongo::insert([
-                    'tutor_id' => $request->id_socio,
-                    'menor_id' => RegistrosLudoteca::where('id_registro', $id)->value('id_menor'),
-                    'hora_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('hora_ingreso'),
-                    'hora_egreso' => now('America/Mexico_City'),
-                    'instructor_ingreso' => RegistrosLudoteca::where('id_registro', $id)->value('id_instructor_ingreso'),
-                    'instructor_egreso' => $request->id_instructor,
-                    'metadata' => [
-                        'id_registro' => $id,
-                        'estatus_final' => $estatusFinal
-                    ]
-                ]);
-            } catch (\Exception $e) {
-                \Log::error('Mongo falló: ' . $e->getMessage());
-            }
+            $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->first();
+            $horaIngreso = \Carbon\Carbon::parse($registro->hora_ingreso);
+            $horaEgreso = now();
 
-            // esto corre para ambos casos
+            $tiempoTotal = (int) round(
+                $horaIngreso->diffInMinutes($horaEgreso)
+            );
+
+            $historial = HistorialLudoteca::create([
+                'id_registro_operativo' => $request->id_registro,
+                'id_menor' => $registro->id_menor,
+                'id_adulto' => $registro->id_adulto_ingreso,
+                'tiempo_total_minutos' => $tiempoTotal,
+                'id_instructor_ingreso' => $registro->id_instructor_ingreso,
+                'id_instructor_egreso' => $request->id_instructor,
+                'hora_egreso' => $horaEgreso,
+                'hora_ingreso' => $horaIngreso,
+                'creado_el' => now(),
+                'estatus_final' => $estatusFinal
+            ]);
+
             RegistrosLudoteca::where('id_registro', $id)->update([
                 'estatus_ludoteca' => $estatusFinal,
                 'hora_egreso' => now(),
@@ -252,7 +220,7 @@ class LudotecaStatusController extends Controller
             $socio = SocioTitular::find($request->id_socio);
 
             $socio->notify(
-                new EncuestaLudotecaNotification($id)
+                new EncuestaLudotecaNotification($historial->id_historial)
             );
 
 
