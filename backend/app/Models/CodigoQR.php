@@ -10,21 +10,22 @@ class CodigoQr extends Model
     protected $primaryKey = 'id_codigo';
     
     public $timestamps = true; 
-    
-    const CREATED_AT = 'created_at';
-    const UPDATED_AT = 'updated_at';
 
     protected $fillable = [
         'codigo',
         'usuario_id',
-        'tipo_usuario_qr', // Enum: 'SOCIO', 'FAMILIAR', 'EXTERNO'
+        'tipo_usuario', // Aquí se guarda 'SOCIO', 'FAMILIAR' o 'EXTERNO'
         'fecha_activacion',
         'fecha_expiracion',
-        'estatus_codigo_qr' // Enum: 'ACTIVO', 'USADO', 'EXPIRADO', 'INACTIVO'
+        'estatus'
     ];
 
+    /**
+     * Relación polimórfica inversa.
+     * El nombre 'usuario' debe coincidir con el prefijo usado en los otros modelos.
+     */
     public function usuario()
     {
-        return $this->morphTo(__FUNCTION__, 'tipo_usuario_qr', 'usuario_id');
+        return $this->morphTo('usuario', 'tipo_usuario', 'usuario_id');
     }
 }

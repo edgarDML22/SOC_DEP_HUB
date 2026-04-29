@@ -1,105 +1,165 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import QrcodeVue from 'qrcode.vue';
-import { useProfileStore } from '@/stores/profiles/socioStore';
-import api from '@/services/api';
-import { useRouter } from 'vue-router';
-import { IconArrowLeft } from '@/components/icons';
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAlerts } from '@/composables/useAlerts'
+import api from '@/services/api'
 
-const profileStore = useProfileStore();
-const router = useRouter();
+const router = useRouter()
+const profileStore = useProfileStore()
+const { toastInfo } = useAlerts()
 
-const qrPayload = ref('');
-const loading = ref(true);
-const error = ref('');
+const qrPayload = ref('')
+const loading = ref(true)
+const error = ref('')
+
+// Función con el algoritmo y API solicitada
+const generarQrUrl = (codigo) => {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(codigo)}`
+}
 
 const fetchQrData = async () => {
   try {
-    loading.value = true;
-    error.value = '';
-    
-    // Solo hace la petición una vez para obtener su código permanente
-    const response = await api.get('/profile/qr-data');
-    
+    loading.value = true
+    error.value = ''
+    const response = await api.get('/profile/qr-data')
     if (response.data.success) {
-      qrPayload.value = response.data.data.qr_payload;
+      qrPayload.value = response.data.data.qr_payload
     }
   } catch (err) {
     if (err.response?.status === 403) {
-      error.value = err.response.data?.message ?? 'Tu cuenta no puede acceder al código QR en este momento.';
+      error.value = err.response.data?.message ?? 'Cuenta bloqueada.'
     } else {
-      error.value = 'No se pudo cargar tu código de acceso. Verifica tu conexión.';
+      error.error = 'No se pudo cargar el código.'
     }
-    console.error('Error al obtener QR:', err);
+    console.error('Error QR:', err)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-onMounted(() => {
-  fetchQrData();
-});
+const copiarImagenAlPortapapeles = async (url) => {
+  try {
+    toastInfo('Procesando', 'Preparando imagen...', 'info')
+    const response = await fetch(url)
+    const blob = await response.blob()
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type]: blob })
+    ])
+    toastInfo('¡Listo!', 'Imagen del QR copiada al portapapeles', 'success')
+  } catch (err) {
+    toastInfo('Error', 'Usa clic derecho para copiar la imagen.', 'error')
+  }
+}
+
+onMounted(fetchQrData)
 </script>
 
 <template>
-  <div class="w-full min-h-[calc(100vh-70px)] bg-surface-50 p-4 md:p-8 font-sans flex flex-col items-center justify-center pb-24 md:pb-8">
-    
-    <div class="w-full max-w-sm">
-        
-       <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors focus:outline-none mb-6 group w-fit">
-          <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
-       </button>
+  <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
+    <div class="max-w-3xl mx-auto flex flex-col gap-6">
 
-      <div class="bg-white rounded-[2rem] shadow-[0_12px_40px_rgba(0,0,0,0.06)] border border-surface-200 overflow-hidden relative">
-        
-        <!-- Estado Bloqueado de Cuenta -->
-        <div v-if="profileStore.isAccountInactive" class="absolute inset-0 bg-white/80 backdrop-blur-md z-20 flex flex-col items-center justify-center p-8 text-center text-red-600">
-           <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" /></svg>
-           <h3 class="text-xl font-bold mb-2">Cuenta {{ profileStore.statusAccount }}</h3>
-           <p class="font-medium text-sm text-surface-600 leading-relaxed">No puedes acceder al Pase en este momento. Por favor contacta administración.</p>
+      <button @click="router.back()"
+        class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-2 focus:outline-none w-fit">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        Volver
+      </button>
+
+      <div class="flex flex-col gap-2">
+        <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Mi Código QR</h2>
+        <p class="text-surface-500 text-sm md:text-base m-0 font-medium">Usa este código para registrar tu asistencia en
+          actividades y reservaciones.</p>
+      </div>
+
+      <div
+        class="bg-white rounded-2xl p-6 md:p-10 shadow-sm border border-surface-200 flex flex-col items-center text-center relative overflow-hidden">
+
+        <div v-if="profileStore.isAccountInactive"
+          class="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-8 text-red-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m0 0v2m0-2h2m-2 0H10m11 3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="text-xl font-bold mb-2">Acceso Restringido</h3>
+          <p class="font-medium text-sm text-surface-600">Tu cuenta figura como <strong>{{ profileStore.statusAccount
+          }}</strong>. Contacta a administración para activar tu pase.</p>
         </div>
 
-        <div class="p-8 pb-6 flex flex-col items-center text-center">
-            
-            <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center mb-6 shadow-sm border border-primary-100">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
-            </div>
-
-            <h2 class="text-2xl font-extrabold text-surface-900 mb-2 tracking-tight">Pase de Acceso</h2>
-            <p class="text-surface-500 font-medium text-sm mb-8 leading-relaxed">
-              Muestra este código en las instalaciones para identificarte.
-            </p>
-
-            <div class="bg-white p-5 rounded-3xl border-2 border-dashed border-surface-200 w-full flex flex-col items-center justify-center min-h-[280px]">
-                
-                <div v-if="loading && !qrPayload" class="flex flex-col items-center gap-4 text-surface-400">
-                    <div class="w-10 h-10 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin"></div>
-                    <span class="font-bold text-sm tracking-widest uppercase">Cargando...</span>
-                </div>
-
-                <div v-else-if="error" class="text-red-500 font-medium text-sm text-center">
-                   <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                   {{ error }}
-                </div>
-
-                <!-- Código Estático -->
-                <qrcode-vue v-else-if="qrPayload"
-                  :value="qrPayload" 
-                  :size="220" 
-                  level="H" 
-                  class="w-full h-auto max-w-[220px]"
-                />
-            </div>
+        <div v-if="loading" class="py-20 flex flex-col items-center gap-4">
+          <div class="w-12 h-12 border-4 border-surface-100 border-t-primary-600 rounded-full animate-spin"></div>
+          <p class="text-surface-500 font-medium animate-pulse">Obteniendo credencial...</p>
         </div>
 
-        <div class="bg-surface-50 border-t border-surface-100 p-4 w-full flex items-center justify-center gap-2 text-surface-400">
-           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-           <span class="text-[11px] font-bold uppercase tracking-widest">
-               Identificador Único y Personal
-           </span>
+        <div v-else-if="qrPayload" class="w-full flex flex-col items-center">
+
+          <div v-if="qrPayload" class="mb-4 text-center">
+            <span class="text-2xl md:text-3xl font-normal text-surface-900 tracking-widest uppercase font-sans">
+              {{ qrPayload }}
+            </span>
+          </div>
+
+          <div
+            class="bg-surface-50 p-6 border-2 border-dashed border-surface-300 rounded-3xl mb-8 flex justify-center w-fit">
+            <img :src="generarQrUrl(qrPayload)" alt="Mi Código QR"
+              class="w-56 h-56 md:w-64 md:h-64 rounded-xl bg-white shadow-inner object-contain" />
+          </div>
+
+          <div class="max-w-sm flex flex-col gap-6 w-full">
+            <div class="flex flex-col gap-2">
+              <div
+                class="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-100 text-xs font-bold uppercase tracking-wider mx-auto">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Activo
+              </div>
+              <p class="text-surface-600 text-sm font-medium leading-relaxed mt-2">
+                Este código es personal e intransferible.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <button @click="copiarImagenAlPortapapeles(generarQrUrl(qrPayload))"
+                class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                </svg>
+                Copiar Código QR
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+
+        <div v-else class="py-12 flex flex-col items-center gap-4">
+          <div class="p-4 bg-red-50 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p class="text-red-600 font-bold">{{ error || 'Error de conexión' }}</p>
+          <button @click="fetchQrData" class="text-primary-600 font-bold underline">Reintentar</button>
         </div>
 
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Transición suave para el hover de los botones gradientes */
+button {
+  background-size: 200% auto;
+}
+
+button:hover {
+  background-position: right center;
+}
+</style>

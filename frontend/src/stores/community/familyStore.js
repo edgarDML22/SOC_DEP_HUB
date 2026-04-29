@@ -14,8 +14,8 @@ export const useFamilyStore = defineStore("family", {
       this.loading = true;
       this.error = null;
       try {
-        const res = await api.get("/family-member-list");
-        this.miembrosFamiliares = res.data || [];
+        const res = await api.get("family-member-list");
+        this.miembrosFamiliares = res.data.data || [];
       } catch (err) {
         console.error("Error cargando:", err);
         this.error = err.response?.data?.message || "Error al cargar";
@@ -24,17 +24,17 @@ export const useFamilyStore = defineStore("family", {
       }
     },
     async addMiembroFamiliar(payload) {
-      const res = await api.post("/family-member-create", payload);
+      const res = await api.post("family-member-create", payload);
       await this.fetchMiembrosFamiliares(true);
       return res;
     },
     async updateMiembroFamiliar(id, payload) {
-      const res = await api.put(`/family-member/${id}`, payload);
+      const res = await api.put(`family-member/${id}`, payload);
       await this.fetchMiembrosFamiliares(true);
       return res;
     },
     async deleteMiembroFamiliar(id) {
-      const res = await api.delete(`/family-member/${id}`);
+      const res = await api.delete(`family-member/${id}`);
       await this.fetchMiembrosFamiliares(true);
       return res;
     },

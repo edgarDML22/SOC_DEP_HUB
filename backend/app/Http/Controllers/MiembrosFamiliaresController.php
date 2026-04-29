@@ -12,36 +12,47 @@ use Illuminate\Support\Str;
 class MiembrosFamiliaresController extends Controller
 {
     // MOSTRAR TODOS
+    // --- MÉTODO SHOW ---
     public function show(Request $request)
     {
         $id_socio = $request->user()->user_id;
 
-        $id_valido = SocioTitular::where('id_socio', $id_socio)->first();
-        if (!$id_valido) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontró socio con ese id'
-            ], 404);
-        }
+        // 1. Usamos with('codigoQrActivo') para cargar el QR de forma eficiente
+        $miembros = MiembrosFamiliares::with('codigoQrActivo')
+            ->where('socio_id', $id_socio)
+            ->get();
 
-        // 1. Obtenemos a los familiares (activos)
-        $miembros = MiembrosFamiliares::where('socio_id', $id_socio)->get();
-
-        // 2. Mapeamos la colección para buscar y adjuntar el QR correspondiente
+        // 2. Mapeamos para mantener la estructura que espera tu frontend
         $miembrosConQR = $miembros->map(function ($miembro) {
-            $qr = DB::table('codigos_qr')
-                ->where('usuario_id', $miembro->id_miembro)
-                ->where('tipo_usuario', 'FAMILIAR')
-                ->first();
-
-            $miembro->codigo_qr = $qr ? $qr->codigo : 'QR_NO_ENCONTRADO';
-
+            $miembro->codigo_qr = $miembro->codigoQrActivo ? $miembro->codigoQrActivo->codigo : 'QR_NO_ENCONTRADO';
             return $miembro;
         });
 
-        // 3. Enviamos la lista ya enriquecida con los QRs
-        return response()->json($miembrosConQR);
+        return response()->json(['success' => true, 'data' => $miembrosConQR], 200);
     }
+
+    // --- MÉTODO DESTROY ---
+    public function destroy(Request $request, $id)
+    {
+        $id_socio = $request->user()->user_id;
+        $miembro = MiembrosFamiliares::where('id_miembro', $id)->where('socio_id', $id_socio)->first();
+
+        if (!$miembro) return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
+
+        try {
+            DB::transaction(function () use ($miembro) {
+                // Actualizamos el estatus del QR usando la relación polimórfica
+                if ($miembro->codigoQrActivo) {
+                    $miembro->codigoQrActivo->update(['estatus_codigo_qr' => 'INACTIVO']);
+                }
+                $miembro->delete();
+            });
+            return response()->json(['success' => true, 'message' => 'Eliminado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error al procesar'], 500);
+        }
+    }
+
 
 
     // CREAR 
@@ -123,10 +134,7 @@ class MiembrosFamiliaresController extends Controller
                 return $miembro;
             });
 
-            $qrPayload = json_encode([
-                'codigo_qr' => $codigoString,
-                'tipo'      => 'familiar'
-            ]);
+            $qrPayload = $codigoString;
             $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrPayload);
 
             if (!empty($request->correo)) {
@@ -215,41 +223,4 @@ class MiembrosFamiliaresController extends Controller
         }
     }
 
-    // ELIMINAR
-    public function destroy(Request $request, $id)
-    {
-        $id_socio = $request->user()->user_id;
-
-        $miembro = MiembrosFamiliares::where('id_miembro', $id)
-            ->where('socio_id', $id_socio)
-            ->first();
-
-        if (!$miembro) {
-            return response()->json(['success' => false, 'message' => 'No autorizado o no encontrado'], 404);
-        }
-
-        try {
-            DB::transaction(function () use ($miembro, $id) {
-
-                DB::table('codigos_qr')
-                    ->where('usuario_id', $id)
-                    ->where('tipo_usuario', 'FAMILIAR')
-                    ->update([
-                        'estatus'    => 'INACTIVO',
-                        'deleted_at' => now(),
-                        'updated_at' => now()
-                    ]);
-
-                $miembro->delete();
-            }); // fin transaction
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Miembro familiar y su acceso han sido eliminados correctamente'
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('Error en eliminación en cascada MF: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error al procesar la baja'], 500);
-        }
-    }
 }

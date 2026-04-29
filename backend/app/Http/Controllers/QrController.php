@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CodigoQr;
+use App\Models\MiembrosFamiliares;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\SocioTitular;
@@ -15,58 +17,52 @@ class QrController extends Controller
      * @param  \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+
     public function generateQrPayload(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
+    if (!$user) return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
 
-        if (!$user) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Usuario no autenticado'
-            ], 401);
+    $perfil = null;
+    $prefijo = '';
+    $tipoMorph = '';
+
+    // 1. Identificar tipo de usuario y validar estatus
+    if ($user->rol === 'socio_titular') {
+        $perfil = SocioTitular::find($user->user_id);
+        if ($perfil->estatus_cuenta !== 'AL_CORRIENTE') {
+            return response()->json(['success' => false, 'message' => 'Cuenta no al corriente'], 403);
         }
-
-        // Lógica específica para Socios Titulares
-        if ($user->rol === 'socio_titular') {
-            $socio = SocioTitular::find($user->user_id);
-
-            if (!$socio || $socio->estatus_cuenta !== 'AL_CORRIENTE') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tu cuenta no está al corriente. No es posible acceder al código QR.'
-                ], 403);
-            }
-
-            // Buscamos su código QR a través de la relación polimórfica
-            $qrActivo = $socio->codigoQrActivo;
-
-            // Si NO tiene un código generado (ej. cuenta nueva), lo creamos de forma permanente
-            if (!$qrActivo) {
-                // Generamos un identificador único y seguro de 40 caracteres
-                $codigoUnico = Str::random(40);
-
-                // Insertamos en la tabla codigos_qr mediante la relación (esto se hace solo 1 vez)
-                $qrActivo = $socio->codigosQr()->create([
-                    'codigo' => $codigoUnico,
-                    'estatus_codigo_qr' => 'ACTIVO',
-                    'fecha_activacion' => now(),
-                    // fecha_expiracion se queda nula porque es permanente
-                ]);
-            }
-
-            // Devolvemos el código permanente extraído de la base de datos
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'qr_payload' => $qrActivo->codigo 
-                ]
-            ], 200);
-        }
-
-        // Aquí puedes replicar la misma lógica para 'miembro_familiar' si lo necesitas después
-        return response()->json([
-            'success' => false, 
-            'message' => 'Rol no soportado aún.'
-        ], 400);
+        $prefijo = 'QS';
+        $tipoMorph = 'SOCIO';
+    } elseif ($user->rol === 'miembro_familiar') {
+        $perfil = MiembrosFamiliares::find($user->user_id);
+        $prefijo = 'MF';
+        $tipoMorph = 'FAMILIAR';
     }
+
+    if (!$perfil) return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
+
+    // 2. Obtener o Generar el QR Permanente
+    $qr = $perfil->codigoQrActivo;
+
+    if (!$qr) {
+        // Algoritmo: Prefijo + 6 caracteres aleatorios únicos
+        do {
+            $codigoNuevo = $prefijo . strtoupper(Str::random(6));
+        } while (CodigoQr::where('codigo', $codigoNuevo)->exists());
+
+        $qr = $perfil->codigosQr()->create([
+            'codigo' => $codigoNuevo,
+            'estatus' => 'ACTIVO',
+            'fecha_activacion' => now()
+        ]);
+    }
+
+    return response()->json([
+        'success' => true,
+        'data' => ['qr_payload' => $qr->codigo]
+    ], 200);
+}
+
 }

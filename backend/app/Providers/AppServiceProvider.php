@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Database\Eloquent\Relations\Relation; // <-- 1. Importa esta clase arriba
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-    //
+        //
     }
 
     /**
@@ -20,7 +20,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //Forzar HTTPS
-        URL::forceScheme('https');
+        // 2. Agrega este mapeo estricto
+        Relation::enforceMorphMap([
+            'SOCIO'    => 'App\Models\SocioTitular',
+            'FAMILIAR' => 'App\Models\MiembrosFamiliares',
+            // Agrega el de invitados cuando implementes ese modelo:
+            // 'EXTERNO'  => 'App\Models\Invitados', 
+        ]);
     }
 }
