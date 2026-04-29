@@ -99,7 +99,7 @@ const handleClick = async (action) => {
 
         <div class="relative z-10 shrink-0 flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <!-- Botón primario estandarizado sobre una hero card oscura -->
-          <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-8 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-black/20 text-center border border-primary-500 flex items-center justify-center gap-2 hover:-translate-y-0.5">
+          <router-link v-if="!profileStore.isReservationsBlocked" to="/socio/reservations" class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-8 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-black/20 text-center border border-primary-500 flex items-center justify-center gap-2 hover:-translate-y-0.5">
             Reservar ahora <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </router-link>
         </div>
@@ -110,7 +110,7 @@ const handleClick = async (action) => {
         <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Acciones rápidas</h3>
         
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-          <router-link v-if="!profileStore.isAccountInactive" to="/socio/reservations" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
+          <router-link v-if="!profileStore.isReservationsBlocked" to="/socio/reservations" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconCalendar class="w-7 h-7 md:w-8 md:h-8" />
             </div>
@@ -125,7 +125,7 @@ const handleClick = async (action) => {
           </router-link>
 
           <!-- NUEVO BOTÓN: LUDOTECA -->
-          <router-link to="/socio/socio-ludoteca/ludoteca-list" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
+          <router-link v-if="!profileStore.isLudotecaBlocked" to="/socio/socio-ludoteca/ludoteca-list" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconBaby class="w-7 h-7 md:w-8 md:h-8" />
             </div>

@@ -198,6 +198,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
 
+    // RUTAS DE SANCIONES
+    Route::post('/v1/sanciones/ludoteca', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesAPI']);
+    Route::post('/v1/sanciones/reservas', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesReservasAPI']);
+
 });
 
 

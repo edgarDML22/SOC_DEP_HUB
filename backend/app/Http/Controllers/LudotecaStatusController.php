@@ -12,7 +12,6 @@ use App\Notifications\AlertaRecogidaNotification;
 use App\Notifications\EncuestaLudotecaNotification;
 use App\Models\HistorialLudoteca;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Sanciones;
 
 class LudotecaStatusController extends Controller
 {

@@ -19,6 +19,9 @@ class SocioTitular extends Model
         'genero',
         'modalidad_plan',
         'retrasos_ludoteca',
+        'contador_noshows',
+        'estatus_cuenta',
+        'fecha_fin_penalizacion'
     ];
 
     public function invitados()

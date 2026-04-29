@@ -42,7 +42,19 @@ export const useProfileStore = defineStore("profile", () => {
   const isAccountInactive = computed(() => {
     if (!profileData.value) return false;
     const status = profileData.value?.estatus_cuenta?.toUpperCase();
-    return status === "INACTIVO" || status === "SUSPENDIDO";
+    return status === "INACTIVO" || status === "SUSPENDIDO" || status === "PENALIZADO_AMBOS";
+  });
+
+  const isLudotecaBlocked = computed(() => {
+    if (!profileData.value) return false;
+    const status = profileData.value?.estatus_cuenta?.toUpperCase();
+    return status === "PENALIZADO_LUDOTECA" || status === "PENALIZADO_AMBOS" || status === "SUSPENDIDO" || status === "INACTIVO";
+  });
+
+  const isReservationsBlocked = computed(() => {
+    if (!profileData.value) return false;
+    const status = profileData.value?.estatus_cuenta?.toUpperCase();
+    return status === "PENALIZADO_RESERVA" || status === "PENALIZADO_AMBOS" || status === "SUSPENDIDO" || status === "INACTIVO";
   });
 
   const tienePlanFamiliar = computed(() => {
@@ -94,6 +106,8 @@ export const useProfileStore = defineStore("profile", () => {
     modalidadPlan,
     idSocio,
     esAdmin,
+    isLudotecaBlocked,
+    isReservationsBlocked,
     fetchProfile,
     updateProfile,
     tienePlanFamiliar,
