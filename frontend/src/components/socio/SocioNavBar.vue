@@ -68,7 +68,7 @@ onUnmounted(() => {
                 <IconHome class="w-[18px] h-[18px] group-[.router-link-active]:text-white" /> Inicio
             </router-link>
 
-            <router-link to="/socio/reservations" 
+            <router-link to="/socio/agenda" 
                 class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold"
                 :class="{ 'opacity-50 cursor-not-allowed': profileStore.isAccountInactive }">
                 <IconCalendar class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Agenda
@@ -85,7 +85,7 @@ onUnmounted(() => {
             <router-link to="/socio/qr" 
                 class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold"
                 :class="{ 'opacity-50 cursor-not-allowed': profileStore.isAccountInactive }">
-                <IconQr class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Pase QR
+                <IconQr class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Código QR
             </router-link>
         </div>
 
@@ -176,12 +176,12 @@ onUnmounted(() => {
             
             <router-link to="/socio/home" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconHome class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Inicio</span>
+                <span class="text-[12px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Inicio</span>
             </router-link>
 
-            <router-link to="/socio/reservations" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
+            <router-link to="/socio/agenda" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconCalendar class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Agenda</span>
+                <span class="text-[12px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Agenda</span>
             </router-link>
 
             <router-link to="/socio/qr" class="flex flex-col items-center justify-center group w-[20%] relative active:scale-90 transition-all -mt-6">
@@ -189,18 +189,18 @@ onUnmounted(() => {
                 <div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary-800 to-primary-600 shadow-[0_6px_24px_rgba(37,99,235,0.45)] flex items-center justify-center ring-4 ring-white">
                     <IconQr class="w-7 h-7 text-white drop-shadow-sm" />
                 </div>
-                <span class="text-[9px] font-bold text-primary-700 mt-1 uppercase tracking-wide">Pase QR</span>
+                <span class="text-[11px] font-bold text-primary-700 mt-1 tracking-wide"> Código QR</span>
             </router-link>
 
             <router-link to="/socio/community" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconGuests class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Amigos</span>
+                <span class="text-[12px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Amigos</span>
             </router-link>
 
             <!-- Ruta explícita hacia el perfil garantizada -->
             <router-link to="/socio/profile" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
                 <IconUser class="w-[22px] h-[22px] text-surface-400 group-hover:text-surface-600 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Perfil</span>
+                <span class="text-[12px] font-medium text-surface-500 group-hover:text-surface-700 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Perfil</span>
             </router-link>
 
         </div>

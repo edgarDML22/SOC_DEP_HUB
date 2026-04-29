@@ -21,7 +21,8 @@ const {
     esHorarioValidoParaPreview,
     errorValidacion,
     errorNavegacion,
-    mostrarModalDraft 
+    mostrarModalDraft,
+    draftVerificado,
 } = storeToRefs(reservationStore);
 
 const {
@@ -33,15 +34,22 @@ const {
 } = reservationStore;
 
 onMounted(async () => {
+    // Siempre aseguramos tener los espacios disponibles (guard interno lo evita si ya cargó)
     reservationStore.fetchDisponibilidadEspacios();
+
     const profileStore = useProfileStore();
     await profileStore.fetchProfile();
-    const tieneDraft = await reservationStore.buscarReservaActiva();
-    
-    if (tieneDraft && reservationStore.pasoActual === "1") {
-        mostrarModalDraft.value = true;
-    } else {
-        mostrarModalDraft.value = false;
+
+    // Solo verificamos borradores si no lo hemos hecho ya en esta sesión
+    if (!draftVerificado.value) {
+        const tieneDraft = await reservationStore.buscarReservaActiva();
+        draftVerificado.value = true; // Marcar como verificado independientemente del resultado
+
+        if (tieneDraft && reservationStore.pasoActual === "1") {
+            mostrarModalDraft.value = true;
+        } else {
+            mostrarModalDraft.value = false;
+        }
     }
 });
 
@@ -66,10 +74,23 @@ watch(horaInicioTemp, (newVal) => {
 });
 
 watch(formDuration, () => {
-    if (horaInicioTemp.value) {
-        const temp = horaInicioTemp.value;
-        horaInicioTemp.value = null;
-        horaInicioTemp.value = temp;
+    if (horaInicioTemp.value && opcionesHoras.value?.length) {
+        const parseMins = (hStr) => {
+            const [h, m] = hStr.split(':').map(Number);
+            return h * 60 + (m || 0);
+        };
+        const lastSlotMins = parseMins(opcionesHoras.value[opcionesHoras.value.length - 1]);
+        const startMins = parseMins(horaInicioTemp.value);
+        // Si el slot actual ya no es válido con la nueva duración, lo limpiamos
+        if (startMins + formDuration.value > lastSlotMins) {
+            horaInicioTemp.value = null;
+            horaFinTemp.value = null;
+        } else {
+            // Recalcular hora fin con nueva duración
+            const temp = horaInicioTemp.value;
+            horaInicioTemp.value = null;
+            horaInicioTemp.value = temp;
+        }
     }
 });
 
@@ -100,9 +121,21 @@ const horariosGrupados = computed(() => {
         "Tarde": [],
         "Noche": []
     };
-    if (!opcionesHoras.value) return grupos;
+    if (!opcionesHoras.value || !opcionesHoras.value.length) return grupos;
+
+    const parseMins = (hStr) => {
+        const [h, m] = hStr.split(':').map(Number);
+        return h * 60 + (m || 0);
+    };
+
+    // Límite = último slot disponible (ej. 23:00 → 1380 min)
+    const lastSlotMins = parseMins(opcionesHoras.value[opcionesHoras.value.length - 1]);
 
     opcionesHoras.value.forEach(hora => {
+        const startMins = parseMins(hora);
+        // Sólo mostramos el slot si inicio + duración NO excede el último slot
+        if (startMins + formDuration.value > lastSlotMins) return;
+
         const h = parseInt(hora.split(':')[0]);
         if (h < 12) grupos["Mañana"].push(hora);
         else if (h < 18) grupos["Tarde"].push(hora);
@@ -111,8 +144,21 @@ const horariosGrupados = computed(() => {
     return grupos;
 });
 
-const isHoraBloqueada = (horaInicio) => {
-    if (!horariosDisponibles.value || !horariosDisponibles.value.length) return false;
+const getSlotStatus = (horaInicio) => {
+    // 1. Validar si la hora ya pasó (solo si es para el día de hoy)
+    // Nota: El backend siempre asume "hoy" para OnDemand por ahora, pero aquí somos precavidos.
+    const ahoraStr = new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" });
+    const ahoraMexico = new Date(ahoraStr);
+    
+    const [h, m] = horaInicio.split(':').map(Number);
+    const horaSlot = new Date(ahoraMexico);
+    horaSlot.setHours(h, m, 0, 0);
+
+    if (horaSlot < ahoraMexico) {
+        return { blocked: true, reason: 'PAST', label: 'Pasado' };
+    }
+
+    if (!horariosDisponibles.value || !horariosDisponibles.value.length) return { blocked: false };
 
     const parseMins = (hStr) => {
         const [h, m] = hStr.split(':').map(Number);
@@ -121,12 +167,25 @@ const isHoraBloqueada = (horaInicio) => {
     const startMins = parseMins(horaInicio);
     const endMins = startMins + formDuration.value;
 
-    return horariosDisponibles.value.some(bloque => {
+    const bloque = horariosDisponibles.value.find(bloque => {
         if (!bloque.inicio || !bloque.fin) return false;
         const bkStart = parseMins(bloque.inicio);
         const bkEnd = parseMins(bloque.fin);
         return (startMins < bkEnd && endMins > bkStart);
     });
+
+    if (bloque) {
+        if (bloque.tipo === 'conflicto_personal') {
+            return { blocked: true, reason: 'PERSONAL', label: 'Tu Agenda' };
+        }
+        return { blocked: true, reason: 'OCCUPIED', label: 'Ocupado' };
+    }
+
+    return { blocked: false };
+};
+
+const isHoraBloqueada = (horaInicio) => {
+    return getSlotStatus(horaInicio).blocked;
 };
 
 // --- Step 3: Sticky status bar visibility ---
@@ -333,11 +392,10 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                                         class="w-8 h-8 fill-current" />
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <div class="font-bold text-lg text-surface-900 truncate mb-0.5">{{
+                                    <div class="font-bold text-base text-surface-900 truncate leading-snug">{{
                                         cancha.nombre_espacio }}
                                     </div>
-                                    <div
-                                        class="text-xs text-surface-500 font-semibold uppercase mt-0.5 tracking-wide flex items-center gap-1.5">
+                                    <div class="text-xs text-surface-400 font-semibold uppercase tracking-widest mt-1">
                                         {{ reservaPayload.disciplinaSeleccionada }}
                                     </div>
                                 </div>
@@ -441,17 +499,25 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
 
                             <div v-else class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-4">
                                 <button v-for="hora in horas" :key="hora"
-                                    @click="isHoraBloqueada(hora) ? null : (horaInicioTemp = hora)"
-                                    :disabled="isHoraBloqueada(hora)"
-                                    class="py-3.5 px-2 border-2 rounded-2xl text-center font-bold transition-all focus:outline-none relative overflow-hidden"
+                                    @click="getSlotStatus(hora).blocked ? null : (horaInicioTemp = hora)"
+                                    :disabled="getSlotStatus(hora).blocked"
+                                    class="py-3.5 px-2 border-2 rounded-2xl text-center font-bold transition-all focus:outline-none relative overflow-hidden group"
                                     :class="{
                                         'bg-primary-600 border-primary-600 text-white shadow-lg -translate-y-1': horaInicioTemp === hora,
-                                        'bg-white border-surface-200 text-surface-700 hover:border-primary-400 hover:text-primary-700 hover:-translate-y-0.5 hover:shadow-sm active:scale-95 cursor-pointer': horaInicioTemp !== hora && !isHoraBloqueada(hora),
-                                        'bg-surface-100/50 border-surface-200 text-surface-400 opacity-60 cursor-not-allowed hidden-hover line-through decoration-surface-400 decoration-2': isHoraBloqueada(hora)
+                                        'bg-white border-surface-200 text-surface-700 hover:border-primary-400 hover:text-primary-700 hover:-translate-y-0.5 hover:shadow-sm active:scale-95 cursor-pointer': horaInicioTemp !== hora && !getSlotStatus(hora).blocked,
+                                        'bg-surface-100/50 border-surface-200 text-surface-300 opacity-40 cursor-not-allowed hidden-hover': getSlotStatus(hora).reason === 'PAST',
+                                        'bg-surface-100/50 border-surface-200 text-surface-400 opacity-70 cursor-not-allowed hidden-hover line-through decoration-surface-400 decoration-2': getSlotStatus(hora).reason === 'OCCUPIED',
+                                        'bg-orange-50 border-orange-200 text-orange-600 opacity-80 cursor-not-allowed hidden-hover': getSlotStatus(hora).reason === 'PERSONAL'
                                     }">
                                     {{ formatearHora(hora) }}
-                                    <span v-if="isHoraBloqueada(hora)"
-                                        class="absolute text-[9px] uppercase tracking-wider text-surface-400 bottom-0.5 left-0 w-full text-center font-bold leading-none no-underline">Ocupado</span>
+                                    <span v-if="getSlotStatus(hora).blocked"
+                                        class="absolute text-[9px] uppercase tracking-wider bottom-0.5 left-0 w-full text-center font-bold leading-none no-underline"
+                                        :class="{
+                                            'text-surface-400': getSlotStatus(hora).reason === 'PAST' || getSlotStatus(hora).reason === 'OCCUPIED',
+                                            'text-orange-600': getSlotStatus(hora).reason === 'PERSONAL'
+                                        }">
+                                        {{ getSlotStatus(hora).label }}
+                                    </span>
                                 </button>
                             </div>
                         </div>

@@ -287,17 +287,18 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'Solo se pueden cancelar reservaciones activas'], 400);
         }
 
-        // Determinar si aplica NO_SHOW según tiempo restante
+        // Determinar si aplica NO_SHOW según tiempo restante (menos de 2 horas o ya pasada)
         $now = Carbon::now('America/Mexico_City');
         $fechaHoraReserva = Carbon::parse(
             $reservacion->fecha_reserva . ' ' . $reservacion->hora_inicio,
             'America/Mexico_City'
         );
+        
         $minutosRestantes = $now->diffInMinutes($fechaHoraReserva, false);
 
-        $nuevoEstatus = ($minutosRestantes >= 0 && $minutosRestantes < 120)
-            ? 'NO_SHOW'
-            : 'CANCELADA';
+        // Si faltan menos de 120 minutos (2 horas) es NO_SHOW. 
+        // Si minutosRestantes es negativo, significa que la reserva ya pasó/inició, también es NO_SHOW.
+        $nuevoEstatus = ($minutosRestantes < 120) ? 'NO_SHOW' : 'CANCELADA';
 
         $reservacion->estatus_operativo = $nuevoEstatus;
         $reservacion->save();

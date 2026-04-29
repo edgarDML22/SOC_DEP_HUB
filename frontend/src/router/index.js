@@ -42,32 +42,18 @@ const router = createRouter({
           component: () => import("@/views/socio/SocioHomeView.vue"),
         },
         {
+          path: "agenda",
+          name: "personal-schedule",
+          component: () => import("@/views/reservations/socio/SocioAgendaView.vue"),
+        },
+        {
           path: "reservations",
-          name: "socio-reservations",
-          component: () => import("@/views/reservations/socio/Reservations.vue"),
+          name: "reservation-on-demand",
+          component: () => import("@/views/reservations/socio/SpaceReservationsHub.vue"),
           meta: {
             requiresAuth: true,
             allowedRoles: ["socio_titular", "miembro_familiar"],
           },
-          // 1. CORRECCIÓN: Agregamos el '/' al inicio para que sea una ruta absoluta
-          redirect: "/socio/reservations/manage",
-          children: [
-            {
-              path: "on-demand",
-              name: "socio-reservations-on-demand", // Mejor usar nombres únicos
-              component: () => import("@/views/reservations/socio/OnDemand.vue"),
-            },
-            {
-              path: "active-sessions",
-              name: "socio-reservations-active-sessions",
-              component: () => import("@/views/reservations/socio/ActiveSessions.vue"),
-            },
-            {
-              path: "manage",
-              name: "socio-reservations-manage",
-              component: () => import("@/views/reservations/socio/Manage.vue"),
-            },
-          ],
           beforeEnter: async (to, from) => {
             const profileStore = useProfileStore();
 
@@ -83,6 +69,11 @@ const router = createRouter({
               return "/socio/home";
             }
           },
+        },
+        {
+          path: "classes",
+          name: "programmed-activities",
+          component: () => import("@/views/reservations/socio/ClassReservationsHub.vue"),
         },
 
 
