@@ -30,6 +30,17 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // 3.5 Verificar estatus si es instructor
+        if ($user->rol === 'instructor') {
+            $instructor = $user->instructor;
+            if ($instructor && $instructor->estatus === 'INACTIVO') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta está inactiva. Contacta al administrador.'
+                ], 403);
+            }
+        }
+
         // 4. Generar token de Sanctum
         $token = $user->createToken('auth_token')->plainTextToken;
 

@@ -114,6 +114,40 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
         }
     };
 
+    const fetchStatusImpact = async (id) => {
+        try {
+            const res = await api.get(`/instructors/${id}/status-impact`);
+            return res.data;
+        } catch (err) {
+            console.error("Error fetching status impact:", err);
+            throw err;
+        }
+    };
+
+    const fetchCandidateSubstitutes = async (activityId) => {
+        try {
+            const res = await api.get(`/activities/${activityId}/substitutes`);
+            return res.data;
+        } catch (err) {
+            console.error("Error fetching substitutes:", err);
+            throw err;
+        }
+    };
+
+    const applyMeticulousStatus = async (id, data) => {
+        try {
+            const res = await api.post(`/instructors/${id}/apply-status`, data);
+            if (res.data.success) {
+                // Forzar refresco de la lista local
+                await fetchInstructors(true);
+            }
+            return res.data;
+        } catch (err) {
+            console.error("Error applying meticulous status:", err);
+            return { success: false, message: err.response?.data?.message || "Error al aplicar cambios" };
+        }
+    };
+
     return {
         instructors,
         isLoading,
@@ -122,6 +156,9 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
         fetchInstructorDetails,
         updateInstructor,
         deleteInstructor,
-        getInstructorById
+        getInstructorById,
+        fetchStatusImpact,
+        fetchCandidateSubstitutes,
+        applyMeticulousStatus
     };
 });

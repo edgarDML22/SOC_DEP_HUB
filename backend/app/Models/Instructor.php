@@ -15,9 +15,12 @@ class Instructor extends Model
         'id_usuario',
         'nombre_completo',
         'telefono',
+        'correo_electronico',
         'estatus',
-        'fecha_contratacion',
-        'fecha_nacimiento'
+        'fecha_afiliacion',
+        'fecha_nacimiento',
+        'hora_entrada',
+        'hora_salida'
     ];
 
     public function usuario()
@@ -28,5 +31,15 @@ class Instructor extends Model
     public function disciplinas()
     {
         return $this->belongsToMany(Disciplina::class, 'instructor_disciplina', 'id_instructor', 'id_disciplina');
+    }
+
+    public function actividades()
+    {
+        return $this->hasMany(ActividadPlantilla::class, 'id_instructor', 'id_instructor');
+    }
+
+    public function actividadesOriginales()
+    {
+        return $this->hasMany(ActividadPlantilla::class, 'id_instructor_original', 'id_instructor');
     }
 }

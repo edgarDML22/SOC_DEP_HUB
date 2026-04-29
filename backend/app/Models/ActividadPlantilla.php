@@ -12,7 +12,16 @@ class ActividadPlantilla extends Model
     //
     protected $fillable = [
         'id_sesion',
-
+        'id_plantilla',
+        'id_disciplina',
+        'id_espacio',
+        'id_instructor',
+        'id_instructor_original',
+        'dia_semana',
+        'hora_inicio',
+        'hora_fin',
+        'cupo_maximo',
+        'estatus'
     ];
 
     public function espacioFisico()

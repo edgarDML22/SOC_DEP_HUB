@@ -14,38 +14,26 @@ const { isLoading, error: storeError } = storeToRefs(instructorStore);
 const instructorId = route.params.id;
 
 const instructor = ref(null);
-const disciplinasList = ref([]);
 const errorMsg = ref('');
 
 // Modales
 const showEditModal = ref(false);
 const isSaving = ref(false);
-const isDeleting = ref(false);
 
 const editForm = ref({
     nombre_completo: '',
     telefono: '',
+    correo_electronico: '',
     fecha_nacimiento: '',
-    fecha_contratacion: '',
-    estatus: 'ACTIVO',
-    disciplinas: []
+    hora_entrada: '',
+    hora_salida: ''
 });
 
 onMounted(async () => {
-    await fetchDisciplinas();
     await fetchInstructorDetails();
 });
 
-const fetchDisciplinas = async () => {
-    try {
-        const response = await api.get('/disciplinas/all');
-        if (response.data && response.data.success) {
-            disciplinasList.value = response.data.data;
-        }
-    } catch (error) {
-        console.error("Error cargando disciplinas:", error);
-    }
-};
+
 
 const fetchInstructorDetails = async () => {
     errorMsg.value = '';
@@ -56,10 +44,10 @@ const fetchInstructorDetails = async () => {
         editForm.value = {
             nombre_completo: data.nombre_completo,
             telefono: data.telefono || '',
+            correo_electronico: data.correo_electronico || '',
             fecha_nacimiento: data.fecha_nacimiento || '',
-            fecha_contratacion: data.fecha_contratacion || '',
-            estatus: data.estatus,
-            disciplinas: data.disciplinas ? data.disciplinas.map(d => d.id_disciplina) : []
+            hora_entrada: data.hora_entrada || '',
+            hora_salida: data.hora_salida || ''
         };
     } catch (error) {
         console.error("Error cargando detalles del instructor:", error);
@@ -67,14 +55,7 @@ const fetchInstructorDetails = async () => {
     }
 };
 
-const toggleDisciplinaSelection = (id) => {
-    const index = editForm.value.disciplinas.indexOf(id);
-    if (index > -1) {
-        editForm.value.disciplinas.splice(index, 1);
-    } else {
-        editForm.value.disciplinas.push(id);
-    }
-};
+
 
 const saveEditInstructor = async () => {
     if (!editForm.value.nombre_completo) {
@@ -100,24 +81,7 @@ const saveEditInstructor = async () => {
     }
 };
 
-const darDeBaja = async () => {
-    if (!confirm("¿Estás seguro de que deseas dar de baja o inactivar a este instructor?")) return;
-    
-    isDeleting.value = true;
-    try {
-        const res = await instructorStore.deleteInstructor(instructorId);
-        if (res.success) {
-            alert("Instructor dado de baja exitosamente.");
-            router.push('/admin/instructors');
-        } else {
-            alert(res.error || "Error al dar de baja al instructor.");
-        }
-    } catch (error) {
-        console.error("Error al eliminar instructor:", error);
-    } finally {
-        isDeleting.value = false;
-    }
-};
+
 
 const goBack = () => {
     router.push('/admin/instructors');
@@ -131,7 +95,8 @@ const goBack = () => {
         <header class="app-header">
             <button @click="goBack" class="btn-back">
                 <svg class="icon-back" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
             </button>
             <h1 class="header-title">Detalles del Instructor</h1>
@@ -165,18 +130,24 @@ const goBack = () => {
                         }">
                             {{ instructor.estatus }}
                         </span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">ID: #{{ instructor.id_instructor }}</span>
                     </div>
 
                     <h2 class="session-type">{{ instructor.nombre_completo }}</h2>
-                    <p class="session-location text-gray-500 mt-2">
-                        📞 {{ instructor.telefono || 'Sin teléfono registrado' }}
+                    <p class="session-location text-gray-500 mt-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.19-2.19a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        {{ instructor.telefono || 'Sin teléfono registrado' }}
+                    </p>
+                    <p class="session-location text-gray-500 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        {{ instructor.correo_electronico || 'Sin correo registrado' }}
                     </p>
 
                     <div class="info-grid mt-6">
                         <div class="info-cell">
-                            <span class="info-label">Fecha de Ingreso</span>
+                            <span class="info-label">Fecha de Contratación</span>
                             <div class="info-value">
-                                <span>{{ instructor.fecha_contratacion || 'N/A' }}</span>
+                                <span>{{ instructor.fecha_afiliacion || 'N/A' }}</span>
                             </div>
                         </div>
 
@@ -186,25 +157,24 @@ const goBack = () => {
                                 <span>{{ instructor.fecha_nacimiento || 'N/A' }}</span>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="mt-6 border-t pt-4">
-                        <h4 class="font-bold text-gray-700 mb-2">Disciplinas que Imparte</h4>
-                        <div class="disciplinas-chips">
-                            <span v-for="disc in instructor.disciplinas" :key="disc.id_disciplina" class="chip">
-                                {{ disc.nombre_disciplina }}
-                            </span>
-                            <span v-if="!instructor.disciplinas || instructor.disciplinas.length === 0" class="chip-empty">
-                                Sin disciplinas registradas
-                            </span>
+                        <div class="info-cell">
+                            <span class="info-label">Hora Entrada</span>
+                            <div class="info-value">
+                                <span>{{ instructor.hora_entrada || 'N/A' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="info-cell">
+                            <span class="info-label">Hora Salida</span>
+                            <div class="info-value">
+                                <span>{{ instructor.hora_salida || 'N/A' }}</span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="actions-group mt-8">
-                        <button @click="showEditModal = true" class="btn-primary flex-1">Editar Instructor</button>
-                        <button @click="darDeBaja" class="btn-danger flex-1" :disabled="isDeleting">
-                            {{ isDeleting ? 'Procesando...' : 'Dar de Baja' }}
-                        </button>
+                        <button @click="showEditModal = true" class="btn-primary flex-1">Gestionar Información Personal</button>
                     </div>
                 </div>
             </article>
@@ -217,48 +187,44 @@ const goBack = () => {
                     <h2>Editar Instructor</h2>
                     <button @click="showEditModal = false" class="btn-close">×</button>
                 </div>
-                
+
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Nombre Completo</label>
                         <input type="text" v-model="editForm.nombre_completo" />
                     </div>
-                    
+
                     <div class="form-row">
-                        <div class="form-group half">
+                        <div class="form-group full">
                             <label>Teléfono</label>
                             <input type="text" v-model="editForm.telefono" />
-                        </div>
-                        <div class="form-group half">
-                            <label>Estatus</label>
-                            <select v-model="editForm.estatus">
-                                <option value="ACTIVO">ACTIVO</option>
-                                <option value="INACTIVO">INACTIVO</option>
-                                <option value="BAJA_TEMPORAL">BAJA_TEMPORAL</option>
-                            </select>
                         </div>
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group half">
+                        <div class="form-group full">
                             <label>Fecha de Nacimiento</label>
                             <input type="date" v-model="editForm.fecha_nacimiento" />
-                        </div>
-                        <div class="form-group half">
-                            <label>Fecha de Contratación</label>
-                            <input type="date" v-model="editForm.fecha_contratacion" />
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Disciplinas que Imparte</label>
-                        <div class="disciplinas-grid">
-                            <label v-for="d in disciplinasList" :key="d.id_disciplina" class="checkbox-label" :class="{ 'selected': editForm.disciplinas.includes(d.id_disciplina) }">
-                                <input type="checkbox" :value="d.id_disciplina" @change="toggleDisciplinaSelection(d.id_disciplina)" :checked="editForm.disciplinas.includes(d.id_disciplina)" class="hidden-checkbox">
-                                {{ d.nombre_disciplina }}
-                            </label>
+                        <label>Correo Electrónico</label>
+                        <input type="email" v-model="editForm.correo_electronico" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label>Hora Entrada</label>
+                            <input type="time" v-model="editForm.hora_entrada" />
+                        </div>
+                        <div class="form-group half">
+                            <label>Hora Salida</label>
+                            <input type="time" v-model="editForm.hora_salida" />
                         </div>
                     </div>
+
+
                 </div>
 
                 <div class="modal-footer">
@@ -275,12 +241,12 @@ const goBack = () => {
 
 <style scoped>
 .home-instructor {
-  background-color: var(--p-surface-50);
-  padding: 1.5rem;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 90px;
+    background-color: var(--p-surface-50);
+    padding: 1.5rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 90px;
 }
 
 .app-header {
@@ -302,16 +268,19 @@ const goBack = () => {
     color: var(--p-surface-700);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.btn-back:hover { 
-  background-color: var(--p-surface-50); 
-  border-color: var(--p-surface-300);
-  transform: translateX(-2px);
+.btn-back:hover {
+    background-color: var(--p-surface-50);
+    border-color: var(--p-surface-300);
+    transform: translateX(-2px);
 }
 
-.icon-back { width: 20px; height: 20px; }
+.icon-back {
+    width: 20px;
+    height: 20px;
+}
 
 .header-title {
     font-size: 1.5rem;
@@ -341,7 +310,9 @@ const goBack = () => {
     background: linear-gradient(90deg, var(--p-primary-600) 0%, var(--p-primary-400) 100%);
 }
 
-.featured-body { padding: 2rem; }
+.featured-body {
+    padding: 2rem;
+}
 
 .featured-header {
     display: flex;
@@ -359,9 +330,23 @@ const goBack = () => {
     letter-spacing: 0.05em;
 }
 
-.badge-success { background-color: #ecfdf5; color: #059669; border: 1px solid #10b98133; }
-.badge-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #ef444433; }
-.badge-warning { background-color: #fffbeb; color: #d97706; border: 1px solid #f59e0b33; }
+.badge-success {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #10b98133;
+}
+
+.badge-danger {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #ef444433;
+}
+
+.badge-warning {
+    background-color: #fffbeb;
+    color: #d97706;
+    border: 1px solid #f59e0b33;
+}
 
 .session-type {
     font-size: 2.25rem;
@@ -418,26 +403,20 @@ const goBack = () => {
     text-align: center;
     box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
-.btn-primary:hover { 
-  background-color: var(--p-primary-700); 
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+
+.btn-primary:hover {
+    background-color: var(--p-primary-700);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
 }
 
 .btn-danger {
-    background-color: #fff1f2;
-    color: #e11d48;
-    border: 1px solid #fecdd3;
-    padding: 1rem 1.5rem;
-    border-radius: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
+    display: none;
 }
-.btn-danger:hover { 
-  background-color: #ffe4e6; 
-  border-color: #fb7185;
+
+.btn-danger:hover {
+    background-color: #ffe4e6;
+    border-color: #fb7185;
 }
 
 /* Chips */
@@ -466,7 +445,10 @@ const goBack = () => {
 /* Modales */
 .modal-backdrop {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(4px);
     display: flex;
@@ -495,12 +477,13 @@ const goBack = () => {
     justify-content: space-between;
     align-items: center;
 }
-.modal-header h2 { 
-  margin: 0; 
-  font-size: 1.5rem; 
-  font-weight: 800;
-  color: var(--p-surface-900);
-  letter-spacing: -0.02em;
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--p-surface-900);
+    letter-spacing: -0.02em;
 }
 
 .btn-close {
@@ -530,6 +513,7 @@ const goBack = () => {
     flex-direction: column;
     gap: 0.5rem;
 }
+
 .form-group label {
     font-size: 0.75rem;
     font-weight: 700;
@@ -537,7 +521,9 @@ const goBack = () => {
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
-.form-group input, .form-group select {
+
+.form-group input,
+.form-group select {
     padding: 0.75rem 1rem;
     border-radius: 12px;
     border: 1px solid var(--p-surface-200);
@@ -546,7 +532,9 @@ const goBack = () => {
     background: var(--p-surface-50);
     transition: all 0.2s;
 }
-.form-group input:focus, .form-group select:focus {
+
+.form-group input:focus,
+.form-group select:focus {
     border-color: var(--p-primary-500);
     background: white;
     box-shadow: 0 0 0 4px var(--p-primary-50);
@@ -556,7 +544,10 @@ const goBack = () => {
     display: flex;
     gap: 1rem;
 }
-.half { flex: 1; }
+
+.half {
+    flex: 1;
+}
 
 .disciplinas-grid {
     display: flex;
@@ -602,6 +593,7 @@ const goBack = () => {
     cursor: pointer;
     transition: all 0.2s;
 }
+
 .btn-secondary:hover {
     background-color: var(--p-surface-50);
     border-color: var(--p-surface-300);
@@ -625,6 +617,9 @@ const goBack = () => {
     animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
 </style>

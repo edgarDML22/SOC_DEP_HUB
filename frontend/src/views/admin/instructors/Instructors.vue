@@ -17,15 +17,30 @@ const search = ref('');
 const filterEstatus = ref('TODAS');
 const filterDisciplina = ref('TODAS');
 
-// MODAL NUEVO INSTRUCTOR
+// MODALS STATE
 const showNewModal = ref(false);
+const showStatusModal = ref(false);
+const showDisciplinesModal = ref(false);
+const selectedInstructor = ref(null);
 const isSaving = ref(false);
+
 const newInstructor = ref({
     nombre_completo: '',
     telefono: '',
+    correo_electronico: '',
     fecha_nacimiento: '',
-    fecha_contratacion: '',
+    fecha_afiliacion: '',
+    hora_entrada: '',
+    hora_salida: '',
     estatus: 'ACTIVO',
+    disciplinas: []
+});
+
+const statusForm = ref({
+    estatus: 'ACTIVO'
+});
+
+const disciplinesForm = ref({
     disciplinas: []
 });
 
@@ -71,21 +86,35 @@ const filteredInstructors = computed(() => {
   return result;
 });
 
-const handleSessionClick = (instructor) => {
-  router.push(`/admin/instructors/${instructor.id_instructor}`);
+const openDetails = (id) => {
+    router.push(`/admin/instructors/${id}`);
 };
 
-const toggleDisciplinaSelection = (id) => {
-    const index = newInstructor.value.disciplinas.indexOf(id);
+const openStatus = (instructor) => {
+    router.push({ name: 'instructor-status', params: { id: instructor.id_instructor } });
+};
+
+const openDisciplines = (instructor) => {
+    router.push(`/admin/instructors/${instructor.id_instructor}/disciplines`);
+};
+
+const openActivities = (instructor) => {
+    // Placeholder for weekly activities
+    alert(`Actividades semanales de ${instructor.nombre_completo} (En desarrollo)`);
+};
+
+const toggleDisciplinaSelection = (id, targetForm = 'new') => {
+    const form = targetForm === 'new' ? newInstructor.value : disciplinesForm.value;
+    const index = form.disciplinas.indexOf(id);
     if (index > -1) {
-        newInstructor.value.disciplinas.splice(index, 1);
+        form.disciplinas.splice(index, 1);
     } else {
-        newInstructor.value.disciplinas.push(id);
+        form.disciplinas.push(id);
     }
 };
 
 const saveNewInstructor = async () => {
-    if(!newInstructor.value.nombre_completo) {
+    if (!newInstructor.value.nombre_completo) {
         alert("El nombre es requerido.");
         return;
     }
@@ -93,23 +122,46 @@ const saveNewInstructor = async () => {
     isSaving.value = true;
     try {
         const res = await api.post('/instructors/create', newInstructor.value);
-        if(res.data.success) {
+        if (res.data.success) {
             showNewModal.value = false;
-            // Refrescar lista forzando fetch
             await instructorStore.fetchInstructors(true);
-            // Reset form
             newInstructor.value = {
                 nombre_completo: '',
                 telefono: '',
+                correo_electronico: '',
                 fecha_nacimiento: '',
-                fecha_contratacion: '',
+                fecha_afiliacion: '',
+                hora_entrada: '',
+                hora_salida: '',
                 estatus: 'ACTIVO',
                 disciplinas: []
             };
         }
-    } catch(e) {
+    } catch (e) {
         console.error("Error creando instructor:", e);
         alert(e.response?.data?.message || "Ocurrió un error al crear");
+    } finally {
+        isSaving.value = false;
+    }
+};
+
+const saveStatusUpdate = () => {
+    // Deprecated in favor of meticulous status management
+};
+
+const saveDisciplinesUpdate = async () => {
+    if (!selectedInstructor.value) return;
+    isSaving.value = true;
+    try {
+        const res = await instructorStore.updateInstructor(selectedInstructor.value.id_instructor, disciplinesForm.value);
+        if (res.success) {
+            showDisciplinesModal.value = false;
+            await instructorStore.fetchInstructors(true);
+        } else {
+            alert(res.error || "Error al actualizar disciplinas");
+        }
+    } catch (error) {
+        console.error("Error updating disciplines:", error);
     } finally {
         isSaving.value = false;
     }
@@ -163,42 +215,53 @@ const saveNewInstructor = async () => {
     </section>
 
     <div v-else class="sessions-list">
-      <div v-for="instructor in filteredInstructors" :key="instructor.id_instructor" class="session-card clickable"
-        @click="handleSessionClick(instructor)">
+      <div v-for="instructor in filteredInstructors" :key="instructor.id_instructor" class="session-card items-start py-4">
 
-        <!-- Nombre Corto / Iniciales -->
+        <!-- Iniciales -->
         <div class="time-block">
           <span class="time-start">{{ instructor.nombre_completo.split(' ')[0] }}</span>
         </div>
 
         <!-- Detalles -->
         <div class="session-details">
-          <h4 class="client-name">{{ instructor.nombre_completo }}</h4>
-          <p class="location-name">Tel: {{ instructor.telefono || 'N/A' }} | Ingreso: {{ instructor.fecha_contratacion || 'N/A' }}</p>
-          
-          <!-- Chips Disciplinas -->
-          <div class="disciplinas-chips">
-              <span v-for="disc in instructor.disciplinas" :key="disc.id_disciplina" class="chip">
-                  {{ disc.nombre_disciplina }}
-              </span>
-              <span v-if="!instructor.disciplinas || instructor.disciplinas.length === 0" class="chip-empty">
-                  Sin disciplinas
-              </span>
-          </div>
-        </div>
-
-        <!-- Estatus y Flecha -->
-        <div class="session-actions">
-          <span class="status-badge" :class="{
+          <div class="flex justify-between items-start mb-1">
+            <h4 class="client-name">{{ instructor.nombre_completo }}</h4>
+            <span class="status-badge text-[10px]" :class="{
               'badge-success': instructor.estatus === 'ACTIVO' || instructor.estatus === 'Activo',
               'badge-danger': instructor.estatus === 'INACTIVO' || instructor.estatus === 'Inactivo',
               'badge-warning': instructor.estatus === 'BAJA_TEMPORAL'
-          }">
-            {{ instructor.estatus }}
-          </span>
-          <span class="arrow-right">›</span>
-        </div>
+            }">
+              {{ instructor.estatus }}
+            </span>
+          </div>
+          
+          <p class="location-name">
+            Tel: {{ instructor.telefono || 'N/A' }} | Ingreso: {{ instructor.fecha_afiliacion || 'N/A' }}
+          </p>
+          
+          <!-- Acciones Rápidas (4 Botones) -->
+          <div class="flex items-center gap-2 mt-4">
+            <!-- 1. Detalles -->
+            <button @click="openDetails(instructor.id_instructor)" class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm" title="Ver Detalles">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+            </button>
 
+            <!-- 2. Actividades Semanales -->
+            <button @click="openActivities(instructor)" class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Actividades Semanales">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+            </button>
+
+            <!-- 3. Disciplinas -->
+            <button @click="openDisciplines(instructor)" class="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm" title="Gestionar Disciplinas">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" x2="6" y1="1" y2="4"/><line x1="10" x2="10" y1="1" y2="4"/><line x1="14" x2="14" y1="1" y2="4"/></svg>
+            </button>
+
+            <!-- 4. Estatus -->
+            <button @click="openStatus(instructor)" class="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm" title="Gestionar Estatus">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Estado de Vacío -->
@@ -249,8 +312,26 @@ const saveNewInstructor = async () => {
                         <input type="date" v-model="newInstructor.fecha_nacimiento" />
                     </div>
                     <div class="form-group half">
-                        <label>Fecha de Contratación</label>
-                        <input type="date" v-model="newInstructor.fecha_contratacion" />
+                        <label>Fecha de Afiliación</label>
+                        <input type="date" v-model="newInstructor.fecha_afiliacion" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label>Correo Electrónico</label>
+                        <input type="email" v-model="newInstructor.correo_electronico" placeholder="instructor@socdep.com" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Hora Entrada</label>
+                        <input type="time" v-model="newInstructor.hora_entrada" />
+                    </div>
+                    <div class="form-group half">
+                        <label>Hora Salida</label>
+                        <input type="time" v-model="newInstructor.hora_salida" />
                     </div>
                 </div>
 
@@ -273,6 +354,37 @@ const saveNewInstructor = async () => {
             </div>
         </div>
     </div>
+
+    <!-- MODAL ESTATUS DEPRECATED -->
+
+    <!-- MODAL DISCIPLINAS -->
+    <div v-if="showDisciplinesModal" class="modal-backdrop" @click.self="showDisciplinesModal = false">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Disciplinas: {{ selectedInstructor?.nombre_completo }}</h2>
+                <button @click="showDisciplinesModal = false" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Disciplinas que Imparte</label>
+                    <div class="disciplinas-grid">
+                        <label v-for="d in disciplinasList" :key="d.id_disciplina" class="checkbox-label" :class="{ 'selected': disciplinesForm.disciplinas.includes(d.id_disciplina) }">
+                            <input type="checkbox" :value="d.id_disciplina" @change="toggleDisciplinaSelection(d.id_disciplina, 'disciplines')" :checked="disciplinesForm.disciplinas.includes(d.id_disciplina)" class="hidden-checkbox">
+                            {{ d.nombre_disciplina }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @click="showDisciplinesModal = false" class="btn-secondary">Cancelar</button>
+                <button @click="saveDisciplinesUpdate" class="btn-primary" :disabled="isSaving">
+                    {{ isSaving ? 'Guardando...' : 'Actualizar Disciplinas' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+
 
   </main>
 </template>

@@ -1,4 +1,4 @@
-﻿id,nombre,telefono,correo,estatus,fecha_contratacion,fecha_nacimiento
+id,nombre,telefono,correo,estatus,fecha_afiliacion,fecha_nacimiento
 1,Ana García,4431000001,ana.garcia@club.com,ACTIVO,19/03/2026,10/05/1990
 2,Roberto Díaz,4431000002,roberto.diaz@club.com,ACTIVO,19/03/2026,22/03/1988
 3,María López,4431000003,maria.lopez@club.com,ACTIVO,19/03/2026,14/07/1992
