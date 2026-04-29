@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\SesionActiva;
 use App\Models\Instructor;
 use App\Models\User;
+use App\Models\ActividadPlantilla;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -145,11 +146,11 @@ class InstructorController extends Controller
             ->join('usuarios as u', 'i.id_usuario', '=', 'u.id')
             ->select(
                 'i.id_instructor',
-                'i.nombre as nombre_completo',
+                'i.nombre_completo',
                 'i.telefono',
                 'i.estatus',
                 'i.fecha_nacimiento',
-                'i.fecha_contratacion',
+                'i.fecha_afiliacion',
                 'u.correo as correo_electronico',
                 'u.rol'
             )
@@ -171,15 +172,14 @@ class InstructorController extends Controller
                 'telefono' => $instructor->telefono,
                 'estatus_cuenta' => $instructor->estatus,
                 'fecha_nacimiento' => $instructor->fecha_nacimiento,
-                'fecha_contratacion' => $instructor->fecha_contratacion,
+                'fecha_afiliacion' => $instructor->fecha_afiliacion,
                 'rol' => 'Instructor',
             ]
         ], 200);
     }
 
-    public function getAllInstructors(Request $request)
+    private function validationAdmin(Request $request)
     {
-        // Validar acceso
         $user = $request->user();
         if (!in_array($user->rol, ['gerente', 'subgerente'])) {
             return response()->json([
@@ -187,6 +187,12 @@ class InstructorController extends Controller
                 'message' => 'Acceso denegado.'
             ], 403);
         }
+    }
+
+    public function getAllInstructors(Request $request)
+    {
+        // Validar acceso
+        $this->validationAdmin($request);
 
         $instructores = Instructor::with('disciplinas')->orderBy('estatus', 'asc')->get();
 
@@ -253,9 +259,12 @@ class InstructorController extends Controller
                 'id_usuario' => $newUser->id,
                 'nombre_completo' => $nombre,
                 'telefono' => $request->input('telefono'),
+                'correo_electronico' => $request->input('correo_electronico'),
                 'estatus' => $request->input('estatus', 'ACTIVO'),
-                'fecha_contratacion' => $request->input('fecha_contratacion'),
-                'fecha_nacimiento' => $request->input('fecha_nacimiento')
+                'fecha_afiliacion' => $request->input('fecha_afiliacion'),
+                'fecha_nacimiento' => $request->input('fecha_nacimiento'),
+                'hora_entrada' => $request->input('hora_entrada'),
+                'hora_salida' => $request->input('hora_salida')
             ]);
 
             // 3. Ligar user_id en users
@@ -284,15 +293,8 @@ class InstructorController extends Controller
 
     public function update(Request $request, $id)
     {
-        $admin = Auth::user();
-
         // Validar acceso
-        if ($admin->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acceso denegado. No eres administrador.'
-            ], 403);
-        }
+        $this->validationAdmin($request);
 
         $instructor = Instructor::find($id);
 
@@ -309,9 +311,12 @@ class InstructorController extends Controller
             $instructor->update($request->only([
                 'nombre_completo',
                 'telefono',
+                'correo_electronico',
                 'estatus',
-                'fecha_contratacion',
-                'fecha_nacimiento'
+                'fecha_afiliacion',
+                'fecha_nacimiento',
+                'hora_entrada',
+                'hora_salida'
             ]));
 
             // Si el nombre cambió, actualizar en users
@@ -343,36 +348,121 @@ class InstructorController extends Controller
         }
     }
 
-    public function destroy(Request $request, $id)
+    public function getActivitiesImpact(Request $request, $id)
     {
-        $admin = Auth::user();
+        $this->validationAdmin($request);
 
-        // Validar acceso
-        if ($admin->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acceso denegado. No eres administrador.'
-            ], 403);
-        }
-
-        $instructor = Instructor::find($id);
+        $instructor = Instructor::with(['actividades.disciplina', 'actividades.espacioFisico'])->find($id);
 
         if (!$instructor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Instructor no encontrado'
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Instructor no encontrado'], 404);
         }
-
-        // Borrado lógico (cambio de estatus)
-        $instructor->estatus = 'INACTIVO';
-        $instructor->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Instructor dado de baja temporalmente/inactivado correctamente'
-        ], 200);
+            'instructor' => $instructor,
+            'actividades' => $instructor->actividades
+        ]);
     }
 
+    public function getCandidateSubstitutes(Request $request, $activityId)
+    {
+        $this->validationAdmin($request);
+
+        $actividad = ActividadPlantilla::find($activityId);
+        if (!$actividad) {
+            return response()->json(['success' => false, 'message' => 'Actividad no encontrada'], 404);
+        }
+
+        // Buscar instructores que:
+        // 1. Tengan la misma disciplina
+        // 2. Estén ACTIVO
+        // 3. No tengan otra actividad que traslape (mismo día, rango de horas)
+
+        $dia = $actividad->dia_semana;
+        $inicio = $actividad->hora_inicio;
+        $fin = $actividad->hora_fin;
+
+        $candidatos = Instructor::where('estatus', 'ACTIVO')
+            ->where('id_instructor', '!=', $actividad->id_instructor)
+            ->whereHas('disciplinas', function ($q) use ($actividad) {
+                $q->where('disciplinas.id_disciplina', $actividad->id_disciplina);
+            })
+            ->whereDoesntHave('actividades', function ($q) use ($dia, $inicio, $fin) {
+                $q->where('dia_semana', $dia)
+                    ->where(function ($q2) use ($inicio, $fin) {
+                        $q2->whereBetween('hora_inicio', [$inicio, $fin])
+                            ->orWhereBetween('hora_fin', [$inicio, $fin])
+                            ->orWhere(function ($q3) use ($inicio, $fin) {
+                                $q3->where('hora_inicio', '<=', $inicio)
+                                    ->where('hora_fin', '>=', $fin);
+                            });
+                    });
+            })
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'candidatos' => $candidatos
+        ]);
+    }
+
+    public function applyStatusChange(Request $request, $id)
+    {
+        $this->validationAdmin($request);
+
+        $instructor = Instructor::find($id);
+        if (!$instructor) {
+            return response()->json(['success' => false, 'message' => 'Instructor no encontrado'], 404);
+        }
+
+        $nuevoEstatus = $request->input('nuevo_estatus'); // ACTIVO, INACTIVO, BAJA_TEMPORAL
+        $reasignaciones = $request->input('reasignaciones', []); // Array de { id_actividad, accion, id_sustituto }
+
+        DB::beginTransaction();
+        try {
+            // 1. Cambiar estatus del instructor
+            $instructor->estatus = $nuevoEstatus;
+            $instructor->save();
+
+            // 2. Procesar reasignaciones
+            foreach ($reasignaciones as $r) {
+                $actividad = ActividadPlantilla::find($r['id_actividad']);
+                if (!$actividad)
+                    continue;
+
+                if ($r['accion'] === 'reasignar' && isset($r['id_sustituto'])) {
+                    // Si es baja temporal, guardamos el original
+                    if ($nuevoEstatus === 'BAJA_TEMPORAL') {
+                        $actividad->id_instructor_original = $instructor->id_instructor;
+                    }
+                    $actividad->id_instructor = $r['id_sustituto'];
+                    $actividad->estatus = 'ACTIVO';
+                } elseif ($r['accion'] === 'deshabilitar') {
+                    if ($nuevoEstatus === 'BAJA_TEMPORAL') {
+                        $actividad->id_instructor_original = $instructor->id_instructor;
+                    }
+                    $actividad->estatus = 'INACTIVO';
+                }
+                $actividad->save();
+            }
+
+            // 3. Si vuelve a ACTIVO, intentar recuperar actividades originales si se solicita
+            if ($nuevoEstatus === 'ACTIVO' && $request->input('recuperar_originales', false)) {
+                ActividadPlantilla::where('id_instructor_original', $instructor->id_instructor)
+                    ->update([
+                        'id_instructor' => $instructor->id_instructor,
+                        'id_instructor_original' => null,
+                        'estatus' => 'ACTIVO'
+                    ]);
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Estatus y actividades actualizadas correctamente']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
 
 }

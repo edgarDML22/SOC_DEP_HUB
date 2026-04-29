@@ -128,8 +128,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructors/{id}', [InstructorController::class, 'show']);
     // Update instructor
     Route::put('/v1/instructors/update/{id}', [InstructorController::class, 'update']);
-    // Delete instructor
+    // Delete instructor (Logical delete/Inactivate)
     Route::delete('/v1/instructors/delete/{id}', [InstructorController::class, 'destroy']);
+
+    // Meticulous Status Management
+    Route::get('/v1/instructors/{id}/status-impact', [InstructorController::class, 'getActivitiesImpact']);
+    Route::get('/v1/activities/{activityId}/substitutes', [InstructorController::class, 'getCandidateSubstitutes']);
+    Route::post('/v1/instructors/{id}/apply-status', [InstructorController::class, 'applyStatusChange']);
 
     // Traer disciplinas para los filtros/formularios de admin
     Route::get('/v1/disciplinas/all', function () {
