@@ -131,7 +131,17 @@ const handleClick = async (action) => {
               <IconCalendar class="w-7 h-7 md:w-8 md:h-8" />
             </div>
             <span
-              class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Hacer<br>Reservación</span>
+              class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Reservaciones</span>
+          </router-link>
+
+          <router-link to="/socio/classes"
+            class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:-translate-y-0 transition-all duration-300 ease-out">
+            <div
+              class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
+              <IconClock class="w-7 h-7 md:w-8 md:h-8" />
+            </div>
+            <span
+              class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Actividades<br>Programadas</span>
           </router-link>
 
           <router-link to="/socio/tournaments"
@@ -154,15 +164,7 @@ const handleClick = async (action) => {
               class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Gestionar<br>Comunidad</span>
           </router-link>
 
-          <router-link to="/socio/history"
-            class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:-translate-y-0 transition-all duration-300 ease-out">
-            <div
-              class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
-              <IconClock class="w-7 h-7 md:w-8 md:h-8" />
-            </div>
-            <span
-              class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Consultar<br>Historial</span>
-          </router-link>
+          
         </div>
       </div>
 

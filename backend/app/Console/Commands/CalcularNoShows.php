@@ -32,53 +32,69 @@ class CalcularNoShows extends Command
     {
         $hoy = \Carbon\Carbon::today('America/Mexico_City');
 
-        // 1. Buscar en Postgres (Neon)
+        // 1. PROCESAR INSCRIPCIONES A CLASES
         InscripcionClase::whereDate('fecha_transaccion', $hoy)
             ->where('estatus_inscripcion', 'CONFIRMADA')
             ->chunkById(100, function ($inscripciones) use ($hoy) {
                 foreach ($inscripciones as $inscripcion) {
-
-                    // 2. Cruzar con MongoDB (Atlas) usando los nombres correctos de tu captura
                     $existeEnMongo = RegistroAsistencia::where('socio_id', $inscripcion->id_usuario)
                         ->where('id_sesion', $inscripcion->id_sesion)
                         ->whereBetween('timestamp', [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()])
                         ->exists();
 
                     if (!$existeEnMongo) {
-
-                        // 1. Cambiar estatus a FALTA
                         $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
+                        $this->aplicarPenalizacion($inscripcion->id_usuario, 'de la clase');
+                    }
+                }
+            });
 
-                        // 2. Incrementar contador y evaluar penalización
-                        $socio = SocioTitular::find($inscripcion->id_usuario);
+        // 2. PROCESAR RESERVACIONES DE ESPACIOS (ON-DEMAND)
+        \App\Models\Reservacion::whereDate('fecha_reserva', $hoy)
+            ->where('estatus_operativo', 'ACTIVA')
+            ->chunkById(100, function ($reservaciones) use ($hoy) {
+                foreach ($reservaciones as $reserva) {
+                    // Para espacios, buscamos por socio_id y el id_espacio
+                    $existeEnMongo = RegistroAsistencia::where('socio_id', $reserva->id_socio_titular)
+                        ->where('id_espacio', $reserva->id_espacio)
+                        ->whereBetween('timestamp', [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()])
+                        ->exists();
 
-                        if ($socio) {
-                            $socio->increment('contador_no_shows');
-                            $socio->refresh();
-
-                            // Al acumular 3 no_shows, penalizar por 7 días naturales
-                            if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
-                                $socio->estatus_cuenta = 'PENALIZADO';
-                                $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7);
-                                $socio->save();
-                            }
-                        }
-
-                        // Traemos la sesión y cargamos su espacio físico
-                        $sesion = ActividadPlantilla::with('espacioFisico')->find($inscripcion->id_sesion);
-
-                        // Extraemos el nombre del espacio navegando por la relación
-                        $nombreEspacio = ($sesion && $sesion->espacioFisico) ? $sesion->espacioFisico->nombre_espacio : 'las instalaciones';
-
-                        // 4. Enviar notificación
-                        if ($socio && $socio->correo_electronico) {
-                            Notification::route('mail', $socio->correo_electronico)
-                                ->notify(new NoShowPenalization($nombreEspacio));
-                        }
+                    if (!$existeEnMongo) {
+                        $reserva->update(['estatus_operativo' => 'NO_SHOW']);
+                        $this->aplicarPenalizacion($reserva->id_socio_titular, 'del espacio reservado');
                     }
                 }
             });
 
         $this->info('Cruce políglota completado.');
+    }
+
+    /**
+     * Lógica compartida para incrementar contador y penalizar.
+     */
+    private function aplicarPenalizacion($socioId, $contexto)
+    {
+        $socio = SocioTitular::find($socioId);
+        if ($socio) {
+            $socio->increment('contador_no_shows');
+            $socio->refresh();
+
+            if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
+                $socio->estatus_cuenta = 'PENALIZADO';
+                $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
+                $socio->save();
+            }
+
+            // Enviar notificación
+            if ($socio->correo_electronico) {
+                try {
+                    Notification::route('mail', $socio->correo_electronico)
+                        ->notify(new NoShowPenalization($contexto));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Error enviando notificación no-show: " . $e->getMessage());
+                }
+            }
+        }
     }
 }

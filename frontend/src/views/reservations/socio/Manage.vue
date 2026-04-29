@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useAlerts } from '@/composables/useAlerts';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
@@ -8,29 +8,8 @@ import { useRouter } from 'vue-router';
 const { toastInfo, confirmWarning, confirmDelete } = useAlerts();
 const reservationStore = useReservationStore();
 const router = useRouter(); 
-const { misReservacionesTotales, cargando } = storeToRefs(reservationStore);
+const { misReservacionesTotales, cargando, misReservacionesCargadas } = storeToRefs(reservationStore);
 const { cancelarReservacion, descartarBorrador } = reservationStore;
-
-// TABS: Agenda Completa, Mis Reservas, Mis actividades
-const activeTab = ref('mis-reservas');
-
-const tabs = [
-    {
-        id: 'agenda-completa',
-        label: 'Agenda Completa',
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>'
-    },
-    {
-        id: 'mis-reservas',
-        label: 'Mis Reservas',
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10h10V2z"/><path d="M22 12H12v10h10V12z"/><path d="M12 12H2v10h10V12z"/><path d="M22 2H12v10h10V2z"/></svg>'
-    },
-    {
-        id: 'mis-actividades',
-        label: 'Mis actividades',
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>'
-    }
-];
 
 // FILTROS LOCALES (Ahora con íconos representativos)
 const filters = [
@@ -76,9 +55,13 @@ const reservasFiltradas = computed(() => {
 const showModal = ref(false);
 const selectedReserva = ref(null);
 
-onMounted(() => {
-    reservationStore.fetchMisReservaciones();
-});
+// Recargar lista cuando el flag se invalide (cancelación, descarte, nueva confirmación)
+// immediate:true => también carga en el primer render
+watch(misReservacionesCargadas, (cargadas) => {
+    if (!cargadas) {
+        reservationStore.fetchMisReservaciones();
+    }
+}, { immediate: true });
 
 // Controladores del Modal de Detalles
 const openDetails = (reserva) => {
@@ -92,18 +75,24 @@ const isCancelling = ref(false);
 const openCancelModal = async (reserva, event) => {
     event.stopPropagation();
 
-    // Calcular si faltan menos de 2 horas
-    const ahora = new Date();
+    // 1. Obtener la hora actual forzada a Ciudad de México para comparar correctamente con el servidor
+    const ahoraStr = new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" });
+    const ahoraMexico = new Date(ahoraStr);
+    
+    // 2. Parsear la fecha de la reservación (que ya está en hora local de CDMX según el backend)
     const fechaHoraReserva = new Date(`${reserva.fecha_reserva}T${reserva.hora_inicio}`);
-    const minutosRestantes = (fechaHoraReserva - ahora) / 60000;
-    const esTardia = minutosRestantes >= 0 && minutosRestantes < 120;
+    
+    // 3. Calcular la diferencia en minutos
+    const minutosRestantes = (fechaHoraReserva - ahoraMexico) / 60000;
+
+    // Caso B: Si faltan menos de 120 min (2 horas) o si la reserva ya inició/pasó.
+    const esTardia = minutosRestantes < 120;
 
     const titulo = esTardia ? 'Cancelación con Penalización' : 'Cancelar Reservación';
     const mensaje = esTardia
-        ? `Faltan menos de 2 horas para tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}. Al cancelar se registrará un No Show en tu cuenta, lo cual repercutirá en tus privilegios como socio. Esta acción no se puede revertir.`
-        : `El espacio y horario que habías elegido quedará disponible para otros socios. Esta acción no se puede revertir.`;
+        ? `¡Atención! Faltan menos de 2 horas (o el horario ya inició) para tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}. Al confirmar, se registrará un NO SHOW en tu cuenta.`
+        : `¿Estás seguro de que deseas cancelar tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}? El horario quedará libre para otros socios.`;
 
-    // Usamos SIEMPRE confirmDelete para mantener el diseño rojo (btn-delete-confirm)
     const result = await confirmDelete(titulo, mensaje, 'Sí, Cancelar');
 
     if (result.isConfirmed) {
@@ -160,7 +149,7 @@ const continuarBorrador = async (reserva, event) => {
         reservationStore.mostrarModalDraft = false; // <-- ESTO MATA AL MODAL
         await reservationStore.buscarReservaActiva();
         reservationStore.pasoActual = "4"; 
-        router.push({ name: 'socio-reservations-on-demand' }); 
+        router.push({ name: 'reservation-on-demand' }); 
     }
 };
 
@@ -195,11 +184,7 @@ const formatearHora = (hora) => {
 };
 
 const selectTab = (id) => {
-    if (id === 'mis-reservas') {
-        activeTab.value = id;
-    } else {
-        showAlert("Esta sección estará disponible próximamente", "info");
-    }
+    activeTab.value = id;
 };
 </script>
 
@@ -207,175 +192,145 @@ const selectTab = (id) => {
     <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 font-sans">
         <div class="max-w-5xl mx-auto flex flex-col gap-6">
 
-            <!-- TABS SUPERIORES -->
-            <div
-                class="flex p-1.5 bg-surface-100 rounded-2xl w-full max-w-2xl mx-auto border border-surface-200 shadow-inner">
-                <button v-for="tab in tabs" :key="tab.id" @click="selectTab(tab.id)"
-                    class="flex-1 py-3 px-3 rounded-xl text-xs md:text-sm transition-all duration-300 flex items-center justify-center gap-2 focus:outline-none"
-                    :class="activeTab === tab.id ? 'bg-primary-600 text-white font-extrabold shadow-md' : 'text-surface-500 font-bold hover:bg-white/60 hover:text-surface-800'">
-                    <span v-html="tab.icon"></span>
-                    {{ tab.label }}
+            <!-- FILTROS PILL (scroll horizontal) -->
+            <div class="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
+                <button
+                    v-for="filter in filters"
+                    :key="filter.id"
+                    @click="activeFilter = filter.id"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all focus:outline-none shrink-0 border"
+                    :class="activeFilter === filter.id
+                        ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200'
+                        : 'bg-white text-surface-600 border-surface-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50'"
+                >
+                    <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 flex-shrink-0"></span>
+                    {{ filter.label }}
                 </button>
             </div>
 
-            <!-- CONTENIDO: MIS RESERVAS -->
-            <div v-if="activeTab === 'mis-reservas'" class="flex flex-col gap-4">
-
-                <!-- NUEVOS FILTROS POR ÍCONOS -->
-                <div
-                    class="flex gap-6 md:gap-10 border-b border-surface-200 w-full overflow-x-auto scrollbar-none px-2">
-                    <button v-for="filter in filters" :key="filter.id" @click="activeFilter = filter.id"
-                        :title="filter.label"
-                        class="pb-3 transition-all flex items-center justify-center focus:outline-none relative"
-                        :class="activeFilter === filter.id ? 'text-primary-600' : 'text-surface-400 hover:text-surface-600'">
-                        <span v-html="filter.icon"></span>
-                        <!-- Indicador Activo -->
-                        <div v-if="activeFilter === filter.id"
-                            class="absolute bottom-0 left-0 w-full h-0.5 bg-primary-600 rounded-t-full"></div>
-                    </button>
-                </div>
-
-                <!-- TÍTULO DINÁMICO DE LA PESTAÑA -->
-                <div class="mt-4 mb-2 px-2">
-                    <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">
-                        {{ activeFilterLabel }}
-                    </h2>
-                </div>
-
-                <!-- LOADING STATE -->
-                <div v-if="cargando && misReservacionesTotales.length === 0" class="flex flex-col items-center py-20">
-                    <div class="w-10 h-10 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin">
-                    </div>
-                    <p class="mt-4 text-surface-500 font-medium">Cargando tus reservaciones...</p>
-                </div>
-
-                <!-- EMPTY STATE -->
-                <div v-else-if="reservasFiltradas.length === 0"
-                    class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm mt-2">
-                    <div
-                        class="w-16 h-16 bg-surface-50 rounded-full flex items-center justify-center text-surface-300 mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <p class="text-surface-900 font-bold text-lg">No hay reservaciones</p>
-                    <p class="text-surface-500 text-sm">No se encontraron reservaciones {{ activeFilterLabel }}".
-                    </p>
-                </div>
-
-                <!-- LISTA DE RESERVAS (Card Rediseñada y Compacta) -->
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div v-for="reserva in reservasFiltradas" :key="reserva.id_reserva"
-                        class="bg-white p-5 md:p-6 rounded-2xl border border-surface-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all flex flex-col gap-3 group">
-                        <div class="flex items-start justify-between gap-4 w-full">
-                            <h3 class="text-base md:text-lg font-bold text-surface-900 m-0 truncate flex-1">
-                                {{ reserva.disciplina?.nombre_disciplina || 'Deporte no especificado' }}
-                            </h3>
-                            <span 
-                                class="inline-flex px-2.5 py-1 rounded-md text-[11px] font-medium border tracking-widest uppercase shrink-0"
-                                :class="getStatusConfig(reserva.estatus_operativo).class"
-                            >
-                                {{ getStatusConfig(reserva.estatus_operativo).label }}
-                            </span>
-                        </div>
-
-                        <div class="flex items-end justify-between gap-4 w-full mt-1">
-                            <div class="flex flex-col gap-2 min-w-0">
-                                <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
-                                    <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <polyline points="12 6 12 12 16 14" />
-                                        </svg>
-                                    </div>
-                                    <span class="truncate">{{ formatearHora(reserva.hora_inicio) }} - {{ formatearHora(reserva.hora_fin) }}</span>
-                                </div>
-
-                                <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
-                                    <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                                            <circle cx="12" cy="10" r="3" />
-                                        </svg>
-                                    </div>
-                                    <span class="truncate">{{ reserva.espacio_fisico?.nombre_espacio || 'Espacio no asignado' }}</span>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-2 shrink-0">
-                                <!-- Botón X: Cancelar reservación ACTIVA -->
-                                <button
-                                    v-if="reserva.estatus_operativo === 'ACTIVA'"
-                                    @click="openCancelModal(reserva, $event)"
-                                    class="w-9 h-9 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm focus:outline-none"
-                                    title="Cancelar reservación">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-
-                                <!-- Botón descarte: Solo para borradores PENDIENTE -->
-                                <button
-                                    v-if="reserva.estatus_operativo === 'PENDIENTE'"
-                                    @click="continuarBorrador(reserva, $event)"
-                                    class="w-9 h-9 bg-green-50 text-green-600 rounded-xl flex items-center justify-center hover:bg-green-600 hover:text-white transition-all shadow-sm focus:outline-none"
-                                    title="Continuar reservación">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M5 12h14"/>
-                                        <path d="m12 5 7 7-7 7"/>
-                                    </svg>
-                                </button>
-
-                                <button
-                                    v-if="reserva.estatus_operativo === 'PENDIENTE'"
-                                    @click="confirmarDescarte(reserva, $event)"
-                                    :disabled="actionLoadingId === reserva.id_reserva"
-                                    class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Descartar borrador">
-                                    <svg v-if="actionLoadingId !== reserva.id_reserva" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    <span v-else class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></span>
-                                </button>
-
-                                <!-- Botón Ver Detalles -->
-                                <button @click="openDetails(reserva)"
-                                    class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm focus:outline-none"
-                                    title="Ver detalles">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                        class="w-4 h-4" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                        <path d="M14 2v6h6" />
-                                        <path d="M16 13H8" />
-                                        <path d="M16 17H8" />
-                                        <path d="M10 9H8" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
+            <!-- TÍTULO DINÁMICO DEL FILTRO -->
+            <div class="mt-2 mb-2 px-2">
+                <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">
+                    {{ activeFilterLabel }}
+                </h2>
             </div>
 
-            <!-- PLACEHOLDER OTRAS PESTAÑAS -->
-            <div v-else
-                class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm">
+            <!-- LOADING STATE -->
+            <div v-if="cargando && misReservacionesTotales.length === 0" class="flex flex-col items-center py-20">
+                <div class="w-10 h-10 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin">
+                </div>
+                <p class="mt-4 text-surface-500 font-medium">Cargando tus reservaciones...</p>
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div v-else-if="reservasFiltradas.length === 0"
+                class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm mt-2">
                 <div
                     class="w-16 h-16 bg-surface-50 rounded-full flex items-center justify-center text-surface-300 mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                 </div>
-                <p class="text-surface-900 font-bold text-lg">Próximamente</p>
-                <p class="text-surface-500 font-medium text-sm">Esta sección estará disponible en el futuro.</p>
+                <p class="text-surface-900 font-bold text-lg">No hay reservaciones</p>
+                <p class="text-surface-500 text-sm">No se encontraron reservaciones {{ activeFilterLabel }}".
+                </p>
+            </div>
+
+            <!-- LISTA DE RESERVAS (Card Rediseñada y Compacta) -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div v-for="reserva in reservasFiltradas" :key="reserva.id_reserva"
+                    class="bg-white p-5 md:p-6 rounded-2xl border border-surface-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all flex flex-col gap-3 group">
+                    <div class="flex items-start justify-between gap-4 w-full">
+                        <h3 class="text-base md:text-lg font-bold text-surface-900 m-0 truncate flex-1">
+                            {{ reserva.disciplina?.nombre_disciplina || 'Deporte no especificado' }}
+                        </h3>
+                        <span 
+                            class="inline-flex px-2.5 py-1 rounded-md text-[11px] font-medium border tracking-widest uppercase shrink-0"
+                            :class="getStatusConfig(reserva.estatus_operativo).class"
+                        >
+                            {{ getStatusConfig(reserva.estatus_operativo).label }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-end justify-between gap-4 w-full mt-1">
+                        <div class="flex flex-col gap-2 min-w-0">
+                            <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
+                                <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                </div>
+                                <span class="truncate">{{ formatearHora(reserva.hora_inicio) }} - {{ formatearHora(reserva.hora_fin) }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
+                                <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                        <circle cx="12" cy="10" r="3" />
+                                    </svg>
+                                </div>
+                                <span class="truncate">{{ reserva.espacio_fisico?.nombre_espacio || 'Espacio no asignado' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <!-- Botón X: Cancelar reservación ACTIVA -->
+                            <button
+                                v-if="reserva.estatus_operativo === 'ACTIVA'"
+                                @click="openCancelModal(reserva, $event)"
+                                class="w-9 h-9 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm focus:outline-none"
+                                title="Cancelar reservación">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+
+                            <!-- Botón continuar: Solo para borradores PENDIENTE -->
+                            <button
+                                v-if="reserva.estatus_operativo === 'PENDIENTE'"
+                                @click="continuarBorrador(reserva, $event)"
+                                class="w-9 h-9 bg-green-50 text-green-600 rounded-xl flex items-center justify-center hover:bg-green-600 hover:text-white transition-all shadow-sm focus:outline-none"
+                                title="Continuar reservación">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14"/>
+                                    <path d="m12 5 7 7-7 7"/>
+                                </svg>
+                            </button>
+
+                            <button
+                                v-if="reserva.estatus_operativo === 'PENDIENTE'"
+                                @click="confirmarDescarte(reserva, $event)"
+                                :disabled="actionLoadingId === reserva.id_reserva"
+                                class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Descartar borrador">
+                                <svg v-if="actionLoadingId !== reserva.id_reserva" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span v-else class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></span>
+                            </button>
+
+                            <!-- Botón Ver Detalles -->
+                            <button @click="openDetails(reserva)"
+                                class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm focus:outline-none"
+                                title="Ver detalles">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="w-4 h-4" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <path d="M14 2v6h6" />
+                                    <path d="M16 13H8" />
+                                    <path d="M16 17H8" />
+                                    <path d="M10 9H8" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>

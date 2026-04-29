@@ -45,30 +45,21 @@ class SocioController extends Controller
      * 
      * GET /api/v1/socios/{id}
      */
+
+    // --- MÉTODO SHOW ---
     public function show(Request $request, $id)
     {
-        $user = $request->user();
-        if (!in_array($user->rol, ['gerente', 'subgerente'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acceso denegado.'
-            ], 403);
-        }
+        // Cargamos el socio con su código QR activo
+        $socio = SocioTitular::with('codigoQrActivo')->find($id);
 
-        $socio = SocioTitular::with(['miembrosFamiliares', 'invitados.pase'])->find($id);
+        if (!$socio) return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);
 
-        if (!$socio) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Socio no encontrado'
-            ], 404);
-        }
+        // Adjuntamos el código para el frontend
+        $socio->codigo_qr = $socio->codigoQrActivo ? $socio->codigoQrActivo->codigo : null;
 
-        return response()->json([
-            'success' => true,
-            'data' => $socio
-        ], 200);
+        return response()->json(['success' => true, 'data' => $socio], 200);
     }
+
 
     /**
      * Actualizar los datos y penalizaciones de un socio titular

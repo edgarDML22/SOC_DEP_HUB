@@ -33,6 +33,9 @@ export const useReservationStore = defineStore("reservation", () => {
   const misReservacionesTotales = ref([]);
   const misReservacionesCargadas = ref(false);
 
+  // Flag: ya consultamos si hay borrador activo (evita re-fetch al alternar pestañas)
+  const draftVerificado = ref(false);
+
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
   const opcionesHoras = ref([
     "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
@@ -49,6 +52,17 @@ export const useReservationStore = defineStore("reservation", () => {
     const numInicio = parseInt(horaInicioTemp.value.split(":")[0]);
     const numFin = parseInt(horaFinTemp.value.split(":")[0]);
 
+    // 1. Validar si es pasado
+    const ahoraStr = new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" });
+    const ahoraMexico = new Date(ahoraStr);
+    const [h, m] = horaInicioTemp.value.split(':').map(Number);
+    const horaSlot = new Date(ahoraMexico);
+    horaSlot.setHours(h, m, 0, 0);
+
+    if (horaSlot < ahoraMexico) {
+      return "No puedes realizar una reservación para un horario que ya ha pasado.";
+    }
+
     if (numInicio >= numFin) {
       return "La hora de inicio debe ser menor a la hora de fin.";
     }
@@ -57,14 +71,24 @@ export const useReservationStore = defineStore("reservation", () => {
       return "La reserva máxima permitida es de 2 horas.";
     }
 
-    const hayEmpalme = horariosDisponibles.value.some((bloque) => {
-      const bloqueInicio = parseInt(bloque.inicio.split(":")[0]);
-      const bloqueFin = parseInt(bloque.fin.split(":")[0]);
-      return numInicio < bloqueFin && numFin > bloqueInicio;
+    // 2. Validar empalmes (Espacio u Agenda Personal)
+    const bloqueConflicto = horariosDisponibles.value?.find((bloque) => {
+      const bIniArr = bloque.inicio.split(":");
+      const bFinArr = bloque.fin.split(":");
+      const bloqueInicio = parseInt(bIniArr[0]) + (parseInt(bIniArr[1]) / 60);
+      const bloqueFin = parseInt(bFinArr[0]) + (parseInt(bFinArr[1]) / 60);
+      
+      const selInicio = numInicio;
+      const selFin = parseInt(horaFinTemp.value.split(":")[0]) + (parseInt(horaFinTemp.value.split(":")[1]) / 60);
+
+      return selInicio < bloqueFin && selFin > bloqueInicio;
     });
 
-    if (hayEmpalme) {
-      return "El horario seleccionado ya ha sido ocupado. Elija uno nuevo para continuar.";
+    if (bloqueConflicto) {
+      if (bloqueConflicto.tipo === 'conflicto_personal') {
+        return "Tienes un conflicto con tu agenda personal (clase o torneo) en este horario.";
+      }
+      return "El espacio seleccionado ya está ocupado en este horario por otra reservación.";
     }
 
     return null;
@@ -226,9 +250,13 @@ export const useReservationStore = defineStore("reservation", () => {
         console.error("Error al descartar el borrador");
       }
     }
-    misReservacionesCargadas.value = false; 
+    // Invalidar lista para que Manage recargue en su próxima visita
+    misReservacionesCargadas.value = false;
+    // Resetear el flag de draft para que OnDemand consulte al abrir de nuevo
+    draftVerificado.value = false;
     resetearReserva();
-    fetchDisponibilidadEspacios();
+    // NO llamamos fetchDisponibilidadEspacios aqui: el guard de disciplinasUnicas
+    // en fetchDisponibilidadEspacios ya evita re-fetch si los datos siguen en memoria
   };
 
   const cancelarReservacion = async (id_reserva) => {
@@ -463,6 +491,8 @@ export const useReservationStore = defineStore("reservation", () => {
     horariosDisponibles.value = null;
     acompanantesSeleccionados.value = [];
     capacidadMaximaEspacio.value = 0;
+    // Resetear flag de draft para que al volver a OnDemand verifique si hay uno nuevo
+    draftVerificado.value = false;
   };
 
   const obtenerIconoName = (disciplina) => {
@@ -502,6 +532,7 @@ export const useReservationStore = defineStore("reservation", () => {
     intentarCambioPaso,
     misReservacionesTotales,
     misReservacionesCargadas,
+    draftVerificado,
     fetchMisReservaciones,
     fetchDisponibilidadEspacios,
     seleccionarDisciplina,

@@ -113,30 +113,30 @@ const skipToConfirm = async () => {
 
       <!-- Lista dinámica de seleccionados -->
       <Transition name="fade">
-        <div v-if="acompanantesSeleccionados.length > 0" class="mb-6 bg-primary-50/50 border border-primary-100 rounded-2xl p-4">
+        <div v-if="acompanantesSeleccionados.length > 0" class="mb-6 bg-white border-2 border-surface-900 rounded-2xl p-4 shadow-sm">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-primary-800 uppercase tracking-wider">Participantes elegidos</span>
-            <span class="text-xs font-semibold text-primary-600 bg-primary-100 px-2.5 py-0.5 rounded-full">{{ acompanantesSeleccionados.length }}</span>
+            <span class="text-[11px] font-extrabold text-surface-900 uppercase tracking-widest">Participantes elegidos</span>
+            <span class="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold bg-primary-600 text-white rounded-full px-1.5">{{ acompanantesSeleccionados.length }}</span>
           </div>
-          <div class="space-y-2">
+          <div class="flex flex-col gap-2">
             <div v-for="acomp in acompanantesSeleccionados" :key="acomp.id + acomp.tipo" 
-                 class="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-primary-100 shadow-sm">
+                 class="flex items-center justify-between bg-surface-50 rounded-xl px-3.5 py-2.5 border border-surface-200">
               <div class="flex items-center gap-3 min-w-0">
-                <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs font-bold uppercase shrink-0">
+                <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs font-extrabold uppercase shrink-0 shadow-sm">
                   {{ acomp.nombre?.charAt(0) || '?' }}
                 </div>
-                <span class="font-semibold text-surface-900 text-sm truncate">{{ acomp.nombre }}</span>
+                <span class="font-semibold text-surface-900 text-sm truncate leading-snug">{{ acomp.nombre }}</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border tracking-wide"
                       :class="{
                         'bg-green-50 text-green-700 border-green-200': acomp.tipo === 'Amigo',
                         'bg-purple-50 text-purple-700 border-purple-200': acomp.tipo === 'Familiar',
                         'bg-orange-50 text-orange-700 border-orange-200': acomp.tipo === 'Invitado'
                       }">
-                  {{ acomp.tipo === 'Familiar' ? 'FAMILIAR' : acomp.tipo === 'Amigo' ? 'AMIGO' : 'INVITADO' }}
+                  {{ acomp.tipo === 'Familiar' ? 'Familiar' : acomp.tipo === 'Amigo' ? 'Amigo' : 'Invitado' }}
                 </span>
-                <button @click.stop="removeAcompanante(acomp)" title="Quitar" class="w-7 h-7 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg flex items-center justify-center transition-colors focus:outline-none active:scale-90">
+                <button @click.stop="removeAcompanante(acomp)" title="Quitar" class="w-7 h-7 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-lg flex items-center justify-center transition-colors focus:outline-none active:scale-90">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                 </button>
               </div>
@@ -181,10 +181,10 @@ const skipToConfirm = async () => {
               <div v-else v-for="familiar in familyStore.miembrosFamiliares" :key="'fam-' + familiar.id_miembro" 
                    @click="handleToggle(familiar.id_miembro, 'Familiar', familiar.nombre_completo)"
                    class="flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer group"
-                   :class="[isSelected(familiar.id_miembro, 'Familiar') ? 'border-primary-500 bg-primary-50/50' : 'border-surface-100 hover:border-primary-200 hover:bg-surface-50', remaining <= 0 && !isSelected(familiar.id_miembro, 'Familiar') ? 'opacity-40 cursor-not-allowed' : '']">
+                   :class="[isSelected(familiar.id_miembro, 'Familiar') ? 'border-primary-500 bg-primary-50/50' : 'border-blue-100 hover:border-primary-300 hover:bg-blue-50/30', remaining <= 0 && !isSelected(familiar.id_miembro, 'Familiar') ? 'opacity-40 cursor-not-allowed' : '']">
                   <div class="flex items-center gap-3">
                       <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold uppercase shrink-0"
-                           :class="isSelected(familiar.id_miembro, 'Familiar') ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-600'">
+                           :class="isSelected(familiar.id_miembro, 'Familiar') ? 'bg-primary-600 text-white' : 'bg-blue-50 text-blue-600'">
                            {{ familiar.nombre_completo?.charAt(0) || 'F' }}
                       </div>
                       <div>
@@ -193,7 +193,7 @@ const skipToConfirm = async () => {
                       </div>
                   </div>
                   <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0"
-                       :class="isSelected(familiar.id_miembro, 'Familiar') ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-300 group-hover:border-primary-400'">
+                       :class="isSelected(familiar.id_miembro, 'Familiar') ? 'bg-primary-600 border-primary-600 text-white' : 'border-blue-300 group-hover:border-primary-400'">
                        <svg v-if="isSelected(familiar.id_miembro, 'Familiar')" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                   </div>
               </div>
@@ -205,10 +205,10 @@ const skipToConfirm = async () => {
               <div v-else v-for="amigo in amigosDisponibles" :key="'ami-' + amigo.id_amigo" 
                    @click="handleToggle(amigo.id_amigo, 'Amigo', amigo.nombre_amigo)"
                    class="flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer group"
-                   :class="[isSelected(amigo.id_amigo, 'Amigo') ? 'border-primary-500 bg-primary-50/50' : 'border-surface-100 hover:border-primary-200 hover:bg-surface-50', remaining <= 0 && !isSelected(amigo.id_amigo, 'Amigo') ? 'opacity-40 cursor-not-allowed' : '']">
+                   :class="[isSelected(amigo.id_amigo, 'Amigo') ? 'border-primary-500 bg-primary-50/50' : 'border-blue-100 hover:border-primary-300 hover:bg-blue-50/30', remaining <= 0 && !isSelected(amigo.id_amigo, 'Amigo') ? 'opacity-40 cursor-not-allowed' : '']">
                   <div class="flex items-center gap-3">
                       <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold uppercase shrink-0"
-                           :class="isSelected(amigo.id_amigo, 'Amigo') ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-600'">
+                           :class="isSelected(amigo.id_amigo, 'Amigo') ? 'bg-primary-600 text-white' : 'bg-blue-50 text-blue-600'">
                            {{ (amigo.nombre_amigo || 'A').charAt(0) }}
                       </div>
                       <div>
@@ -217,7 +217,7 @@ const skipToConfirm = async () => {
                       </div>
                   </div>
                   <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0"
-                       :class="isSelected(amigo.id_amigo, 'Amigo') ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-300 group-hover:border-primary-400'">
+                       :class="isSelected(amigo.id_amigo, 'Amigo') ? 'bg-primary-600 border-primary-600 text-white' : 'border-blue-300 group-hover:border-primary-400'">
                        <svg v-if="isSelected(amigo.id_amigo, 'Amigo')" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                   </div>
               </div>
@@ -229,10 +229,10 @@ const skipToConfirm = async () => {
               <div v-else v-for="invitado in invitadosDisponibles" :key="'inv-' + invitado.id" 
                    @click="handleToggle(invitado.id, 'Invitado', invitado.nombre)"
                    class="flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer group"
-                   :class="[isSelected(invitado.id, 'Invitado') ? 'border-primary-500 bg-primary-50/50' : 'border-surface-100 hover:border-primary-200 hover:bg-surface-50', remaining <= 0 && !isSelected(invitado.id, 'Invitado') ? 'opacity-40 cursor-not-allowed' : '']">
+                   :class="[isSelected(invitado.id, 'Invitado') ? 'border-primary-500 bg-primary-50/50' : 'border-blue-100 hover:border-primary-300 hover:bg-blue-50/30', remaining <= 0 && !isSelected(invitado.id, 'Invitado') ? 'opacity-40 cursor-not-allowed' : '']">
                   <div class="flex items-center gap-3">
                       <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold uppercase shrink-0"
-                           :class="isSelected(invitado.id, 'Invitado') ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-600'">
+                           :class="isSelected(invitado.id, 'Invitado') ? 'bg-primary-600 text-white' : 'bg-blue-50 text-blue-600'">
                            {{ (invitado.nombre || 'I').charAt(0) }}
                       </div>
                       <div>
@@ -241,7 +241,7 @@ const skipToConfirm = async () => {
                       </div>
                   </div>
                   <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0"
-                       :class="isSelected(invitado.id, 'Invitado') ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-300 group-hover:border-primary-400'">
+                       :class="isSelected(invitado.id, 'Invitado') ? 'bg-primary-600 border-primary-600 text-white' : 'border-blue-300 group-hover:border-primary-400'">
                        <svg v-if="isSelected(invitado.id, 'Invitado')" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                   </div>
               </div>
