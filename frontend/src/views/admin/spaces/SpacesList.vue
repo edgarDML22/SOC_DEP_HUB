@@ -5,6 +5,16 @@ import { storeToRefs } from 'pinia';
 import { useSpacesStore } from '@/stores/admin/spaces';
 import { useDisciplinesStore } from '@/stores/admin/disciplines';
 
+// Import Icons
+import IconFutbol from '@/components/icons/sports/IconFutbol.vue';
+import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue';
+import IconTenis from '@/components/icons/sports/IconTenis.vue';
+import IconVoleibol from '@/components/icons/sports/IconVoleibol.vue';
+import IconSquash from '@/components/icons/sports/IconSquash.vue';
+import IconFrontenis from '@/components/icons/sports/IconFrontenis.vue';
+import IconPadel from '@/components/icons/sports/IconPadel.vue';
+import IconDefault from '@/components/icons/sports/IconDefault.vue';
+
 const router = useRouter();
 const spacesStore = useSpacesStore();
 const disciplinesStore = useDisciplinesStore();
@@ -14,8 +24,9 @@ const { disciplines } = storeToRefs(disciplinesStore);
 const search = ref('');
 const filterTipo = ref('TODOS');
 const filterStatus = ref('TODOS');
-const showNewModal = ref(false);
 const isSaving = ref(false);
+const showDeleteModal = ref(false);
+const selectedSpace = ref(null);
 
 const newSpace = ref({
     nombre_espacio: '',
@@ -61,6 +72,32 @@ const openDetails = (id) => {
     router.push({ name: 'spaces-details', params: { id } });
 };
 
+const openEdit = (id) => {
+    router.push({ name: 'spaces-details', params: { id }, query: { edit: 'true' } });
+};
+
+const goToDisciplines = (id) => {
+    router.push({ name: 'spaces-disciplines', params: { id } });
+};
+
+const openDeleteModal = (space) => {
+    selectedSpace.value = space;
+    showDeleteModal.value = true;
+};
+
+const confirmDelete = async () => {
+    if (!selectedSpace.value) return;
+    isSaving.value = true;
+    const res = await spacesStore.deleteSpace(selectedSpace.value.id_espacio);
+    isSaving.value = false;
+    if (res.success) {
+        showDeleteModal.value = false;
+        await spacesStore.fetchSpaces();
+    } else {
+        alert(res.error);
+    }
+};
+
 const toggleDisciplina = (id) => {
     const index = newSpace.value.disciplinas.indexOf(id);
     if (index > -1) newSpace.value.disciplinas.splice(index, 1);
@@ -81,6 +118,18 @@ const saveNewSpace = async () => {
     } else {
         alert(res.error);
     }
+};
+const getIcon = (name) => {
+    if (!name) return IconDefault;
+    const n = name.toLowerCase();
+    if (n.includes('futbol')) return IconFutbol;
+    if (n.includes('basquetbol')) return IconBasquetbol;
+    if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis;
+    if (n.includes('voleibol')) return IconVoleibol;
+    if (n.includes('squash')) return IconSquash;
+    if (n.includes('frontenis')) return IconFrontenis;
+    if (n.includes('padel')) return IconPadel;
+    return IconDefault;
 };
 </script>
 
@@ -154,9 +203,46 @@ const saveNewSpace = async () => {
                     <span v-if="!space.disciplinas?.length" class="text-gray-400 text-xs italic">Sin disciplinas asignadas</span>
                 </div>
 
-                <div class="pt-4 border-t border-gray-50 flex gap-2">
-                    <button @click="openDetails(space.id_espacio)" class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold transition-all text-sm">
-                        Ver Detalles
+                <div class="pt-4 border-t border-gray-50 flex items-center gap-2">
+                    <!-- 1. Ver Detalles -->
+                    <button @click="openDetails(space.id_espacio)" 
+                            class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                            title="Ver Detalles">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 2v6h6" />
+                            <path d="M16 13H8" />
+                            <path d="M16 17H8" />
+                            <path d="M10 9H8" />
+                        </svg>
+                    </button>
+
+                    <!-- 2. Editar -->
+                    <button @click="openEdit(space.id_espacio)" 
+                            class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                            title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                    </button>
+
+                    <!-- 3. Disciplinas -->
+                    <button @click="goToDisciplines(space.id_espacio)" 
+                            class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                            title="Gestionar Disciplinas">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </svg>
+                    </button>
+
+                    <!-- 4. Deshabilitar -->
+                    <button @click="openDeleteModal(space)" 
+                            class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                            title="Deshabilitar">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -193,13 +279,18 @@ const saveNewSpace = async () => {
                         </div>
                         <div class="space-y-4">
                             <label class="block text-sm font-bold text-gray-700">Disciplinas Permitidas</label>
-                            <div class="h-48 overflow-y-auto bg-gray-50 rounded-xl p-4 border border-gray-100 flex flex-wrap gap-2">
-                                <button v-for="d in disciplines" :key="d.id_disciplina"
-                                    @click="toggleDisciplina(d.id_disciplina)"
-                                    :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-200'"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
-                                    {{ d.nombre_disciplina }}
-                                </button>
+                            <div class="h-64 overflow-y-auto bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button v-for="d in disciplines" :key="d.id_disciplina"
+                                        @click="toggleDisciplina(d.id_disciplina)"
+                                        :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-100'"
+                                        class="flex items-center gap-2 p-2 rounded-xl text-[10px] font-bold transition-all text-left">
+                                        <div class="p-1.5 rounded-lg" :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'">
+                                            <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
+                                        </div>
+                                        <span class="truncate">{{ d.nombre_disciplina }}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -210,6 +301,28 @@ const saveNewSpace = async () => {
                         </button>
                         <button @click="saveNewSpace" :disabled="isSaving" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
                             {{ isSaving ? 'Guardando...' : 'Crear Espacio' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deactivation Modal -->
+        <div v-if="showDeleteModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">¿Deshabilitar Espacio?</h3>
+                    <p class="text-gray-500 mb-8" v-if="selectedSpace">¿Estás seguro de deshabilitar <b>{{ selectedSpace.nombre_espacio }}</b>? El sistema validará que no haya actividades pendientes.</p>
+                    
+                    <div class="flex gap-3">
+                        <button @click="showDeleteModal = false" class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all">
+                            Cancelar
+                        </button>
+                        <button @click="confirmDelete" :disabled="isSaving" class="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-100 disabled:opacity-50">
+                            {{ isSaving ? 'Procesando...' : 'Deshabilitar' }}
                         </button>
                     </div>
                 </div>

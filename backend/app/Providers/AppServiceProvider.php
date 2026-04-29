@@ -22,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // 2. Agrega este mapeo estricto
         Relation::enforceMorphMap([
+            'USER'     => 'App\Models\User',
             'SOCIO'    => 'App\Models\SocioTitular',
             'FAMILIAR' => 'App\Models\MiembrosFamiliares',
             // Agrega el de invitados cuando implementes ese modelo:

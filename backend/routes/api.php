@@ -151,6 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
 
     // CRUD ESPACIOS
+    Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
     Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
     Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
@@ -158,7 +159,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 
     // Rutas de utilidad/negocio
-    Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
     Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);

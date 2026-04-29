@@ -261,6 +261,11 @@ const router = createRouter({
               name: 'spaces-details',
               component: () => import('@/views/admin/spaces/SpaceDetails.vue'),
             },
+            {
+              path: ':id/disciplines',
+              name: 'spaces-disciplines',
+              component: () => import('@/views/admin/spaces/SpaceDisciplines.vue'),
+            },
           ]
         },
         {

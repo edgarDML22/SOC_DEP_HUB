@@ -15,6 +15,7 @@ const space = ref(null);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const isEditing = ref(false);
+const showDeleteModal = ref(false);
 
 const editForm = ref({
     nombre_espacio: '',
@@ -30,6 +31,9 @@ onMounted(async () => {
         await disciplinesStore.fetchDisciplines();
         const data = await spacesStore.fetchSpaceDetails(route.params.id);
         space.value = data;
+        if (route.query.edit === 'true') {
+            isEditing.value = true;
+        }
         resetForm();
     } catch (error) {
         console.error(error);
@@ -46,7 +50,6 @@ const resetForm = () => {
         tipo_espacio: space.value.tipo_espacio,
         estatus: space.value.estatus,
         descripcion: space.value.descripcion || '',
-        disciplinas: space.value.disciplinas.map(d => d.id_disciplina)
     };
 };
 
@@ -73,14 +76,20 @@ const handleUpdate = async () => {
     }
 };
 
-const handleDelete = async () => {
-    if (!confirm("¿Estás seguro de deshabilitar este espacio? Si tiene actividades programadas, el sistema no lo permitirá.")) return;
+const confirmDelete = async () => {
+    isSaving.value = true;
     const res = await spacesStore.deleteSpace(space.value.id_espacio);
+    isSaving.value = false;
     if (res.success) {
+        showDeleteModal.value = false;
         router.push({ name: 'spaces-list' });
     } else {
         alert(res.error);
     }
+};
+
+const goToDisciplines = () => {
+    router.push({ name: 'spaces-disciplines', params: { id: space.value.id_espacio } });
 };
 
 const goBack = () => router.push({ name: 'spaces-list' });
@@ -126,11 +135,15 @@ const goBack = () => router.push({ name: 'spaces-list' });
                             </div>
                         </div>
                         <div class="flex gap-2">
+                            <button v-if="!isEditing" @click="goToDisciplines" class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition-all text-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                Disciplinas
+                            </button>
                             <button @click="toggleEdit" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition-all text-sm flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                {{ isEditing ? 'Cancelar Edición' : 'Editar Información' }}
+                                {{ isEditing ? 'Cancelar' : 'Editar Info' }}
                             </button>
-                            <button v-if="!isEditing" @click="handleDelete" class="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all text-sm flex items-center gap-2">
+                            <button v-if="!isEditing" @click="showDeleteModal = true" class="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all text-sm flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                                 Deshabilitar
                             </button>
@@ -206,26 +219,18 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
                                     <textarea v-model="editForm.descripcion" rows="4" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-                                </div>
-                            </div>
-
-                            <div class="space-y-6">
-                                <label class="block text-sm font-bold text-gray-700">Editar Disciplinas Permitidas</label>
-                                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100 max-h-[400px] overflow-y-auto">
-                                    <div class="grid grid-cols-1 gap-2">
-                                        <button v-for="d in disciplines" :key="d.id_disciplina"
-                                            @click="toggleDisciplina(d.id_disciplina)"
-                                            :class="editForm.disciplinas.includes(d.id_disciplina) ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-white text-gray-600 border border-gray-100'"
-                                            class="w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all">
-                                            <div class="flex justify-between items-center">
-                                                {{ d.nombre_disciplina }}
-                                                <svg v-if="editForm.disciplinas.includes(d.id_disciplina)" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         </div>
+
+                        <div class="space-y-6 bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 h-fit">
+                            <h4 class="font-bold text-indigo-900 mb-2">Gestión de Disciplinas</h4>
+                            <p class="text-sm text-indigo-700 mb-4">Las disciplinas permitidas para este espacio ahora se gestionan en una vista dedicada para mayor precisión.</p>
+                            <button @click="goToDisciplines" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex justify-center items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                Editar Disciplinas
+                            </button>
+                        </div>
+                    </div>
                         <div class="flex justify-end gap-3 pt-6">
                             <button @click="handleUpdate" :disabled="isSaving" class="bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
                                 {{ isSaving ? 'Guardando...' : 'Actualizar Todo' }}
@@ -235,5 +240,53 @@ const goBack = () => router.push({ name: 'spaces-list' });
                 </div>
             </div>
         </div>
+
+        <!-- Deactivation Modal -->
+        <Transition name="fade">
+            <div v-if="showDeleteModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                    <div class="p-8 text-center">
+                        <div class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">¿Deshabilitar Espacio?</h3>
+                        <p class="text-gray-500 mb-8">Esta acción cambiará el estado a <b>DESHABILITADO</b>. El espacio no podrá ser reservado ni utilizado hasta que se active nuevamente.</p>
+                        
+                        <div class="bg-gray-50 rounded-2xl p-4 mb-8 text-left space-y-3">
+                            <div class="flex items-center gap-3 text-sm font-bold text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                Sin Reservaciones Activas
+                            </div>
+                            <div class="flex items-center gap-3 text-sm font-bold text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                Sin Sesiones Programadas
+                            </div>
+                            <div class="flex items-center gap-3 text-sm font-bold text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                Sin Encuentros de Torneo
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button @click="showDeleteModal = false" class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all">
+                                Cancelar
+                            </button>
+                            <button @click="confirmDelete" :disabled="isSaving" class="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-100 disabled:opacity-50">
+                                {{ isSaving ? 'Procesando...' : 'Deshabilitar' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
     </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>
