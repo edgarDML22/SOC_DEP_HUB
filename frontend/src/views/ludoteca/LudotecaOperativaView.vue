@@ -8,7 +8,7 @@ const searchQuery = ref('');
 const activeTab = ref('activos'); 
  
 // Estado para modales
-const modalIngresoInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
+const modalIngresoInfo = ref({ visible: false, idEstancia: null, correo: '' });
 const modalSalidaInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
 
 const store = useLudotecaOperativaStore();
@@ -57,12 +57,11 @@ const confirmarSalida = () => {
 };
 
 const abrirModalIngreso = (id) => {
-    modalIngresoInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR', correo: '' };
+    modalIngresoInfo.value = { visible: true, idEstancia: id, correo: '' };
 };
 
 const confirmarIngreso = () => {
     store.registrarIngreso(modalIngresoInfo.value.idEstancia, {
-        tipo_usuario: modalIngresoInfo.value.tipoUsuario,
         correo: modalIngresoInfo.value.correo
     });
     modalIngresoInfo.value.visible = false;
@@ -257,18 +256,10 @@ const formatTime = (timeString) => {
     <div v-if="modalIngresoInfo.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl animate-fade-in">
             <h3 class="text-xl font-bold text-surface-900 mb-4">Registrar Ingreso</h3>
-            
+
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-surface-700 mb-1">¿Quién entrega al menor?</label>
-                    <select v-model="modalIngresoInfo.tipoUsuario" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none">
-                        <option value="SOCIO_TITULAR">Socio Titular</option>
-                        <option value="MIEMBRO_FAMILIAR">Miembro Familiar</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo de quien entrega</label>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo del socio titular</label>
                     <input v-model="modalIngresoInfo.correo" type="email" placeholder="ejemplo@correo.com" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
             </div>

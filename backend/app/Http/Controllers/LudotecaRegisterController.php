@@ -6,7 +6,7 @@ use App\Models\MiembrosFamiliares;
 use App\Models\RegistrosLudoteca;
 use Illuminate\Http\Request;
 use App\Models\SocioTitular;
-use App\Models\MongoDB\RegistroLudotecaMongo;
+
 use Carbon\Carbon;
 
 class LudotecaRegisterController extends Controller
@@ -54,26 +54,16 @@ class LudotecaRegisterController extends Controller
         }
         $registro = RegistrosLudoteca::create([
             'id_menor' => $request->id_miembro,
-            'estatus_cuenta' => 'COMPLETADA_A_TIEMPO',
-            'hora_ingreso' => now(),
+            'estatus_ludoteca' => 'INACTIVO',
+            'hora_ingreso' => null,
             'id_adulto_ingreso' => $request->id_socio,
             'hora_egreso' => null,
             'id_adulto_egreso' => null,
             'id_instructor_ingreso' => $request->id_instructor,
         ]);
-        RegistroLudotecaMongo::insert([
-            'tutor_id' => $request->id_socio,
-            'menor_id' => $request->id_miembro,
-            'tipo_evento' => 'ludoteca_in',
-            'timestamp' => now('America/Mexico_City'),
-            'metadata' => [
-                'id_registro' => $registro->id_registro,
-
-            ]
-        ]);
 
         return response()->json([
-            'message' => 'Ingreso registrado correctamente',
+            'message' => 'Registro exitoso',
             'registro' => $registro->id_menor,
         ]);
     }
