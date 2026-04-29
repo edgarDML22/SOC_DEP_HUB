@@ -7,9 +7,12 @@ use App\Models\HistorialLudoteca;
 
 class EncuestaLudotecaController extends Controller
 {
-    public function obtenerEncuesta($idHistorial)
+    public function obtenerEncuesta($idRegistro)
     {
-        $historial = HistorialLudoteca::find($idHistorial);
+        $historial = HistorialLudoteca::where(
+            'id_registro_operativo',
+            $idRegistro
+        )->first();
 
         if (!$historial) {
             return response()->json([
@@ -29,21 +32,24 @@ class EncuestaLudotecaController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'id_registro' => $idHistorial,
+                'id_registro' => $idRegistro,
                 'mensaje' => 'Puedes responder la encuesta'
             ]
         ]);
     }
 
 
-    public function guardarEncuesta(Request $request, $idHistorial)
+    public function guardarEncuesta(Request $request, $idRegistro)
     {
         $request->validate([
             'calificacion_servicio' => 'required|integer|min:1|max:5',
             'comentarios_padre' => 'nullable|string|max:500'
         ]);
 
-        $historial = HistorialLudoteca::find($idHistorial);
+        $historial = HistorialLudoteca::where(
+            'id_registro_operativo',
+            $idRegistro
+        )->first();
 
         if (!$historial) {
             return response()->json([
@@ -51,6 +57,7 @@ class EncuestaLudotecaController extends Controller
                 'message' => 'Registro no encontrado'
             ], 404);
         }
+
 
         // evitar duplicados
         if ($historial->calificacion_servicio !== null) {

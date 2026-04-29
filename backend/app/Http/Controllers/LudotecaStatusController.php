@@ -10,8 +10,10 @@ use App\Models\MongoDB\RegistroLudotecaMongo;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\AlertaRecogidaNotification;
 use App\Notifications\EncuestaLudotecaNotification;
-use App\Http\Controllers\SancionesController;
 use App\Models\HistorialLudoteca;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Sanciones;
+
 class LudotecaStatusController extends Controller
 {
     //Modificado completamente en la SDH-163 por el cambio de la logica de la ludotecaen
@@ -182,6 +184,7 @@ class LudotecaStatusController extends Controller
                 )->increment('retrasos_ludoteca', 1); */
                 $socio = SocioTitular::find($request->id_socio);
                 $socio->increment('retrasos_ludoteca', 1);
+                Sanciones::aplicarSanciones($request->id_socio);
 
 
                 // aumentar retrasos existentes
@@ -201,7 +204,7 @@ class LudotecaStatusController extends Controller
                 'id_adulto' => $registro->id_adulto_ingreso,
                 'tiempo_total_minutos' => $tiempoTotal,
                 'id_instructor_ingreso' => $registro->id_instructor_ingreso,
-                'id_instructor_egreso' => $request->id_instructor,
+                'id_instructor_egreso' => $registro->id_instructor_ingreso,
                 'hora_egreso' => $horaEgreso,
                 'hora_ingreso' => $horaIngreso,
                 'creado_el' => now(),

@@ -56,7 +56,8 @@ class LudotecaController extends Controller
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
                 ->where(function ($query) {
                     $query->whereDate('hora_ingreso', now('America/Mexico_City')->toDateString())
-                        ->orWhere('estatus_ludoteca', 'ACTIVA');
+                        ->orWhere('estatus_ludoteca', 'ACTIVA')
+                        ->orWhere('estatus_ludoteca', 'INACTIVO');
                 })
                 ->has('menor')
                 ->get();

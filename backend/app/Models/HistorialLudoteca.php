@@ -16,7 +16,7 @@ class HistorialLudoteca extends Model
         'id_adulto',
         'tiempo_total_minutos',
         'id_instructor_ingreso',
-        'id_instrutor_egreso',
+        'id_instructor_egreso',
         'hora_egreso',
         'hora_ingreso',
         'calificacion_servicio',

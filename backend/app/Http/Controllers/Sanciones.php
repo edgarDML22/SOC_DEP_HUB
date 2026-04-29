@@ -6,20 +6,17 @@ use App\Models\RegistrosLudoteca;
 use App\Notifications\AlertaRecogidaNotification;
 use Illuminate\Http\Request;
 
-class SancionesController extends Controller
+class Sanciones extends Controller
 {
-    public static function aplicarSanciones(Request $request)
+    public static function aplicarSanciones($id_socio)
     {
-        $id_socio = $request->id_socio;
-
         // 1. Buscar el socio
         $socio = SocioTitular::find($id_socio);
         if (!$socio) {
-            return response()->json(['error' => 'Socio no encontrado'], 404);
+            return;
         }
 
-        // 2. Aumentar retrasos
-        $socio->increment('retrasos_ludoteca');
+        // 2. Ya fue incrementado en el controlador que llama
 
         // 3. Recargar datos actualizados
         $socio->refresh();

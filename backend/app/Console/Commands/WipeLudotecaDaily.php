@@ -62,7 +62,7 @@ class WipeLudotecaDaily extends Command
                 'id_adulto' => $registro->id_adulto_ingreso,
                 'tiempo_total_minutos' => $tiempoTotal,
                 'id_instructor_ingreso' => $registro->id_instructor_ingreso,
-                'id_instructor_egreso' => null,
+                'id_instructor_egreso' => $registro->id_instructor_ingreso,
                 'hora_egreso' => $horaEgreso,
                 'hora_ingreso' => $horaIngreso,
                 'calificacion_servicio' => $registro->calificacion_servicio,
