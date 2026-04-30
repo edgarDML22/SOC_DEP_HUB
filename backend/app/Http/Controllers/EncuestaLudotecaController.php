@@ -10,7 +10,7 @@ class EncuestaLudotecaController extends Controller
     public function obtenerEncuesta($idRegistro)
     {
         $historial = HistorialLudoteca::where(
-            'id_registro_operativo',
+            'id_historial',
             $idRegistro
         )->first();
 
@@ -32,7 +32,7 @@ class EncuestaLudotecaController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'id_registro' => $idRegistro,
+                'id_historial' => $idRegistro,
                 'mensaje' => 'Puedes responder la encuesta'
             ]
         ]);
@@ -47,7 +47,7 @@ class EncuestaLudotecaController extends Controller
         ]);
 
         $historial = HistorialLudoteca::where(
-            'id_registro_operativo',
+            'id_historial',
             $idRegistro
         )->first();
 

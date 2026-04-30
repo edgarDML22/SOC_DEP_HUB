@@ -21,7 +21,8 @@ class SocioTitular extends Model
         'retrasos_ludoteca',
         'contador_noshows',
         'estatus_cuenta',
-        'fecha_fin_penalizacion'
+        'fecha_fin_penalizacion',
+        'estatus_penalizacion'
     ];
 
     public function invitados()

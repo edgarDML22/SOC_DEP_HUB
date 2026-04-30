@@ -68,9 +68,4 @@ class LudotecaRegisterController extends Controller
         ]);
     }
 
-
-
-
-
-
 }
