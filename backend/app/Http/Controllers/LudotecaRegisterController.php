@@ -30,7 +30,6 @@ class LudotecaRegisterController extends Controller
 
 
         $existe = RegistrosLudoteca::where('id_menor', $request->id_miembro)
-            ->where('hora_egreso', null)
             ->first();
         if ($existe != null) {
             return response()->json([
