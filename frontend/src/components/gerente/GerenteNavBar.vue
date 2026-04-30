@@ -168,14 +168,20 @@ const logout = async () => {
     <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
         <div class="flex items-center justify-around h-[64px] pb-1 gap-1">
             
-            <router-link to="/admin/dashboard" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconHome class="w-[22px] h-[22px] text-surface-400 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Inicio</span>
+            <router-link to="/admin/dashboard" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"></div>
+                <div class="absolute top-[3px] left-1/2 -translate-x-1/2 w-12 h-[35px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary-600/20 to-transparent opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300 pointer-events-none"></div>
+
+                <IconHome class="w-[22px] h-[22px] text-surface-400 group-hover:text-primary-500 group-[.router-link-active]:text-primary-600 transition-colors relative z-10" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Inicio</span>
             </router-link>
 
-            <router-link to="/admin/reservations" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconCalendar class="w-[22px] h-[22px] text-surface-400 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Reservas</span>
+            <router-link to="/admin/reservations" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"></div>
+                <div class="absolute top-[3px] left-1/2 -translate-x-1/2 w-12 h-[35px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary-600/20 to-transparent opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300 pointer-events-none"></div>
+
+                <IconCalendar class="w-[22px] h-[22px] text-surface-400 group-hover:text-primary-500 group-[.router-link-active]:text-primary-600 transition-colors relative z-10" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Reservas</span>
             </router-link>
 
             <!-- Botón Central Dinámico: Menú Más -->
@@ -213,14 +219,20 @@ const logout = async () => {
                 </div>
             </div>
 
-            <router-link to="/admin/ludoteca/ludoteca-list" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconBaby class="w-[22px] h-[22px] text-surface-400 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Ludoteca</span>
+            <router-link to="/admin/ludoteca/ludoteca-list" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"></div>
+                <div class="absolute top-[3px] left-1/2 -translate-x-1/2 w-12 h-[35px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary-600/20 to-transparent opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300 pointer-events-none"></div>
+
+                <IconBaby class="w-[22px] h-[22px] text-surface-400 group-hover:text-primary-500 group-[.router-link-active]:text-primary-600 transition-colors relative z-10" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Ludoteca</span>
             </router-link>
 
-            <router-link to="/admin/instructors" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative rounded-xl active:scale-95 transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:shadow-md">
-                <IconUser class="w-[22px] h-[22px] text-surface-400 group-[.router-link-active]:text-white transition-colors" />
-                <span class="text-[10px] font-medium text-surface-500 group-[.router-link-active]:text-white group-[.router-link-active]:font-bold transition-colors">Personal</span>
+            <router-link to="/admin/instructors" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"></div>
+                <div class="absolute top-[3px] left-1/2 -translate-x-1/2 w-12 h-[35px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary-600/20 to-transparent opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300 pointer-events-none"></div>
+
+                <IconUser class="w-[22px] h-[22px] text-surface-400 group-hover:text-primary-500 group-[.router-link-active]:text-primary-600 transition-colors relative z-10" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Personal</span>
             </router-link>
 
 

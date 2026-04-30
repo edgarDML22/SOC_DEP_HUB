@@ -18,8 +18,8 @@ const swalApp = Swal.mixin({
 export const useAlerts = () => {
     // Toasts
     const toastInfo = (title, text, type = 'success') => {
-        const iconColor = type === 'success' ? 'var(--state-success)' :
-            type === 'error' ? 'var(--state-error)' : 'var(--state-info)';
+        const iconColor = type === 'success' ? 'var(--color-state-success)' :
+            type === 'error' ? 'var(--color-state-error)' : 'var(--color-state-info)';
         Swal.fire({
             toast: true,
             position: 'bottom-end',
@@ -67,7 +67,7 @@ export const useAlerts = () => {
             title: title,
             text: text,
             icon: 'success',
-            iconColor: 'var(--state-success)',
+            iconColor: 'var(--color-state-success)',
             confirmButtonText: 'Aceptar'
         });
     }
@@ -78,7 +78,7 @@ export const useAlerts = () => {
             title: title,
             text: text,
             icon: 'error',
-            iconColor: 'var(--state-error)',
+            iconColor: 'var(--color-state-error)',
             confirmButtonText: 'Entendido'
         });
     }
@@ -87,15 +87,13 @@ export const useAlerts = () => {
     const showLoading = (title = 'Procesando...') => {
         Swal.fire({
             title: title,
+            html: '<div class="my-6"><div class="animate-spin rounded-full h-14 w-14 border-t-2 border-b-2 border-primary-600 mx-auto"></div></div>',
             allowOutsideClick: false,
             allowEscapeKey: false,
             showConfirmButton: false,
-            background: 'var(--p-surface-50)',
-            color: 'var(--p-surface-900)',
-            customClass: { popup: 'swal-border-radius' },
-            didOpen: () => {
-                Swal.showLoading();
-            }
+            background: 'var(--color-surface-50)',
+            color: 'var(--color-surface-900)',
+            customClass: { popup: 'swal-border-radius' }
         });
     }
 
