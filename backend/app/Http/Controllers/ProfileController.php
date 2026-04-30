@@ -26,11 +26,19 @@ class ProfileController extends Controller
 
         switch ($usuario->rol) {
             case 'socio_titular':
-                $perfil = SocioTitular::where('id_socio', $usuario->user_id)
-                    ->first();
 
-                if ($perfil) {
-                    $data = [
+                $perfil = SocioTitular::find($usuario->user_id);
+
+                if (!$perfil) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Perfil no encontrado'
+                    ], 404);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
                         'id_socio' => $perfil->id_socio,
                         'numero_accion' => $perfil->numero_accion,
                         'nombre_completo' => $perfil->nombre_completo,
@@ -45,8 +53,8 @@ class ProfileController extends Controller
                         'estatus_penalizacion' => $perfil->estatus_penalizacion,
                         'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
                         'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
-                    ];
-                }
+                    ]
+                ]);
                 break;
 
             case 'miembro_familiar':
