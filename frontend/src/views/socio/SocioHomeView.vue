@@ -125,7 +125,7 @@ const handleClick = async (action) => {
           </router-link>
 
           <!-- NUEVO BOTÓN: LUDOTECA -->
-          <router-link v-if="!profileStore.isLudotecaBlocked" to="/socio/socio-ludoteca/ludoteca-list" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
+          <router-link to="/socio/socio-ludoteca/ludoteca-list" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconBaby class="w-7 h-7 md:w-8 md:h-8" />
             </div>
