@@ -2,13 +2,16 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useLudotecaOperativaStore } from '@/stores/ludoteca/ludotecaOperativaStore';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
+import { useAlerts } from '@/composables/useAlerts';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
+
+const { showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
 
 const searchQuery = ref('');
 const activeTab = ref('activos'); 
  
 // Estado para modales
-const modalIngresoInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
+const modalIngresoInfo = ref({ visible: false, idEstancia: null, correo: '' });
 const modalSalidaInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
 
 const store = useLudotecaOperativaStore();
@@ -39,33 +42,59 @@ onUnmounted(() => {
 });
 
 // Helpers para la UI
-const moverAInactivo = (id) => {
-    store.cambiarEstatusEstancia(id, 'INACTIVO');
+const moverAInactivo = async (id, nombreNino) => {
+    const result = await confirmWarning(
+        'Registrar Incidencia',
+        `¿Estás seguro de que quieres marcar una incidencia para ${nombreNino || 'este menor'}?`,
+        'Sí, registrar'
+    );
+    if (!result.isConfirmed) return;
+
+    showLoading('Registrando incidencia...');
+    const res = await store.cambiarEstatusEstancia(id, 'INACTIVO');
+    closeLoading();
+    if (res?.success) {
+        await successModal('¡Incidencia registrada!', 'El menor fue marcado como inactivo.');
+    } else {
+        await errorModal('Error al registrar', res?.message || 'No se pudo registrar la incidencia.');
+    }
 };
 
 const abrirModalSalida = (id) => {
     modalSalidaInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR', correo: '' };
 };
 
-const confirmarSalida = () => {
-    // Al store se le sigue pasando 'Entregado', él se encarga de enviarlo al PATCH para que el back lo valide
-    store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'ENTREGADO', {
+const confirmarSalida = async () => {
+    modalSalidaInfo.value.visible = false;
+    showLoading('Registrando salida...');
+    const res = await store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'ENTREGADO', {
         tipo_usuario: modalSalidaInfo.value.tipoUsuario,
         correo_receptor: modalSalidaInfo.value.correo
     });
-    modalSalidaInfo.value.visible = false;
+    closeLoading();
+    if (res?.success) {
+        await successModal('¡Salida registrada!', 'El menor fue entregado correctamente.');
+    } else {
+        await errorModal('Error al registrar salida', res?.message || 'No se pudo registrar la salida.');
+    }
 };
 
 const abrirModalIngreso = (id) => {
-    modalIngresoInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR', correo: '' };
+    modalIngresoInfo.value = { visible: true, idEstancia: id, correo: '' };
 };
 
-const confirmarIngreso = () => {
-    store.registrarIngreso(modalIngresoInfo.value.idEstancia, {
-        tipo_usuario: modalIngresoInfo.value.tipoUsuario,
+const confirmarIngreso = async () => {
+    modalIngresoInfo.value.visible = false;
+    showLoading('Registrando ingreso...');
+    const res = await store.registrarIngreso(modalIngresoInfo.value.idEstancia, {
         correo: modalIngresoInfo.value.correo
     });
-    modalIngresoInfo.value.visible = false;
+    closeLoading();
+    if (res?.success) {
+        await successModal('¡Ingreso activado!', 'El menor fue activado en la ludoteca correctamente.');
+    } else {
+        await errorModal('Error al activar', res?.message || 'No se pudo activar el ingreso.');
+    }
 };
 
 const inactivosFiltrados = computed(() => {
@@ -173,7 +202,7 @@ const formatTime = (timeString) => {
                     </div>
                     
                     <div class="flex gap-2 mt-5">
-                        <button @click="moverAInactivo(nino.id_registro)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
+                        <button @click="moverAInactivo(nino.id_registro, nino.nombre_nino)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
                             Incidencia
                         </button>
                         <button @click="abrirModalSalida(nino.id_registro)" class="bg-green-600 hover:bg-green-700 text-white rounded-xl px-2 py-3 font-bold shadow-lg shadow-green-700/20 active:scale-95 transition-all flex-1 text-center border border-green-500 text-sm">
@@ -246,10 +275,10 @@ const formatTime = (timeString) => {
 
       </div>
       
-      <!-- Cargando -->
-      <div v-if="store.loading && !store.isTurnoActivo" class="flex justify-center p-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
+        <!-- Cargando -->
+        <div v-if="store.loading && !store.isTurnoActivo" class="flex justify-center p-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
 
     </div>
 
@@ -257,18 +286,10 @@ const formatTime = (timeString) => {
     <div v-if="modalIngresoInfo.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl animate-fade-in">
             <h3 class="text-xl font-bold text-surface-900 mb-4">Registrar Ingreso</h3>
-            
+
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-surface-700 mb-1">¿Quién entrega al menor?</label>
-                    <select v-model="modalIngresoInfo.tipoUsuario" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none">
-                        <option value="SOCIO_TITULAR">Socio Titular</option>
-                        <option value="MIEMBRO_FAMILIAR">Miembro Familiar</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo de quien entrega</label>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">Correo del socio titular</label>
                     <input v-model="modalIngresoInfo.correo" type="email" placeholder="ejemplo@correo.com" class="w-full bg-surface-50 border border-surface-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
             </div>

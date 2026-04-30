@@ -52,8 +52,9 @@ class ProfileController extends Controller
                         'contador_no_shows' => $perfil->contador_no_shows,
                         'estatus_penalizacion' => $perfil->estatus_penalizacion,
                         'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
-                    ]
-                ]);
+                        'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
+                    ];
+                }
                 break;
 
             case 'miembro_familiar':

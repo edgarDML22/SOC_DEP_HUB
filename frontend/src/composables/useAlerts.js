@@ -63,14 +63,45 @@ export const useAlerts = () => {
 
     // Modal de Éxito
     const successModal = (title, text) => {
-        swalApp.fire({
+        return swalApp.fire({
             title: title,
             text: text,
             icon: 'success',
             iconColor: 'var(--state-success)',
-            confirmButtonText: 'OK'
+            confirmButtonText: 'Aceptar'
         });
     }
 
-    return { toastInfo, confirmDelete, confirmWarning, successModal }
+    // Modal de Error
+    const errorModal = (title, text) => {
+        return swalApp.fire({
+            title: title,
+            text: text,
+            icon: 'error',
+            iconColor: 'var(--state-error)',
+            confirmButtonText: 'Entendido'
+        });
+    }
+
+    // Loading estandarizado (igual en todas las vistas)
+    const showLoading = (title = 'Procesando...') => {
+        Swal.fire({
+            title: title,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            background: 'var(--p-surface-50)',
+            color: 'var(--p-surface-900)',
+            customClass: { popup: 'swal-border-radius' },
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    }
+
+    const closeLoading = () => {
+        Swal.close();
+    }
+
+    return { toastInfo, confirmDelete, confirmWarning, successModal, errorModal, showLoading, closeLoading }
 }

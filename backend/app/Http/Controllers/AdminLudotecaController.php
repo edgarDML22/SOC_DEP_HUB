@@ -61,11 +61,12 @@ class AdminLudotecaController extends Controller
 
     public function getTurnos()
     {
+        $timezone = 'America/Mexico_City';
         $turnos = DB::table('turnos_ludoteca as t')
             ->join('instructores as i', 't.id_instructor', '=', 'i.id_instructor')
             ->whereBetween('t.fecha', [
-                now()->toDateString(),
-                now()->addDays(6)->toDateString()
+                now($timezone)->toDateString(),
+                now($timezone)->addDays(6)->toDateString()
             ])
             ->orderBy('t.fecha')
             ->orderBy('t.hora_inicio')
@@ -89,20 +90,21 @@ class AdminLudotecaController extends Controller
     {
         $rango = $request->query('rango', 'hoy');
 
+        $timezone = 'America/Mexico_City';
         switch ($rango) {
             case 'semana':
-                $inicio = now()->startOfWeek();
-                $fin = now()->endOfWeek();
+                $inicio = now($timezone)->startOfWeek();
+                $fin = now($timezone)->endOfWeek();
                 break;
 
             case 'mes':
-                $inicio = now()->startOfMonth();
-                $fin = now()->endOfMonth();
+                $inicio = now($timezone)->startOfMonth();
+                $fin = now($timezone)->endOfMonth();
                 break;
 
             default:
-                $inicio = now()->startOfDay();
-                $fin = now()->endOfDay();
+                $inicio = now($timezone)->startOfDay();
+                $fin = now($timezone)->endOfDay();
                 break;
         }
 

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { useProfileStore } from '@/stores/profiles/socioStore';
 import UpsellFamiliar from '@/components/socio/UpsellFamiliar.vue';
+import BlockedLudoteca from '@/components/socio/BlockedLudoteca.vue';
 
 const profileStore = useProfileStore();
 const validando = ref(true);
@@ -21,6 +22,11 @@ onMounted(async () => {
     
     <div v-if="validando" class="flex justify-center p-12 w-full">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    </div>
+
+    
+    <div v-else-if="profileStore.isLudotecaBlocked" class="w-full">
+        <BlockedLudoteca />
     </div>
 
     

@@ -102,7 +102,7 @@ class LudotecaStatusController extends Controller
         }
         $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
             'estatus_ludoteca' => 'ACTIVA',
-            'hora_ingreso' => now(),
+            'hora_ingreso' => now('America/Mexico_City'),
             'id_adulto_ingreso' => $request->id_socio,
             'hora_egreso' => null,
             'id_adulto_egreso' => null,
@@ -177,7 +177,7 @@ class LudotecaStatusController extends Controller
             // ... (existing code for ENTREGADO)
             $estatusFinal = 'COMPLETADA_A_TIEMPO';
 
-            $time = now();
+            $time = now('America/Mexico_City');
             $limite = RegistrosLudoteca::where('id_registro', $id)
                 ->value('hora_limite');
 
@@ -198,7 +198,7 @@ class LudotecaStatusController extends Controller
             }
             $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->first();
             $horaIngreso = \Carbon\Carbon::parse($registro->hora_ingreso);
-            $horaEgreso = now();
+            $horaEgreso = now('America/Mexico_City');
 
             $tiempoTotal = (int) round(
                 $horaIngreso->diffInMinutes($horaEgreso)
@@ -213,13 +213,13 @@ class LudotecaStatusController extends Controller
                 'id_instructor_egreso' => $registro->id_instructor_ingreso,
                 'hora_egreso' => $horaEgreso,
                 'hora_ingreso' => $horaIngreso,
-                'creado_el' => now(),
+                'creado_el' => now('America/Mexico_City'),
                 'estatus_final' => $estatusFinal
             ]);
 
             RegistrosLudoteca::where('id_registro', $id)->update([
                 'estatus_ludoteca' => $estatusFinal,
-                'hora_egreso' => now(),
+                'hora_egreso' => now('America/Mexico_City'),
                 'id_adulto_egreso' => $request->id_socio,
                 'id_instructor_egreso' => $request->id_instructor,
             ]);

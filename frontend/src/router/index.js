@@ -115,10 +115,6 @@ const router = createRouter({
                 console.error("Error cargando el store desde el router", error);
               }
             }
-
-            if (profileStore.isLudotecaBlocked) {
-              return "/socio/home";
-            }
           },
           children: [
             {

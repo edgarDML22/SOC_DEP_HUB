@@ -84,9 +84,8 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
 
     // Rollback Optimista: Cambiar estatus de un niño sin esperar al servidor
     const cambiarEstatusEstancia = async (idEstancia, nuevoEstatus, extraData = {}) => {
-        // ¡CAMBIO APLICADO! Se agregó e.id_registro por si el backend manda esa llave primaria
         const estanciaIndex = estanciasDelDia.value.findIndex(e => e.id === idEstancia || e.id_estancia === idEstancia || e.id_registro === idEstancia);
-        if (estanciaIndex === -1) return;
+        if (estanciaIndex === -1) return { success: false, message: 'Registro no encontrado.' };
 
         // GUARDAR ESTADO ANTERIOR
         const estatusAnterior = estanciasDelDia.value[estanciaIndex].estatus;
@@ -119,18 +118,22 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
                 estanciasDelDia.value[estanciaIndex].hora_salida = res.data.data.hora_salida;
             }
 
+            return { success: true, message: res.data.message || 'Operación realizada con éxito.' };
+
         } catch (err) {
             console.error("Falló la actualización optimista:", err);
             // Regresamos la tarjeta a la pestaña original
             estanciasDelDia.value[estanciaIndex].estatus = estatusAnterior;
-            error.value = "Error de red: El cambio no se guardó. La tarjeta regresó a su posición original.";
+            const msg = err.response?.data?.message || 'Error de red: El cambio no se guardó.';
+            error.value = msg;
+            return { success: false, message: msg };
         }
     };
 
     // Registrar ingreso (Check-In) usando la ruta POST dedicada
     const registrarIngreso = async (idEstancia, extraData = {}) => {
         const estanciaIndex = estanciasDelDia.value.findIndex(e => e.id_registro === idEstancia);
-        if (estanciaIndex === -1) return;
+        if (estanciaIndex === -1) return { success: false, message: 'Registro no encontrado.' };
 
         const estatusAnterior = estanciasDelDia.value[estanciaIndex].estatus;
 
@@ -146,12 +149,13 @@ export const useLudotecaOperativaStore = defineStore("ludotecaOperativa", () => 
                 ...extraData
             });
 
-            if (!res.data.success && !res.data.registro) {
-            }
+            return { success: true, message: res.data.message || 'Ingreso registrado correctamente.' };
         } catch (err) {
             console.error("Error en check-in:", err);
             estanciasDelDia.value[estanciaIndex].estatus = estatusAnterior;
-            error.value = err.response?.data?.message || "Error al registrar el ingreso.";
+            const msg = err.response?.data?.message || 'Error al registrar el ingreso.';
+            error.value = msg;
+            return { success: false, message: msg };
         }
     };
 

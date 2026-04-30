@@ -43,7 +43,7 @@ export const useProfileStore = defineStore("profile", () => {
     if (!profileData.value) return false;
     const penaltyStatus = profileData.value?.estatus_penalizacion?.toUpperCase();
     const accountStatus = profileData.value?.estatus_cuenta?.toUpperCase();
-    
+
     return accountStatus === "INACTIVO" || penaltyStatus === "SUSPENDIDO" || penaltyStatus === "PENALIZADO_AMBOS";
   });
 
@@ -68,6 +68,10 @@ export const useProfileStore = defineStore("profile", () => {
     return profileData.value.modalidad_plan.toUpperCase() === 'FAMILIAR';
   });
 
+  const fechaFinPenalizacion = computed(() => {
+    return profileData.value?.fecha_fin_penalizacion || null;
+  });
+
   // Da color al badge dinámicamente
   const statusBadgeClass = computed(() => {
     const accountStatus = profileData.value?.estatus_cuenta?.toUpperCase();
@@ -77,13 +81,13 @@ export const useProfileStore = defineStore("profile", () => {
     if (penaltyStatus === "SUSPENDIDO" || penaltyStatus === "PENALIZADO_AMBOS" || accountStatus === "INACTIVO" || accountStatus === "MOROSO") {
       return "badge-red";
     }
-    
+
     if (penaltyStatus === "PENALIZADO_LUDOTECA" || penaltyStatus === "PENALIZADO_RESERVA") {
       return "badge-orange"; // Color preventivo para penalizaciones parciales
     }
 
     if (accountStatus === "AL_CORRIENTE" || accountStatus === "ACTIVO") return "badge-green";
-    
+
     return "badge-gray";
   });
 
@@ -128,6 +132,7 @@ export const useProfileStore = defineStore("profile", () => {
     fetchProfile,
     updateProfile,
     tienePlanFamiliar,
+    fechaFinPenalizacion,
     logout,
     getSupportLink
   };

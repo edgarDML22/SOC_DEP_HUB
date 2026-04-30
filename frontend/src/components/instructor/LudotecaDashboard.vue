@@ -2,7 +2,10 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useLudotecaOperativaStore } from '@/stores/ludoteca/ludotecaOperativaStore';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
+import { useAlerts } from '@/composables/useAlerts';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
+
+const { showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
 
 const searchQuery = ref('');
 const activeTab = ref('activos'); 
@@ -39,32 +42,60 @@ onUnmounted(() => {
 });
 
 // Helpers para la UI
-const moverAInactivo = (id) => {
-    store.cambiarEstatusEstancia(id, 'INACTIVO');
+const moverAInactivo = async (id, nombreNino) => {
+    const result = await confirmWarning(
+        'Registrar Incidencia',
+        `¿Estás seguro de que quieres marcar una incidencia para ${nombreNino || 'este menor'}?`,
+        'Sí, registrar'
+    );
+    if (!result.isConfirmed) return;
+
+    showLoading('Registrando incidencia...');
+    const res = await store.cambiarEstatusEstancia(id, 'INACTIVO');
+    closeLoading();
+    if (res?.success) {
+        await successModal('¡Incidencia registrada!', 'El menor fue marcado como inactivo.');
+    } else {
+        await errorModal('Error al registrar', res?.message || 'No se pudo registrar la incidencia.');
+    }
 };
 
 const abrirModalSalida = (id) => {
     modalSalidaInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR', correo: '' };
 };
 
-const confirmarSalida = () => {
-    store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'ENTREGADO', {
+const confirmarSalida = async () => {
+    modalSalidaInfo.value.visible = false;
+    showLoading('Registrando salida...');
+    const res = await store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'ENTREGADO', {
         tipo_usuario: modalSalidaInfo.value.tipoUsuario,
         correo_receptor: modalSalidaInfo.value.correo
     });
-    modalSalidaInfo.value.visible = false;
+    closeLoading();
+    if (res?.success) {
+        await successModal('¡Salida registrada!', 'El menor fue entregado correctamente.');
+    } else {
+        await errorModal('Error al registrar salida', res?.message || 'No se pudo registrar la salida.');
+    }
 };
 
 const abrirModalIngreso = (id) => {
     modalIngresoInfo.value = { visible: true, idEstancia: id, tipoUsuario: 'SOCIO_TITULAR', correo: '' };
 };
 
-const confirmarIngreso = () => {
-    store.registrarIngreso(modalIngresoInfo.value.idEstancia, {
+const confirmarIngreso = async () => {
+    modalIngresoInfo.value.visible = false;
+    showLoading('Registrando ingreso...');
+    const res = await store.registrarIngreso(modalIngresoInfo.value.idEstancia, {
         tipo_usuario: modalIngresoInfo.value.tipoUsuario,
         correo: modalIngresoInfo.value.correo
     });
-    modalIngresoInfo.value.visible = false;
+    closeLoading();
+    if (res?.success) {
+        await successModal('¡Ingreso activado!', 'El menor fue activado en la ludoteca correctamente.');
+    } else {
+        await errorModal('Error al activar', res?.message || 'No se pudo activar el ingreso.');
+    }
 };
 
 const inactivosFiltrados = computed(() => {
@@ -157,7 +188,7 @@ const formatTime = (timeString) => {
                     </div>
                     
                     <div class="flex gap-2 mt-5">
-                        <button @click="moverAInactivo(nino.id_registro)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
+                        <button @click="moverAInactivo(nino.id_registro, nino.nombre_nino)" class="bg-surface-100 hover:bg-surface-200 text-surface-700 font-semibold rounded-xl px-2 py-3 flex-1 text-center transition-all text-sm border border-surface-200 active:scale-95">
                             Incidencia
                         </button>
                         <button @click="abrirModalSalida(nino.id_registro)" class="bg-green-600 hover:bg-green-700 text-white rounded-xl px-2 py-3 font-bold shadow-lg shadow-green-700/20 active:scale-95 transition-all flex-1 text-center border border-green-500 text-sm">
