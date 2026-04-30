@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useAdminLudotecaStore } from "@/stores/ludoteca/adminLudotecaStore";
 
 import Card     from "primevue/card";
@@ -8,30 +8,162 @@ import DatePicker from "primevue/datepicker";
 import Button   from "primevue/button";
 import Tag      from "primevue/tag";
 import Message  from "primevue/message";
-import IconBaby from "@/components/icons/IconBaby.vue";
+import Chart    from "primevue/chart";
+import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby } from '@/components/icons';
+
+// FullCalendar
+import FullCalendar from "@fullcalendar/vue3";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import esLocale from "@fullcalendar/core/locales/es";
 
 // Store
 const store = useAdminLudotecaStore();
 
-// Filtro de la lista de turnos (hoy / semana)
-const filtroTurnos = ref("hoy");
+// Navegación entre vistas
+const viewActive = ref("dashboard"); // 'dashboard' o 'turnos'
 
-const turnosFiltrados = computed(() => {
-    const hoy = new Date().toISOString().split("T")[0];
-    if (filtroTurnos.value === "hoy") {
-        return store.turnosAsignados.filter(t => t.fecha === hoy);
+// Filtro de Estadísticas
+const filtroStats = ref("hoy");
+
+watch(filtroStats, (newVal) => {
+    store.fetchStats(newVal);
+});
+
+// Configuración de gráficas
+const afluenciaData = computed(() => {
+    let labels = store.stats.graficas?.afluencia_temporal?.labels || [];
+    let data = store.stats.graficas?.afluencia_temporal?.data || [];
+
+    if (filtroStats.value === 'hoy') {
+        const fullLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+        const fullData = Array(24).fill(0);
+
+        labels.forEach((label, index) => {
+            // Extraer solo la hora si viene como "HH:mm:ss" o similar
+            const hourStr = label.toString().includes(':') ? label.split(':')[0] : label;
+            const hour = parseInt(hourStr);
+            if (!isNaN(hour) && hour >= 0 && hour < 24) {
+                fullData[hour] = data[index];
+            }
+        });
+
+        labels = fullLabels;
+        data = fullData;
     }
-    return store.turnosAsignados;
+
+    return {
+        labels,
+        datasets: [
+            {
+                label: 'Ingresos',
+                data: data,
+                backgroundColor: (context) => {
+                    const chart = context.chart;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return '#3b82f6';
+                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, '#2563eb');
+                    gradient.addColorStop(1, '#60a5fa');
+                    return gradient;
+                },
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#1d4ed8',
+            }
+        ]
+    };
+});
+
+const calificacionesData = computed(() => {
+    const labels = store.stats.graficas?.calificaciones?.labels || [];
+    const data = store.stats.graficas?.calificaciones?.data || [];
+    const bgColors = { '1': '#ef4444', '2': '#f97316', '3': '#eab308', '4': '#84cc16', '5': '#22c55e' };
+    
+    return {
+        labels: labels.map(l => `${l} Estrellas`),
+        datasets: [{ 
+            data: data, 
+            backgroundColor: (context) => {
+                const { ctx, chartArea } = context.chart;
+                if (!chartArea) return '#cbd5e1';
+
+                const colorsMap = { 
+                    '1': ['#ef4444', '#b91c1c'], 
+                    '2': ['#f97316', '#c2410c'], 
+                    '3': ['#eab308', '#a16207'], 
+                    '4': ['#84cc16', '#4d7c0f'], 
+                    '5': ['#22c55e', '#15803d'] 
+                };
+
+                const rawLabel = labels[context.dataIndex];
+                const l = String(rawLabel || '').split(' ')[0]; 
+                const pair = colorsMap[l] || ['#cbd5e1', '#94a3b8'];
+                
+                const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                gradient.addColorStop(0, pair[1]);
+                gradient.addColorStop(1, pair[0]);
+                return gradient;
+            },
+            borderWidth: 0,
+            hoverOffset: 15
+        }]
+    };
+});
+
+const chartOptionsBar = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#64748b' }, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Ingresos (Niños)', font: { size: 11, weight: '600' }, color: '#475569' } },
+        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+    }
+};
+
+const chartOptionsPie = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'right', labels: { usePointStyle: true } } }
+};
+
+// Configuración del Calendario Semanal
+const calendarView = ref('timeGridWeek');
+const calendarOptions = computed(() => ({
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+    initialView: calendarView.value,
+    locale: esLocale,
+    timeZone: 'America/Mexico_City',
+    headerToolbar: false,
+    allDaySlot: false,
+    slotMinTime: '00:00:00',
+    slotMaxTime: '24:00:00',
+    scrollTime: '08:00:00',
+    height: 520,
+    expandRows: true,
+    nowIndicator: true,
+    dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short', omitCommas: true },
+    displayEventTime: false,
+    slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+    events: store.turnosAsignados.map(t => ({
+        id: t.id_turno,
+        title: t.instructor,
+        start: `${t.fecha}T${t.hora_inicio}`,
+        end: `${t.fecha}T${t.hora_fin}`,
+    }))
+}));
+
+// Turnos de hoy filtrados
+const hoyStr = computed(() => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+});
+const turnosHoy = computed(() => {
+    return store.turnosAsignados.filter(t => t.fecha === hoyStr.value);
 });
 
 // Formulario
-const form = ref({
-    instructor: null,
-    fecha:      null,
-    horaInicio: null,
-    horaFin:    null,
-});
-
+const form = ref({ instructor: null, fecha: null, horaInicio: null, horaFin: null });
 const conflictoMsg  = ref(null);
 const submitSuccess = ref(false);
 
@@ -40,45 +172,35 @@ const horasInvalidas = computed(() => {
     return form.value.horaFin <= form.value.horaInicio;
 });
 
+// Auto-completar hora de fin (1 hora después del inicio)
+watch(() => form.value.horaInicio, (newVal) => {
+    if (newVal && !form.value.horaFin) {
+        const end = new Date(newVal.getTime() + 60 * 60 * 1000); // +1 hora
+        form.value.horaFin = end;
+    }
+});
+
 const formValido = computed(() =>
-    form.value.instructor &&
-    form.value.fecha &&
-    form.value.horaInicio &&
-    form.value.horaFin &&
-    !horasInvalidas.value
+    form.value.instructor && form.value.fecha && form.value.horaInicio && form.value.horaFin && !horasInvalidas.value
 );
 
 const toDateStr = (d) => {
     if (!d) return null;
-    const y  = d.getFullYear();
-    const m  = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
+    // Forzamos formato YYYY-MM-DD usando la zona horaria de CDMX
+    return new Intl.DateTimeFormat('en-CA', { 
+        timeZone: 'America/Mexico_City',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(d);
 };
 
 const toTimeStr = (d) => {
     if (!d) return null;
-    const parts = new Intl.DateTimeFormat('es-MX', {
-        hour:   '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-        timeZone: 'America/Mexico_City',
-    }).formatToParts(d);
+    const parts = new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Mexico_City' }).formatToParts(d);
     const get = (type) => parts.find(p => p.type === type)?.value ?? '00';
     return `${get('hour')}:${get('minute')}:${get('second')}`;
 };
-
-const formatHora = (str) => (str ? str.slice(0, 5) : "—");
-
-const formatFecha = (str) => {
-    if (!str) return "—";
-    const [y, m, d] = str.split("-");
-    return `${d}/${m}/${y}`;
-};
-
-const esHoy = (fechaStr) =>
-    fechaStr === new Date().toISOString().split("T")[0];
 
 const handleSubmit = async () => {
     conflictoMsg.value  = null;
@@ -97,321 +219,345 @@ const handleSubmit = async () => {
         form.value.horaInicio = null;
         form.value.horaFin    = null;
         setTimeout(() => (submitSuccess.value = false), 4000);
-
     } else if (result.conflicto) {
-        conflictoMsg.value =
-            `El instructor ${form.value.instructor.nombre_completo} ` +
-            `ya tiene una actividad programada en ese horario. ` +
-            `Elige otro horario o un instructor diferente.`;
+        conflictoMsg.value = `El instructor ya tiene una actividad programada en ese horario.`;
     }
 };
 
-//Ciclo de vida
-let statsInterval = null;
-
 onMounted(async () => {
-    await Promise.all([
-        store.fetchStats(),
-        store.fetchInstructores(),
-        store.fetchTurnos(),
-    ]);
-    statsInterval = setInterval(() => store.fetchStats(), 60_000);
+    await Promise.all([store.fetchStats(filtroStats.value), store.fetchInstructores(), store.fetchTurnos()]);
 });
-
-onUnmounted(() => clearInterval(statsInterval));
 </script>
 
 <template>
-  <main class="w-full bg-surface-50 min-h-screen font-sans pb-24 md:pb-8">
-    <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
+  <main class="w-full bg-surface-50 min-h-screen font-sans pb-8 pt-4 md:pt-0">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
 
-      <!-- Encabezado -->
-      <div class="flex items-start justify-between pt-2">
-        <div class="flex flex-col gap-1">
-          <h1 class="text-2xl md:text-3xl font-bold text-surface-900 tracking-tight m-0">Panel Ludoteca</h1>
-          <p class="text-surface-500 font-medium text-sm md:text-base m-0">Analíticas en tiempo real y asignación de turnos</p>
-        </div>
-        <button
-          :disabled="store.loading.stats"
-          @click="store.fetchStats()"
-          title="Actualizar métricas"
-          class="bg-white border border-surface-200 rounded-xl p-2.5 cursor-pointer text-surface-500 transition-all hover:bg-surface-100 hover:text-surface-800 disabled:opacity-50 disabled:cursor-default flex items-center"
-        >
-          <svg
-            :class="store.loading.stats ? 'animate-spin' : ''"
-            class="w-4 h-4"
-            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          >
-            <path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-        <!-- Ocupación actual -->
-        <div class="bg-white rounded-3xl p-5 flex items-center gap-4 border border-surface-100 shadow-sm hover:shadow-md transition-shadow">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
-            <IconBaby class="w-6 h-6" />
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs font-semibold text-surface-500 uppercase tracking-widest">Niños dentro ahora</span>
-            <span class="text-3xl font-bold text-surface-900 leading-none">
-              <template v-if="store.loading.stats">—</template>
-              <template v-else>{{ store.stats.ocupacion_actual }}</template>
-            </span>
-            <span class="text-xs font-medium text-blue-500 mt-1">de {{ store.stats.total_hoy }} registrados hoy</span>
-          </div>
-        </div>
-
-        <!-- Calificación promedio -->
-        <div class="bg-white rounded-3xl p-5 flex items-center gap-4 border border-surface-100 shadow-sm hover:shadow-md transition-shadow">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs font-semibold text-surface-500 uppercase tracking-widest">Calificación promedio</span>
-            <span class="text-3xl font-bold text-surface-900 leading-none">
-              <template v-if="store.loading.stats">—</template>
-              <template v-else-if="store.stats.calificacion_promedio !== null">
-                {{ store.stats.calificacion_promedio }}
-                <span class="text-base font-medium text-surface-400">/ 5</span>
-              </template>
-              <template v-else>
-                <span class="text-lg text-surface-400">Sin datos</span>
-              </template>
-            </span>
-            <span class="text-xs font-medium text-amber-500 mt-1">Encuestas de hoy</span>
-          </div>
-        </div>
-
-        <!-- Incidencias del día -->
-        <div class="bg-white rounded-3xl p-5 flex items-center gap-4 border border-surface-100 shadow-sm hover:shadow-md transition-shadow">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-red-50 text-red-600">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs font-semibold text-surface-500 uppercase tracking-widest">Entregas con retraso</span>
-            <span class="text-3xl font-bold text-surface-900 leading-none">
-              <template v-if="store.loading.stats">—</template>
-              <template v-else>{{ store.stats.incidencias_dia }}</template>
-            </span>
-            <span class="text-xs font-medium text-red-400 mt-1">Incidencias registradas hoy</span>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Módulo principal: Form + Lista -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-
-        <!-- Columna izquierda: Formulario -->
-        <div class="bg-white rounded-3xl border border-surface-200 overflow-hidden shadow-sm">
-          <div class="px-6 py-5 border-b border-surface-100">
-            <h2 class="text-base font-bold text-surface-900 m-0 mb-1">Asignar Turno</h2>
-            <p class="text-sm text-surface-400 m-0">Programa un instructor para la ludoteca</p>
-          </div>
-
-          <div class="px-6 py-5 flex flex-col gap-4">
-
-            <!-- Alerta éxito -->
-            <Transition name="fade">
-              <div v-if="submitSuccess" class="flex items-start gap-2.5 px-4 py-3.5 rounded-2xl text-sm font-medium bg-green-50 text-green-700 border border-green-200">
-                <svg class="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                Turno asignado exitosamente. La lista ya está actualizada.
-              </div>
-            </Transition>
-
-            <!-- Alerta conflicto -->
-            <Transition name="fade">
-              <div v-if="conflictoMsg" class="flex items-start gap-2.5 px-4 py-3.5 rounded-2xl text-sm font-medium bg-red-50 text-red-700 border border-red-200">
-                <svg class="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                {{ conflictoMsg }}
-              </div>
-            </Transition>
-
-            <!-- Instructor -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-surface-600">Instructor habilitado</label>
-              <Select
-                v-model="form.instructor"
-                :options="store.instructoresHabilitados"
-                optionLabel="nombre_completo"
-                placeholder="Seleccionar instructor..."
-                :loading="store.loading.instructores"
-                class="w-full"
-                @change="conflictoMsg = null"
-              />
-            </div>
-
-            <!-- Fecha -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-surface-600">Fecha del turno</label>
-              <DatePicker
-                v-model="form.fecha"
-                dateFormat="dd/mm/yy"
-                :minDate="new Date()"
-                placeholder="Seleccionar fecha..."
-                class="w-full"
-                showIcon
-                :manualInput="false"
-              />
-            </div>
-
-            <!-- Horas -->
-            <div class="grid grid-cols-2 gap-3">
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-surface-600">Hora inicio</label>
-                <DatePicker
-                  v-model="form.horaInicio"
-                  timeOnly
-                  hourFormat="24"
-                  placeholder="00:00"
-                  class="w-full"
-                  :manualInput="false"
-                  @update:modelValue="conflictoMsg = null"
-                />
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-surface-600">Hora fin</label>
-                <DatePicker
-                  v-model="form.horaFin"
-                  timeOnly
-                  hourFormat="24"
-                  placeholder="00:00"
-                  class="w-full"
-                  :manualInput="false"
-                  @update:modelValue="conflictoMsg = null"
-                />
-              </div>
-            </div>
-
-            <!-- Validación horas -->
-            <Transition name="fade">
-              <p v-if="horasInvalidas" class="text-xs text-red-600 flex items-center gap-1 -mt-2">
-                La hora de fin debe ser posterior a la hora de inicio.
-              </p>
-            </Transition>
-
-            <button
-              type="button"
-              :disabled="!formValido || store.loading.submit"
-              @click="handleSubmit"
-              class="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white bg-primary-600 hover:bg-primary-700 active:scale-95 transition-all shadow-md shadow-primary-700/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              <svg v-if="store.loading.submit" class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-              </svg>
-              <i v-else class="pi pi-check"></i>
-              {{ store.loading.submit ? 'Asignando...' : 'Asignar turno' }}
-            </button>
-
-          </div>
-        </div>
-
-        <!-- Columna derecha: Lista de turnos -->
-        <div class="bg-white rounded-3xl border border-surface-200 overflow-hidden shadow-sm">
-          <div class="px-6 py-5 border-b border-surface-100 flex items-center justify-between flex-wrap gap-3">
+      
+      <Transition 
+        enter-active-class="transition-all duration-500 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-300 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-4"
+        mode="out-in"
+      >
+        <!-- VISTA 1: DASHBOARD -->
+        <div v-if="viewActive === 'dashboard'" key="dashboard" class="space-y-8">
+          
+          <div class="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h2 class="text-base font-bold text-surface-900 m-0 mb-1">Turnos Programados</h2>
-              <p class="text-sm text-surface-400 m-0">Cobertura de la ludoteca</p>
+              <h1 class="text-3xl font-black text-surface-900 m-0 tracking-tight">Panel Ludoteca</h1>
+              <p class="text-surface-500 m-0 mt-1 font-medium">Analíticas en tiempo real y métricas de servicio</p>
             </div>
-            <!-- Tabs -->
-            <div class="flex bg-surface-100 rounded-xl p-1 gap-1">
-              <button
-                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                :class="filtroTurnos === 'hoy'
-                  ? 'bg-white text-surface-900 shadow-sm'
-                  : 'text-surface-500 hover:text-surface-700'"
-                @click="filtroTurnos = 'hoy'"
-              >Hoy</button>
-              <button
-                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                :class="filtroTurnos === 'semana'
-                  ? 'bg-white text-surface-900 shadow-sm'
-                  : 'text-surface-500 hover:text-surface-700'"
-                @click="filtroTurnos = 'semana'"
-              >Esta semana</button>
+            
+            <div class="flex items-center gap-3">
+              <div class="flex bg-white shadow-sm border border-surface-200 rounded-xl p-1">
+                <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
+                  @click="filtroStats = r"
+                  :disabled="store.loading.stats"
+                  class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize disabled:opacity-50"
+                  :class="filtroStats === r ? 'bg-surface-900 text-white shadow-md' : 'text-surface-500 hover:bg-surface-50'">
+                  {{ r }}
+                </button>
+              </div>
+              <button @click="store.fetchStats(filtroStats)" 
+                :disabled="store.loading.stats"
+                class="p-2.5 rounded-xl bg-white border border-surface-200 shadow-sm hover:bg-surface-50 transition-all active:rotate-180 disabled:opacity-50">
+                <svg class="w-4 h-4 text-surface-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/>
+                </svg>
+              </button>
             </div>
           </div>
 
-          <!-- Loading skeleton -->
-          <div v-if="store.loading.turnos" class="p-4 flex flex-col gap-3">
-            <div v-for="i in 3" :key="i" class="h-12 bg-surface-100 animate-pulse rounded-2xl" />
-          </div>
-
-          <!-- Sin turnos -->
-          <div v-else-if="turnosFiltrados.length === 0" class="py-12 px-6 flex flex-col items-center gap-3 text-surface-400 text-center">
-            <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <p class="text-sm m-0">No hay turnos programados para este período.</p>
-          </div>
-
-          <!-- Lista de turnos -->
-          <div v-else class="flex flex-col">
-            <div
-              v-for="turno in turnosFiltrados"
-              :key="turno.id_turno"
-              class="flex items-center gap-3.5 px-6 py-3.5 border-b border-surface-50 last:border-b-0 hover:bg-surface-50 transition-colors"
+          <div class="relative min-h-[600px]">
+            <!-- Overlay de Carga -->
+            <Transition
+              enter-active-class="transition duration-300 ease-out"
+              enter-from-class="opacity-0 scale-95"
+              enter-to-class="opacity-100 scale-100"
+              leave-active-class="transition duration-200 ease-in"
+              leave-from-class="opacity-100 scale-100"
+              leave-to-class="opacity-0 scale-95"
             >
-              <!-- Avatar -->
-              <div class="w-9 h-9 rounded-full bg-linear-to-br from-blue-100 to-blue-200 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0 uppercase">
-                {{ turno.instructor.charAt(0) }}
+              <div v-if="store.loading.stats" class="absolute inset-0 z-50 flex items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-[2.5rem]">
+                <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-surface-100">
+                  <div class="w-12 h-12 border-4 border-surface-100 border-t-surface-900 rounded-full animate-spin"></div>
+                  <div class="text-center">
+                    <p class="text-xs font-black text-surface-900 uppercase tracking-[0.2em] m-0">Sincronizando</p>
+                    <p class="text-[10px] font-bold text-surface-400 m-0 mt-1">Obteniendo analíticas frescas...</p>
+                  </div>
+                </div>
               </div>
+            </Transition>
 
-              <!-- Info -->
-              <div class="flex flex-col flex-1 min-w-0">
-                <span class="text-sm font-semibold text-surface-800 truncate">{{ turno.instructor }}</span>
-                <span class="text-xs text-surface-400">{{ formatFecha(turno.fecha) }}</span>
-              </div>
+            <div class="space-y-8" :class="{'pointer-events-none': store.loading.stats}">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="group bg-white p-6 rounded-4xl border border-surface-200 shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+                <div class="relative flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform">
+                        <IconBaby class="w-7 h-7" />
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Número de Niños</p>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.numero_ninos || 0 }}</h3>
+                    </div>
+                </div>
+            </div>
 
-              <!-- Horario + badge -->
-              <div class="flex flex-col items-end gap-1 shrink-0">
-                <span class="text-xs font-semibold text-surface-700 tabular-nums">
-                  {{ formatHora(turno.hora_inicio) }} – {{ formatHora(turno.hora_fin) }}
-                </span>
-                <Tag
-                  v-if="esHoy(turno.fecha)"
-                  value="Hoy"
-                  severity="success"
-                  class="text-[0.65rem]"
-                />
-              </div>
+            <div class="group bg-white p-6 rounded-4xl border border-surface-200 shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+                <div class="relative flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner group-hover:scale-110 transition-transform">
+                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Calificación Promedio</p>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.calificacion_promedio || 0 }} <span class="text-sm font-medium text-surface-300">/ 5</span></h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group bg-white p-6 rounded-4xl border border-surface-200 shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+                <div class="relative flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 shadow-inner group-hover:scale-110 transition-transform">
+                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Total Incidencias</p>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.total_incidencias || 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group bg-white p-6 rounded-4xl border border-surface-200 shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+                <div class="relative flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-inner group-hover:scale-110 transition-transform">
+                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Tiempo de Uso (min)</p>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.tiempo_promedio_min || 0 }}</h3>
+                    </div>
+                </div>
             </div>
           </div>
 
-        </div>
-      </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm">
+              <h3 class="text-xl font-black text-surface-900 mb-6">Afluencia Temporal</h3>
+              <div class="h-[350px]"><Chart type="bar" :data="afluenciaData" :options="chartOptionsBar" class="h-full" /></div>
+            </div>
+            <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm">
+              <h3 class="text-xl font-black text-surface-900 mb-6">Distribución de Calificaciones</h3>
+              <div class="h-[350px] flex items-center justify-center"><Chart type="doughnut" :data="calificacionesData" :options="chartOptionsPie" class="w-full max-w-[300px]" /></div>
+            </div>
+          </div>
 
+            </div>
+          </div>
+
+          <div class="flex justify-center pt-8 pb-4">
+            <button @click="viewActive = 'turnos'" class="group flex items-center gap-3 px-10 py-5 rounded-2xl bg-surface-900 text-white font-bold hover:bg-black transition-all hover:scale-105 shadow-2xl shadow-surface-900/30 w-full md:w-auto justify-center">
+              <i class="pi pi-calendar-plus text-xl"></i>
+              <span>Gestionar Turnos de Instructores</span>
+              <i class="pi pi-arrow-right group-hover:translate-x-1 transition-transform hidden md:inline"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- VISTA 2: GESTIÓN DE TURNOS -->
+        <div v-else key="turnos" class="space-y-8">
+          <div class="flex items-center justify-between">
+            <button @click="viewActive = 'dashboard'" class="flex items-center gap-2 text-surface-500 hover:text-surface-900 font-bold transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              <span>Volver al Dashboard</span>
+            </button>
+            <h1 class="text-2xl font-black text-surface-900 m-0">Gestión de Turnos</h1>
+          </div>
+
+          <div class="bg-white rounded-[2.5rem] border border-surface-200 shadow-sm overflow-hidden">
+            <div class="p-8 border-b border-surface-100 flex items-center justify-between bg-surface-50/30">
+              <div>
+                <h2 class="text-2xl font-black text-surface-900 m-0">Asignar Nuevo Turno</h2>
+                <p class="text-sm text-surface-400 m-0">Registra la jornada de un instructor en la ludoteca</p>
+              </div>
+              <div class="w-14 h-14 rounded-2xl bg-primary-600 text-white flex items-center justify-center shadow-lg shadow-primary-600/20">
+                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="p-10 [&_.p-select]:rounded-2xl! [&_.p-datepicker-input]:rounded-2xl! [&_.p-inputtext]:rounded-2xl! [&_.p-select]:w-full [&_.p-datepicker]:w-full">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-end">
+                <div class="space-y-2">
+                  <label class="text-[10px] uppercase font-black text-surface-400 tracking-widest px-1">Instructor</label>
+                  <Select v-model="form.instructor" :options="store.instructoresHabilitados" optionLabel="nombre_completo" placeholder="Seleccionar instructor..." class="w-full" panelClass="rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border-surface-100 p-2">
+                    <template #value="slotProps">
+                      <div v-if="slotProps.value" class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-[10px]">
+                          {{ slotProps.value.nombre_completo.charAt(0) }}
+                        </div>
+                        <span class="font-medium text-surface-800 tracking-tight">{{ slotProps.value.nombre_completo }}</span>
+                      </div>
+                      <span v-else class="text-surface-400 font-medium">{{ slotProps.placeholder }}</span>
+                    </template>
+                    <template #option="slotProps">
+                      <div class="flex items-center gap-3 py-0.5 px-1 group w-full">
+                        <div class="w-8 h-8 rounded-full bg-surface-100 text-surface-500 flex items-center justify-center font-bold text-xs transition-colors group-hover:bg-primary-100 group-hover:text-primary-600">
+                          {{ slotProps.option.nombre_completo.charAt(0) }}
+                        </div>
+                        <span class="font-medium text-surface-700 transition-colors group-hover:text-surface-900">{{ slotProps.option.nombre_completo }}</span>
+                      </div>
+                    </template>
+                  </Select>
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] uppercase font-black text-surface-400 tracking-widest px-1">Fecha</label>
+                  <DatePicker v-model="form.fecha" dateFormat="yy-mm-dd" showIcon iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-2">
+                    <label class="text-[10px] uppercase font-black text-surface-400 tracking-widest px-1">Inicio</label>
+                    <DatePicker v-model="form.horaInicio" timeOnly hourFormat="24" placeholder="00:00" class="w-full" :manualInput="false" showOnFocus fluid />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-[10px] uppercase font-black text-surface-400 tracking-widest px-1">Fin</label>
+                    <DatePicker v-model="form.horaFin" timeOnly hourFormat="24" placeholder="00:00" class="w-full" :manualInput="false" showOnFocus fluid />
+                  </div>
+                </div>
+                <button @click="handleSubmit" :disabled="!formValido || store.loading.submit" class="h-[52px] rounded-2xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20 disabled:opacity-40">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                  </svg>
+                  {{ store.loading.submit ? 'Asignando...' : 'Asignar Turno' }}
+                </button>
+              </div>
+              <Transition 
+                enter-active-class="transition-opacity duration-300"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-300"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              ><div v-if="horasInvalidas" class="mt-6 p-4 bg-red-50 text-red-700 rounded-2xl text-xs font-bold border border-red-100 flex items-center gap-2"><i class="pi pi-exclamation-circle text-lg"></i>La hora de fin debe ser posterior a la de inicio.</div></Transition>
+              <Transition 
+                enter-active-class="transition-opacity duration-300"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-300"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div v-if="conflictoMsg" class="mt-6 p-4 bg-red-50 text-red-700 rounded-2xl text-sm font-bold border border-red-100 flex items-center justify-between shadow-sm">
+                  <div class="flex items-center gap-3">
+                    <i class="pi pi-times-circle text-xl text-red-500"></i>
+                    <span class="font-sans tracking-tight">{{ conflictoMsg }}</span>
+                  </div>
+                  <button @click="conflictoMsg = null" class="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-red-100 text-red-400 hover:text-red-700 transition-colors active:scale-95">
+                    <i class="pi pi-times"></i>
+                  </button>
+                </div>
+              </Transition>
+              
+              <Transition 
+                enter-active-class="transition-opacity duration-300"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-300"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div v-if="submitSuccess" class="mt-6 p-4 bg-green-50 text-green-700 rounded-2xl text-sm font-bold border border-green-100 flex items-center justify-between shadow-sm">
+                  <div class="flex items-center gap-3">
+                    <i class="pi pi-check-circle text-xl text-green-500"></i>
+                    <span class="font-sans tracking-tight">Turno asignado con éxito.</span>
+                  </div>
+                  <button @click="submitSuccess = false" class="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-green-100 text-green-400 hover:text-green-700 transition-colors active:scale-95">
+                    <i class="pi pi-times"></i>
+                  </button>
+                </div>
+              </Transition>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[2.5rem] border border-surface-200 shadow-sm overflow-hidden">
+            <div class="p-8 border-b border-surface-100 bg-surface-50/30 flex items-center justify-between">
+              <div><h2 class="text-2xl font-black text-surface-900 m-0">Turnos Programados</h2><p class="text-sm text-surface-400 m-0">Gestión de cobertura de instructores</p></div>
+              <div class="flex items-center bg-surface-100 rounded-xl p-1 border border-surface-200 shadow-inner">
+                <button 
+                  @click="calendarView = 'timeGridDay'"
+                  class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  :class="calendarView === 'timeGridDay' ? 'bg-white text-surface-900 shadow-sm' : 'text-surface-500 hover:text-surface-700'"
+                >Hoy</button>
+                <button 
+                  @click="calendarView = 'timeGridWeek'"
+                  class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  :class="calendarView === 'timeGridWeek' ? 'bg-white text-surface-900 shadow-sm' : 'text-surface-500 hover:text-surface-700'"
+                >Semana</button>
+              </div>
+            </div>
+            <div class="p-8">
+              <Transition name="fade" mode="out-in">
+                <!-- Vista de Hoy: Tarjetas -->
+                <div v-if="calendarView === 'timeGridDay'" key="day" class="min-h-[400px]">
+                  <div v-if="turnosHoy.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div v-for="t in turnosHoy" :key="t.id_turno" 
+                      class="p-6 bg-white rounded-3xl border border-surface-200 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all group relative overflow-hidden"
+                    >
+                      <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                          <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                            {{ t.instructor.charAt(0) }}
+                          </div>
+                          <div>
+                            <h4 class="text-lg font-black text-surface-900 m-0 tracking-tight">{{ t.instructor }}</h4>
+                            <div class="flex items-center gap-2 mt-1.5">
+                              <div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-50 rounded-lg border border-surface-100">
+                                <svg class="w-3.5 h-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <span class="text-xs font-bold text-surface-600">{{ t.hora_inicio.substring(0,5) }} - {{ t.hora_fin.substring(0,5) }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-surface-50 flex items-center justify-center text-surface-300 group-hover:bg-blue-600 group-hover:text-white transition-all cursor-help" title="Instructor Asignado">
+                          <i class="pi pi-check-circle text-lg"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="flex flex-col items-center justify-center py-20 text-center bg-surface-50/50 rounded-4xl border-2 border-dashed border-surface-200">
+                    <div class="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center text-surface-300 mb-4">
+                      <i class="pi pi-calendar-times text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-surface-900 m-0">Sin turnos para hoy</h3>
+                    <p class="text-surface-400 text-sm mt-1 max-w-xs">No hay instructores programados para la jornada de hoy todavía.</p>
+                  </div>
+                </div>
+
+                <!-- Vista de Semana: Calendario FullCalendar -->
+                <div v-else key="week" class="[&_.fc]:font-sans [&_.fc]:text-[0.65rem] [&_.fc]:[--fc-border-color:#f1f5f9] [&_.fc]:[--fc-today-bg-color:#f8fafc] [&_.fc-theme-standard_td]:border-[#f1f5f9]! [&_.fc-timegrid-slot]:h-[2.2rem] [&_.fc-timegrid-slot]:border-b-[#f8fafc]! [&_.fc-event]:rounded-xl! [&_.fc-event]:border-none! [&_.fc-event]:bg-linear-to-br! [&_.fc-event]:from-[#3b82f6] [&_.fc-event]:to-[#1d4ed8] [&_.fc-event]:shadow-lg! [&_.fc-event]:shadow-blue-500/30 [&_.fc-event]:mt-1! [&_.fc-event]:mx-1! [&_.fc-event-main]:flex! [&_.fc-event-main]:items-center! [&_.fc-event-main]:justify-center! [&_.fc-event-main]:text-center! [&_.fc-event-main]:font-bold! [&_.fc-event-main]:p-2! [&_.fc-col-header-cell]:bg-[#f8fafc] [&_.fc-col-header-cell]:py-3 [&_.fc-col-header-cell-cushion]:text-[0.6rem]! [&_.fc-col-header-cell-cushion]:font-black! [&_.fc-col-header-cell-cushion]:text-surface-400! [&_.fc-timegrid-axis-cushion]:text-[0.65rem]! [&_.fc-timegrid-now-indicator-line]:border-[#ef4444]!">
+                  <FullCalendar :key="calendarView" :options="calendarOptions" />
+                </div>
+              </Transition>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   </main>
 </template>
-
-<style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 0.25s, transform 0.25s; }
-.fade-enter-from, .fade-leave-to       { opacity: 0; transform: translateY(-4px); }
-
-:deep(.p-select),
-:deep(.p-datepicker-input),
-:deep(.p-inputtext) {
-  border-radius: 0.75rem !important;
-  font-size: 0.875rem !important;
-}
-
-:deep(.p-select),
-:deep(.p-datepicker) {
-  width: 100%;
-}
-</style>

@@ -6,10 +6,16 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     // ─── State
     const stats = ref({
-        ocupacion_actual: 0,
-        calificacion_promedio: null,
-        incidencias_dia: 0,
-        total_hoy: 0,
+        kpis: {
+            numero_ninos: 0,
+            calificacion_promedio: null,
+            total_incidencias: 0,
+            tiempo_promedio_min: 0
+        },
+        graficas: {
+            afluencia_temporal: { labels: [], data: [] },
+            calificaciones: { labels: [], data: [] }
+        }
     });
 
     const instructoresHabilitados = ref([]);
@@ -27,10 +33,10 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     // ─── Actions 
 
-    const fetchStats = async () => {
+    const fetchStats = async (rango = 'hoy') => {
         loading.value.stats = true;
         try {
-            const res = await api.get("/ludoteca/admin/stats");
+            const res = await api.get(`/ludoteca/admin/stats?rango=${rango}`);
             if (res.data.success) {
                 stats.value = res.data.data;
             }

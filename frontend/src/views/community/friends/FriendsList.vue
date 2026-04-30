@@ -7,7 +7,7 @@ import { IconArrowLeft } from '@/components/icons'
 
 const router = useRouter()
 const friendStore = useFriendStore()
-const { toastInfo } = useAlerts() 
+const { toastInfo, showLoading, closeLoading, successModal, errorModal, confirmDelete } = useAlerts()
 
 const search = ref('')
 const filtro = ref('AMIGO') 
@@ -45,11 +45,14 @@ function cambiarFiltro(nuevoFiltro) {
 const aceptarSolicitud = async (amigo) => {
   actionLoadingId.value = amigo.id_amistad
   actionTypeLoading.value = 'aceptar'
+  showLoading('Aceptando solicitud...')
   try {
     await friendStore.acceptFriend({ id_amistad: amigo.id_amistad })
-    toastInfo('¡Aceptada!', `Ahora eres amigo de ${amigo.nombre_amigo}`, 'success')
+    closeLoading()
+    await successModal('¡Solicitud aceptada!', `Ahora eres amigo de ${amigo.nombre_amigo}.`)
   } catch (e) {
-    toastInfo('Error', 'Error al aceptar la solicitud', 'error')
+    closeLoading()
+    await errorModal('Error', 'No se pudo aceptar la solicitud. Inténtalo de nuevo.')
   } finally {
     actionLoadingId.value = null
     actionTypeLoading.value = ''
@@ -59,11 +62,37 @@ const aceptarSolicitud = async (amigo) => {
 const rechazarSolicitud = async (amigo) => {
   actionLoadingId.value = amigo.id_amistad
   actionTypeLoading.value = 'rechazar'
+  showLoading('Rechazando solicitud...')
   try {
     await friendStore.rejectFriend({ id_amistad: amigo.id_amistad })
-    toastInfo('Rechazada', 'Solicitud de amistad rechazada', 'info')
+    closeLoading()
+    toastInfo('Solicitud rechazada', 'La solicitud de amistad fue rechazada.', 'info')
   } catch (e) {
-    toastInfo('Error', 'Error al rechazar la solicitud', 'error')
+    closeLoading()
+    await errorModal('Error', 'No se pudo rechazar la solicitud. Inténtalo de nuevo.')
+  } finally {
+    actionLoadingId.value = null
+    actionTypeLoading.value = ''
+  }
+}
+
+const eliminarAmigo = async (amigo) => {
+  const result = await confirmDelete(
+    '¿Eliminar amigo?',
+    `¿Estás seguro de que quieres eliminar a ${amigo.nombre_amigo} de tu lista de amigos?`
+  )
+  if (!result.isConfirmed) return
+
+  actionLoadingId.value = amigo.id_amistad
+  actionTypeLoading.value = 'eliminar'
+  showLoading('Eliminando amigo...')
+  try {
+    await friendStore.removeFriend({ id_amistad: amigo.id_amistad })
+    closeLoading()
+    toastInfo('Amigo eliminado', `${amigo.nombre_amigo} fue eliminado de tu lista.`, 'info')
+  } catch (e) {
+    closeLoading()
+    await errorModal('Error', 'No se pudo eliminar al amigo. Inténtalo de nuevo.')
   } finally {
     actionLoadingId.value = null
     actionTypeLoading.value = ''
@@ -193,7 +222,20 @@ const rechazarSolicitud = async (amigo) => {
             </div>
           </div>
 
-          <!-- Footer Actions (Sólo Aceptar/Rechazar para Solicitudes Recibidas) -->
+          <!-- Footer Actions -->
+          <!-- Acción: Eliminar (para amigos aceptados) -->
+          <div class="mt-auto pt-2" v-if="filtro === 'AMIGO'">
+            <button 
+              @click="eliminarAmigo(amigo)"
+              :disabled="actionLoadingId === amigo.id_amistad"
+              class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="23" y1="11" y2="11"/></svg>
+              {{ actionLoadingId === amigo.id_amistad && actionTypeLoading === 'eliminar' ? 'Eliminando...' : 'Eliminar amigo' }}
+            </button>
+          </div>
+
+          <!-- Acción: Aceptar/Rechazar (para solicitudes recibidas) -->
           <div class="mt-auto pt-2" v-if="filtro === 'SOLICITUD_RECIBIDA'">
             <div class="flex gap-2 flex-col sm:flex-row w-full">
               <!-- Estandarización Primary -->

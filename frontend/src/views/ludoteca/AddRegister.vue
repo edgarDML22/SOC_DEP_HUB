@@ -2,15 +2,15 @@
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAlerts } from '@/composables/useAlerts'
 
 const profileStore = useProfileStore()
+const { showLoading, closeLoading, successModal, errorModal } = useAlerts()
 
 const miembros = ref([])
 const idSeleccionado = ref(null)
 
 const loading = ref(false)
-const mensaje = ref('')
-const tipoMensaje = ref('')
 
 // Cargar miembros familiares
 const cargarMiembros = async () => {
@@ -30,15 +30,13 @@ const cargarMiembros = async () => {
 
 // Registrar en ludoteca
 const registrar = async () => {
-  mensaje.value = ''
-
   if (!idSeleccionado.value) {
-    mensaje.value = 'Selecciona un menor'
-    tipoMensaje.value = 'error'
+    errorModal('Campo requerido', 'Por favor selecciona un menor antes de continuar.')
     return
   }
 
   loading.value = true
+  showLoading('Registrando...')
 
   try {
     const res = await api.post('/ludoteca/register', {
@@ -46,24 +44,24 @@ const registrar = async () => {
       id_socio: profileStore.profileData?.id_socio
     })
 
-    // Éxito
-    mensaje.value = res.data.message
+    const msg = res.data.message || ''
+    closeLoading()
 
-    if (mensaje.value?.toLowerCase().includes('ingreso registrado')) {
-      tipoMensaje.value = 'success'
+    if (msg.toLowerCase().includes('ingreso registrado')) {
+      await successModal('¡Registro exitoso!', msg || 'El menor fue ingresado a la ludoteca correctamente.')
     } else {
-      tipoMensaje.value = 'error'
+      await errorModal('Aviso', msg || 'No se pudo completar el registro.')
     }
+
     idSeleccionado.value = null
 
   } catch (error) {
-    // Error controlado del backend
-    mensaje.value =
+    closeLoading()
+    const msg =
       error.response?.data?.message ||
       error.response?.data?.error ||
-      'Error al registrar'
-
-    tipoMensaje.value = 'error'
+      'Ocurrió un error al intentar registrar. Inténtalo de nuevo.'
+    await errorModal('Error al registrar', msg)
   } finally {
     loading.value = false
   }
@@ -105,14 +103,6 @@ onMounted(() => {
         >
           {{ loading ? 'Registrando...' : 'Registrar' }}
         </button>
-
-        <!-- MENSAJE -->
-        <div
-          v-if="mensaje"
-          :class="['alert', tipoMensaje]"
-        >
-          {{ mensaje }}
-        </div>
 
       </div>
     </div>
