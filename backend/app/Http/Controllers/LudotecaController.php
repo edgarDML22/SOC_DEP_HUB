@@ -19,6 +19,10 @@ class LudotecaController extends Controller
             return response()->json(['message' => 'No autenticado'], 401);
         }
 
+        $hoy = now('America/Mexico_City')->toDateString();
+        $inicioDia = $hoy . ' 00:00:00';
+        $finDia = $hoy . ' 23:59:59';
+
         // Gerente / Subgerente
         if (in_array($user->rol, ['gerente', 'subgerente'])) {
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])->get();
@@ -54,16 +58,15 @@ class LudotecaController extends Controller
         // Instructor
         if ($user->rol == 'instructor') {
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
-                ->where(function ($query) {
-                    $query->whereDate('hora_ingreso', now('America/Mexico_City')->toDateString())
-                        ->orWhere('estatus_ludoteca', 'ACTIVA')
-                        ->orWhere('estatus_ludoteca', 'INACTIVO');
+                ->where(function ($query) use ($inicioDia, $finDia) {
+                    $query->whereBetween('hora_ingreso', [$inicioDia, $finDia])
+                        ->orWhereIn('estatus_ludoteca', ['ACTIVA', 'INACTIVO']);
                 })
                 ->has('menor')
                 ->get();
 
             $turno = TurnosLudoteca::where('id_instructor', $user->user_id)
-                ->where('fecha', now('America/Mexico_City')->toDateString())
+                ->where('fecha', $hoy)
                 ->first();
 
             return response()->json([
@@ -102,7 +105,7 @@ class LudotecaController extends Controller
 
             $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
                 ->whereIn('id_menor', $ids_menores)
-                ->whereDate('hora_ingreso', now('America/Mexico_City')->toDateString())
+                ->whereBetween('hora_ingreso', [$inicioDia, $finDia])
                 ->get();
 
             if ($registros->isEmpty()) {
