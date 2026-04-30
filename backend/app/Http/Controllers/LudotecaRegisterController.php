@@ -61,7 +61,8 @@ class LudotecaRegisterController extends Controller
             'id_adulto_egreso' => null,
             'id_instructor_ingreso' => $request->id_instructor,
         ]);
-        RegistroLudotecaMongo::insert([
+        
+        /* RegistroLudotecaMongo::insert([
             'tutor_id' => $request->id_socio,
             'menor_id' => $request->id_miembro,
             'tipo_evento' => 'ludoteca_in',
@@ -70,7 +71,7 @@ class LudotecaRegisterController extends Controller
                 'id_registro' => $registro->id_registro,
 
             ]
-        ]);
+        ]); */
 
         return response()->json([
             'message' => 'Ingreso registrado correctamente',

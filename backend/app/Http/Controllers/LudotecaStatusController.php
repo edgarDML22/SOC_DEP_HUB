@@ -54,6 +54,13 @@ class LudotecaStatusController extends Controller
             ], 403);
         }
 
+        if ($modalidad_plan->estatus_penalizacion === 'PENALIZADO_LUDOTECA' || $modalidad_plan->estatus_penalizacion === 'PENALIZADO_AMBOS' || $modalidad_plan->estatus_penalizacion === 'SUSPENDIDO') {
+            return response()->json([
+                'message' => 'Su cuenta está suspendida',
+                'error' => 'CUENTA SUSPENDIDA'
+            ], 403);
+        }
+
         //VALIDACION 2: MENOR YA NO SE ENCUENTRA DENTRO DE LA LUDOTECA
         $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)
             ->value('id_menor');

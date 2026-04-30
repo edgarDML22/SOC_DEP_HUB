@@ -42,6 +42,8 @@ class ProfileController extends Controller
                         'genero' => $perfil->genero,
                         'fecha_afiliacion' => $perfil->fecha_afiliacion,
                         'contador_no_shows' => $perfil->contador_no_shows,
+                        'estatus_penalizacion' => $perfil->estatus_penalizacion,
+                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
                     ];
                 }
                 break;
@@ -56,7 +58,9 @@ class ProfileController extends Controller
                         'st.numero_accion',
                         'st.tipo_socio',
                         'st.modalidad_plan',
-                        'st.estatus_cuenta'
+                        'st.estatus_cuenta',
+                        'st.estatus_penalizacion',
+                        'st.fecha_fin_penalizacion'
                     )
                     ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
@@ -69,7 +73,9 @@ class ProfileController extends Controller
                         'numero_accion' => $perfil->numero_accion,
                         'tipo_socio' => $perfil->tipo_socio,
                         'modalidad_plan' => $perfil->modalidad_plan,
-                        'estatus_cuenta' => $perfil->estatus_cuenta
+                        'estatus_cuenta' => $perfil->estatus_cuenta,
+                        'estatus_penalizacion' => $perfil->estatus_penalizacion ?? null,
+                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion ?? null,
                     ];
                 }
                 break;

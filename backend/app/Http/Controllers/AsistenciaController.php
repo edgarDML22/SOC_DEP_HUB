@@ -40,7 +40,7 @@ class AsistenciaController extends Controller
             ], 404);
         }
 
-        if (strcasecmp($socio->estatus_cuenta, 'SUSPENDIDO') === 0) {
+        if (strcasecmp($socio->estatus_penalizacion, 'SUSPENDIDO') === 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'Socio suspendido'

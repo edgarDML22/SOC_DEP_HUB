@@ -34,10 +34,10 @@ class QrController extends Controller
         if ($user->rol === 'socio_titular') {
             $socio = \App\Models\SocioTitular::find($user->user_id);
 
-            if (!$socio || $socio->estatus_cuenta !== 'AL_CORRIENTE') {
+            if (!$socio || $socio->estatus_cuenta !== 'AL_CORRIENTE' || $socio->estatus_penalizacion === 'SUSPENDIDO') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tu cuenta no está al corriente. No es posible generar el código QR.'
+                    'message' => 'Tu cuenta no está al corriente o se encuentra suspendida. No es posible generar el código QR.'
                 ], 403);
             }
         }

@@ -25,20 +25,20 @@ class Sanciones extends Controller
         $retrasos = $socio->retrasos_ludoteca;
 
         // 4. Lógica de notificaciones/suspensión (NO APLICAR A CANCELADOS)
-        if ($socio->estatus_acceso !== 'CANCELADO') {
+        if ($socio->estatus_cuenta !== 'CANCELADO') {
 
             if ($retrasos == 3) {
                 $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
             } elseif ($retrasos == 5) {
                 $socio->update([
-                    'estatus_cuenta' => 'PENALIZADO_LUDOTECA',
+                    'estatus_penalizacion' => 'PENALIZADO_LUDOTECA',
                     'fecha_fin_penalizacion' => now()->addDay()
                 ]);
                 $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
 
             } elseif ($retrasos == 7) {
                 $socio->update([
-                    'estatus_cuenta' => 'PENALIZADO_LUDOTECA',
+                    'estatus_penalizacion' => 'PENALIZADO_LUDOTECA',
                     'fecha_fin_penalizacion' => now()->addDays(3)
 
                 ]);
@@ -46,7 +46,7 @@ class Sanciones extends Controller
 
             } elseif ($retrasos == 9) {
                 $socio->update([
-                    'estatus_cuenta' => 'PENALIZADO_LUDOTECA',
+                    'estatus_penalizacion' => 'PENALIZADO_LUDOTECA',
                     'fecha_fin_penalizacion' => now()->addDays(5)
                 ]);
                 $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
@@ -54,7 +54,7 @@ class Sanciones extends Controller
             } elseif ($retrasos >= 12) {
                 $socio->notify(new AlertaRecogidaNotification(null, 'cancelacion_ludoteca'));
                 $socio->update([
-                    'estatus_cuenta' => 'SUSPENDIDO',
+                    'estatus_penalizacion' => 'SUSPENDIDO',
                     'fecha_fin_penalizacion' => null
                 ]);
             }
@@ -63,7 +63,8 @@ class Sanciones extends Controller
         return response()->json([
             'message' => 'Sanciones aplicadas correctamente',
             'retrasos' => $socio->refresh()->retrasos_ludoteca,
-            'estatus_actual' => $socio->estatus_acceso
+            'estatus_actual' => $socio->estatus_cuenta,
+            'estatus_penalizacion' => $socio->estatus_penalizacion
         ]);
     }
     public static function aplicarSancionesReservas($id_socio)
@@ -81,32 +82,32 @@ class Sanciones extends Controller
         $noshows = $socio->contador_noshows;
 
         // 4. Lógica de notificaciones/suspensión (NO APLICAR A CANCELADOS)
-        if ($socio->estatus_acceso !== 'CANCELADO') {
+        if ($socio->estatus_cuenta !== 'CANCELADO') {
 
             if ($noshows == 3) {
                 $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
 
             } elseif ($noshows == 5) {
                 $socio->update([
-                    'estatus_cuenta' => 'PENALIZADO_RESERVA',
+                    'estatus_penalizacion' => 'PENALIZADO_RESERVA',
                     'fecha_fin_suspension' => now()->addDay()
                 ]);
 
             } elseif ($noshows == 7) {
                 $socio->update([
-                    'estatus_cuenta' => 'PENALIZADO_RESERVA',
+                    'estatus_penalizacion' => 'PENALIZADO_RESERVA',
                     'fecha_fin_suspension' => now()->addDays(3)
                 ]);
 
             } elseif ($noshows == 9) {
                 $socio->update([
-                    'estatus_cuenta' => 'PENALIZADO_RESERVA',
+                    'estatus_penalizacion' => 'PENALIZADO_RESERVA',
                     'fecha_fin_suspension' => now()->addDays(5)
                 ]);
 
             } elseif ($noshows >= 12) {
                 $socio->update([
-                    'estatus_cuenta' => 'SUSPENDIDO',
+                    'estatus_penalizacion' => 'SUSPENDIDO',
                     'fecha_fin_suspension' => null
                 ]);
                 $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
@@ -116,7 +117,8 @@ class Sanciones extends Controller
         return response()->json([
             'message' => 'Sanciones aplicadas correctamente',
             'retrasos' => $socio->refresh()->retrasos_ludoteca,
-            'estatus_actual' => $socio->estatus_acceso
+            'estatus_actual' => $socio->estatus_cuenta,
+            'estatus_penalizacion' => $socio->estatus_penalizacion
         ]);
     }
 
