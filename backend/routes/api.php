@@ -29,6 +29,8 @@ use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
 use App\Http\Controllers\RegisterEventController;
+use App\Http\Controllers\DisciplinaController;
+use App\Http\Controllers\CategoriaDisciplinaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -136,29 +138,38 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/activities/{activityId}/substitutes', [InstructorController::class, 'getCandidateSubstitutes']);
     Route::post('/v1/instructors/{id}/apply-status', [InstructorController::class, 'applyStatusChange']);
 
-    // Traer disciplinas para los filtros/formularios de admin
-    Route::get('/v1/disciplinas/all', function () {
-        return response()->json([
-            'success' => true,
-            'data' => \App\Models\Disciplina::all()
-        ], 200);
-    });
-
-    // Agregar acompañantes a una reservación
-    Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
-
-    Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
-
-    // Búsqueda dinámica de socios/familiares (Autocompletado)
-    Route::get('/v1/socios/search', [SocioController::class, 'search']);
-    // Rutas para listado y detalle de socios titulares (CRUD para Gerente/Subgerente)
+    // CRUD SOCIOS
     Route::get('/v1/socios/all', [SocioController::class, 'index']);
     Route::get('/v1/socios/{id}', [SocioController::class, 'show']);
     Route::put('/v1/socios/update/{id}', [SocioController::class, 'update']);
+    Route::get('/v1/socios/search', [SocioController::class, 'search']);
 
+    // CRUD DISCIPLINAS
+    Route::get('/v1/disciplinas/all', [DisciplinaController::class, 'index']);
+    Route::get('/v1/disciplinas/{id}', [DisciplinaController::class, 'show']);
+    Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
+    Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
+    Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
+    
+    // CRUD CATEGORIAS DISCIPLINAS
+    Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
+    Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);
+    Route::get('/v1/disciplinas-categories/{id}', [CategoriaDisciplinaController::class, 'show']);
+    Route::put('/v1/disciplinas-categories/update/{id}', [CategoriaDisciplinaController::class, 'update']);
+    Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
+
+    // CRUD ESPACIOS
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
-    // Consultar los horarios de un espacio fisico que han sido ocupados
+    Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
+    Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
+    Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
+    Route::put('/v1/spaces/update/{id}', [EspacioFisicoController::class, 'update']);
+    Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
+
+    // Rutas de utilidad/negocio
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
+    Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
+    Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
 
     // RESERVACIONES ON DEMAND
     Route::post('/v1/reservations', [ReservacionController::class, 'store']);

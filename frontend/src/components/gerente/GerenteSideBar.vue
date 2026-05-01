@@ -6,7 +6,9 @@ import {
   IconTrophy,
   IconUser,
   IconClock,
-  IconGuests
+  IconGuests,
+  IconBriefcase,
+  IconShield
 } from '@/components/icons'
 
 const isOpen = ref(true)
@@ -93,6 +95,28 @@ const toggleMenu = (menu) => {
             </router-link>
             <router-link to="/admin/socios" class="sidebar-submenu-item">
               Socios
+            </router-link>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLUB SECTION -->
+      <div class="flex flex-col">
+        <button @click="toggleMenu('club')" class="sidebar-menu-item w-full">
+          <IconShield class="sidebar-icon" />
+          <span v-if="isOpen">Club</span>
+        </button>
+
+        <div :class="[
+          'grid transition-all duration-300 ease-in-out ml-8 overflow-hidden',
+          openMenu === 'club' && isOpen ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
+        ]">
+          <div class="min-h-0 flex flex-col gap-1">
+            <router-link to="/admin/spaces" class="sidebar-submenu-item">
+              Espacios
+            </router-link>
+            <router-link to="/admin/disciplines" class="sidebar-submenu-item">
+              Disciplinas
             </router-link>
           </div>
         </div>

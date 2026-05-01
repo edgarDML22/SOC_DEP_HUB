@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/services/api';
-import { useInstructorStore } from '@/stores/admin/instructorStore';
+import { useSpacesStore } from '@/stores/admin/spaces';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 
@@ -18,11 +18,11 @@ import IconDefault from '@/components/icons/sports/IconDefault.vue';
 
 const route = useRoute();
 const router = useRouter();
-const instructorStore = useInstructorStore();
+const spacesStore = useSpacesStore();
 const toast = useToast();
 
-const instructorId = route.params.id;
-const instructor = ref(null);
+const spaceId = route.params.id;
+const space = ref(null);
 const allDisciplines = ref([]);
 const selectedDisciplines = ref([]);
 const isLoading = ref(true);
@@ -36,19 +36,19 @@ const statusOverlay = ref({
 
 onMounted(async () => {
     await Promise.all([
-        fetchInstructor(),
+        fetchSpace(),
         fetchAllDisciplines()
     ]);
     isLoading.value = false;
 });
 
-const fetchInstructor = async () => {
+const fetchSpace = async () => {
     try {
-        const data = await instructorStore.fetchInstructorDetails(instructorId);
-        instructor.value = data;
+        const data = await spacesStore.fetchSpaceDetails(spaceId);
+        space.value = data;
         selectedDisciplines.value = data.disciplinas ? data.disciplinas.map(d => d.id_disciplina) : [];
     } catch (error) {
-        console.error("Error fetching instructor:", error);
+        console.error("Error fetching space:", error);
     }
 };
 
@@ -96,19 +96,19 @@ const getIcon = (name) => {
 const saveChanges = async () => {
     isSaving.value = true;
     try {
-        const res = await instructorStore.updateInstructor(instructorId, {
+        const res = await spacesStore.updateSpace(spaceId, {
             disciplinas: selectedDisciplines.value
         });
         if (res.success) {
             statusOverlay.value = {
                 show: true,
                 type: 'success',
-                message: 'Disciplinas actualizadas exitosamente'
+                message: 'Disciplinas del espacio actualizadas exitosamente'
             };
             toast.add({ severity: 'success', summary: 'Éxito', detail: 'Cambios guardados', life: 3000 });
 
             setTimeout(() => {
-                router.push('/admin/instructors');
+                router.push({ name: 'spaces-details', params: { id: spaceId } });
             }, 1500);
         } else {
             statusOverlay.value = {
@@ -131,7 +131,7 @@ const saveChanges = async () => {
 };
 
 const goBack = () => {
-    router.push('/admin/instructors');
+    router.push({ name: 'spaces-details', params: { id: spaceId } });
 };
 </script>
 
@@ -169,8 +169,8 @@ const goBack = () => {
                 </svg>
             </button>
             <div>
-                <p class="greeting-label">Gestión de Disciplinas</p>
-                <h1 class="header-title" v-if="instructor">{{ instructor.nombre_completo }}</h1>
+                <p class="greeting-label">Disciplinas del Espacio</p>
+                <h1 class="header-title" v-if="space">{{ space.nombre_espacio }}</h1>
             </div>
         </header>
 
@@ -180,14 +180,14 @@ const goBack = () => {
         </section>
 
         <section v-else class="disciplines-content">
-            <!-- SECCIÓN 1: DISCIPLINAS QUE IMPARTE -->
+            <!-- SECCIÓN 1: DISCIPLINAS PERMITIDAS -->
             <div class="card mb-8 section-assigned">
                 <div class="card-header flex justify-between items-end">
                     <div>
-                        <h3 class="text-emerald-700">Disciplinas que Imparte</h3>
-                        <p class="text-sm text-emerald-600/70">Estas son las disciplinas asignadas actualmente.</p>
+                        <h3 class="text-indigo-700">Disciplinas Permitidas</h3>
+                        <p class="text-sm text-indigo-600/70">Estas disciplinas están autorizadas para este espacio.</p>
                     </div>
-                    <span class="badge-count bg-emerald-100 text-emerald-700">{{ assignedDisciplinesList.length
+                    <span class="badge-count bg-indigo-100 text-indigo-700">{{ assignedDisciplinesList.length
                         }}</span>
                 </div>
 
@@ -214,12 +214,12 @@ const goBack = () => {
                 </div>
             </div>
 
-            <!-- SECCIÓN 2: DISCIPLINAS DISPONIBLES -->
+            <!-- SECCIÓN 2: OTRAS DISCIPLINAS -->
             <div class="card section-available">
                 <div class="card-header flex justify-between items-end">
                     <div>
-                        <h3 class="text-gray-700">Otras Disciplinas Disponibles</h3>
-                        <p class="text-sm text-gray-500">Haz clic para agregar una nueva disciplina al instructor.</p>
+                        <h3 class="text-gray-700">Otras Disciplinas</h3>
+                        <p class="text-sm text-gray-500">Haz clic para autorizar una nueva disciplina en este espacio.</p>
                     </div>
                     <span class="badge-count bg-gray-100 text-gray-600">{{ availableDisciplinesList.length }}</span>
                 </div>
@@ -306,8 +306,8 @@ const goBack = () => {
 }
 
 .section-assigned {
-    border-color: var(--p-emerald-200);
-    background-color: var(--p-emerald-50/30);
+    border-color: var(--p-indigo-200);
+    background-color: var(--p-indigo-50/30);
 }
 
 .card-header {
@@ -356,8 +356,8 @@ const goBack = () => {
 
 .discipline-item.active .discipline-card-body {
     background: white;
-    border-color: var(--p-emerald-500);
-    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1);
+    border-color: var(--p-indigo-500);
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1);
 }
 
 .icon-circle {
@@ -373,7 +373,7 @@ const goBack = () => {
 }
 
 .discipline-item.active .icon-circle {
-    background: var(--p-emerald-600);
+    background: var(--p-indigo-600);
     color: white;
 }
 
@@ -385,14 +385,14 @@ const goBack = () => {
 }
 
 .discipline-item.active .discipline-name {
-    color: var(--p-emerald-900);
+    color: var(--p-indigo-900);
 }
 
 .check-mark {
     position: absolute;
     top: -5px;
     right: -5px;
-    background: var(--p-emerald-600);
+    background: var(--p-indigo-600);
     color: white;
     width: 24px;
     height: 24px;
@@ -408,12 +408,12 @@ const goBack = () => {
     grid-column: 1 / -1;
     padding: 2rem;
     text-align: center;
-    color: var(--p-emerald-600/60);
+    color: var(--p-indigo-600/60);
     font-style: italic;
     font-size: 0.85rem;
     background: white;
     border-radius: 16px;
-    border: 2px dashed var(--p-emerald-200);
+    border: 2px dashed var(--p-indigo-200);
 }
 
 .actions-sticky {
@@ -432,7 +432,7 @@ const goBack = () => {
 }
 
 .btn-primary {
-    background-color: var(--p-primary-600);
+    background-color: var(--p-indigo-600);
     color: white;
     border: none;
     padding: 0.875rem 2.5rem;
@@ -443,7 +443,7 @@ const goBack = () => {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--p-primary-700);
+    background-color: var(--p-indigo-700);
     transform: translateY(-2px);
 }
 
@@ -469,7 +469,7 @@ const goBack = () => {
     width: 40px;
     height: 40px;
     border: 3px solid var(--p-surface-200);
-    border-top-color: var(--p-primary-600);
+    border-top-color: var(--p-indigo-600);
     border-radius: 50%;
     animation: spin 1s infinite linear;
 }
@@ -496,7 +496,7 @@ const goBack = () => {
 }
 
 .status-overlay.success {
-    color: var(--p-emerald-600);
+    color: var(--p-indigo-600);
 }
 
 .status-overlay.error {

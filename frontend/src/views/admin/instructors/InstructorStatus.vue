@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useInstructorStore } from '@/stores/instructorStore';
+import { useInstructorStore } from '@/stores/admin/instructorStore';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
 import IconClock from '@/components/icons/IconClock.vue';
@@ -184,7 +184,8 @@ const getStatusColor = (status) => {
             <div v-if="currentStep === 1" class="step-content animate-fade-in">
                 <div class="card">
                     <h2 class="section-title">¿Qué está pasando con este instructor?</h2>
-                    <p class="section-desc">Selecciona la situación actual. El sistema te ayudará a saber qué pasará con sus clases y su acceso al club.</p>
+                    <p class="section-desc">Selecciona la situación actual. El sistema te ayudará a saber qué pasará con
+                        sus clases y su acceso al club.</p>
 
                     <div class="status-options">
                         <label class="status-option" :class="{ 'selected': selectedStatus === 'ACTIVO' }">
@@ -205,7 +206,8 @@ const getStatusColor = (status) => {
                             </div>
                             <div class="option-info">
                                 <h3>Ausente por un tiempo (Incapacidad / Permiso)</h3>
-                                <p>Aún podrá entrar al sistema para ver avisos, pero alguien más debe cubrir sus clases mientras no está.</p>
+                                <p>Aún podrá entrar al sistema para ver avisos, pero alguien más debe cubrir sus clases
+                                    mientras no está.</p>
                             </div>
                         </label>
 
@@ -216,7 +218,8 @@ const getStatusColor = (status) => {
                             </div>
                             <div class="option-info">
                                 <h3>Baja definitiva / Fuera del club</h3>
-                                <p>Ya no tendrá acceso al sistema. Sus clases deben pasar a otro instructor de forma permanente o cancelarse.</p>
+                                <p>Ya no tendrá acceso al sistema. Sus clases deben pasar a otro instructor de forma
+                                    permanente o cancelarse.</p>
                             </div>
                         </label>
                     </div>
@@ -227,7 +230,8 @@ const getStatusColor = (status) => {
             <div v-if="currentStep === 2" class="step-content animate-fade-in">
                 <div class="card">
                     <h2 class="section-title">Repartir sus clases</h2>
-                    <p class="section-desc">Este instructor tiene <strong>{{ activities.length }}</strong> clases asignadas. Elige quién las cubrirá o si prefieres suspenderlas por ahora.</p>
+                    <p class="section-desc">Este instructor tiene <strong>{{ activities.length }}</strong> clases
+                        asignadas. Elige quién las cubrirá o si prefieres suspenderlas por ahora.</p>
 
                     <div class="activities-reassign-list">
                         <div v-for="(r, index) in reassignments" :key="r.id_actividad" class="reassign-item">
@@ -256,7 +260,8 @@ const getStatusColor = (status) => {
                                     </select>
                                 </div>
                                 <div v-else class="no-subs-alert">
-                                    ⚠️ No hay instructores libres en este horario. Tendrás que suspender la clase o buscar otra solución.
+                                    ⚠️ No hay instructores libres en este horario. Tendrás que suspender la clase o
+                                    buscar otra solución.
                                 </div>
                             </div>
                         </div>
@@ -268,13 +273,15 @@ const getStatusColor = (status) => {
             <div v-if="currentStep === 3" class="step-content animate-fade-in">
                 <div class="card">
                     <h2 class="section-title">Revisar y Guardar</h2>
-                    <p class="section-desc">Casi terminamos. Revisa que los cambios sean correctos antes de aplicarlos.</p>
+                    <p class="section-desc">Casi terminamos. Revisa que los cambios sean correctos antes de aplicarlos.
+                    </p>
 
                     <div class="summary-box">
                         <div class="summary-item">
                             <span>Nueva situación:</span>
                             <span class="badge" :class="getStatusColor(selectedStatus)">
-                                {{ selectedStatus === 'ACTIVO' ? 'Trabajando' : selectedStatus === 'BAJA_TEMPORAL' ? 'Ausente temporal' : 'Baja definitiva' }}
+                                {{ selectedStatus === 'ACTIVO' ? 'Trabajando' : selectedStatus === 'BAJA_TEMPORAL' ?
+                                'Ausente temporal' : 'Baja definitiva' }}
                             </span>
                         </div>
 
@@ -282,7 +289,8 @@ const getStatusColor = (status) => {
                             class="recover-option">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="recoverOriginals" class="w-5 h-5 accent-emerald-600">
-                                <span class="text-emerald-800 font-bold">Devolverle sus clases originales (Ya regresó de su ausencia)</span>
+                                <span class="text-emerald-800 font-bold">Devolverle sus clases originales (Ya regresó de
+                                    su ausencia)</span>
                             </label>
                         </div>
 
@@ -291,14 +299,16 @@ const getStatusColor = (status) => {
                             <ul>
                                 <li v-for="r in reassignments" :key="r.id_actividad">
                                     {{ r.nombre }}:
-                                    <strong>{{ r.action === 'reasignar' ? 'Se pasa a otro compañero' : 'Se suspende' }}</strong>
+                                    <strong>{{ r.action === 'reasignar' ? 'Se pasa a otro compañero' : 'Se suspende'
+                                        }}</strong>
                                 </li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="warning-box" v-if="selectedStatus === 'INACTIVO'">
-                        <p>⚠️ <strong>Aviso Importante:</strong> Al darlo de baja definitiva, ya no podrá entrar a su cuenta del club.</p>
+                        <p>⚠️ <strong>Aviso Importante:</strong> Al darlo de baja definitiva, ya no podrá entrar a su
+                            cuenta del club.</p>
                     </div>
                 </div>
             </div>
