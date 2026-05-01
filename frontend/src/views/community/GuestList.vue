@@ -12,6 +12,24 @@ const guestStore = useGuestStore()
 const filtro = ref('TODOS')
 const search = ref('')
 
+const filters = [
+  { 
+    id: 'TODOS', 
+    label: 'Todos', 
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>` 
+  },
+  { 
+    id: 'ACTIVO', 
+    label: 'Activos', 
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>` 
+  },
+  { 
+    id: 'EXPIRADO', 
+    label: 'Expirados', 
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>` 
+  },
+]
+
 // REMOVED onMounted fetch since it's handled in SocioLayout
 
 const activeCount = computed(() => {
@@ -103,31 +121,19 @@ const copiarImagenAlPortapapeles = async (url) => {
           class="w-full md:max-w-md px-4 py-3 bg-white border border-surface-200 rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 font-medium shadow-sm" 
         />
         
-        <!-- Pestañas Nivel 2 (Minimalistas) -->
-        <div class="flex gap-6 border-b border-surface-200 w-full overflow-x-auto scrollbar-thin">
-          <button 
-            @click="cambiarFiltro('TODOS')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none"
-            :class="filtro === 'TODOS' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+        <!-- FILTROS PILL (scroll horizontal) -->
+        <div class="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
+          <button
+            v-for="filter in filters"
+            :key="filter.id"
+            @click="cambiarFiltro(filter.id)"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all focus:outline-none shrink-0 border"
+            :class="filtro === filter.id
+              ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200'
+              : 'bg-white text-surface-600 border-surface-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50'"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Todos
-          </button>
-          <button 
-            @click="cambiarFiltro('ACTIVO')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none"
-            :class="filtro === 'ACTIVO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-            Activos
-          </button>
-          <button 
-            @click="cambiarFiltro('EXPIRADO')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none"
-            :class="filtro === 'EXPIRADO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Expirados
+            <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 flex-shrink-0"></span>
+            {{ filter.label }}
           </button>
         </div>
       </div>

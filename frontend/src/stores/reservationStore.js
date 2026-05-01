@@ -228,6 +228,7 @@ export const useReservationStore = defineStore("reservation", () => {
           id_reserva: r.id_reserva,
           acompanantes: [],
         };
+        capacidadMaximaEspacio.value = r.espacio_fisico?.capacidad_maxima || 0;
 
         horaInicioTemp.value = horaInicioLimpia;
         horaFinTemp.value = horaFinLimpia;
@@ -430,7 +431,8 @@ export const useReservationStore = defineStore("reservation", () => {
 
   // MODIFICADO: Ya no hace llamada a la API, solo manipula la lista en Vue (JS).
   const toggleAcompanante = (acompanante) => {
-    const maxPermitidos = capacidadMaximaEspacio.value - 1; 
+    const limit = capacidadMaximaEspacio.value || 4;
+    const maxPermitidos = limit - 1; 
 
     const index = acompanantesSeleccionados.value.findIndex(a =>
       a.id === acompanante.id && a.tipo === acompanante.tipo

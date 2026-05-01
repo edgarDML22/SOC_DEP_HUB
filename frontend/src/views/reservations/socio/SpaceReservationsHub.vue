@@ -10,18 +10,18 @@ const profileStore = useProfileStore();
 
 const { isPenalized, fechaFinPenalizacion } = profileStore;
 
-const activeView = ref('hacer-reserva');
+const activeView = ref('mis-reservas');
 
 const tabs = [
-  {
-    key: 'hacer-reserva',
-    label: 'Hacer Reserva',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
-  },
   {
     key: 'mis-reservas',
     label: 'Mis Reservas',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
+  },
+  {
+    key: 'hacer-reserva',
+    label: 'Hacer Reserva',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
   },
 ];
 
@@ -92,8 +92,8 @@ const formatDate = (dateString) => {
 
     <!-- Área de Contenido Condicional — v-show para preservar estado y evitar re-mounts -->
     <div class="w-full">
-      <OnDemand v-show="activeView === 'hacer-reserva'" />
-      <Manage v-show="activeView === 'mis-reservas'" />
+      <OnDemand v-show="activeView === 'hacer-reserva'" @switch-tab="activeView = $event" />
+      <Manage v-show="activeView === 'mis-reservas'" @switch-tab="activeView = $event" />
     </div>
 
   </div>

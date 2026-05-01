@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, defineEmits } from 'vue';
 import { useAlerts } from '@/composables/useAlerts';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
@@ -8,13 +8,14 @@ import { useRouter } from 'vue-router';
 const { toastInfo, confirmWarning, confirmDelete } = useAlerts();
 const reservationStore = useReservationStore();
 const router = useRouter(); 
+const emit = defineEmits(['switch-tab']);
 const { misReservacionesTotales, cargando, misReservacionesCargadas } = storeToRefs(reservationStore);
 const { cancelarReservacion, descartarBorrador } = reservationStore;
 
 // FILTROS LOCALES (Ahora con íconos representativos)
 const filters = [
     { id: 'TODAS', label: 'Todas', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>' },
-    { id: 'PENDIENTE', label: 'Borradores', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+    { id: 'PENDIENTE', label: 'Pendientes', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
     { id: 'ACTIVA', label: 'Activas', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' },
     { id: 'COMPLETADA', label: 'Completadas', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' },
     { id: 'CANCELADA', label: 'Canceladas', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' },
@@ -122,7 +123,7 @@ const confirmarDescarte = async (reserva, event) => {
     
     const result = await confirmDelete(
         'Descartar Borrador',
-        '¿Estás seguro de que deseas eliminar permanentemente esta reservación pendiente? Esta acción no se puede deshacer.',
+        '¿Estás seguro de que deseas descartar esta reservación pendiente? Esta acción no se puede deshacer.',
         'Sí, Descartar'
     );
     
@@ -149,7 +150,7 @@ const continuarBorrador = async (reserva, event) => {
         reservationStore.mostrarModalDraft = false; // <-- ESTO MATA AL MODAL
         await reservationStore.buscarReservaActiva();
         reservationStore.pasoActual = "4"; 
-        router.push({ name: 'reservation-on-demand' }); 
+        emit('switch-tab', 'hacer-reserva'); 
     }
 };
 
@@ -173,7 +174,7 @@ const getStatusConfig = (status) => {
         'COMPLETADA': { label: 'COMPLETADA', class: 'bg-blue-50 text-blue-700 border-blue-200' },
         'CANCELADA': { label: 'CANCELADA', class: 'bg-red-50 text-red-700 border-red-200' },
         'NO SHOW': { label: 'NO SHOW', class: 'bg-orange-50 text-orange-700 border-orange-200' },
-        'PENDIENTE': { label: 'BORRADOR', class: 'bg-yellow-50 text-yellow-700 border-yellow-200' }
+        'PENDIENTE': { label: 'PENDIENTE', class: 'bg-yellow-50 text-yellow-700 border-yellow-200' }
     };
     return configs[status] || { label: status, class: 'bg-surface-50 text-surface-700 border-surface-200' };
 };
@@ -206,13 +207,6 @@ const selectTab = (id) => {
                     <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 flex-shrink-0"></span>
                     {{ filter.label }}
                 </button>
-            </div>
-
-            <!-- TÍTULO DINÁMICO DEL FILTRO -->
-            <div class="mt-2 mb-2 px-2">
-                <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">
-                    {{ activeFilterLabel }}
-                </h2>
             </div>
 
             <!-- LOADING STATE -->
@@ -364,12 +358,12 @@ const selectTab = (id) => {
                             <!-- Deporte -->
                             <div class="flex flex-col gap-1">
                                 <span
-                                    class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Deporte</span>
-                                <div class="flex items-center gap-2 text-surface-900 font-bold">
+                                    class="text-[11px] font-extrabold text-surface-900 uppercase tracking-widest">Deporte</span>
+                                <div class="flex items-center gap-2 text-surface-900 font-medium">
                                     <div
                                         class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
@@ -380,12 +374,12 @@ const selectTab = (id) => {
                             <!-- Horario -->
                             <div class="flex flex-col gap-1">
                                 <span
-                                    class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Horario</span>
-                                <div class="flex items-center gap-2 text-surface-900 font-bold">
+                                    class="text-[11px] font-extrabold text-surface-900 uppercase tracking-widest">Horario</span>
+                                <div class="flex items-center gap-2 text-surface-900 font-medium">
                                     <div
                                         class="w-8 h-8 bg-green-50 text-green-600 rounded-lg flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
@@ -397,12 +391,12 @@ const selectTab = (id) => {
                             <!-- Espacio -->
                             <div class="flex flex-col gap-1 md:col-span-2">
                                 <span
-                                    class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Espacio</span>
-                                <div class="flex items-center gap-2 text-surface-900 font-bold">
+                                    class="text-[11px] font-extrabold text-surface-900 uppercase tracking-widest">Espacio</span>
+                                <div class="flex items-center gap-2 text-surface-900 font-medium">
                                     <div
                                         class="w-8 h-8 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -417,7 +411,7 @@ const selectTab = (id) => {
                         <!-- ACOMPAÑANTES -->
                         <div class="border-t border-surface-100 pt-6">
                             <span
-                                class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-3 block">Acompañantes</span>
+                                class="text-[11px] font-extrabold text-surface-900 uppercase tracking-widest mb-4 block">Acompañantes</span>
 
                             <div v-if="!selectedReserva?.acompanantes_draft || selectedReserva?.acompanantes_draft.length === 0"
                                 class="p-4 bg-surface-50 border border-surface-200 rounded-2xl text-center text-surface-500 text-sm font-medium">
@@ -426,16 +420,20 @@ const selectTab = (id) => {
 
                             <div v-else class="flex flex-col gap-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin">
                                 <div v-for="(acomp, idx) in selectedReserva.acompanantes_draft" :key="idx"
-                                    class="flex items-center justify-between p-3 bg-white rounded-xl border border-surface-200 shadow-sm">
-                                    <div class="flex items-center gap-3">
+                                    class="flex items-center justify-between p-3.5 bg-white rounded-xl border border-surface-200 shadow-sm">
+                                    <div class="flex items-center gap-3 min-w-0">
                                         <div
-                                            class="w-8 h-8 bg-surface-100 rounded-full flex items-center justify-center text-xs font-bold text-surface-600">
-                                            {{ acomp.nombre?.charAt(0) || 'A' }}
+                                            class="w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-extrabold uppercase shrink-0 shadow-sm">
+                                            {{ acomp.nombre?.charAt(0) || '?' }}
                                         </div>
-                                        <span class="text-sm font-bold text-surface-900">{{ acomp.nombre }}</span>
+                                        <span class="text-sm font-semibold text-surface-900 truncate leading-snug">{{ acomp.nombre }}</span>
                                     </div>
-                                    <span
-                                        class="text-[10px] font-bold px-2 py-1 rounded-md bg-surface-100 text-surface-600 uppercase tracking-tight">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border tracking-wide uppercase"
+                                        :class="{
+                                            'bg-green-50 text-green-700 border-green-200': acomp.tipo?.toUpperCase() === 'AMIGO',
+                                            'bg-purple-50 text-purple-700 border-purple-200': acomp.tipo?.toUpperCase() === 'FAMILIAR',
+                                            'bg-orange-50 text-orange-700 border-orange-200': acomp.tipo?.toUpperCase() === 'INVITADO'
+                                        }">
                                         {{ acomp.tipo }}
                                     </span>
                                 </div>

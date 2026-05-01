@@ -1,11 +1,13 @@
 <script setup>
-import { onMounted, onUnmounted, defineAsyncComponent, ref, computed, watch, nextTick } from 'vue';
+import { onMounted, onUnmounted, defineAsyncComponent, ref, computed, watch, nextTick, defineEmits } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useReservationStore } from '@/stores/reservationStore';
 import { useProfileStore } from '@/stores/profiles/socioStore';
 import { IconArrowLeft } from '@/components/icons';
 import StepAcompanantes from './StepAcompanantes.vue';
 import StepConfirmacion from './StepConfirmacion.vue';
+
+const emit = defineEmits(['switch-tab']);
 
 const reservationStore = useReservationStore();
 
@@ -98,6 +100,7 @@ watch(formDuration, () => {
 const reanudarReserva = () => {
     mostrarModalDraft.value = false;
     reservationStore.pasoActual = "4";
+    emit('switch-tab', 'hacer-reserva');
 };
 
 const ignorarReserva = async () => {

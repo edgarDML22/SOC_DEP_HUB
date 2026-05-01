@@ -16,6 +16,24 @@ const filtro = ref('AMIGO')
 const actionLoadingId = ref(null)
 const actionTypeLoading = ref('')
 
+const filters = [
+  { 
+    id: 'AMIGO', 
+    label: 'Todos', 
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>` 
+  },
+  { 
+    id: 'SOLICITUD_ENVIADA', 
+    label: 'Enviadas', 
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>` 
+  },
+  { 
+    id: 'SOLICITUD_RECIBIDA', 
+    label: 'Recibidas', 
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>` 
+  },
+]
+
 const amigosFiltrados = computed(() => {
   let list = Array.isArray(friendStore.friends) ? friendStore.friends : []
 
@@ -100,9 +118,6 @@ const eliminarAmigo = async (amigo) => {
       
       <!-- Encabezado con Botón Volver -->
       <div>
-        <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit group">
-            <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
-        </button>
         <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <div class="flex flex-col gap-1">
             <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Mis Amigos</h2>
@@ -128,33 +143,19 @@ const eliminarAmigo = async (amigo) => {
           class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" 
         />
         
-        <!-- Pestañas Nivel 2 (Minimalistas) -->
-        <div class="flex gap-6 border-b border-surface-200 w-full overflow-x-auto scrollbar-thin">
-          <button 
-            @click="cambiarFiltro('AMIGO')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
-            :class="filtro === 'AMIGO' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
+        <!-- FILTROS PILL (scroll horizontal) -->
+        <div class="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
+          <button
+            v-for="filter in filters"
+            :key="filter.id"
+            @click="cambiarFiltro(filter.id)"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all focus:outline-none shrink-0 border"
+            :class="filtro === filter.id
+              ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200'
+              : 'bg-white text-surface-600 border-surface-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50'"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Mis Amigos
-          </button>
-          
-          <button 
-            @click="cambiarFiltro('SOLICITUD_ENVIADA')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
-            :class="filtro === 'SOLICITUD_ENVIADA' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-            Enviadas
-          </button>
-          
-          <button 
-            @click="cambiarFiltro('SOLICITUD_RECIBIDA')" 
-            class="pb-3 text-sm font-medium transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
-            :class="filtro === 'SOLICITUD_RECIBIDA' ? 'border-b-2 border-primary-600 text-primary-700 font-semibold' : 'text-surface-400 border-b-2 border-transparent hover:text-surface-600'"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>
-            Recibidas
+            <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 flex-shrink-0"></span>
+            {{ filter.label }}
           </button>
         </div>
 

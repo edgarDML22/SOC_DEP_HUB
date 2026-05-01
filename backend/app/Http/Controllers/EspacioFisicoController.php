@@ -42,18 +42,16 @@ class EspacioFisicoController extends Controller
     public function store(\Illuminate\Http\Request $request): JsonResponse
     {
         $data = $request->validate([
-            'nombre_espacio' => 'required|string',
-            'capacidad_maxima' => 'required|integer',
-            'tipo_espacio' => 'nullable|string', // Keep for backward compatibility if needed
-            'es_reserva_on_demand' => 'boolean',
-            'es_clase_programada' => 'boolean',
-            'es_uso_libre' => 'boolean',
-            'estatus' => 'required|string',
-            'descripcion' => 'nullable|string',
-            'disciplinas' => 'array'
+            'nombre_espacio'       => 'required|string',
+            'capacidad_maxima'     => 'required|integer',
+            'es_reserva_on_demand' => 'required|boolean',
+            'es_clase_programada'  => 'required|boolean',
+            'es_uso_libre'         => 'required|boolean',
+            'estatus'              => 'required|string',
+            'descripcion'          => 'nullable|string',
+            'disciplinas'          => 'array',
         ]);
 
-        // Logic validation
         if ($data['es_uso_libre']) {
             $data['es_reserva_on_demand'] = false;
             $data['es_clase_programada'] = false;
@@ -93,15 +91,14 @@ class EspacioFisicoController extends Controller
         }
 
         $data = $request->validate([
-            'nombre_espacio' => 'string',
-            'capacidad_maxima' => 'integer',
-            'tipo_espacio' => 'nullable|string',
-            'es_reserva_on_demand' => 'boolean',
-            'es_clase_programada' => 'boolean',
-            'es_uso_libre' => 'boolean',
-            'estatus' => 'string',
-            'descripcion' => 'nullable|string',
-            'disciplinas' => 'array'
+            'nombre_espacio'       => 'sometimes|string',
+            'capacidad_maxima'     => 'sometimes|integer',
+            'es_reserva_on_demand' => 'sometimes|boolean',
+            'es_clase_programada'  => 'sometimes|boolean',
+            'es_uso_libre'         => 'sometimes|boolean',
+            'estatus'              => 'sometimes|string',
+            'descripcion'          => 'nullable|string',
+            'disciplinas'          => 'array',
         ]);
 
         // Logic validation

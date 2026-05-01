@@ -101,7 +101,7 @@ const handleClick = async (action) => {
           <div>
             <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">Cero reservas activas</h3>
             <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
-              Explora nuestras instalaciones y asegura tu espacio para hoy mismo desde la agenda.
+              Elige el espacio que necesites y reserva tu horario.
             </p>
           </div>
         </div>

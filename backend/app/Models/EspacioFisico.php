@@ -18,15 +18,18 @@ class EspacioFisico extends Model
     protected $fillable = [
         'nombre_espacio',
         'capacidad_maxima',
-        'tipo_espacio',
         'es_reserva_on_demand',
         'es_clase_programada',
         'es_uso_libre',
         'estatus',
-        'descripcion'
+        'descripcion',
     ];
 
-
+    protected $casts = [
+        'es_reserva_on_demand' => 'boolean',
+        'es_clase_programada'  => 'boolean',
+        'es_uso_libre'         => 'boolean',
+    ];
 
     public function disciplinas()
     {
