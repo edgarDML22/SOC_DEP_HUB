@@ -9,7 +9,7 @@ import { useAlerts } from '@/composables/useAlerts'
 const router = useRouter()
 const route = useRoute()
 const profileStore = useProfileStore()
-const { showLoading } = useAlerts()
+const { showLoading, closeLoading } = useAlerts()
 
 const isMoreActive = computed(() => {
     return ['/admin/tournaments', '/admin/spaces', '/admin/reports'].some(path => route.path.includes(path))
@@ -56,6 +56,7 @@ const logout = async () => {
     showLoading('Cerrando sesión...')
     await new Promise(r => setTimeout(r, 400)) // Pequeño delay para que la UI renderice el spinner
     await profileStore.logout()
+    closeLoading()
 }
 </script>
 

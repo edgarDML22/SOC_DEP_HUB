@@ -14,7 +14,8 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         },
         graficas: {
             afluencia_temporal: { labels: [], data: [] },
-            calificaciones: { labels: [], data: [] }
+            calificaciones: { labels: [], data: [] },
+            tiempo_uso: { labels: [], data: [] }
         }
     });
 

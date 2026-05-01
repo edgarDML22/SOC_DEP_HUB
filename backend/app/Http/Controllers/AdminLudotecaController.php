@@ -171,9 +171,23 @@ class AdminLudotecaController extends Controller
                 ->groupBy('label')
                 ->orderBy('label')
                 ->get();
+                
+            $tiempoUso = (clone $historialQuery)
+                ->selectRaw('EXTRACT(HOUR FROM hora_ingreso) as label, AVG(tiempo_total_minutos) as total')
+                ->whereNotNull('tiempo_total_minutos')
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
         } else {
             $afluencia = (clone $historialQuery)
                 ->selectRaw('DATE(hora_ingreso) as label, COUNT(*) as total')
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+                
+            $tiempoUso = (clone $historialQuery)
+                ->selectRaw('DATE(hora_ingreso) as label, AVG(tiempo_total_minutos) as total')
+                ->whereNotNull('tiempo_total_minutos')
                 ->groupBy('label')
                 ->orderBy('label')
                 ->get();
@@ -208,6 +222,12 @@ class AdminLudotecaController extends Controller
                     'calificaciones' => [
                         'labels' => $calificaciones->pluck('estrella'),
                         'data' => $calificaciones->pluck('total')
+                    ],
+                    'tiempo_uso' => [
+                        'labels' => $tiempoUso->pluck('label'),
+                        'data' => $tiempoUso->map(function ($item) {
+                            return round($item->total);
+                        })
                     ]
                 ]
             ]

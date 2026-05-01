@@ -128,6 +128,71 @@ const chartOptionsPie = {
     plugins: { legend: { position: 'right', labels: { usePointStyle: true } } }
 };
 
+const tiempoUsoData = computed(() => {
+    let labels = store.stats.graficas?.tiempo_uso?.labels || [];
+    let data = store.stats.graficas?.tiempo_uso?.data || [];
+
+    if (filtroStats.value === 'hoy') {
+        const fullLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+        const fullData = Array(24).fill(0);
+
+        labels.forEach((label, index) => {
+            const hourStr = label.toString().includes(':') ? label.split(':')[0] : label;
+            const hour = parseInt(hourStr);
+            if (!isNaN(hour) && hour >= 0 && hour < 24) {
+                fullData[hour] = data[index];
+            }
+        });
+
+        labels = fullLabels;
+        data = fullData;
+    }
+
+    return {
+        labels,
+        datasets: [
+            {
+                label: 'Tiempo Promedio (min)',
+                data: data,
+                borderColor: '#8b5cf6', // purple-500
+                backgroundColor: (context) => {
+                    const chart = context.chart;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return 'rgba(139, 92, 246, 0.2)';
+                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, 'rgba(139, 92, 246, 0)');
+                    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.4)');
+                    return gradient;
+                },
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointBackgroundColor: '#8b5cf6',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#8b5cf6',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            }
+        ]
+    };
+});
+
+const chartOptionsLine = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#64748b' }, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Minutos', font: { size: 11, weight: '600' }, color: '#475569' } },
+        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+    }
+};
+
+const totalEncuestas = computed(() => {
+    const data = store.stats.graficas?.calificaciones?.data || [];
+    return data.reduce((a, b) => a + Number(b), 0);
+});
+
 // Configuración del Calendario Semanal
 const calendarView = ref('timeGridWeek');
 const calendarOptions = computed(() => ({
@@ -294,7 +359,7 @@ onMounted(async () => {
             </Transition>
 
             <div class="space-y-8" :class="{'pointer-events-none': store.loading.stats}">
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <div class="group bg-white p-6 rounded-4xl border border-surface-200 shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
                 <div class="relative flex items-center gap-4">
                     <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform">
@@ -336,19 +401,6 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <div class="group bg-white p-6 rounded-4xl border border-surface-200 shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
-                <div class="relative flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-inner group-hover:scale-110 transition-transform">
-                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Tiempo de Uso (min)</p>
-                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.tiempo_promedio_min || 0 }}</h3>
-                    </div>
-                </div>
-            </div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -356,9 +408,20 @@ onMounted(async () => {
               <h3 class="text-xl font-black text-surface-900 mb-6">Afluencia Temporal</h3>
               <div class="h-[350px]"><Chart type="bar" :data="afluenciaData" :options="chartOptionsBar" class="h-full" /></div>
             </div>
-            <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm">
-              <h3 class="text-xl font-black text-surface-900 mb-6">Distribución de Calificaciones</h3>
-              <div class="h-[350px] flex items-center justify-center"><Chart type="doughnut" :data="calificacionesData" :options="chartOptionsPie" class="w-full max-w-[300px]" /></div>
+            <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 class="text-xl font-black text-surface-900 mb-6">Distribución de Calificaciones</h3>
+                <div class="h-[350px] flex items-center justify-center"><Chart type="doughnut" :data="calificacionesData" :options="chartOptionsPie" class="w-full max-w-[300px]" /></div>
+              </div>
+              <div class="mt-4 text-center">
+                <p class="text-sm font-bold text-surface-500 m-0 bg-surface-50 inline-block px-4 py-2 rounded-full border border-surface-100 shadow-sm">Total de encuestas hechas: <span class="text-surface-900">{{ totalEncuestas }}</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-center mt-8">
+            <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm w-full lg:w-2/3">
+              <h3 class="text-xl font-black text-surface-900 mb-6 text-center">Tiempo de Uso Promedio</h3>
+              <div class="h-[350px]"><Chart type="line" :data="tiempoUsoData" :options="chartOptionsLine" class="h-full" /></div>
             </div>
           </div>
 
@@ -550,7 +613,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Vista de Semana: Calendario FullCalendar -->
-                <div v-else key="week" class="[&_.fc]:font-sans [&_.fc]:text-[0.65rem] [&_.fc]:[--fc-border-color:#f1f5f9] [&_.fc]:[--fc-today-bg-color:#f8fafc] [&_.fc-theme-standard_td]:border-[#f1f5f9]! [&_.fc-timegrid-slot]:h-[2.2rem] [&_.fc-timegrid-slot]:border-b-[#f8fafc]! [&_.fc-event]:rounded-xl! [&_.fc-event]:border-none! [&_.fc-event]:bg-linear-to-br! [&_.fc-event]:from-[#3b82f6] [&_.fc-event]:to-[#1d4ed8] [&_.fc-event]:shadow-lg! [&_.fc-event]:shadow-blue-500/30 [&_.fc-event]:mt-1! [&_.fc-event]:mx-1! [&_.fc-event-main]:flex! [&_.fc-event-main]:items-center! [&_.fc-event-main]:justify-center! [&_.fc-event-main]:text-center! [&_.fc-event-main]:font-bold! [&_.fc-event-main]:p-2! [&_.fc-col-header-cell]:bg-[#f8fafc] [&_.fc-col-header-cell]:py-3 [&_.fc-col-header-cell-cushion]:text-[0.6rem]! [&_.fc-col-header-cell-cushion]:font-black! [&_.fc-col-header-cell-cushion]:text-surface-400! [&_.fc-timegrid-axis-cushion]:text-[0.65rem]! [&_.fc-timegrid-now-indicator-line]:border-[#ef4444]!">
+                <div v-else key="week" class="[&_.fc]:font-sans [&_.fc]:text-[0.65rem] [&_.fc]:[--fc-border-color:#f1f5f9] [&_.fc]:[--fc-today-bg-color:#f8fafc] [&_.fc-theme-standard_td]:border-[#f1f5f9]! [&_.fc-timegrid-slot]:h-[2.2rem] [&_.fc-timegrid-slot]:border-b-[#f8fafc]! [&_.fc-event]:rounded-xl! [&_.fc-event]:border-none! [&_.fc-event]:bg-linear-to-br! [&_.fc-event]:from-[#3b82f6] [&_.fc-event]:to-[#1d4ed8] [&_.fc-event]:shadow-lg! [&_.fc-event]:shadow-blue-500/30 [&_.fc-event]:mt-1! [&_.fc-event]:mx-1! [&_.fc-event-main]:flex! [&_.fc-event-main]:items-center! [&_.fc-event-main]:justify-center! [&_.fc-event-main]:text-center! [&_.fc-event-main]:font-bold! [&_.fc-event-main]:p-2! [&_.fc-col-header-cell]:bg-[#f8fafc] [&_.fc-col-header-cell]:py-3 [&_.fc-col-header-cell-cushion]:text-sm! [&_.fc-col-header-cell-cushion]:capitalize! [&_.fc-col-header-cell-cushion]:font-black! [&_.fc-col-header-cell-cushion]:text-surface-600! [&_.fc-timegrid-axis-cushion]:text-[0.7rem]! [&_.fc-timegrid-now-indicator-line]:border-[#ef4444]!">
                   <FullCalendar :key="calendarView" :options="calendarOptions" />
                 </div>
               </Transition>

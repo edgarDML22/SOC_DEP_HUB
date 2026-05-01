@@ -5,7 +5,7 @@ import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import { useAlerts } from '@/composables/useAlerts';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
 
-const { showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
+const { toastInfo, showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
 
 const searchQuery = ref('');
 const activeTab = ref('activos'); 
@@ -50,11 +50,9 @@ const moverAInactivo = async (id, nombreNino) => {
     );
     if (!result.isConfirmed) return;
 
-    showLoading('Registrando incidencia...');
     const res = await store.cambiarEstatusEstancia(id, 'INACTIVO');
-    closeLoading();
     if (res?.success) {
-        await successModal('¡Incidencia registrada!', 'El menor fue marcado como inactivo.');
+        toastInfo('¡Incidencia registrada!', 'El menor fue marcado como inactivo.', 'success');
     } else {
         await errorModal('Error al registrar', res?.message || 'No se pudo registrar la incidencia.');
     }
@@ -66,14 +64,12 @@ const abrirModalSalida = (id) => {
 
 const confirmarSalida = async () => {
     modalSalidaInfo.value.visible = false;
-    showLoading('Registrando salida...');
     const res = await store.cambiarEstatusEstancia(modalSalidaInfo.value.idEstancia, 'ENTREGADO', {
         tipo_usuario: modalSalidaInfo.value.tipoUsuario,
         correo_receptor: modalSalidaInfo.value.correo
     });
-    closeLoading();
     if (res?.success) {
-        await successModal('¡Salida registrada!', 'El menor fue entregado correctamente.');
+        toastInfo('¡Salida registrada!', 'El menor fue entregado correctamente.', 'success');
     } else {
         await errorModal('Error al registrar salida', res?.message || 'No se pudo registrar la salida.');
     }
@@ -85,13 +81,11 @@ const abrirModalIngreso = (id) => {
 
 const confirmarIngreso = async () => {
     modalIngresoInfo.value.visible = false;
-    showLoading('Registrando ingreso...');
     const res = await store.registrarIngreso(modalIngresoInfo.value.idEstancia, {
         correo: modalIngresoInfo.value.correo
     });
-    closeLoading();
     if (res?.success) {
-        await successModal('¡Ingreso activado!', 'El menor fue activado en la ludoteca correctamente.');
+        toastInfo('¡Ingreso activado!', 'El menor fue activado en la ludoteca correctamente.', 'success');
     } else {
         await errorModal('Error al activar', res?.message || 'No se pudo activar el ingreso.');
     }

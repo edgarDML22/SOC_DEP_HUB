@@ -6,7 +6,7 @@ import { useAlerts } from '@/composables/useAlerts'
 import { IconBaby } from '@/components/icons'
 
 const profileStore = useProfileStore()
-const { showLoading, closeLoading, successModal, errorModal } = useAlerts()
+const { toastInfo, showLoading, closeLoading, successModal, errorModal } = useAlerts()
 
 const miembros = ref([])
 const idSeleccionado = ref(null)
@@ -34,7 +34,6 @@ const registrar = async () => {
   }
 
   loading.value = true
-  showLoading('Registrando...')
 
   try {
     const res = await api.post('/ludoteca/register', {
@@ -43,10 +42,9 @@ const registrar = async () => {
     })
 
     const msg = res.data.message || ''
-    closeLoading()
 
     if (msg.toLowerCase().includes('ingreso registrado')) {
-      await successModal('¡Registro exitoso!', msg || 'El menor fue ingresado a la ludoteca correctamente.')
+      toastInfo('¡Registro exitoso!', msg || 'El menor fue ingresado a la ludoteca correctamente.', 'success')
     } else {
       await errorModal('Aviso', msg || 'No se pudo completar el registro.')
     }
@@ -54,7 +52,6 @@ const registrar = async () => {
     idSeleccionado.value = null
 
   } catch (error) {
-    closeLoading()
     const msg =
       error.response?.data?.message ||
       error.response?.data?.error ||
