@@ -291,7 +291,6 @@ const router = createRouter({
         },
         {
           path: "socios",
-          component: () => import("@/views/admin/socio/SociosList.vue"),
           redirect: { name: 'socios-list' },
           children: [
             {
@@ -308,7 +307,6 @@ const router = createRouter({
         },
         {
           path: "instructors",
-          component: () => import("@/views/admin/instructors/Instructors.vue"),
           redirect: { name: 'instructors-list' },
           children: [
             {
