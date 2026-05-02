@@ -26,6 +26,15 @@ const router = createRouter({
       name: "reset-password",
       component: () => import("@/views/auth/ResetPassword.vue"),
     },
+    {
+      path: "/ludoteca/encuesta/:idHistorial",
+      name: "ludoteca-encuesta",
+      component: () => import("@/views/ludoteca/Survey/SurveyLudoteca.vue"),
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ["socio_titular", "miembro_familiar"]
+      },
+    },
 
     // Socio Routes
     {
@@ -65,7 +74,7 @@ const router = createRouter({
               }
             }
 
-            if (profileStore.isAccountInactive) {
+            if (profileStore.isReservationsBlocked) {
               return "/socio/home";
             }
           },
@@ -87,6 +96,17 @@ const router = createRouter({
           name: "socio-ludoteca",
           redirect: { name: "ludoteca-list" },
           component: () => import("@/views/ludoteca/LudotecaSocio.vue"),
+          beforeEnter: async (to, from) => {
+            const profileStore = useProfileStore();
+
+            if (!profileStore.profileData) {
+              try {
+                await profileStore.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el store desde el router", error);
+              }
+            }
+          },
           children: [
             {
               path: "ludoteca-list",
@@ -108,7 +128,6 @@ const router = createRouter({
 
           ]
         },
-
 
         {
           path: "community",
@@ -225,6 +244,11 @@ const router = createRouter({
         {
           path: 'scanner/:id',
           component: () => import('../views/instructor/ScannerView.vue'),
+        },
+        {
+          path: 'ludoteca',
+          name: 'ludoteca-operativa',
+          component: () => import('@/views/ludoteca/LudotecaOperativaView.vue'),
         },
       ]
     },

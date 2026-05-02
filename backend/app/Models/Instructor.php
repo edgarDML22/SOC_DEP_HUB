@@ -28,10 +28,7 @@ class Instructor extends Model
         return $this->belongsTo(User::class, 'id_usuario', 'id');
     }
 
-    public function disciplinas()
-    {
-        return $this->belongsToMany(Disciplina::class, 'instructor_disciplina', 'id_instructor', 'id_disciplina');
-    }
+    
 
     public function actividades()
     {
@@ -41,5 +38,14 @@ class Instructor extends Model
     public function actividadesOriginales()
     {
         return $this->hasMany(ActividadPlantilla::class, 'id_instructor_original', 'id_instructor');
+    }
+    public function disciplinas()
+    {
+        return $this->belongsToMany(
+            Disciplina::class,
+            'instructor_disciplina',
+            'id_instructor',
+            'id_disciplina'
+        );
     }
 }

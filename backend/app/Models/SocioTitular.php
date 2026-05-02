@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SocioTitular extends Model
 {
-    // 1. Configuración de la base de datos
+    use HasFactory, Notifiable;
     protected $table = 'socios_titulares';
     protected $primaryKey = 'id_socio';
     public $timestamps = false;
 
-    // 2. Asignación masiva (Alineado estrictamente a tu Diccionario de Datos)
     protected $fillable = [
         'numero_accion',
         'tipo_socio',
@@ -21,10 +22,11 @@ class SocioTitular extends Model
         'genero',
         'correo_electronico',
         'estatus_cuenta',
-        'contador_no_shows',
+        'contador_no_shows', // <-- Asegúrate de que este nombre sea el correcto en la BD
         'fecha_afiliacion',
         'retrasos_ludoteca',
         'fecha_fin_penalizacion',
+        'estatus_penalizacion', // <-- Campo nuevo agregado del INCOMING
     ];
 
     // 3. Conversión de tipos (Casts) para facilitar su uso en Vue/Controllers
@@ -35,7 +37,6 @@ class SocioTitular extends Model
         'contador_no_shows' => 'integer',
         'retrasos_ludoteca' => 'integer',
     ];
-
 
     public function invitados()
     {
@@ -56,5 +57,10 @@ class SocioTitular extends Model
     public function codigosQr()
     {
         return $this->morphMany(CodigoQr::class, 'usuario', 'tipo_usuario', 'usuario_id');
+    }
+
+    public function routeNotificationForMail($notification)
+    {
+        return $this->correo_electronico;
     }
 }

@@ -3,7 +3,7 @@
 use App\Http\Controllers\AgendaEspacioController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Models\SocioTitular; // <-- 1. Importamos el modelo
+use App\Models\SocioTitular;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\AuthController;
@@ -31,6 +31,8 @@ use App\Http\Controllers\MiembrosFamiliaresList;
 use App\Http\Controllers\RegisterEventController;
 use App\Http\Controllers\DisciplinaController;
 use App\Http\Controllers\CategoriaDisciplinaController;
+use App\Http\Controllers\AdminLudotecaController;
+use App\Http\Controllers\EncuestaLudotecaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -77,14 +79,15 @@ Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'sho
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 
 
-//Ludoteca SDH-131
-Route::get('/v1/ludoteca/validar-tutor', [LudotecaController::class, 'validarTutor']);
-//Ludoteca  cambio estatus
-Route::post('/v1/ludoteca/update-status', [LudotecaStatusController::class, 'updateStatus']);
-//Ludoteca Registros
-Route::post('/v1/ludoteca/register', [LudotecaRegisterController::class, 'store']);
-//Ludoteca Lista de menores
-Route::get('/v1/ludoteca/list', [MiembrosFamiliaresList::class, 'show']);
+// SDH-164 protec por middleware que el insturctor que tenga el turno pueda acceder a estas rutas
+Route::middleware(['check.turno'])->group(function () {
+    Route::get('/v1/ludoteca/test-turno-ludoteca', function () {
+        return response()->json([
+            'message' => 'Middleware funcionando correctamente'
+        ]);
+    });
+});
+
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -92,7 +95,7 @@ Route::get('/v1/ludoteca/list', [MiembrosFamiliaresList::class, 'show']);
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
+Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::class, 'updateStatus']);
 // Grupo protegido con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -187,6 +190,16 @@ Route::middleware('auth:sanctum')->group(function () {
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
 
+    Route::get(
+        '/v1/ludoteca/encuesta/{idHistorial}',
+        [EncuestaLudotecaController::class, 'obtenerEncuesta']
+    );
+
+    Route::post(
+        '/v1/ludoteca/encuesta/{idHistorial}',
+        [EncuestaLudotecaController::class, 'guardarEncuesta']
+    );
+
     // GUESTS 
     Route::post('/v1/guest-create', [GuestStatusController::class, 'store']);
     Route::get('/v1/guest-list', [GuestStatusController::class, 'show']);
@@ -212,6 +225,30 @@ Route::middleware('auth:sanctum')->group(function () {
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
     Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
+
+    // ==========================================
+    // LUDOTECA (RUTAS PROTEGIDAS)
+    // ==========================================
+
+    Route::prefix('v1/ludoteca')->group(function () {
+        // Operativas (instructor / socio)
+        Route::get('validar-tutor', [LudotecaController::class, 'validarTutor']);
+        Route::post('register', [LudotecaRegisterController::class, 'store']);
+        Route::get('list', [MiembrosFamiliaresList::class, 'show']);
+        Route::post('ingreso', [LudotecaStatusController::class, 'checkIn']);
+
+        // Administrativas (gerente )
+        Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
+        Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
+        Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
+        Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
+    });
+
+    Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
+
+    // RUTAS DE SANCIONES
+    Route::post('/v1/sanciones/ludoteca', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesAPI']);
+    Route::post('/v1/sanciones/reservas', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesReservasAPI']);
 
 });
 

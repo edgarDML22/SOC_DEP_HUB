@@ -23,3 +23,17 @@ Schedule::command('app:calcular-no-shows')
 Schedule::command('app:levantar-penalizaciones')
     ->dailyAt('00:05')
     ->timezone('America/Mexico_City');
+
+// Revisar y levantar penalizaciones de 7 días que hayan vencido
+Schedule::command('app:levantar-penalizaciones')
+    ->dailyAt('00:05')
+    ->timezone('America/Mexico_City');
+
+
+Schedule::command('ludoteca:wipe-daily')
+    ->dailyAt('04:00')
+    ->timezone('America/Mexico_City');
+
+Schedule::command('ludoteca:check-alerts')
+    ->everyMinute()
+    ->timezone('America/Mexico_City');

@@ -18,8 +18,8 @@ const swalApp = Swal.mixin({
 export const useAlerts = () => {
     // Toasts
     const toastInfo = (title, text, type = 'success') => {
-        const iconColor = type === 'success' ? 'var(--state-success)' :
-            type === 'error' ? 'var(--state-error)' : 'var(--state-info)';
+        const iconColor = type === 'success' ? 'var(--color-state-success)' :
+            type === 'error' ? 'var(--color-state-error)' : 'var(--color-state-info)';
         Swal.fire({
             toast: true,
             position: 'bottom-end',
@@ -63,14 +63,43 @@ export const useAlerts = () => {
 
     // Modal de Éxito
     const successModal = (title, text) => {
-        swalApp.fire({
+        return swalApp.fire({
             title: title,
             text: text,
             icon: 'success',
-            iconColor: 'var(--state-success)',
-            confirmButtonText: 'OK'
+            iconColor: 'var(--color-state-success)',
+            confirmButtonText: 'Aceptar'
         });
     }
 
-    return { toastInfo, confirmDelete, confirmWarning, successModal }
+    // Modal de Error
+    const errorModal = (title, text) => {
+        return swalApp.fire({
+            title: title,
+            text: text,
+            icon: 'error',
+            iconColor: 'var(--color-state-error)',
+            confirmButtonText: 'Entendido'
+        });
+    }
+
+    // Loading estandarizado (igual en todas las vistas)
+    const showLoading = (title = 'Procesando...') => {
+        Swal.fire({
+            title: title,
+            html: '<div class="my-6"><div class="animate-spin rounded-full h-14 w-14 border-t-2 border-b-2 border-primary-600 mx-auto"></div></div>',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            background: 'var(--color-surface-50)',
+            color: 'var(--color-surface-900)',
+            customClass: { popup: 'swal-border-radius' }
+        });
+    }
+
+    const closeLoading = () => {
+        Swal.close();
+    }
+
+    return { toastInfo, confirmDelete, confirmWarning, successModal, errorModal, showLoading, closeLoading }
 }

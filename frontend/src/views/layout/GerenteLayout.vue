@@ -1,6 +1,5 @@
 <script setup>
-import GerenteSidebar from '@/components/gerente/GerenteSideBar.vue'
-import GerenteTopbar from '@/components/gerente/GerenteTopBar.vue'
+import GerenteNavBar from '@/components/gerente/GerenteNavBar.vue'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { onMounted } from 'vue';
 
@@ -11,43 +10,12 @@ onMounted (() =>{
 </script>
 
 <template>
-  <div class="layout">
-
-    <!-- SIDEBAR -->
-    <GerenteSidebar />
-
+  <div class="min-h-screen bg-surface-50">
+    <GerenteNavBar />
+    
     <!-- CONTENIDO -->
-    <div class="main">
-
-      <!-- TOPBAR -->
-      <GerenteTopbar />
-
-      <!-- VISTAS DINÁMICAS -->
-      <div class="content">
-        <router-view />
-      </div>
-
+    <div class="w-full mx-auto pb-20 md:pb-0">
+      <router-view />
     </div>
-
   </div>
 </template>
-
-<style scoped>
-.layout {
-  display: flex;
-}
-
-/* Contenedor principal (lado derecho) */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #f9fafb;
-  min-height: 100vh;
-}
-
-/* Aquí vive tu contenido (tablas, torneos, etc) */
-.content {
-  padding: 20px;
-}
-</style>

@@ -26,11 +26,19 @@ class ProfileController extends Controller
 
         switch ($usuario->rol) {
             case 'socio_titular':
-                $perfil = SocioTitular::where('id_socio', $usuario->user_id)
-                    ->first();
 
-                if ($perfil) {
-                    $data = [
+                $perfil = SocioTitular::find($usuario->user_id);
+
+                if (!$perfil) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Perfil no encontrado'
+                    ], 404);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
                         'id_socio' => $perfil->id_socio,
                         'numero_accion' => $perfil->numero_accion,
                         'nombre_completo' => $perfil->nombre_completo,
@@ -42,28 +50,41 @@ class ProfileController extends Controller
                         'genero' => $perfil->genero,
                         'fecha_afiliacion' => $perfil->fecha_afiliacion,
                         'contador_no_shows' => $perfil->contador_no_shows,
-                    ];
-                }
+                        'estatus_penalizacion' => $perfil->estatus_penalizacion,
+                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
+                        'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
+                    ]
+                ]);
                 break;
 
             case 'miembro_familiar':
                 $perfil = DB::table('miembros_familiares as mf')
                     ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
                     ->select(
+                        'mf.id_miembro',
                         'mf.nombre_completo',
+                        'mf.socio_id',
                         'st.numero_accion',
                         'st.tipo_socio',
-                        'st.estatus_cuenta'
+                        'st.modalidad_plan',
+                        'st.estatus_cuenta',
+                        'st.estatus_penalizacion',
+                        'st.fecha_fin_penalizacion'
                     )
                     ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
 
                 if ($perfil) {
                     $data = [
+                        'id_miembro' => $perfil->id_miembro,
+                        'id_socio' => $perfil->socio_id,
                         'nombre_completo' => $perfil->nombre_completo,
                         'numero_accion' => $perfil->numero_accion,
                         'tipo_socio' => $perfil->tipo_socio,
-                        'estatus_cuenta' => $perfil->estatus_cuenta
+                        'modalidad_plan' => $perfil->modalidad_plan,
+                        'estatus_cuenta' => $perfil->estatus_cuenta,
+                        'estatus_penalizacion' => $perfil->estatus_penalizacion ?? null,
+                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion ?? null,
                     ];
                 }
                 break;

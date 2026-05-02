@@ -10,6 +10,7 @@ import { IconArrowLeft } from '@/components/icons'
 const friendStore = useFriendStore()
 const profileStore = useProfileStore()
 const { toastInfo } = useAlerts() 
+const { showLoading, closeLoading, successModal, errorModal } = useAlerts()
 const router = useRouter()
 
 const search = ref('')
@@ -50,13 +51,17 @@ async function buscarSocios(query) {
 
 async function enviarSolicitud(socio) {
   sendingId.value = socio.id
+  showLoading('Enviando solicitud...')
   try {
     await friendStore.addFriend({ receptor_id: socio.id })
-    toastInfo('¡Éxito!', `Solicitud enviada a ${socio.nombre}`, 'success')
+    closeLoading()
+    await successModal('¡Solicitud enviada!', `Tu solicitud de amistad fue enviada a ${socio.nombre} exitosamente.`)
+    // Redirigir de regreso a la lista
     router.push({ name: 'friends-list' })
   } catch (e) {
-    const errorMsg = e.response?.data?.message || 'Hubo un error al enviar la solicitud'
-    toastInfo('Ups...', errorMsg, 'error')
+    closeLoading()
+    const errorMsg = e.response?.data?.message || 'Hubo un error al enviar la solicitud. Inténtalo de nuevo.'
+    await errorModal('No se pudo enviar', errorMsg)
   } finally {
     sendingId.value = null
   }

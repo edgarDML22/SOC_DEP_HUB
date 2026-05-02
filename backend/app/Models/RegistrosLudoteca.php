@@ -20,7 +20,19 @@ class RegistrosLudoteca extends Model
         'id_adulto_egreso',
         'hora_ingreso',
         'hora_egreso',
-        'estatus_visita',
+        'estatus_ludoteca',
+        'id_instructor_ingreso',
+        'id_instructor_egreso',
+        'alerta_30_enviada',
+        'alerta_10_enviada',
+    ];
+
+    protected $casts = [
+        'hora_limite' => 'datetime',
+        'hora_ingreso' => 'datetime',
+        'hora_egreso' => 'datetime',
+        'alerta_30_enviada' => 'boolean',
+        'alerta_10_enviada' => 'boolean',
     ];
 
 

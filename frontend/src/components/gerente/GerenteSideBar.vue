@@ -5,7 +5,7 @@ import {
   IconCalendar,
   IconTrophy,
   IconUser,
-  IconClock,
+  IconBaby,
   IconGuests,
   IconBriefcase,
   IconShield
