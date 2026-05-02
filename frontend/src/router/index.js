@@ -117,15 +117,7 @@ const router = createRouter({
               path: "add-register",
               name: "add-register",
               component: () => import("@/views/ludoteca/AddRegister.vue"),
-
-
             },
-            {
-              path: "ludoteca-list",
-              name: "ludoteca-list",
-              component: () => import("@/views/ludoteca/List/LudotecaList.vue"),
-            },
-
           ]
         },
 
@@ -358,7 +350,7 @@ const router = createRouter({
         {
           path: 'ludoteca',
           component: () => import('@/views/ludoteca/LudotecaAdmin.vue'),
-          redirect: { name: 'admin-ludoteca-list' }, // 🔥 ESTO FALTABA
+          redirect: { name: 'admin-ludoteca-list' },
           children: [
             {
               path: 'ludoteca-list',
@@ -368,9 +360,9 @@ const router = createRouter({
             {
               path: 'update',
               name: 'ludoteca/update',
-              component: () => import('@/views/ludoteca/LudotecaUpdate.vue')
-            }
-          ]
+              component: () => import('@/views/ludoteca/LudotecaUpdate.vue'),
+            },
+          ],
         },
         {
           path: "reports",

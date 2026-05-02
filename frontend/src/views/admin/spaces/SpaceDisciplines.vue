@@ -136,110 +136,113 @@ const goBack = () => {
 </script>
 
 <template>
-    <main class="home-instructor">
+    <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-32 font-sans relative">
         <Toast />
 
-        <!-- Status Overlay -->
-        <Transition name="fade">
-            <div v-if="statusOverlay.show" class="status-overlay" :class="statusOverlay.type">
-                <div class="overlay-content">
-                    <div class="icon-wrapper">
-                        <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg"
-                            class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                            stroke-linecap="round" stroke-linejoin="round">
+        <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
+            <div v-if="statusOverlay.show" class="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-md" :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
+                <div class="text-center animate-[bounce_0.5s]">
+                    <div class="flex justify-center mb-6">
+                        <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                             <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             <line x1="15" y1="9" x2="9" y2="15" />
                             <line x1="9" y1="9" x2="15" y2="15" />
                         </svg>
                     </div>
-                    <h2>{{ statusOverlay.message }}</h2>
+                    <h2 class="text-2xl font-extrabold">{{ statusOverlay.message }}</h2>
                 </div>
             </div>
         </Transition>
-        <header class="app-header">
-            <button @click="goBack" class="btn-back">
-                <svg class="icon-back" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        
+        <header class="flex items-center gap-6 mb-8 max-w-7xl mx-auto">
+            <button @click="goBack" class="w-11 h-11 bg-white border border-surface-200 rounded-xl flex items-center justify-center text-surface-700 hover:bg-surface-50 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
             </button>
             <div>
-                <p class="greeting-label">Disciplinas del Espacio</p>
-                <h1 class="header-title" v-if="space">{{ space.nombre_espacio }}</h1>
+                <p class="text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Disciplinas del Espacio</p>
+                <h1 class="text-3xl font-extrabold text-surface-900 m-0 leading-none" v-if="space">{{ space.nombre_espacio }}</h1>
             </div>
         </header>
 
-        <section v-if="isLoading" class="loading-state">
-            <div class="spinner"></div>
-            <p>Cargando disciplinas...</p>
+        <section v-if="isLoading" class="flex flex-col items-center justify-center py-20 gap-4">
+            <div class="w-10 h-10 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin"></div>
+            <p class="text-surface-500 font-medium">Cargando disciplinas...</p>
         </section>
 
-        <section v-else class="disciplines-content">
-            <!-- SECCIÓN 1: DISCIPLINAS PERMITIDAS -->
-            <div class="card mb-8 section-assigned">
-                <div class="card-header flex justify-between items-end">
+        <section v-else class="max-w-7xl mx-auto space-y-8">
+            <div class="bg-primary-50/50 border border-primary-100 rounded-[2.5rem] p-8 lg:p-10 shadow-sm relative overflow-hidden">
+                <!-- Decorative background elements -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-primary-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+
+                <div class="flex justify-between items-end mb-8 relative z-10">
                     <div>
-                        <h3 class="text-indigo-700">Disciplinas Permitidas</h3>
-                        <p class="text-sm text-indigo-600/70">Estas disciplinas están autorizadas para este espacio.</p>
+                        <h3 class="text-2xl font-black text-primary-900 leading-tight">Disciplinas Permitidas</h3>
+                        <p class="text-sm text-primary-600/80 font-bold mt-1">Estas son las disciplinas asignadas actualmente a este espacio.</p>
                     </div>
-                    <span class="badge-count bg-indigo-100 text-indigo-700">{{ assignedDisciplinesList.length
-                        }}</span>
+                    <div class="px-4 py-1.5 rounded-xl border border-primary-200 bg-white shadow-sm flex items-center gap-2">
+                         <span class="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></span>
+                         <span class="text-sm font-black text-primary-700">{{ assignedDisciplinesList.length }} ASIGNADAS</span>
+                    </div>
                 </div>
 
-                <div class="disciplines-grid">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 relative z-10">
                     <div v-for="d in assignedDisciplinesList" :key="d.id_disciplina"
-                        @click="toggleSelection(d.id_disciplina)" class="discipline-item active">
-                        <div class="discipline-card-body">
-                            <div class="icon-circle">
+                        @click="toggleSelection(d.id_disciplina)" 
+                        class="cursor-pointer relative group">
+                        <div class="bg-white border-2 border-primary-500 rounded-[1.5rem] p-6 flex flex-col items-center gap-4 h-full shadow-md group-hover:-translate-y-1 group-hover:shadow-lg transition-all duration-300">
+                            <div class="w-16 h-16 bg-primary-600 text-white rounded-[1.25rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
                                 <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8" />
                             </div>
-                            <span class="discipline-name">{{ d.nombre_disciplina }}</span>
-                            <div class="check-mark">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                    stroke-linejoin="round">
+                            <span class="text-sm font-black text-primary-900 text-center leading-tight">{{ d.nombre_disciplina }}</span>
+                            
+                            <div class="absolute -top-2 -right-2 bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-[3px] border-white shadow-sm group-hover:scale-110 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div v-if="assignedDisciplinesList.length === 0" class="empty-mini-state">
-                        No hay disciplinas asignadas. Selecciona una de abajo para agregarla.
+                    <div v-if="assignedDisciplinesList.length === 0" class="col-span-full py-12 text-center text-primary-600/60 bg-white rounded-[1.5rem] border-2 border-dashed border-primary-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                        <svg class="w-8 h-8 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <span class="text-sm font-bold">No hay disciplinas asignadas. Selecciona una de abajo para agregarla.</span>
                     </div>
                 </div>
             </div>
 
-            <!-- SECCIÓN 2: OTRAS DISCIPLINAS -->
-            <div class="card section-available">
-                <div class="card-header flex justify-between items-end">
+            <div class="bg-white border border-surface-200 rounded-[2.5rem] p-8 lg:p-10 shadow-xl shadow-surface-200/30">
+                <div class="flex justify-between items-end mb-8">
                     <div>
-                        <h3 class="text-gray-700">Otras Disciplinas</h3>
-                        <p class="text-sm text-gray-500">Haz clic para autorizar una nueva disciplina en este espacio.</p>
+                        <h3 class="text-2xl font-black text-surface-900 leading-tight">Otras Disciplinas Disponibles</h3>
+                        <p class="text-sm text-surface-500 font-bold mt-1">Haz clic para permitir una nueva disciplina en este espacio.</p>
                     </div>
-                    <span class="badge-count bg-gray-100 text-gray-600">{{ availableDisciplinesList.length }}</span>
+                    <div class="px-4 py-1.5 rounded-xl border border-surface-200 bg-surface-50 flex items-center gap-2">
+                         <span class="text-sm font-black text-surface-600">{{ availableDisciplinesList.length }} DISPONIBLES</span>
+                    </div>
                 </div>
 
-                <div class="disciplines-grid">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                     <div v-for="d in availableDisciplinesList" :key="d.id_disciplina"
-                        @click="toggleSelection(d.id_disciplina)" class="discipline-item">
-                        <div class="discipline-card-body">
-                            <div class="icon-circle">
-                                <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8 opacity-40" />
+                        @click="toggleSelection(d.id_disciplina)" 
+                        class="cursor-pointer group relative">
+                        <div class="bg-surface-50 border border-surface-200 rounded-[1.5rem] p-6 flex flex-col items-center gap-4 h-full group-hover:bg-primary-50 group-hover:border-primary-300 group-hover:-translate-y-1 group-hover:shadow-md transition-all duration-300">
+                            <div class="w-16 h-16 bg-white text-surface-400 border border-surface-200 shadow-sm rounded-[1.25rem] flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white group-hover:border-primary-600 transition-all duration-300 group-hover:scale-110">
+                                <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8 opacity-80 group-hover:opacity-100" />
                             </div>
-                            <span class="discipline-name">{{ d.nombre_disciplina }}</span>
+                            <span class="text-sm font-bold text-surface-500 text-center leading-tight group-hover:text-primary-800 transition-colors">{{ d.nombre_disciplina }}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="actions-sticky">
-                <button @click="goBack" class="btn-secondary">Cancelar</button>
-                <button @click="saveChanges" class="btn-primary" :disabled="isSaving">
+            <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-50">
+                <button @click="goBack" class="px-8 py-3.5 bg-white text-surface-700 border border-surface-200 rounded-xl font-bold hover:bg-surface-50 transition-colors">Cancelar</button>
+                <button @click="saveChanges" class="px-10 py-3.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0" :disabled="isSaving">
                     {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
                 </button>
             </div>
@@ -247,297 +250,4 @@ const goBack = () => {
     </main>
 </template>
 
-<style scoped>
-.home-instructor {
-    background-color: var(--p-surface-50);
-    padding: 1.5rem;
-    min-height: 100vh;
-    padding-bottom: 100px;
-}
 
-.app-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.greeting-label {
-    font-size: 0.75rem;
-    color: var(--p-surface-500);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.25rem;
-}
-
-.header-title {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin: 0;
-    color: var(--p-surface-900);
-}
-
-.btn-back {
-    background: white;
-    border: 1px solid var(--p-surface-200);
-    border-radius: 14px;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--p-surface-700);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.icon-back {
-    width: 20px;
-    height: 20px;
-}
-
-.card {
-    background: white;
-    border-radius: 24px;
-    border: 1px solid var(--p-surface-200);
-    padding: 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.section-assigned {
-    border-color: var(--p-indigo-200);
-    background-color: var(--p-indigo-50/30);
-}
-
-.card-header {
-    margin-bottom: 1.5rem;
-}
-
-.card-header h3 {
-    font-size: 1.15rem;
-    font-weight: 800;
-}
-
-.badge-count {
-    padding: 0.25rem 0.75rem;
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 800;
-}
-
-.disciplines-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
-}
-
-.discipline-item {
-    cursor: pointer;
-    position: relative;
-    transition: transform 0.2s;
-}
-
-.discipline-item:hover {
-    transform: translateY(-4px);
-}
-
-.discipline-card-body {
-    background: white;
-    border: 1px solid var(--p-surface-200);
-    border-radius: 20px;
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    height: 100%;
-}
-
-.discipline-item.active .discipline-card-body {
-    background: white;
-    border-color: var(--p-indigo-500);
-    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1);
-}
-
-.icon-circle {
-    width: 56px;
-    height: 56px;
-    background: var(--p-surface-50);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--p-surface-400);
-    transition: all 0.3s;
-}
-
-.discipline-item.active .icon-circle {
-    background: var(--p-indigo-600);
-    color: white;
-}
-
-.discipline-name {
-    font-weight: 700;
-    color: var(--p-surface-600);
-    text-align: center;
-    font-size: 0.85rem;
-}
-
-.discipline-item.active .discipline-name {
-    color: var(--p-indigo-900);
-}
-
-.check-mark {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: var(--p-indigo-600);
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.empty-mini-state {
-    grid-column: 1 / -1;
-    padding: 2rem;
-    text-align: center;
-    color: var(--p-indigo-600/60);
-    font-style: italic;
-    font-size: 0.85rem;
-    background: white;
-    border-radius: 16px;
-    border: 2px dashed var(--p-indigo-200);
-}
-
-.actions-sticky {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    padding: 1.25rem 2rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    border-top: 1px solid var(--p-surface-200);
-    z-index: 100;
-}
-
-.btn-primary {
-    background-color: var(--p-indigo-600);
-    color: white;
-    border: none;
-    padding: 0.875rem 2.5rem;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background-color: var(--p-indigo-700);
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background-color: white;
-    color: var(--p-surface-700);
-    border: 1px solid var(--p-surface-200);
-    padding: 0.875rem 2rem;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 5rem;
-    gap: 1rem;
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--p-surface-200);
-    border-top-color: var(--p-indigo-600);
-    border-radius: 50%;
-    animation: spin 1s infinite linear;
-}
-
-@keyframes spin {
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* Status Overlay Styles */
-.status-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.8);
-}
-
-.status-overlay.success {
-    color: var(--p-indigo-600);
-}
-
-.status-overlay.error {
-    color: var(--p-red-600);
-}
-
-.overlay-content {
-    text-align: center;
-    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.icon-wrapper {
-    margin-bottom: 1.5rem;
-    display: flex;
-    justify-content: center;
-}
-
-.overlay-content h2 {
-    font-size: 1.5rem;
-    font-weight: 800;
-}
-
-@keyframes popIn {
-    0% {
-        transform: scale(0.5);
-        opacity: 0;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-</style>

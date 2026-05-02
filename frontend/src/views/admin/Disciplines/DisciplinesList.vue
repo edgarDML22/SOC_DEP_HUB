@@ -1,437 +1,658 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { storeToRefs } from 'pinia';
-import { useDisciplinesStore } from '@/stores/admin/disciplines';
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useDisciplinesStore } from '@/stores/admin/disciplines'
+import { useAlerts }           from '@/composables/useAlerts'
 
-const router = useRouter();
-const disciplinesStore = useDisciplinesStore();
-const { disciplines, isLoading } = storeToRefs(disciplinesStore);
+import Select from 'primevue/select'
 
-const search = ref('');
-const filterStatus = ref('TODOS');
-const filterCategory = ref('TODOS');
-const showNewModal = ref(false);
-const showDeleteModal = ref(false);
-const selectedDiscipline = ref(null);
-const isSaving = ref(false);
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
+import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 
-// Instructors Modal State
-const showInstructorsModal = ref(false);
-const isFetchingInstructors = ref(false);
-const selectedInstructors = ref([]);
+const router            = useRouter()
+const disciplinesStore  = useDisciplinesStore()
+const { toastInfo }     = useAlerts()
 
-const newDiscipline = ref({
-    nombre_disciplina: '',
-    id_categoria: null,
-    descripcion: '',
-    estatus: 'ACTIVO'
-});
+const { disciplines, isLoading } = storeToRefs(disciplinesStore)
 
-onMounted(() => {
-    disciplinesStore.fetchDisciplines();
-    disciplinesStore.fetchCategories();
-});
+// ── FILTROS ────────────────────────────────────────────────────
+const search         = ref('')
+const filterStatus   = ref(null)
+const filterCategory = ref(null)
 
-const categories = computed(() => {
-    // Filtrar 'INFANTIL' según requerimiento
-    return (disciplinesStore.categories || []).filter(c => c.nombre_categoria !== 'INFANTIL');
-});
+const categories = computed(() =>
+  (disciplinesStore.categories || []).filter(c => c.nombre_categoria !== 'INFANTIL')
+)
+const categoryOpts = computed(() => [
+  { label: 'Todas las categorías', value: null },
+  ...categories.value.map(c => ({ label: c.nombre_categoria, value: c.id })),
+])
+const OPT_STATUS = [
+  { label: 'Todos los estados', value: null },
+  { label: 'Activo',            value: 'ACTIVO' },
+  { label: 'Inactivo',          value: 'INACTIVO' },
+  { label: 'Mantenimiento',     value: 'MANTENIMIENTO' },
+  { label: 'Deshabilitado',     value: 'DESHABILITADO' },
+]
 
 const filteredDisciplines = computed(() => {
-    let result = [...disciplines.value];
+  let r = [...disciplines.value]
 
-    // Búsqueda
-    if (search.value) {
-        const q = search.value.toLowerCase();
-        result = result.filter(d => {
-            const catName = d.categoria?.nombre_categoria || d.categoria_disciplina || '';
-            return d.nombre_disciplina.toLowerCase().includes(q) ||
-                   catName.toLowerCase().includes(q);
-        });
-    }
+  if (search.value) {
+    const q = search.value.toLowerCase()
+    r = r.filter(d => {
+      const cat = d.categoria?.nombre_categoria || d.categoria_disciplina || ''
+      return d.nombre_disciplina.toLowerCase().includes(q) || cat.toLowerCase().includes(q)
+    })
+  }
+  if (filterStatus.value)   r = r.filter(d => d.estatus === filterStatus.value)
+  if (filterCategory.value) r = r.filter(d => d.id_categoria === filterCategory.value)
 
-    // Filtro Estatus
-    if (filterStatus.value !== 'TODOS') {
-        result = result.filter(d => d.estatus === filterStatus.value);
-    }
+  return r.sort((a, b) => {
+    const catA = a.categoria?.nombre_categoria || a.categoria_disciplina || ''
+    const catB = b.categoria?.nombre_categoria || b.categoria_disciplina || ''
+    const c = catA.localeCompare(catB)
+    return c !== 0 ? c : a.nombre_disciplina.localeCompare(b.nombre_disciplina)
+  })
+})
 
-    // Filtro Categoría
-    if (filterCategory.value !== 'TODOS') {
-        result = result.filter(d => d.id_categoria === filterCategory.value);
-    }
+const hasActiveFilters = computed(() => search.value || filterStatus.value || filterCategory.value)
+const clearFilters = () => {
+  search.value = ''
+  filterStatus.value = filterCategory.value = null
+}
 
-    // Ordenar: primero por categoría, luego por nombre
-    result.sort((a, b) => {
-        const catA = a.categoria?.nombre_categoria || a.categoria_disciplina || '';
-        const catB = b.categoria?.nombre_categoria || b.categoria_disciplina || '';
-        const catCompare = catA.localeCompare(catB);
-        if (catCompare !== 0) return catCompare;
-        return a.nombre_disciplina.localeCompare(b.nombre_disciplina);
-    });
+// ── COLOR DE ACENTO POR CATEGORÍA ─────────────────────────────
+const CATEGORY_COLORS = [
+  'border-t-primary-400',
+  'border-t-purple-400',
+  'border-t-emerald-400',
+  'border-t-orange-400',
+  'border-t-rose-400',
+  'border-t-cyan-400',
+  'border-t-amber-400',
+  'border-t-indigo-400',
+]
+const categoryAccent = (catName = '') => {
+  const idx = (catName.charCodeAt(0) ?? 0) % CATEGORY_COLORS.length
+  return CATEGORY_COLORS[idx]
+}
 
-    return result;
-});
+// ── MENU ITEMS ─────────────────────────────────────────────────
+const buildMenuItems = (discipline) => [
+  {
+    label:  'Ver detalles',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+             </svg>`,
+    action: () => router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } }),
+  },
+  {
+    label:  'Editar disciplina',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+               <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+             </svg>`,
+    action: () => router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina }, query: { edit: 'true' } }),
+  },
+  {
+    label:  'Ver instructores',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+               <circle cx="9" cy="7" r="4"/>
+               <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+             </svg>`,
+    action: () => openInstructorsModal(discipline.id_disciplina),
+  },
+  { separator: true },
+  {
+    label:       'Deshabilitar',
+    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                  </svg>`,
+    action:      () => openDisableModal(discipline),
+    destructive: true,
+    disabled:    discipline.estatus === 'DESHABILITADO',
+  },
+]
 
-const openDetails = (id) => {
-    router.push({ name: 'disciplines-details', params: { id } });
-};
+// ── MODAL: NUEVO DISCIPLINA ────────────────────────────────────
+const showNewModal = ref(false)
+const isSaving     = ref(false)
+const formError    = ref('')
 
-const openEdit = (id) => {
-    router.push({ name: 'disciplines-details', params: { id }, query: { edit: 'true' } });
-};
+const EMPTY_DISCIPLINE = () => ({ nombre_disciplina: '', id_categoria: null, descripcion: '', estatus: 'ACTIVO' })
+const newDiscipline = ref(EMPTY_DISCIPLINE())
 
-const openInstructors = async (id) => {
-    isFetchingInstructors.value = true;
-    showInstructorsModal.value = true;
-    try {
-        const fullData = await disciplinesStore.fetchDisciplineDetails(id);
-        selectedInstructors.value = fullData.instructores || [];
-    } catch (error) {
-        console.error("Error al cargar instructores:", error);
-    } finally {
-        isFetchingInstructors.value = false;
-    }
-};
+const OPT_ESTATUS_FORM = [
+  { label: 'Activo',   value: 'ACTIVO' },
+  { label: 'Inactivo', value: 'INACTIVO' },
+]
 
-const openCategories = () => {
-    router.push({ name: 'disciplines-categories' });
-};
-
-const openDeleteModal = (discipline) => {
-    selectedDiscipline.value = discipline;
-    showDeleteModal.value = true;
-};
-
-const confirmDelete = async () => {
-    if (!selectedDiscipline.value) return;
-    isSaving.value = true;
-    const res = await disciplinesStore.deleteDiscipline(selectedDiscipline.value.id_disciplina);
-    isSaving.value = false;
-    if (res.success) {
-        showDeleteModal.value = false;
-    } else {
-        alert(res.error);
-    }
-};
+const openNewModal = () => {
+  newDiscipline.value = EMPTY_DISCIPLINE()
+  formError.value     = ''
+  showNewModal.value  = true
+}
 
 const saveNewDiscipline = async () => {
-    if (!newDiscipline.value.nombre_disciplina || !newDiscipline.value.id_categoria) {
-        alert("Nombre y categoría son obligatorios.");
-        return;
-    }
-    isSaving.value = true;
-    const res = await disciplinesStore.createDiscipline(newDiscipline.value);
-    isSaving.value = false;
-    if (res.success) {
-        showNewModal.value = false;
-        newDiscipline.value = { nombre_disciplina: '', id_categoria: null, descripcion: '', estatus: 'ACTIVO' };
-    } else {
-        alert(res.error);
-    }
-};
+  formError.value = ''
+  if (!newDiscipline.value.nombre_disciplina.trim()) {
+    formError.value = 'El nombre de la disciplina es requerido.'
+    return
+  }
+  if (!newDiscipline.value.id_categoria) {
+    formError.value = 'Debes seleccionar una categoría.'
+    return
+  }
+  isSaving.value = true
+  const res = await disciplinesStore.createDiscipline(newDiscipline.value)
+  isSaving.value = false
+  if (res?.success) {
+    showNewModal.value = false
+    toastInfo('Disciplina creada', `"${newDiscipline.value.nombre_disciplina}" fue registrada.`, 'success')
+  } else {
+    formError.value = res?.error ?? 'Ocurrió un error al crear la disciplina.'
+  }
+}
+
+// ── MODAL: INSTRUCTORES ────────────────────────────────────────
+const showInstructorsModal  = ref(false)
+const selectedInstructors   = ref([])
+const isFetchingInstructors = ref(false)
+
+const openInstructorsModal = async (id) => {
+  selectedInstructors.value   = []
+  isFetchingInstructors.value = true
+  showInstructorsModal.value  = true
+  try {
+    const data = await disciplinesStore.fetchDisciplineDetails(id)
+    selectedInstructors.value = data?.instructores ?? []
+  } catch {
+    selectedInstructors.value = []
+  } finally {
+    isFetchingInstructors.value = false
+  }
+}
+
+// ── MODAL: DESHABILITAR ────────────────────────────────────────
+const showDisableModal    = ref(false)
+const selectedDiscipline  = ref(null)
+
+const openDisableModal = (discipline) => {
+  selectedDiscipline.value = discipline
+  showDisableModal.value   = true
+}
+
+const confirmDisable = async () => {
+  if (!selectedDiscipline.value) return
+  isSaving.value = true
+  const res = await disciplinesStore.deleteDiscipline(selectedDiscipline.value.id_disciplina)
+  isSaving.value = false
+  if (res?.success) {
+    showDisableModal.value = false
+    toastInfo('Disciplina deshabilitada', selectedDiscipline.value.nombre_disciplina, 'success')
+  } else {
+    toastInfo('Error', res?.error ?? 'No se pudo deshabilitar.', 'error')
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+onMounted(() => {
+  disciplinesStore.fetchDisciplines()
+  disciplinesStore.fetchCategories()
+})
 </script>
 
 <template>
-    <div class="admin-container p-6 bg-gray-50 min-h-screen">
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-extrabold text-gray-900">Disciplinas</h1>
-                <p class="text-gray-500">Gestiona los deportes y actividades del club</p>
-            </div>
-            <div class="flex gap-3">
-                <button @click="openCategories"
-                    class="flex items-center gap-2 bg-white hover:bg-gray-50 text-indigo-600 px-5 py-2.5 rounded-xl font-bold transition-all border border-indigo-100 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01" /></svg>
-                    Categorías
-                </button>
-                <button @click="showNewModal = true"
-                    class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Nueva Disciplina
-                </button>
-            </div>
-        </header>
+  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
+    <div class="max-w-7xl mx-auto space-y-8">
 
-        <!-- Filters -->
+      <!-- CABECERA -->
+      <AdminPageHeader
+        title="Disciplinas"
+        subtitle="Gestiona los deportes y actividades del club."
+      >
+        <span class="text-sm font-bold text-surface-500">
+          {{ filteredDisciplines.length }}
+          <span class="font-medium text-surface-400">de {{ disciplines.length }}</span>
+        </span>
+        <!-- Botón Categorías -->
+        <button
+          @click="router.push({ name: 'disciplines-categories' })"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-surface-200 shadow-sm
+                 text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          Categorías
+        </button>
+        <button
+          @click="openNewModal"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white
+                 text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          Nueva Disciplina
+        </button>
+      </AdminPageHeader>
+
+      <!-- FILTROS -->
+      <div class="bg-white rounded-3xl border border-surface-200 shadow-sm p-6 space-y-4">
+        <div class="relative">
+          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="search"
+            placeholder="Buscar por nombre o categoría…"
+            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
+                   font-medium text-surface-900 placeholder:text-surface-400
+                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+          />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Categoría</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <select v-model="filterCategory" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in categoryOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -transurface-y-1"
+          enter-to-class="opacity-100 transurface-y-0" leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 transurface-y-0" leave-to-class="opacity-0 -transurface-y-1"
+        >
+          <div v-if="hasActiveFilters" class="flex justify-end">
+            <button @click="clearFilters"
+              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              Limpiar filtros
+            </button>
+          </div>
+        </Transition>
+      </div>
+
+      <!-- SKELETON -->
+      <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div v-for="n in 6" :key="n"
+          class="bg-white rounded-3xl border border-t-4 border-surface-200 border-t-indigo-200 p-6 animate-pulse space-y-4">
+          <div class="flex justify-between items-start">
+            <div class="w-12 h-12 rounded-2xl bg-surface-200"/>
+            <div class="h-5 w-16 bg-surface-100 rounded-full"/>
+          </div>
+          <div class="space-y-2">
+            <div class="h-5 bg-surface-200 rounded-lg w-3/4"/>
+            <div class="h-3 bg-surface-100 rounded-lg w-1/3"/>
+            <div class="h-3 bg-surface-100 rounded-lg w-full"/>
+            <div class="h-3 bg-surface-100 rounded-lg w-2/3"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- VACÍO -->
+      <div v-else-if="filteredDisciplines.length === 0"
+        class="bg-white rounded-3xl border-2 border-dashed border-surface-200 p-16
+               flex flex-col items-center justify-center text-center">
+        <div class="w-20 h-20 rounded-3xl bg-surface-100 flex items-center justify-center mb-4">
+          <svg class="w-9 h-9 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+            <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-black text-surface-900">Sin resultados</h3>
+        <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron disciplinas con los filtros actuales.</p>
+        <button @click="clearFilters" class="mt-4 text-sm font-bold text-primary-600 hover:underline">Limpiar filtros</button>
+      </div>
+
+      <!-- GRID CARDS -->
+      <TransitionGroup
+        v-else
+        tag="div"
+        class="grid grid-cols-1 xl:grid-cols-2 gap-5"
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition-all duration-200 ease-in absolute"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
         <div
-            class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row gap-4 items-center">
-            <div class="relative flex-1 w-full">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </span>
-                <input v-model="search" type="text" placeholder="Buscar por nombre o categoría..."
-                    class="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all text-gray-700">
+          v-for="discipline in filteredDisciplines"
+          :key="discipline.id_disciplina"
+          class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm
+                 hover:shadow-md hover:border-surface-300 transition-all duration-300 group flex flex-col sm:flex-row overflow-hidden relative"
+        >
+          <!-- Accent border on left for desktop, top for mobile -->
+          <div class="absolute inset-y-0 left-0 w-1.5 sm:w-2" :class="categoryAccent(discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '')"></div>
+
+          <!-- Lado Izquierdo: Ícono -->
+          <div class="p-6 sm:w-32 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-surface-100 bg-surface-50/50">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+              </svg>
             </div>
-            <div class="w-full md:w-64">
-                <select v-model="filterCategory"
-                    class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700">
-                    <option value="TODOS">Todas las categorías</option>
-                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.nombre_categoria }}</option>
-                </select>
+          </div>
+
+          <!-- Lado Derecho: Info -->
+          <div class="flex-1 p-6 flex flex-col">
+            <div class="flex justify-between items-start gap-4">
+               <div>
+                 <h3 class="text-base font-black text-surface-900 leading-tight">{{ discipline.nombre_disciplina }}</h3>
+                 <p class="text-xs font-bold uppercase tracking-wider text-indigo-500 mt-1">
+                   {{ discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '—' }}
+                 </p>
+               </div>
+               <ActionMenu :items="buildMenuItems(discipline)" align="right" />
             </div>
-            <div class="w-full md:w-48">
-                <select v-model="filterStatus"
-                    class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700">
-                    <option value="TODOS">Todos los estados</option>
-                    <option value="ACTIVO">Activo</option>
-                    <option value="INACTIVO">Inactivo</option>
-                    <option value="MANTENIMIENTO">Mantenimiento</option>
-                    <option value="DESHABILITADO">Deshabilitado</option>
-                </select>
+
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+               <BadgeStatus :status="discipline.estatus" />
             </div>
-        </div>
 
-        <!-- List -->
-        <div v-if="isLoading" class="flex justify-center py-20">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        </div>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="discipline in filteredDisciplines" :key="discipline.id_disciplina"
-                class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 flex flex-col group">
-                <div class="flex justify-between items-start mb-4">
-                    <div
-                        class="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                            <line x1="6" x2="6" y1="1" y2="4" />
-                            <line x1="10" x2="10" y1="1" y2="4" />
-                            <line x1="14" x2="14" y1="1" y2="4" />
-                        </svg>
-                    </div>
-                    <span :class="{
-                        'bg-emerald-50 text-emerald-600': discipline.estatus === 'ACTIVO',
-                        'bg-amber-50 text-amber-600': discipline.estatus === 'MANTENIMIENTO',
-                        'bg-red-50 text-red-600': discipline.estatus === 'DESHABILITADO',
-                        'bg-gray-50 text-gray-500': discipline.estatus === 'INACTIVO'
-                    }" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                        {{ discipline.estatus }}
-                    </span>
-                </div>
-
-                <h3 class="text-xl font-bold text-gray-900 mb-1">{{ discipline.nombre_disciplina }}</h3>
-                <p class="text-indigo-600 font-semibold text-sm mb-3 uppercase tracking-wide">
-                    {{ discipline.categoria?.nombre_categoria || discipline.categoria_disciplina }}
-                </p>
-                <p class="text-gray-500 text-sm line-clamp-2 mb-6 flex-grow">
-                    {{ discipline.descripcion || 'Sin descripción disponible.' }}
-                </p>
-
-                <div class="pt-4 border-t border-gray-50 flex items-center gap-2">
-                    <!-- 1. Ver Detalles -->
-                    <button @click="openDetails(discipline.id_disciplina)"
-                        class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                        title="Ver Detalles">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <path d="M14 2v6h6" />
-                            <path d="M16 13H8" />
-                            <path d="M16 17H8" />
-                            <path d="M10 9H8" />
-                        </svg>
-                    </button>
-
-                    <!-- 2. Editar -->
-                    <button @click="openEdit(discipline.id_disciplina)"
-                        class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                        title="Editar">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                    </button>
-
-                    <!-- 3. Instructores -->
-                    <button @click="openInstructors(discipline.id_disciplina)"
-                        class="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm"
-                        title="Instructores">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                    </button>
-
-                    <!-- 4. Deshabilitar -->
-                    <button @click="openDeleteModal(discipline)"
-                        class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                        title="Deshabilitar">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    </button>
-                </div>
+            <!-- Descripción -->
+            <div class="mt-4 py-2.5 px-3.5 rounded-xl bg-surface-50 border border-surface-100">
+               <p class="text-[10px] font-black uppercase tracking-wider text-surface-400 mb-1">Descripción</p>
+               <p class="text-xs text-surface-500 font-medium line-clamp-2 leading-relaxed">
+                 {{ discipline.descripcion || 'Sin descripción disponible.' }}
+               </p>
             </div>
-        </div>
 
-        <!-- Empty State -->
-        <div v-if="!isLoading && filteredDisciplines.length === 0" class="text-center py-20">
-            <p class="text-gray-400 font-medium">No se encontraron disciplinas que coincidan con tu búsqueda.</p>
+            <!-- Footer / Botones -->
+            <div class="mt-4 flex justify-end">
+               <button
+                 @click="router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } })"
+                 class="px-4 py-2 rounded-xl bg-white border border-surface-200 text-surface-700 text-xs font-bold
+                        hover:bg-surface-50 hover:text-indigo-600 transition-colors duration-200
+                        flex items-center justify-center gap-2 shadow-sm"
+               >
+                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+                 </svg>
+                 Ver detalles
+               </button>
+            </div>
+          </div>
         </div>
+      </TransitionGroup>
 
-        <!-- New Discipline Modal -->
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: NUEVA DISCIPLINA
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0"
+      >
         <div v-if="showNewModal"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div
-                class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div class="p-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">Nueva Disciplina</h2>
-                        <button @click="showNewModal = false" class="text-gray-400 hover:text-gray-600 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showNewModal = false"
+        >
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+          >
+            <div v-if="showNewModal"
+              class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
 
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Nombre de la Disciplina</label>
-                            <input v-model="newDiscipline.nombre_disciplina" type="text"
-                                placeholder="Ej. Tennis, Natación..."
-                                class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Categoría</label>
-                            <select v-model="newDiscipline.id_categoria"
-                                class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium">
-                                <option :value="null" disabled>Selecciona una categoría</option>
-                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.nombre_categoria }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
-                            <textarea v-model="newDiscipline.descripcion" rows="3"
-                                placeholder="Breve descripción de la actividad..."
-                                class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 flex gap-3">
-                        <button @click="showNewModal = false"
-                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition-all">
-                            Cancelar
-                        </button>
-                        <button @click="saveNewDiscipline" :disabled="isSaving"
-                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
-                            {{ isSaving ? 'Guardando...' : 'Crear Disciplina' }}
-                        </button>
-                    </div>
+              <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100 bg-white">
+                <div>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nueva Disciplina</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">Registra un deporte o actividad del club.</p>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Deactivation Modal -->
-    <div v-if="showDeleteModal"
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div class="p-8 text-center">
-                <div
-                    class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">¿Deshabilitar Disciplina?</h3>
-                <p class="text-gray-500 mb-8" v-if="selectedDiscipline">¿Estás seguro de deshabilitar <b>{{
-                    selectedDiscipline.nombre_disciplina }}</b>? El sistema validará que no haya sesiones o torneos
-                    activos.</p>
-
-                <div class="flex gap-3">
-                    <button @click="showDeleteModal = false"
-                        class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all">
-                        Cancelar
-                    </button>
-                    <button @click="confirmDelete" :disabled="isSaving"
-                        class="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-100 disabled:opacity-50">
-                        {{ isSaving ? 'Procesando...' : 'Deshabilitar' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Instructors Modal -->
-    <div v-if="showInstructorsModal"
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div class="p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Instructores</h2>
-                    <button @click="showInstructorsModal = false" class="text-gray-400 hover:text-gray-600 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div v-if="isFetchingInstructors" class="flex justify-center py-12">
-                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-                </div>
-
-                <div v-else-if="selectedInstructors.length > 0" class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                    <div v-for="ins in selectedInstructors" :key="ins.id_instructor"
-                        class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-white hover:border-indigo-100 transition-all group">
-                        <div class="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-105 transition-all">
-                            {{ ins.nombre_completo.charAt(0) }}
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-900">{{ ins.nombre_completo }}</p>
-                            <p class="text-xs text-gray-500 font-medium">ID: #{{ ins.id_instructor }}</p>
-                        </div>
-                        <div class="ml-auto">
-                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-else class="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                    <div class="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                    </div>
-                    <p class="text-gray-500 font-medium italic">No hay instructores asignados a esta disciplina.</p>
-                </div>
-
-                <button @click="showInstructorsModal = false"
-                    class="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-100">
-                    Cerrar
+                <button @click="showNewModal = false"
+                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
                 </button>
-            </div>
-        </div>
-    </div>
-</template>
+              </div>
 
-<style scoped>
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-</style>
+              <div class="overflow-y-auto p-8 space-y-6 bg-surface-50/50">
+
+                <!-- Error -->
+                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
+                  <div v-if="formError"
+                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-bold shadow-sm">
+                    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    {{ formError }}
+                  </div>
+                </Transition>
+
+                <!-- Nombre -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                    Nombre <span class="text-red-400">*</span>
+                  </label>
+                  <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
+                    class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold
+                           text-surface-900 placeholder:text-surface-400 shadow-sm
+                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"/>
+                </div>
+
+                <!-- Categoría + Estatus -->
+                <div class="grid grid-cols-2 gap-6">
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                      Categoría <span class="text-red-400">*</span>
+                    </label>
+                    <Select
+                      v-model="newDiscipline.id_categoria"
+                      :options="[{ label: 'Seleccionar categoría…', value: null }, ...categories.map(c => ({ label: c.nombre_categoria, value: c.id }))]"
+                      option-label="label"
+                      option-value="value"
+                      class="w-full shadow-sm"
+                    />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Estatus</label>
+                    <Select
+                      v-model="newDiscipline.estatus"
+                      :options="OPT_ESTATUS_FORM"
+                      option-label="label"
+                      option-value="value"
+                      class="w-full shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Descripción</label>
+                  <textarea
+                    v-model="newDiscipline.descripcion"
+                    rows="4"
+                    placeholder="Breve descripción de la actividad…"
+                    class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-medium
+                           text-surface-900 placeholder:text-surface-400 resize-none shadow-sm
+                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+                  />
+                </div>
+
+              </div>
+
+              <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
+                <button @click="showNewModal = false"
+                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                  Cancelar
+                </button>
+                <button @click="saveNewDiscipline" :disabled="isSaving"
+                  class="px-6 py-3 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2">
+                  <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  {{ isSaving ? 'Guardando…' : 'Crear Disciplina' }}
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: INSTRUCTORES ASIGNADOS
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0"
+      >
+        <div v-if="showInstructorsModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showInstructorsModal = false"
+        >
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+          >
+            <div v-if="showInstructorsModal"
+              class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
+            >
+              <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100 bg-white">
+                <div>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Instructores Asignados</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
+                    Plantilla de instructores para esta disciplina
+                  </p>
+                </div>
+                <button @click="showInstructorsModal = false"
+                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="overflow-y-auto p-8 bg-surface-50/50">
+                <!-- Cargando -->
+                <div v-if="isFetchingInstructors" class="flex justify-center py-16">
+                  <div class="w-12 h-12 rounded-full border-4 border-surface-200 border-t-primary-600 animate-spin"/>
+                </div>
+
+                <!-- Vacío -->
+                <div v-else-if="!selectedInstructors.length"
+                  class="flex flex-col items-center justify-center py-16 text-center bg-surface-50 rounded-[2rem] border-2 border-dashed border-surface-200">
+                  <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-4 shadow-sm border border-surface-100">
+                    <svg class="w-8 h-8 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </div>
+                  <p class="text-sm font-bold text-surface-400 italic">Sin instructores asignados</p>
+                </div>
+
+                <!-- Lista -->
+                <div v-else class="space-y-4">
+                  <div
+                    v-for="ins in selectedInstructors"
+                    :key="ins.id_instructor"
+                    class="flex items-center gap-4 p-4 rounded-2xl bg-white border border-surface-200 shadow-sm
+                           hover:border-primary-200 hover:shadow-md transition-all group"
+                  >
+                    <div class="w-12 h-12 rounded-[1.25rem] bg-linear-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-black text-lg shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                      {{ ins.nombre_completo?.charAt(0) ?? '?' }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-surface-900 m-0 truncate">{{ ins.nombre_completo }}</p>
+                      <p class="text-[11px] font-bold text-surface-400 uppercase tracking-widest mt-0.5">ID: #{{ ins.id_instructor }}</p>
+                    </div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shrink-0"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="px-8 py-5 border-t border-surface-100 flex justify-end bg-white">
+                <button @click="showInstructorsModal = false"
+                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: CONFIRMAR DESHABILITAR
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0"
+      >
+        <div v-if="showDisableModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showDisableModal = false"
+        >
+          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-5">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 9v4M12 17h.01"/>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-black text-surface-900 mb-2">¿Deshabilitar disciplina?</h3>
+            <p class="text-sm text-surface-500 mb-8">
+              ¿Confirmas deshabilitar <span class="font-bold text-surface-800">{{ selectedDiscipline?.nombre_disciplina }}</span>?
+              El sistema validará que no haya sesiones o torneos activos.
+            </p>
+            <div class="flex gap-3">
+              <button @click="showDisableModal = false"
+                class="flex-1 py-3 rounded-2xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                Cancelar
+              </button>
+              <button @click="confirmDisable" :disabled="isSaving"
+                class="flex-1 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                {{ isSaving ? 'Procesando…' : 'Deshabilitar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+  </main>
+</template>

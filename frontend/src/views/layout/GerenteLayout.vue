@@ -1,21 +1,20 @@
 <script setup>
-import GerenteNavBar from '@/components/gerente/GerenteNavBar.vue'
+import GerenteSideBar from '@/components/gerente/GerenteSideBar.vue'
 import { useProfileStore } from '@/stores/profiles/socioStore'
-import { onMounted } from 'vue';
+import { onMounted } from 'vue'
 
 const profileStore = useProfileStore()
-onMounted (() =>{
+onMounted(() => {
   profileStore.fetchProfile()
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-surface-50">
-    <GerenteNavBar />
-    
-    <!-- CONTENIDO -->
-    <div class="w-full mx-auto pb-20 md:pb-0">
+  <div class="flex h-screen overflow-hidden bg-surface-50">
+    <GerenteSideBar />
+
+    <main class="flex-1 overflow-y-auto">
       <router-view />
-    </div>
+    </main>
   </div>
 </template>

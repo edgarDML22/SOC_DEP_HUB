@@ -1,908 +1,649 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { storeToRefs } from 'pinia';
-import api from '@/services/api';
-import { useInstructorStore } from '@/stores/admin/instructorStore';
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import api from '@/services/api'
+import { useInstructorStore } from '@/stores/admin/instructorStore'
+import { useAlerts } from '@/composables/useAlerts'
 
-const router = useRouter();
-const instructorStore = useInstructorStore();
+import Select   from 'primevue/select'
+import DatePicker from 'primevue/datepicker'
 
-const { instructors, isLoading, error: errorMsg } = storeToRefs(instructorStore);
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
+import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 
-const disciplinasList = ref([]);
+// Iconos de deportes para el selector de disciplinas
+import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
+import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue'
+import IconTenis      from '@/components/icons/sports/IconTenis.vue'
+import IconVoleibol   from '@/components/icons/sports/IconVoleibol.vue'
+import IconSquash     from '@/components/icons/sports/IconSquash.vue'
+import IconFrontenis  from '@/components/icons/sports/IconFrontenis.vue'
+import IconPadel      from '@/components/icons/sports/IconPadel.vue'
+import IconDefault    from '@/components/icons/sports/IconDefault.vue'
 
-// FILTERS
-const search = ref('');
-const filterEstatus = ref('TODAS');
-const filterDisciplina = ref('TODAS');
+const router          = useRouter()
+const instructorStore = useInstructorStore()
+const { toastInfo }   = useAlerts()
 
-// MODALS STATE
-const showNewModal = ref(false);
-const showStatusModal = ref(false);
-const showDisciplinesModal = ref(false);
-const selectedInstructor = ref(null);
-const isSaving = ref(false);
+const { instructors, isLoading, error: errorMsg } = storeToRefs(instructorStore)
+const { fetchInstructors, updateInstructor } = instructorStore
 
-const newInstructor = ref({
-  nombre_completo: '',
-  telefono: '',
-  correo_electronico: '',
-  fecha_nacimiento: '',
-  fecha_afiliacion: '',
-  hora_entrada: '',
-  hora_salida: '',
-  estatus: 'ACTIVO',
-  disciplinas: []
-});
-
-const statusForm = ref({
-  estatus: 'ACTIVO'
-});
-
-const disciplinesForm = ref({
-  disciplinas: []
-});
-
-onMounted(async () => {
-  await fetchDisciplinas();
-  await instructorStore.fetchInstructors();
-});
-
+// ── DISCIPLINAS ───────────────────────────────────────────────
+const disciplinasList = ref([])
 const fetchDisciplinas = async () => {
   try {
-    const response = await api.get('/disciplinas/all');
-    if (response.data && response.data.success) {
-      disciplinasList.value = response.data.data;
-    }
-  } catch (error) {
-    console.error("Error cargando disciplinas:", error);
+    const res = await api.get('/disciplinas/all')
+    if (res.data?.success) disciplinasList.value = res.data.data
+  } catch (e) {
+    console.error('Error cargando disciplinas:', e)
   }
-};
+}
+
+const getIcon = (name = '') => {
+  const n = name.toLowerCase()
+  if (n.includes('futbol'))    return IconFutbol
+  if (n.includes('basquet'))   return IconBasquetbol
+  if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis
+  if (n.includes('voleibol'))  return IconVoleibol
+  if (n.includes('squash'))    return IconSquash
+  if (n.includes('frontenis')) return IconFrontenis
+  if (n.includes('padel'))     return IconPadel
+  return IconDefault
+}
+
+// ── FILTROS ────────────────────────────────────────────────────
+const search           = ref('')
+const filterEstatus    = ref(null)
+const filterDisciplina = ref(null)
+
+const OPT_ESTATUS = [
+  { label: 'Todos los estatus',  value: null },
+  { label: 'Activo',             value: 'ACTIVO' },
+  { label: 'Inactivo',           value: 'INACTIVO' },
+  { label: 'Baja Temporal',      value: 'BAJA_TEMPORAL' },
+]
+
+const disciplinasOpts = computed(() => [
+  { label: 'Todas las disciplinas', value: null },
+  ...disciplinasList.value.map(d => ({ label: d.nombre_disciplina, value: d.id_disciplina })),
+])
 
 const filteredInstructors = computed(() => {
-  let result = instructors.value;
+  let r = instructors.value
 
-  // 1. Búsqueda por texto
   if (search.value) {
-    const q = search.value.toLowerCase();
-    result = result.filter(i => i.nombre_completo && i.nombre_completo.toLowerCase().includes(q));
+    const q = search.value.toLowerCase()
+    r = r.filter(i => i.nombre_completo?.toLowerCase().includes(q))
   }
+  if (filterEstatus.value)
+    r = r.filter(i => i.estatus === filterEstatus.value)
+  if (filterDisciplina.value)
+    r = r.filter(i => i.disciplinas?.some(d => d.id_disciplina == filterDisciplina.value))
 
-  // 2. Filtro por Estatus
-  if (filterEstatus.value !== 'TODAS') {
-    result = result.filter(i => i.estatus === filterEstatus.value);
-  }
+  return r
+})
 
-  // 3. Filtro por Disciplina
-  if (filterDisciplina.value !== 'TODAS') {
-    result = result.filter(i => {
-      if (!i.disciplinas) return false;
-      // Verificar si alguna de sus disciplinas tiene el ID seleccionado
-      return i.disciplinas.some(d => d.id_disciplina == filterDisciplina.value);
-    });
-  }
+const hasActiveFilters = computed(() =>
+  search.value || filterEstatus.value || filterDisciplina.value
+)
+const clearFilters = () => {
+  search.value = ''
+  filterEstatus.value = filterDisciplina.value = null
+}
 
-  return result;
-});
+// ── AVATAR ────────────────────────────────────────────────────
+const GRADIENTS = [
+  'from-indigo-400 to-indigo-600',
+  'from-emerald-400 to-emerald-600',
+  'from-purple-400 to-purple-600',
+  'from-sky-400 to-sky-600',
+  'from-rose-400 to-rose-600',
+  'from-amber-400 to-amber-600',
+]
+const avatarGradient = (name = '') => GRADIENTS[(name.charCodeAt(0) ?? 0) % GRADIENTS.length]
+const initials = (name = '') => {
+  const parts = name.trim().split(' ').filter(Boolean)
+  return parts.length >= 2
+    ? (parts[0][0] + parts[1][0]).toUpperCase()
+    : (parts[0]?.[0] ?? '?').toUpperCase()
+}
 
-const openDetails = (id) => {
-  router.push(`/admin/instructors/${id}`);
-};
+// ── MENU ITEMS ─────────────────────────────────────────────────
+const buildMenuItems = (instructor) => [
+  {
+    label: 'Ver perfil completo',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+             <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+           </svg>`,
+    action: () => router.push(`/admin/instructors/${instructor.id_instructor}`),
+  },
+  {
+    label: 'Gestionar disciplinas',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+             <line x1="6" y1="1" x2="6" y2="4"/>
+             <line x1="10" y1="1" x2="10" y2="4"/>
+             <line x1="14" y1="1" x2="14" y2="4"/>
+           </svg>`,
+    action: () => router.push(`/admin/instructors/${instructor.id_instructor}/disciplines`),
+  },
+  {
+    label: 'Cambiar estatus',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+             <circle cx="12" cy="7" r="4"/>
+           </svg>`,
+    action: () => router.push({ name: 'instructor-status', params: { id: instructor.id_instructor } }),
+  },
+  { separator: true },
+  {
+    label: 'Dar de baja',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <circle cx="12" cy="12" r="10"/>
+             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+           </svg>`,
+    action: () => handleBaja(instructor),
+    destructive: true,
+    disabled: instructor.estatus === 'INACTIVO',
+  },
+]
 
-const openStatus = (instructor) => {
-  router.push({ name: 'instructor-status', params: { id: instructor.id_instructor } });
-};
-
-const openDisciplines = (instructor) => {
-  router.push(`/admin/instructors/${instructor.id_instructor}/disciplines`);
-};
-
-const openActivities = (instructor) => {
-  // Placeholder for weekly activities
-  alert(`Actividades semanales de ${instructor.nombre_completo} (En desarrollo)`);
-};
-
-const toggleDisciplinaSelection = (id, targetForm = 'new') => {
-  const form = targetForm === 'new' ? newInstructor.value : disciplinesForm.value;
-  const index = form.disciplinas.indexOf(id);
-  if (index > -1) {
-    form.disciplinas.splice(index, 1);
+const handleBaja = async (instructor) => {
+  const res = await updateInstructor(instructor.id_instructor, { estatus: 'INACTIVO' })
+  if (res?.success) {
+    toastInfo('Instructor dado de baja', `${instructor.nombre_completo} marcado como Inactivo.`, 'success')
   } else {
-    form.disciplinas.push(id);
+    toastInfo('Error', res?.error ?? 'No se pudo actualizar el estatus.', 'error')
   }
-};
+}
+
+// ── MODAL: NUEVO INSTRUCTOR ────────────────────────────────────
+const showNewModal = ref(false)
+const isSaving     = ref(false)
+const formError    = ref('')
+
+const EMPTY_FORM = () => ({
+  nombre_completo:      '',
+  telefono:             '',
+  correo_electronico:   '',
+  fecha_nacimiento:     null,
+  fecha_afiliacion:     null,
+  hora_entrada:         null,
+  hora_salida:          null,
+  estatus:              'ACTIVO',
+  disciplinas:          [],
+})
+const newInstructor = ref(EMPTY_FORM())
+
+const OPT_ESTATUS_FORM = [
+  { label: 'Activo',        value: 'ACTIVO' },
+  { label: 'Inactivo',      value: 'INACTIVO' },
+  { label: 'Baja Temporal', value: 'BAJA_TEMPORAL' },
+]
+
+const toggleDisciplina = (id) => {
+  const idx = newInstructor.value.disciplinas.indexOf(id)
+  idx > -1
+    ? newInstructor.value.disciplinas.splice(idx, 1)
+    : newInstructor.value.disciplinas.push(id)
+}
+
+const toDateStr = (d) => {
+  if (!d) return null
+  return new Intl.DateTimeFormat('en-CA').format(d)
+}
+const toTimeStr = (d) => {
+  if (!d) return null
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}:00`
+}
 
 const saveNewInstructor = async () => {
-  if (!newInstructor.value.nombre_completo) {
-    alert("El nombre es requerido.");
-    return;
+  formError.value = ''
+  if (!newInstructor.value.nombre_completo.trim()) {
+    formError.value = 'El nombre completo es requerido.'
+    return
   }
-
-  isSaving.value = true;
+  isSaving.value = true
   try {
-    const res = await api.post('/instructors/create', newInstructor.value);
-    if (res.data.success) {
-      showNewModal.value = false;
-      await instructorStore.fetchInstructors(true);
-      newInstructor.value = {
-        nombre_completo: '',
-        telefono: '',
-        correo_electronico: '',
-        fecha_nacimiento: '',
-        fecha_afiliacion: '',
-        hora_entrada: '',
-        hora_salida: '',
-        estatus: 'ACTIVO',
-        disciplinas: []
-      };
+    const payload = {
+      ...newInstructor.value,
+      fecha_nacimiento:  toDateStr(newInstructor.value.fecha_nacimiento),
+      fecha_afiliacion:  toDateStr(newInstructor.value.fecha_afiliacion),
+      hora_entrada:      toTimeStr(newInstructor.value.hora_entrada),
+      hora_salida:       toTimeStr(newInstructor.value.hora_salida),
+    }
+    const res = await api.post('/instructors/create', payload)
+    if (res.data?.success) {
+      showNewModal.value  = false
+      newInstructor.value = EMPTY_FORM()
+      await fetchInstructors(true)
+      toastInfo('Instructor creado', 'El instructor fue registrado exitosamente.', 'success')
+    } else {
+      formError.value = res.data?.message ?? 'Ocurrió un error al crear.'
     }
   } catch (e) {
-    console.error("Error creando instructor:", e);
-    alert(e.response?.data?.message || "Ocurrió un error al crear");
+    formError.value = e.response?.data?.message ?? 'Ocurrió un error inesperado.'
   } finally {
-    isSaving.value = false;
+    isSaving.value = false
   }
-};
+}
 
-const saveStatusUpdate = () => {
-  // Deprecated in favor of meticulous status management
-};
+const openNewModal = () => {
+  newInstructor.value = EMPTY_FORM()
+  formError.value     = ''
+  showNewModal.value  = true
+}
 
-const saveDisciplinesUpdate = async () => {
-  if (!selectedInstructor.value) return;
-  isSaving.value = true;
-  try {
-    const res = await instructorStore.updateInstructor(selectedInstructor.value.id_instructor, disciplinesForm.value);
-    if (res.success) {
-      showDisciplinesModal.value = false;
-      await instructorStore.fetchInstructors(true);
-    } else {
-      alert(res.error || "Error al actualizar disciplinas");
-    }
-  } catch (error) {
-    console.error("Error updating disciplines:", error);
-  } finally {
-    isSaving.value = false;
-  }
-};
-
+// ── INIT ──────────────────────────────────────────────────────
+onMounted(async () => {
+  await Promise.all([fetchDisciplinas(), fetchInstructors()])
+})
 </script>
 
 <template>
-  <main class="home-instructor">
+  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
+    <div class="max-w-7xl mx-auto space-y-8">
 
-    <header class="home-header">
-      <div>
-        <p class="greeting-label">Administración</p>
-        <h1 class="greeting-name">Instructores</h1>
-      </div>
-      <button @click="showNewModal = true" class="btn-primary">
-        + Nuevo Instructor
-      </button>
-    </header>
+      <!-- CABECERA -->
+      <AdminPageHeader
+        title="Instructores"
+        subtitle="Gestión de instructores, disciplinas y estatus de cuenta."
+      >
+        <span class="text-sm font-bold text-surface-500">
+          {{ filteredInstructors.length }}
+          <span class="font-medium text-surface-400">de {{ instructors.length }}</span>
+        </span>
+        <button
+          @click="openNewModal"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white
+                 text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          Nuevo Instructor
+        </button>
+      </AdminPageHeader>
 
-    <!-- Filtros -->
-    <div class="filters-container">
-      <input v-model="search" placeholder="Buscar instructor por nombre..." class="search-input" />
-
-      <div class="filter-group">
-        <select v-model="filterEstatus" class="filter-select">
-          <option value="TODAS">Todos los estatus</option>
-          <option value="ACTIVO">Activos</option>
-          <option value="INACTIVO">Inactivos</option>
-          <option value="BAJA_TEMPORAL">Baja Temporal</option>
-        </select>
-
-        <select v-model="filterDisciplina" class="filter-select">
-          <option value="TODAS">Todas las disciplinas</option>
-          <option v-for="d in disciplinasList" :key="d.id_disciplina" :value="d.id_disciplina">
-            {{ d.nombre_disciplina }}
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Estado de Carga -->
-    <section v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
-      <p class="text-gray-500 font-medium">Cargando instructores...</p>
-    </section>
-
-    <!-- Estado de Error -->
-    <section v-else-if="errorMsg" class="error-state">
-      <p class="text-red-500 font-bold">{{ errorMsg }}</p>
-    </section>
-
-    <div v-else class="sessions-list">
-      <div v-for="instructor in filteredInstructors" :key="instructor.id_instructor"
-        class="session-card items-start py-4">
-
-        <!-- Iniciales -->
-        <div class="time-block">
-          <span class="time-start">{{ instructor.nombre_completo.split(' ')[0] }}</span>
+      <!-- BARRA DE FILTROS -->
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
+        <div class="relative">
+          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="search"
+            placeholder="Buscar instructor por nombre…"
+            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
+                   font-medium text-surface-900 placeholder:text-surface-400
+                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+          />
         </div>
-
-        <!-- Detalles -->
-        <div class="session-details">
-          <div class="flex justify-between items-start mb-1">
-            <h4 class="client-name">{{ instructor.nombre_completo }}</h4>
-            <span class="status-badge text-[10px]" :class="{
-              'badge-success': instructor.estatus === 'ACTIVO' || instructor.estatus === 'Activo',
-              'badge-danger': instructor.estatus === 'INACTIVO' || instructor.estatus === 'Inactivo',
-              'badge-warning': instructor.estatus === 'BAJA_TEMPORAL'
-            }">
-              {{ instructor.estatus }}
-            </span>
-          </div>
-
-          <p class="location-name">
-            Tel: {{ instructor.telefono || 'N/A' }} | Ingreso: {{ instructor.fecha_afiliacion || 'N/A' }}
-          </p>
-
-          <!-- Acciones Rápidas (4 Botones) -->
-          <div class="flex items-center gap-2 mt-4">
-            <!-- 1. Detalles -->
-            <button @click="openDetails(instructor.id_instructor)"
-              class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-              title="Ver Detalles">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <path d="M14 2v6h6" />
-                <path d="M16 13H8" />
-                <path d="M16 17H8" />
-                <path d="M10 9H8" />
-              </svg>
-            </button>
-
-            <!-- 2. Actividades Semanales -->
-            <button @click="openActivities(instructor)"
-              class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-              title="Actividades Semanales">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                <line x1="16" x2="16" y1="2" y2="6" />
-                <line x1="8" x2="8" y1="2" y2="6" />
-                <line x1="3" x2="21" y1="10" y2="10" />
-                <path d="m9 16 2 2 4-4" />
-              </svg>
-            </button>
-
-            <!-- 3. Disciplinas -->
-            <button @click="openDisciplines(instructor)"
-              class="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm"
-              title="Gestionar Disciplinas">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                <line x1="6" x2="6" y1="1" y2="4" />
-                <line x1="10" x2="10" y1="1" y2="4" />
-                <line x1="14" x2="14" y1="1" y2="4" />
-              </svg>
-            </button>
-
-            <!-- 4. Estatus -->
-            <button @click="openStatus(instructor)"
-              class="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm"
-              title="Gestionar Estatus">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Estado de Vacío -->
-      <section v-if="filteredInstructors.length === 0" class="next-session-section">
-        <div class="empty-state">
-          <div class="empty-icon-circle">
-            <span style="font-size: 1.5rem; color: #9ca3af;">!</span>
-          </div>
-          <h3 class="empty-title">Sin resultados</h3>
-          <p class="empty-text">No se encontraron instructores con esos filtros.</p>
-        </div>
-      </section>
-
-    </div>
-
-    <!-- MODAL NUEVO INSTRUCTOR -->
-    <div v-if="showNewModal" class="modal-backdrop" @click.self="showNewModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Añadir Nuevo Instructor</h2>
-          <button @click="showNewModal = false" class="btn-close">×</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Nombre Completo</label>
-            <input type="text" v-model="newInstructor.nombre_completo" placeholder="Ej. Juan Pérez" />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group half">
-              <label>Teléfono</label>
-              <input type="text" v-model="newInstructor.telefono" placeholder="Opcional" />
-            </div>
-            <div class="form-group half">
-              <label>Estatus</label>
-              <select v-model="newInstructor.estatus">
-                <option value="ACTIVO">ACTIVO</option>
-                <option value="INACTIVO">INACTIVO</option>
-                <option value="BAJA_TEMPORAL">BAJA_TEMPORAL</option>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <select v-model="filterEstatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
-
-          <div class="form-row">
-            <div class="form-group half">
-              <label>Fecha de Nacimiento</label>
-              <input type="date" v-model="newInstructor.fecha_nacimiento" />
-            </div>
-            <div class="form-group half">
-              <label>Fecha de Afiliación</label>
-              <input type="date" v-model="newInstructor.fecha_afiliacion" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group full">
-              <label>Correo Electrónico</label>
-              <input type="email" v-model="newInstructor.correo_electronico" placeholder="instructor@socdep.com" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group half">
-              <label>Hora Entrada</label>
-              <input type="time" v-model="newInstructor.hora_entrada" />
-            </div>
-            <div class="form-group half">
-              <label>Hora Salida</label>
-              <input type="time" v-model="newInstructor.hora_salida" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Disciplinas que Imparte</label>
-            <div class="disciplinas-grid">
-              <label v-for="d in disciplinasList" :key="d.id_disciplina" class="checkbox-label"
-                :class="{ 'selected': newInstructor.disciplinas.includes(d.id_disciplina) }">
-                <input type="checkbox" :value="d.id_disciplina" @change="toggleDisciplinaSelection(d.id_disciplina)"
-                  :checked="newInstructor.disciplinas.includes(d.id_disciplina)" class="hidden-checkbox">
-                {{ d.nombre_disciplina }}
-              </label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <select v-model="filterDisciplina" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in disciplinasOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
         </div>
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -transurface-y-1"
+          enter-to-class="opacity-100 transurface-y-0" leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 transurface-y-0" leave-to-class="opacity-0 -transurface-y-1"
+        >
+          <div v-if="hasActiveFilters" class="flex justify-end">
+            <button @click="clearFilters"
+              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              Limpiar filtros
+            </button>
+          </div>
+        </Transition>
+      </div>
 
-        <div class="modal-footer">
-          <button @click="showNewModal = false" class="btn-secondary">Cancelar</button>
-          <button @click="saveNewInstructor" class="btn-primary" :disabled="isSaving">
-            {{ isSaving ? 'Guardando...' : 'Guardar Instructor' }}
+      <!-- TABLA -->
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+
+        <!-- Estado: cargando -->
+        <div v-if="isLoading" class="p-8 space-y-3">
+          <div v-for="n in 6" :key="n" class="flex items-center gap-4 animate-pulse py-3 border-b border-surface-100">
+            <div class="w-10 h-10 rounded-xl bg-surface-200 shrink-0"/>
+            <div class="flex-1 space-y-2">
+              <div class="h-3.5 bg-surface-200 rounded-lg w-44"/>
+              <div class="h-3 bg-surface-100 rounded-lg w-32"/>
+            </div>
+            <div class="h-5 w-16 bg-surface-100 rounded-full hidden sm:block"/>
+            <div class="flex gap-1.5 hidden md:flex">
+              <div class="h-5 w-14 bg-primary-50 rounded-lg"/>
+              <div class="h-5 w-14 bg-primary-50 rounded-lg"/>
+            </div>
+            <div class="h-3 w-20 bg-surface-100 rounded-lg hidden lg:block"/>
+          </div>
+        </div>
+
+        <!-- Estado: error -->
+        <div v-else-if="errorMsg" class="p-8 text-center text-red-700 font-semibold text-sm">
+          {{ errorMsg }}
+        </div>
+
+        <!-- Estado: vacío -->
+        <div v-else-if="filteredInstructors.length === 0"
+          class="p-16 flex flex-col items-center justify-center text-center">
+          <div class="w-16 h-16 rounded-2xl bg-surface-100 flex items-center justify-center mb-4">
+            <svg class="w-7 h-7 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h3 class="text-base font-black text-surface-900">Sin resultados</h3>
+          <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron instructores con los filtros actuales.</p>
+          <button @click="clearFilters" class="mt-4 text-sm font-bold text-primary-600 hover:underline">
+            Limpiar filtros
           </button>
         </div>
+
+        <!-- Tabla con datos -->
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-50 border-b border-surface-200">
+              <th class="px-5 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500">Instructor</th>
+              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500">Estatus</th>
+              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden md:table-cell">Disciplinas</th>
+              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden lg:table-cell">Horario</th>
+              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden lg:table-cell">Afiliación</th>
+              <th class="px-4 py-3.5 text-right text-xs font-extrabold uppercase tracking-widest text-surface-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-100">
+            <tr
+              v-for="instructor in filteredInstructors"
+              :key="instructor.id_instructor"
+              class="hover:bg-surface-50/70 transition-colors group cursor-pointer"
+              @click="router.push(`/admin/instructors/${instructor.id_instructor}`)"
+            >
+              <!-- Avatar + nombre + email -->
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
+                           text-white font-black text-xs shrink-0 shadow-sm"
+                    :class="avatarGradient(instructor.nombre_completo)"
+                  >
+                    {{ initials(instructor.nombre_completo) }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-semibold text-surface-900 truncate max-w-[180px] leading-tight">
+                      {{ instructor.nombre_completo }}
+                    </p>
+                    <p class="text-xs text-surface-400 truncate max-w-[180px]">
+                      {{ instructor.correo_electronico ?? 'Sin correo' }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <!-- Estatus -->
+              <td class="px-4 py-3.5" @click.stop>
+                <BadgeStatus :status="instructor.estatus" />
+              </td>
+              <!-- Disciplinas chips -->
+              <td class="px-4 py-3.5 hidden md:table-cell" @click.stop>
+                <div v-if="instructor.disciplinas?.length" class="flex flex-wrap gap-1">
+                  <span
+                    v-for="d in instructor.disciplinas.slice(0, 2)"
+                    :key="d.id_disciplina"
+                    class="px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold"
+                  >
+                    {{ d.nombre_disciplina }}
+                  </span>
+                  <span v-if="instructor.disciplinas.length > 2"
+                    class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                    +{{ instructor.disciplinas.length - 2 }}
+                  </span>
+                </div>
+                <span v-else class="text-xs text-surface-400 italic">Sin disciplinas</span>
+              </td>
+              <!-- Horario -->
+              <td class="px-4 py-3.5 hidden lg:table-cell">
+                <span v-if="instructor.hora_entrada || instructor.hora_salida"
+                  class="text-xs font-semibold text-surface-700 font-mono">
+                  {{ instructor.hora_entrada?.substring(0,5) ?? '--' }} – {{ instructor.hora_salida?.substring(0,5) ?? '--' }}
+                </span>
+                <span v-else class="text-xs text-surface-400">—</span>
+              </td>
+              <!-- Fecha afiliación -->
+              <td class="px-4 py-3.5 hidden lg:table-cell">
+                <span class="text-xs font-semibold text-surface-700">
+                  {{ instructor.fecha_afiliacion ?? '—' }}
+                </span>
+              </td>
+              <!-- Menú acciones -->
+              <td class="px-4 py-3.5 text-right" @click.stop>
+                <ActionMenu :items="buildMenuItems(instructor)" align="right" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
 
-    <!-- MODAL ESTATUS DEPRECATED -->
+    </div><!-- /max-w -->
 
-    <!-- MODAL DISCIPLINAS -->
-    <div v-if="showDisciplinesModal" class="modal-backdrop" @click.self="showDisciplinesModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Disciplinas: {{ selectedInstructor?.nombre_completo }}</h2>
-          <button @click="showDisciplinesModal = false" class="btn-close">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Disciplinas que Imparte</label>
-            <div class="disciplinas-grid">
-              <label v-for="d in disciplinasList" :key="d.id_disciplina" class="checkbox-label"
-                :class="{ 'selected': disciplinesForm.disciplinas.includes(d.id_disciplina) }">
-                <input type="checkbox" :value="d.id_disciplina"
-                  @change="toggleDisciplinaSelection(d.id_disciplina, 'disciplines')"
-                  :checked="disciplinesForm.disciplinas.includes(d.id_disciplina)" class="hidden-checkbox">
-                {{ d.nombre_disciplina }}
-              </label>
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: NUEVO INSTRUCTOR
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0"
+      >
+        <div v-if="showNewModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showNewModal = false"
+        >
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95 transurface-y-4"
+            enter-to-class="opacity-100 scale-100 transurface-y-0"
+          >
+            <div v-if="showNewModal"
+              class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl shadow-surface-900/20
+                     flex flex-col max-h-[92vh] overflow-hidden"
+            >
+              <!-- Cabecera -->
+              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
+                <div>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nuevo Instructor</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
+                    Completa la información para registrar al instructor.
+                  </p>
+                </div>
+                <button @click="showNewModal = false"
+                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200
+                         flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Cuerpo -->
+              <div class="overflow-y-auto p-7 space-y-6 bg-surface-50/30">
+
+                <!-- Error banner -->
+                <Transition
+                  enter-active-class="transition-all duration-200 ease-out"
+                  enter-from-class="opacity-0 -transurface-y-1" enter-to-class="opacity-100 transurface-y-0"
+                >
+                  <div v-if="formError"
+                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl
+                           text-red-700 text-sm font-semibold">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    {{ formError }}
+                  </div>
+                </Transition>
+
+                <!-- Nombre -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
+                    Nombre Completo <span class="text-red-400">*</span>
+                  </label>
+                  <input
+                    v-model="newInstructor.nombre_completo"
+                    placeholder="Ej. Juan Pérez García"
+                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
+                           text-surface-900 placeholder:text-surface-400
+                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+                  />
+                </div>
+
+                <!-- Teléfono + Estatus -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono</label>
+                    <input
+                      v-model="newInstructor.telefono"
+                      placeholder="Opcional"
+                      class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
+                             text-surface-900 placeholder:text-surface-400
+                             focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+                    />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
+                    <Select v-model="newInstructor.estatus" :options="OPT_ESTATUS_FORM"
+                            option-label="label" option-value="value" class="w-full" />
+                  </div>
+                </div>
+
+                <!-- Correo -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Correo Electrónico</label>
+                  <input
+                    v-model="newInstructor.correo_electronico"
+                    type="email"
+                    placeholder="instructor@socdep.com"
+                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
+                           text-surface-900 placeholder:text-surface-400
+                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+                  />
+                </div>
+
+                <!-- Fechas -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha de Nacimiento</label>
+                    <DatePicker v-model="newInstructor.fecha_nacimiento" dateFormat="yy-mm-dd"
+                      showIcon iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha de Afiliación</label>
+                    <DatePicker v-model="newInstructor.fecha_afiliacion" dateFormat="yy-mm-dd"
+                      showIcon iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
+                  </div>
+                </div>
+
+                <!-- Horario -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora Entrada</label>
+                    <DatePicker v-model="newInstructor.hora_entrada" timeOnly hourFormat="24"
+                      placeholder="00:00" class="w-full" :manualInput="false" showOnFocus fluid />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora Salida</label>
+                    <DatePicker v-model="newInstructor.hora_salida" timeOnly hourFormat="24"
+                      placeholder="00:00" class="w-full" :manualInput="false" showOnFocus fluid />
+                  </div>
+                </div>
+
+                <!-- Selector de disciplinas — estilo premium -->
+                <div class="space-y-2 mt-4">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                    Disciplinas que Imparte
+                  </label>
+                  <div v-if="disciplinasList.length === 0" class="text-xs font-bold text-surface-400 italic p-4 text-center bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
+                    Cargando disciplinas…
+                  </div>
+                  <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-1 pr-2 custom-scrollbar">
+                    <button
+                      v-for="d in disciplinasList"
+                      :key="d.id_disciplina"
+                      type="button"
+                      @click="toggleDisciplina(d.id_disciplina)"
+                      class="flex items-center gap-3 px-4 py-3 rounded-[1.25rem] border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
+                      :class="newInstructor.disciplinas.includes(d.id_disciplina)
+                        ? 'bg-primary-50 text-primary-700 border-primary-500 ring-4 ring-primary-50 hover:bg-primary-100'
+                        : 'bg-white text-surface-400 border-surface-200 hover:border-primary-300 hover:text-primary-600 hover:bg-surface-50 hover:shadow-md hover:-translate-y-0.5'"
+                    >
+                      <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                        :class="newInstructor.disciplinas.includes(d.id_disciplina)
+                          ? 'bg-primary-600 text-white shadow-inner'
+                          : 'bg-surface-100 text-surface-400 group-hover:bg-primary-100 group-hover:text-primary-600'">
+                        <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
+                      </div>
+                      <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
+                      
+                      <!-- Icono de Check Dinámico -->
+                      <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
+                           :class="newInstructor.disciplinas.includes(d.id_disciplina) ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-primary-300'">
+                          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+              </div><!-- /cuerpo -->
+
+              <!-- Pie del modal -->
+              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100">
+                <button @click="showNewModal = false"
+                  class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
+                         text-sm font-semibold text-surface-700 hover:bg-surface-50 transition-colors">
+                  Cancelar
+                </button>
+                <button @click="saveNewInstructor" :disabled="isSaving"
+                  class="px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold
+                         hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin"
+                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  {{ isSaving ? 'Guardando…' : 'Guardar Instructor' }}
+                </button>
+              </div>
             </div>
-          </div>
+          </Transition>
         </div>
-        <div class="modal-footer">
-          <button @click="showDisciplinesModal = false" class="btn-secondary">Cancelar</button>
-          <button @click="saveDisciplinesUpdate" class="btn-primary" :disabled="isSaving">
-            {{ isSaving ? 'Guardando...' : 'Actualizar Disciplinas' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-
+      </Transition>
+    </Teleport>
 
   </main>
 </template>
-
-<style scoped>
-/* Contenedor Principal */
-.home-instructor {
-  background-color: var(--p-surface-50);
-  padding: 1.5rem;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 90px;
-}
-
-/* Header */
-.home-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.greeting-label {
-  font-size: 0.75rem;
-  color: var(--p-surface-500);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
-}
-
-.greeting-name {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--p-surface-900);
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
-/* Botones */
-.btn-primary {
-  background-color: var(--p-primary-600);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-}
-
-.btn-primary:hover {
-  background-color: var(--p-primary-700);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-}
-
-.btn-secondary {
-  background-color: white;
-  color: var(--p-surface-700);
-  border: 1px solid var(--p-surface-200);
-  padding: 0.75rem 1.5rem;
-  border-radius: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-  background-color: var(--p-surface-50);
-  border-color: var(--p-surface-300);
-}
-
-/* Filtros */
-.filters-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  margin-bottom: 2rem;
-  background: white;
-  padding: 1.5rem;
-  border-radius: 20px;
-  border: 1px solid var(--p-surface-200);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--p-surface-200);
-  font-size: 1rem;
-  outline: none;
-  transition: all 0.2s;
-  background: var(--p-surface-50);
-}
-
-.search-input:focus {
-  border-color: var(--p-primary-500);
-  background: white;
-  box-shadow: 0 0 0 4px var(--p-primary-50);
-}
-
-.filter-group {
-  display: flex;
-  gap: 1rem;
-}
-
-.filter-select {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--p-surface-200);
-  background: white;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--p-surface-700);
-  outline: none;
-  cursor: pointer;
-}
-
-/* Loading & Empty States */
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 4rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--p-surface-200);
-  border-top-color: var(--p-primary-600);
-  border-radius: 50%;
-  animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-@keyframes spin {
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* Listado de Instructores */
-.sessions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.session-card {
-  background-color: #ffffff;
-  border: 1px solid var(--p-surface-200);
-  border-radius: 18px;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.session-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: transparent;
-  transition: background 0.3s;
-}
-
-.session-card.clickable {
-  cursor: pointer;
-}
-
-.session-card.clickable:hover {
-  border-color: var(--p-primary-200);
-  transform: translateX(4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-}
-
-.session-card.clickable:hover::before {
-  background: var(--p-primary-500);
-}
-
-.time-block {
-  background-color: var(--p-surface-50);
-  border-radius: 12px;
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 70px;
-  border: 1px solid var(--p-surface-100);
-}
-
-.time-start {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--p-primary-600);
-  text-transform: uppercase;
-}
-
-.session-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.client-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--p-surface-900);
-  margin: 0 0 0.25rem 0;
-}
-
-.location-name {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--p-surface-500);
-  margin: 0 0 0.75rem 0;
-}
-
-.disciplinas-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.chip {
-  background-color: var(--p-primary-50);
-  color: var(--p-primary-700);
-  border: 1px solid var(--p-primary-100);
-  font-size: 0.7rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 8px;
-  font-weight: 700;
-}
-
-.chip-empty {
-  font-size: 0.75rem;
-  color: var(--p-surface-400);
-  font-style: italic;
-}
-
-.session-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.status-badge {
-  padding: 0.4rem 0.8rem;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.badge-success {
-  background-color: #ecfdf5;
-  color: #059669;
-  border: 1px solid #10b98133;
-}
-
-.badge-danger {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #ef444433;
-}
-
-.badge-warning {
-  background-color: #fffbeb;
-  color: #d97706;
-  border: 1px solid #f59e0b33;
-}
-
-.arrow-right {
-  color: var(--p-surface-300);
-  font-size: 1.5rem;
-  transition: transform 0.2s;
-}
-
-.session-card:hover .arrow-right {
-  color: var(--p-primary-500);
-  transform: translateX(2px);
-}
-
-/* Empty state */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 4rem 2rem;
-  background: white;
-  border-radius: 20px;
-  border: 2px dashed var(--p-surface-200);
-}
-
-.empty-icon-circle {
-  width: 64px;
-  height: 64px;
-  background-color: var(--p-surface-50);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-  color: var(--p-surface-400);
-}
-
-.empty-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--p-surface-900);
-  margin-bottom: 0.5rem;
-}
-
-.empty-text {
-  font-size: 0.9rem;
-  color: var(--p-surface-500);
-}
-
-/* Modal Styling */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: white;
-  width: 100%;
-  max-width: 550px;
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--p-surface-200);
-}
-
-.modal-header {
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid var(--p-surface-100);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--p-surface-900);
-  letter-spacing: -0.02em;
-}
-
-.btn-close {
-  background: var(--p-surface-50);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 1.25rem;
-  cursor: pointer;
-  color: var(--p-surface-500);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.btn-close:hover {
-  background: var(--p-surface-100);
-  color: var(--p-surface-900);
-}
-
-.modal-body {
-  padding: 2rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--p-surface-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.form-group input,
-.form-group select {
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--p-surface-200);
-  outline: none;
-  font-weight: 600;
-  background: var(--p-surface-50);
-  transition: all 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: var(--p-primary-500);
-  background: white;
-  box-shadow: 0 0 0 4px var(--p-primary-50);
-}
-
-.form-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.half {
-  flex: 1;
-}
-
-.disciplinas-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.checkbox-label {
-  padding: 0.5rem 1.25rem;
-  border: 1px solid var(--p-surface-200);
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
-  background: white;
-}
-
-.checkbox-label.selected {
-  background-color: var(--p-primary-600);
-  color: white;
-  border-color: var(--p-primary-600);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
-}
-
-.modal-footer {
-  padding: 1.5rem 2rem;
-  border-top: 1px solid var(--p-surface-100);
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-</style>

@@ -1,367 +1,628 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { storeToRefs } from 'pinia';
-import { useSpacesStore } from '@/stores/admin/spaces';
-import { useDisciplinesStore } from '@/stores/admin/disciplines';
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useSpacesStore }     from '@/stores/admin/spaces'
+import { useDisciplinesStore } from '@/stores/admin/disciplines'
+import { useAlerts }           from '@/composables/useAlerts'
 
-// Import Icons
-import IconFutbol from '@/components/icons/sports/IconFutbol.vue';
-import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue';
-import IconTenis from '@/components/icons/sports/IconTenis.vue';
-import IconVoleibol from '@/components/icons/sports/IconVoleibol.vue';
-import IconSquash from '@/components/icons/sports/IconSquash.vue';
-import IconFrontenis from '@/components/icons/sports/IconFrontenis.vue';
-import IconPadel from '@/components/icons/sports/IconPadel.vue';
-import IconDefault from '@/components/icons/sports/IconDefault.vue';
+import Select from 'primevue/select'
 
-const router = useRouter();
-const spacesStore = useSpacesStore();
-const disciplinesStore = useDisciplinesStore();
-const { spaces, isLoading } = storeToRefs(spacesStore);
-const { disciplines } = storeToRefs(disciplinesStore);
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
+import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 
-const search = ref('');
-const filterTipo = ref('TODOS');
-const filterStatus = ref('TODOS');
-const isSaving = ref(false);
-const showDeleteModal = ref(false);
-const selectedSpace = ref(null);
+// Iconos de deportes para el selector de disciplinas
+import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
+import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue'
+import IconTenis      from '@/components/icons/sports/IconTenis.vue'
+import IconVoleibol   from '@/components/icons/sports/IconVoleibol.vue'
+import IconSquash     from '@/components/icons/sports/IconSquash.vue'
+import IconFrontenis  from '@/components/icons/sports/IconFrontenis.vue'
+import IconPadel      from '@/components/icons/sports/IconPadel.vue'
+import IconDefault    from '@/components/icons/sports/IconDefault.vue'
 
-const newSpace = ref({
-    nombre_espacio: '',
-    capacidad_maxima: 10,
-    es_reserva_on_demand: true,
-    es_clase_programada: false,
-    es_uso_libre: false,
-    estatus: 'ACTIVO',
-    descripcion: '',
-    disciplinas: []
-});
+const router           = useRouter()
+const spacesStore      = useSpacesStore()
+const disciplinesStore = useDisciplinesStore()
+const { toastInfo }    = useAlerts()
 
-onMounted(() => {
-    spacesStore.fetchSpaces();
-    disciplinesStore.fetchDisciplines();
-});
+const { spaces, isLoading }      = storeToRefs(spacesStore)
+const { disciplines }            = storeToRefs(disciplinesStore)
+
+// ── FILTROS ────────────────────────────────────────────────────
+const search       = ref('')
+const filterTipo   = ref(null)
+const filterStatus = ref(null)
+
+const OPT_TIPO = [
+  { label: 'Todos los tipos',      value: null },
+  { label: 'Reserva On Demand',    value: 'RESERVA_ON_DEMAND' },
+  { label: 'Clase Programada',     value: 'CLASE_PROGRAMADA' },
+  { label: 'Uso Libre',            value: 'USO_LIBRE' },
+]
+const OPT_STATUS = [
+  { label: 'Todos los estados',    value: null },
+  { label: 'Activo',               value: 'ACTIVO' },
+  { label: 'Mantenimiento',        value: 'MANTENIMIENTO' },
+  { label: 'Deshabilitado',        value: 'DESHABILITADO' },
+]
 
 const filteredSpaces = computed(() => {
-    let result = [...spaces.value];
-    
-    // Aplicar filtros
-    if (search.value) {
-        const q = search.value.toLowerCase();
-        result = result.filter(s => s.nombre_espacio.toLowerCase().includes(q));
-    }
-    if (filterTipo.value !== 'TODOS') {
-        if (filterTipo.value === 'RESERVA_ON_DEMAND') result = result.filter(s => s.es_reserva_on_demand);
-        else if (filterTipo.value === 'CLASE_PROGRAMADA') result = result.filter(s => s.es_clase_programada);
-        else if (filterTipo.value === 'USO_LIBRE') result = result.filter(s => s.es_uso_libre);
-    }
-    if (filterStatus.value !== 'TODOS') {
-        result = result.filter(s => s.estatus === filterStatus.value);
-    }
+  let r = [...spaces.value]
 
-    // Ordenar: primero por nombre
-    result.sort((a, b) => a.nombre_espacio.localeCompare(b.nombre_espacio));
+  if (search.value) {
+    const q = search.value.toLowerCase()
+    r = r.filter(s => s.nombre_espacio.toLowerCase().includes(q))
+  }
+  if (filterTipo.value === 'RESERVA_ON_DEMAND') r = r.filter(s => s.es_reserva_on_demand)
+  else if (filterTipo.value === 'CLASE_PROGRAMADA') r = r.filter(s => s.es_clase_programada)
+  else if (filterTipo.value === 'USO_LIBRE')  r = r.filter(s => s.es_uso_libre)
+  if (filterStatus.value) r = r.filter(s => s.estatus === filterStatus.value)
 
-    return result;
-});
+  return r.sort((a, b) => a.nombre_espacio.localeCompare(b.nombre_espacio))
+})
 
-const openDetails = (id) => {
-    router.push({ name: 'spaces-details', params: { id } });
-};
+const hasActiveFilters = computed(() => search.value || filterTipo.value || filterStatus.value)
+const clearFilters = () => {
+  search.value = ''
+  filterTipo.value = filterStatus.value = null
+}
 
-const openEdit = (id) => {
-    router.push({ name: 'spaces-details', params: { id }, query: { edit: 'true' } });
-};
+// ── ICONO DEPORTE ──────────────────────────────────────────────
+const getIcon = (name = '') => {
+  const n = name.toLowerCase()
+  if (n.includes('futbol'))   return IconFutbol
+  if (n.includes('basquet'))  return IconBasquetbol
+  if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis
+  if (n.includes('voleibol')) return IconVoleibol
+  if (n.includes('squash'))   return IconSquash
+  if (n.includes('frontenis'))return IconFrontenis
+  if (n.includes('padel'))    return IconPadel
+  return IconDefault
+}
 
-const goToDisciplines = (id) => {
-    router.push({ name: 'spaces-disciplines', params: { id } });
-};
+// Paleta de color de acento según estatus del espacio
+const statusAccent = (estatus) => ({
+  ACTIVO:         'border-t-emerald-400',
+  MANTENIMIENTO:  'border-t-amber-400',
+  DESHABILITADO:  'border-t-red-400',
+}[estatus] ?? 'border-t-surface-200')
 
-const openDeleteModal = (space) => {
-    selectedSpace.value = space;
-    showDeleteModal.value = true;
-};
+// ── BADGES DE TIPO ─────────────────────────────────────────────
+const tipoBadges = (space) => {
+  const b = []
+  if (space.es_reserva_on_demand) b.push({ label: 'On Demand',  classes: 'bg-indigo-50 text-indigo-700 border-indigo-100' })
+  if (space.es_clase_programada)  b.push({ label: 'Clase',      classes: 'bg-primary-50   text-primary-700   border-primary-100'   })
+  if (space.es_uso_libre)         b.push({ label: 'Uso Libre',  classes: 'bg-emerald-50 text-emerald-700 border-emerald-100' })
+  return b
+}
 
-const confirmDelete = async () => {
-    if (!selectedSpace.value) return;
-    isSaving.value = true;
-    const res = await spacesStore.deleteSpace(selectedSpace.value.id_espacio);
-    isSaving.value = false;
-    if (res.success) {
-        showDeleteModal.value = false;
-        await spacesStore.fetchSpaces();
-    } else {
-        alert(res.error);
-    }
-};
+// ── MENU ITEMS ─────────────────────────────────────────────────
+const buildMenuItems = (space) => [
+  {
+    label:  'Ver detalles',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+             </svg>`,
+    action: () => router.push({ name: 'spaces-details', params: { id: space.id_espacio } }),
+  },
+  {
+    label:  'Editar espacio',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+               <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+             </svg>`,
+    action: () => router.push({ name: 'spaces-details', params: { id: space.id_espacio }, query: { edit: 'true' } }),
+  },
+  {
+    label:  'Gestionar disciplinas',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+             </svg>`,
+    action: () => router.push({ name: 'spaces-disciplines', params: { id: space.id_espacio } }),
+  },
+  { separator: true },
+  {
+    label:       'Deshabilitar espacio',
+    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                  </svg>`,
+    action:      () => openDisableModal(space),
+    destructive: true,
+    disabled:    space.estatus === 'DESHABILITADO',
+  },
+]
+
+// ── MODAL: NUEVO ESPACIO ───────────────────────────────────────
+const showNewModal = ref(false)
+const isSaving     = ref(false)
+const formError    = ref('')
+
+const EMPTY_SPACE = () => ({
+  nombre_espacio:       '',
+  capacidad_maxima:     10,
+  es_reserva_on_demand: true,
+  es_clase_programada:  false,
+  es_uso_libre:         false,
+  estatus:              'ACTIVO',
+  descripcion:          '',
+  disciplinas:          [],
+})
+const newSpace = ref(EMPTY_SPACE())
 
 const toggleDisciplina = (id) => {
-    const index = newSpace.value.disciplinas.indexOf(id);
-    if (index > -1) newSpace.value.disciplinas.splice(index, 1);
-    else newSpace.value.disciplinas.push(id);
-};
+  const idx = newSpace.value.disciplinas.indexOf(id)
+  idx > -1 ? newSpace.value.disciplinas.splice(idx, 1) : newSpace.value.disciplinas.push(id)
+}
+
+const toggleUso = (tipo) => {
+  if (tipo === 'on_demand') {
+    newSpace.value.es_reserva_on_demand = !newSpace.value.es_reserva_on_demand
+    if (newSpace.value.es_reserva_on_demand) newSpace.value.es_uso_libre = false
+  } else if (tipo === 'clase') {
+    newSpace.value.es_clase_programada = !newSpace.value.es_clase_programada
+    if (newSpace.value.es_clase_programada) newSpace.value.es_uso_libre = false
+  } else if (tipo === 'libre') {
+    newSpace.value.es_uso_libre = !newSpace.value.es_uso_libre
+    if (newSpace.value.es_uso_libre) {
+      newSpace.value.es_reserva_on_demand = false
+      newSpace.value.es_clase_programada  = false
+    }
+  }
+}
+
+const openNewModal = () => {
+  newSpace.value = EMPTY_SPACE()
+  formError.value = ''
+  showNewModal.value = true
+}
 
 const saveNewSpace = async () => {
-    if (!newSpace.value.nombre_espacio) {
-        alert("El nombre es obligatorio.");
-        return;
-    }
-    isSaving.value = true;
-    const res = await spacesStore.createSpace(newSpace.value);
-    isSaving.value = false;
-    if (res.success) {
-        showNewModal.value = false;
-        newSpace.value = { 
-            nombre_espacio: '', 
-            capacidad_maxima: 10, 
-            es_reserva_on_demand: true, 
-            es_clase_programada: false, 
-            es_uso_libre: false, 
-            estatus: 'ACTIVO', 
-            descripcion: '', 
-            disciplinas: [] 
-        };
-    } else {
-        alert(res.error);
-    }
-};
-const getIcon = (name) => {
-    if (!name) return IconDefault;
-    const n = name.toLowerCase();
-    if (n.includes('futbol')) return IconFutbol;
-    if (n.includes('basquetbol')) return IconBasquetbol;
-    if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis;
-    if (n.includes('voleibol')) return IconVoleibol;
-    if (n.includes('squash')) return IconSquash;
-    if (n.includes('frontenis')) return IconFrontenis;
-    if (n.includes('padel')) return IconPadel;
-    return IconDefault;
-};
+  formError.value = ''
+  if (!newSpace.value.nombre_espacio.trim()) {
+    formError.value = 'El nombre del espacio es requerido.'
+    return
+  }
+  isSaving.value = true
+  const res = await spacesStore.createSpace(newSpace.value)
+  isSaving.value = false
+  if (res?.success) {
+    showNewModal.value = false
+    toastInfo('Espacio creado', `"${newSpace.value.nombre_espacio}" fue registrado.`, 'success')
+  } else {
+    formError.value = res?.error ?? 'Ocurrió un error al crear el espacio.'
+  }
+}
+
+// ── MODAL: DESHABILITAR ────────────────────────────────────────
+const showDisableModal = ref(false)
+const selectedSpace    = ref(null)
+
+const openDisableModal = (space) => {
+  selectedSpace.value    = space
+  showDisableModal.value = true
+}
+
+const confirmDisable = async () => {
+  if (!selectedSpace.value) return
+  isSaving.value = true
+  const res = await spacesStore.deleteSpace(selectedSpace.value.id_espacio)
+  isSaving.value = false
+  if (res?.success) {
+    showDisableModal.value = false
+    toastInfo('Espacio deshabilitado', selectedSpace.value.nombre_espacio, 'success')
+  } else {
+    toastInfo('Error', res?.error ?? 'No se pudo deshabilitar el espacio.', 'error')
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+onMounted(() => {
+  spacesStore.fetchSpaces()
+  disciplinesStore.fetchDisciplines()
+})
 </script>
 
 <template>
-    <div class="admin-container p-6 bg-gray-50 min-h-screen">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-extrabold text-gray-900">Espacios Físicos</h1>
-                <p class="text-gray-500">Gestiona las canchas, salones e instalaciones</p>
+  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
+    <div class="max-w-7xl mx-auto space-y-8">
+
+      <!-- CABECERA -->
+      <AdminPageHeader
+        title="Espacios Físicos"
+        subtitle="Gestiona las canchas, salones e instalaciones del club."
+      >
+        <span class="text-sm font-bold text-surface-500">
+          {{ filteredSpaces.length }}
+          <span class="font-medium text-surface-400">de {{ spaces.length }}</span>
+        </span>
+        <button
+          @click="openNewModal"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white
+                 text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          Nuevo Espacio
+        </button>
+      </AdminPageHeader>
+
+      <!-- BARRA DE FILTROS -->
+      <div class="bg-white rounded-3xl border border-surface-200 shadow-sm p-6 space-y-4">
+        <div class="relative">
+          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="search"
+            placeholder="Buscar espacio por nombre…"
+            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
+                   font-medium text-surface-900 placeholder:text-surface-400
+                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+          />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo de uso</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <select v-model="filterTipo" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
-            <button @click="showNewModal = true" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Nuevo Espacio
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -transurface-y-1"
+          enter-to-class="opacity-100 transurface-y-0"  leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 transurface-y-0" leave-to-class="opacity-0 -transurface-y-1"
+        >
+          <div v-if="hasActiveFilters" class="flex justify-end">
+            <button @click="clearFilters"
+              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              Limpiar filtros
             </button>
-        </header>
+          </div>
+        </Transition>
+      </div>
 
-        <!-- Filters -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row gap-4 items-center">
-            <div class="relative flex-1 w-full">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                </span>
-                <input v-model="search" type="text" placeholder="Buscar por nombre..." class="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all text-gray-700">
+      <!-- SKELETON -->
+      <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div v-for="n in 6" :key="n"
+          class="bg-white rounded-3xl border border-t-4 border-surface-200 border-t-surface-200 p-6 animate-pulse space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-surface-200"/>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-surface-200 rounded-lg w-3/4"/>
+              <div class="h-3 bg-surface-100 rounded-lg w-1/2"/>
             </div>
-            <div class="w-full md:w-64">
-                <select v-model="filterTipo" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700">
-                    <option value="TODOS">Todos los tipos</option>
-                    <option value="RESERVA_ON_DEMAND">Reserva On Demand</option>
-                    <option value="CLASE_PROGRAMADA">Clase Programada</option>
-                    <option value="USO_LIBRE">Uso Libre</option>
-                </select>
-            </div>
-            <div class="w-full md:w-64">
-                <select v-model="filterStatus" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700">
-                    <option value="TODOS">Todos los estados</option>
-                    <option value="ACTIVO">Activo</option>
-                    <option value="MANTENIMIENTO">Mantenimiento</option>
-                    <option value="DESHABILITADO">Deshabilitado</option>
-                </select>
-            </div>
+          </div>
+          <div class="flex gap-2"><div class="h-5 w-20 bg-surface-100 rounded-lg"/><div class="h-5 w-16 bg-surface-100 rounded-lg"/></div>
+          <div class="h-3 bg-surface-100 rounded-lg w-full"/>
         </div>
+      </div>
 
-        <!-- List -->
-        <div v-if="isLoading" class="flex justify-center py-20">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <!-- VACÍO -->
+      <div v-else-if="filteredSpaces.length === 0"
+        class="bg-white rounded-3xl border-2 border-dashed border-surface-200 p-16
+               flex flex-col items-center justify-center text-center">
+        <div class="w-20 h-20 rounded-3xl bg-surface-100 flex items-center justify-center mb-4">
+          <svg class="w-9 h-9 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
         </div>
+        <h3 class="text-lg font-black text-surface-900">Sin resultados</h3>
+        <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron espacios con los filtros actuales.</p>
+        <button @click="clearFilters" class="mt-4 text-sm font-bold text-primary-600 hover:underline">Limpiar filtros</button>
+      </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="space in filteredSpaces" :key="space.id_espacio" 
-                 class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 flex flex-col group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </div>
-                    <span :class="{
-                        'bg-emerald-50 text-emerald-600': space.estatus === 'ACTIVO',
-                        'bg-amber-50 text-amber-600': space.estatus === 'MANTENIMIENTO',
-                        'bg-red-50 text-red-600': space.estatus === 'DESHABILITADO',
-                        'bg-gray-50 text-gray-500': space.estatus === 'INACTIVO'
-                    }" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                        {{ space.estatus }}
-                    </span>
-                </div>
-                
-                <h3 class="text-xl font-bold text-gray-900 mb-1">{{ space.nombre_espacio }}</h3>
-                <div class="flex gap-2 mb-3">
-                    <span v-if="space.es_reserva_on_demand" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100">ON DEMAND</span>
-                    <span v-if="space.es_clase_programada" class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100">CLASE</span>
-                    <span v-if="space.es_uso_libre" class="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100">USO LIBRE</span>
-                </div>
-                
-                <div class="flex flex-wrap gap-1 mb-6">
-                    <span v-for="d in space.disciplinas" :key="d.id_disciplina" class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                        {{ d.nombre_disciplina }}
-                    </span>
-                    <span v-if="!space.disciplinas?.length" class="text-gray-400 text-xs italic">Sin disciplinas asignadas</span>
-                </div>
+      <!-- GRID CARDS -->
+      <TransitionGroup
+        v-else
+        tag="div"
+        class="grid grid-cols-1 xl:grid-cols-2 gap-5"
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition-all duration-200 ease-in absolute"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-for="space in filteredSpaces"
+          :key="space.id_espacio"
+          class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm
+                 hover:shadow-md hover:border-surface-300 transition-all duration-300 group flex flex-col sm:flex-row overflow-hidden relative"
+        >
+          <!-- Accent border on left for desktop, top for mobile -->
+          <div class="absolute inset-y-0 left-0 w-1.5 sm:w-2" :class="statusAccent(space.estatus)"></div>
 
-                <div class="pt-4 border-t border-gray-50 flex items-center gap-2">
-                    <!-- 1. Ver Detalles -->
-                    <button @click="openDetails(space.id_espacio)" 
-                            class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                            title="Ver Detalles">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <path d="M14 2v6h6" />
-                            <path d="M16 13H8" />
-                            <path d="M16 17H8" />
-                            <path d="M10 9H8" />
-                        </svg>
-                    </button>
-
-                    <!-- 2. Editar -->
-                    <button @click="openEdit(space.id_espacio)" 
-                            class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                            title="Editar">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                    </button>
-
-                    <!-- 3. Disciplinas -->
-                    <button @click="goToDisciplines(space.id_espacio)" 
-                            class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                            title="Gestionar Disciplinas">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                        </svg>
-                    </button>
-
-                    <!-- 4. Deshabilitar -->
-                    <button @click="openDeleteModal(space)" 
-                            class="w-9 h-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                            title="Deshabilitar">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    </button>
-                </div>
+          <!-- Lado Izquierdo: Ícono -->
+          <div class="p-6 sm:w-32 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-surface-100 bg-surface-50/50">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
             </div>
-        </div>
+          </div>
 
-        <!-- New Space Modal -->
-        <div v-if="showNewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div class="p-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">Nuevo Espacio</h2>
-                        <button @click="showNewModal = false" class="text-gray-400 hover:text-gray-600 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-1">Nombre del Espacio</label>
-                                <input v-model="newSpace.nombre_espacio" type="text" placeholder="Ej. Cancha de Tenis 1" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-1">Capacidad Máxima</label>
-                                <input v-model="newSpace.capacidad_maxima" type="number" class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Configuración de Uso</label>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <button @click="() => { newSpace.es_reserva_on_demand = !newSpace.es_reserva_on_demand; if(newSpace.es_reserva_on_demand) newSpace.es_uso_libre = false; }"
-                                            :class="newSpace.es_reserva_on_demand ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-500'"
-                                            class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
-                                        <span>RESERVA ON DEMAND</span>
-                                        <div :class="newSpace.es_reserva_on_demand ? 'bg-white text-indigo-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
-                                            {{ newSpace.es_reserva_on_demand ? '✓' : '' }}
-                                        </div>
-                                    </button>
-                                    <button @click="() => { newSpace.es_clase_programada = !newSpace.es_clase_programada; if(newSpace.es_clase_programada) newSpace.es_uso_libre = false; }"
-                                            :class="newSpace.es_clase_programada ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'"
-                                            class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
-                                        <span>CLASE PROGRAMADA</span>
-                                        <div :class="newSpace.es_clase_programada ? 'bg-white text-blue-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
-                                            {{ newSpace.es_clase_programada ? '✓' : '' }}
-                                        </div>
-                                    </button>
-                                    <button @click="() => { newSpace.es_uso_libre = !newSpace.es_uso_libre; if(newSpace.es_uso_libre) { newSpace.es_reserva_on_demand = false; newSpace.es_clase_programada = false; } }"
-                                            :class="newSpace.es_uso_libre ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-500'"
-                                            class="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all">
-                                        <span>USO LIBRE</span>
-                                        <div :class="newSpace.es_uso_libre ? 'bg-white text-emerald-600' : 'bg-gray-200 text-gray-400'" class="w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
-                                            {{ newSpace.es_uso_libre ? '✓' : '' }}
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="space-y-4">
-                            <label class="block text-sm font-bold text-gray-700">Disciplinas Permitidas</label>
-                            <div class="h-64 overflow-y-auto bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button v-for="d in disciplines" :key="d.id_disciplina"
-                                        @click="toggleDisciplina(d.id_disciplina)"
-                                        :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-100'"
-                                        class="flex items-center gap-2 p-2 rounded-xl text-[10px] font-bold transition-all text-left">
-                                        <div class="p-1.5 rounded-lg" :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'">
-                                            <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
-                                        </div>
-                                        <span class="truncate">{{ d.nombre_disciplina }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 flex gap-3">
-                        <button @click="showNewModal = false" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition-all">
-                            Cancelar
-                        </button>
-                        <button @click="saveNewSpace" :disabled="isSaving" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
-                            {{ isSaving ? 'Guardando...' : 'Crear Espacio' }}
-                        </button>
-                    </div>
-                </div>
+          <!-- Lado Derecho: Info -->
+          <div class="flex-1 p-6 flex flex-col">
+            <div class="flex justify-between items-start gap-4">
+               <div>
+                 <h3 class="text-base font-black text-surface-900 leading-tight">{{ space.nombre_espacio }}</h3>
+                 <p class="text-xs text-surface-400 font-medium mt-1">Capacidad: {{ space.capacidad_maxima ?? '—' }} personas</p>
+               </div>
+               <ActionMenu :items="buildMenuItems(space)" align="right" />
             </div>
-        </div>
 
-        <!-- Deactivation Modal -->
-        <div v-if="showDeleteModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div class="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-                <div class="p-8 text-center">
-                    <div class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">¿Deshabilitar Espacio?</h3>
-                    <p class="text-gray-500 mb-8" v-if="selectedSpace">¿Estás seguro de deshabilitar <b>{{ selectedSpace.nombre_espacio }}</b>? El sistema validará que no haya actividades pendientes.</p>
-                    
-                    <div class="flex gap-3">
-                        <button @click="showDeleteModal = false" class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all">
-                            Cancelar
-                        </button>
-                        <button @click="confirmDelete" :disabled="isSaving" class="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-100 disabled:opacity-50">
-                            {{ isSaving ? 'Procesando...' : 'Deshabilitar' }}
-                        </button>
-                    </div>
-                </div>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+               <BadgeStatus :status="space.estatus" />
+               <span
+                 v-for="badge in tipoBadges(space)"
+                 :key="badge.label"
+                 class="text-[10px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wider"
+                 :class="badge.classes"
+               >
+                 {{ badge.label }}
+               </span>
             </div>
+
+            <!-- Disciplinas -->
+            <div class="mt-4 py-2.5 px-3.5 rounded-xl bg-surface-50 border border-surface-100">
+               <p class="text-[10px] font-black uppercase tracking-wider text-surface-400 mb-2">Disciplinas</p>
+               <div v-if="space.disciplinas?.length" class="flex flex-wrap gap-1.5">
+                 <span
+                   v-for="d in space.disciplinas.slice(0, 4)"
+                   :key="d.id_disciplina"
+                   class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-surface-200 text-[10px] font-bold text-surface-600"
+                 >
+                   <component :is="getIcon(d.nombre_disciplina)" class="w-3 h-3 shrink-0" />
+                   {{ d.nombre_disciplina }}
+                 </span>
+                 <span v-if="space.disciplinas.length > 4"
+                   class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                   +{{ space.disciplinas.length - 4 }}
+                 </span>
+               </div>
+               <p v-else class="text-xs text-surface-400 italic">Sin disciplinas asignadas</p>
+            </div>
+
+            <!-- Footer / Botones -->
+            <div class="mt-4 flex justify-end">
+               <button
+                 @click="router.push({ name: 'spaces-details', params: { id: space.id_espacio } })"
+                 class="px-4 py-2 rounded-xl bg-white border border-surface-200 text-surface-700 text-xs font-bold
+                        hover:bg-surface-50 hover:text-primary-600 transition-colors duration-200
+                        flex items-center justify-center gap-2 shadow-sm"
+               >
+                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+                 </svg>
+                 Ver detalles
+               </button>
+            </div>
+          </div>
         </div>
+      </TransitionGroup>
+
     </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: NUEVO ESPACIO
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0"
+      >
+        <div v-if="showNewModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showNewModal = false"
+        >
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95 transurface-y-4"
+            enter-to-class="opacity-100 scale-100 transurface-y-0"
+          >
+            <div v-if="showNewModal"
+              class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+
+              <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100 bg-white">
+                <div>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nuevo Espacio</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">Registra una cancha, salón o instalación.</p>
+                </div>
+                <button @click="showNewModal = false"
+                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="overflow-y-auto p-8 space-y-6 bg-surface-50/50">
+
+                <!-- Error banner -->
+                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
+                  <div v-if="formError"
+                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-bold shadow-sm">
+                    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    {{ formError }}
+                  </div>
+                </Transition>
+
+                <!-- Layout 2 columnas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                  <!-- Columna izquierda -->
+                  <div class="space-y-6">
+
+                    <div class="space-y-1.5">
+                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                        Nombre del Espacio <span class="text-red-400">*</span>
+                      </label>
+                      <input v-model="newSpace.nombre_espacio" placeholder="Ej. Cancha de Tenis 1"
+                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold
+                               text-surface-900 placeholder:text-surface-400 shadow-sm
+                               focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"/>
+                    </div>
+
+                    <div class="space-y-1.5">
+                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Capacidad Máxima</label>
+                      <input v-model.number="newSpace.capacidad_maxima" type="number" min="1"
+                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold shadow-sm
+                               focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"/>
+                    </div>
+
+                    <!-- Configuración de uso -->
+                    <div class="space-y-3 mt-4">
+                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Tipo de Uso</label>
+                      <div class="flex flex-col gap-3">
+                        <button
+                          v-for="uso in [
+                            { key: 'on_demand', label: 'Reserva On Demand', active: newSpace.es_reserva_on_demand, color: 'indigo' },
+                            { key: 'clase',     label: 'Clase Programada',  active: newSpace.es_clase_programada,  color: 'primary' },
+                            { key: 'libre',     label: 'Uso Libre',         active: newSpace.es_uso_libre,         color: 'emerald'},
+                          ]"
+                          :key="uso.key"
+                          type="button"
+                          @click="toggleUso(uso.key)"
+                          class="flex items-center justify-between px-5 py-4 rounded-[1.25rem] border-2 text-sm font-bold transition-all shadow-sm group hover:-translate-y-0.5"
+                          :class="uso.active
+                            ? `bg-${uso.color}-50 text-${uso.color}-700 border-${uso.color}-500 ring-4 ring-${uso.color}-50`
+                            : 'bg-white text-surface-500 border-surface-200 hover:border-surface-300 hover:bg-surface-50'"
+                        >
+                          <span>{{ uso.label }}</span>
+                          <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0"
+                            :class="uso.active ? `bg-${uso.color}-600 border-${uso.color}-600 text-white` : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-surface-300'">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Columna derecha: disciplinas -->
+                  <div class="space-y-2 flex flex-col h-full">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Disciplinas Permitidas</label>
+                    <div class="flex-1 overflow-y-auto bg-surface-50 rounded-3xl p-2 pr-3 border border-surface-200 space-y-2 custom-scrollbar min-h-[300px]">
+                      <button
+                        v-for="d in disciplines"
+                        :key="d.id_disciplina"
+                        type="button"
+                        @click="toggleDisciplina(d.id_disciplina)"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-[1.25rem] border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
+                        :class="newSpace.disciplinas.includes(d.id_disciplina)
+                          ? 'bg-primary-50 text-primary-700 border-primary-500 ring-4 ring-primary-50 hover:bg-primary-100'
+                          : 'bg-white text-surface-400 border-surface-200 hover:border-primary-300 hover:text-primary-600 hover:bg-surface-50 hover:-translate-y-0.5 hover:shadow-md'"
+                      >
+                        <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all"
+                          :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-primary-600 text-white shadow-inner' : 'bg-surface-100 text-surface-400 group-hover:bg-primary-100 group-hover:text-primary-600'">
+                          <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
+                        </div>
+                        <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
+                        
+                        <!-- Check -->
+                        <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
+                             :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-primary-300'">
+                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
+                <button @click="showNewModal = false"
+                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                  Cancelar
+                </button>
+                <button @click="saveNewSpace" :disabled="isSaving"
+                  class="px-6 py-3 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm">
+                  <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  {{ isSaving ? 'Guardando…' : 'Crear Espacio' }}
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: CONFIRMAR DESHABILITAR
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0"
+      >
+        <div v-if="showDisableModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showDisableModal = false"
+        >
+          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-5">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 9v4M12 17h.01"/>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-black text-surface-900 mb-2">¿Deshabilitar espacio?</h3>
+            <p class="text-sm text-surface-500 mb-8">
+              ¿Confirmas deshabilitar <span class="font-bold text-surface-800">{{ selectedSpace?.nombre_espacio }}</span>?
+              El sistema validará que no haya actividades pendientes.
+            </p>
+            <div class="flex gap-3">
+              <button @click="showDisableModal = false"
+                class="flex-1 py-3 rounded-2xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                Cancelar
+              </button>
+              <button @click="confirmDisable" :disabled="isSaving"
+                class="flex-1 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                {{ isSaving ? 'Procesando…' : 'Deshabilitar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+  </main>
 </template>
