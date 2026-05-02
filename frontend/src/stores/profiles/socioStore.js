@@ -48,15 +48,49 @@ export const useProfileStore = defineStore("profile", () => {
 
   const isAccountInactive = computed(() => {
     if (!profileData.value) return false;
-    const status = profileData.value?.estatus_cuenta?.toUpperCase();
-    return status === "INACTIVO" || status === "SUSPENDIDO" || status === "PENALIZADO";
+    const penaltyStatus = profileData.value?.estatus_penalizacion?.toUpperCase();
+    const accountStatus = profileData.value?.estatus_cuenta?.toUpperCase();
+
+    return accountStatus === "INACTIVO" || penaltyStatus === "SUSPENDIDO" || penaltyStatus === "PENALIZADO_AMBOS";
+  });
+
+  const isLudotecaBlocked = computed(() => {
+    if (!profileData.value) return false;
+    const penaltyStatus = profileData.value?.estatus_penalizacion?.toUpperCase();
+    const accountStatus = profileData.value?.estatus_cuenta?.toUpperCase();
+
+    return penaltyStatus === "PENALIZADO_LUDOTECA" || penaltyStatus === "PENALIZADO_AMBOS" || penaltyStatus === "SUSPENDIDO" || accountStatus === "INACTIVO";
+  });
+
+  const isReservationsBlocked = computed(() => {
+    if (!profileData.value) return false;
+    const penaltyStatus = profileData.value?.estatus_penalizacion?.toUpperCase();
+    const accountStatus = profileData.value?.estatus_cuenta?.toUpperCase();
+
+    return penaltyStatus === "PENALIZADO_RESERVA" || penaltyStatus === "PENALIZADO_AMBOS" || penaltyStatus === "SUSPENDIDO" || accountStatus === "INACTIVO";
+  });
+
+  const tienePlanFamiliar = computed(() => {
+    if (!profileData.value?.modalidad_plan) return false;
+    return profileData.value.modalidad_plan.toUpperCase() === 'FAMILIAR';
   });
 
   // Da color al badge dinámicamente
   const statusBadgeClass = computed(() => {
-    const status = profileData.value?.estatus_cuenta?.toUpperCase();
-    if (status === "AL_CORRIENTE" || status === "ACTIVO") return "badge-green";
-    if (status === "SUSPENDIDO" || status === "MOROSO" || status === "INACTIVO") return "badge-red";
+    const accountStatus = profileData.value?.estatus_cuenta?.toUpperCase();
+    const penaltyStatus = profileData.value?.estatus_penalizacion?.toUpperCase();
+
+    // Priorizamos mostrar el error si hay suspensión o penalización
+    if (penaltyStatus === "SUSPENDIDO" || penaltyStatus === "PENALIZADO_AMBOS" || accountStatus === "INACTIVO" || accountStatus === "MOROSO") {
+      return "badge-red";
+    }
+
+    if (penaltyStatus === "PENALIZADO_LUDOTECA" || penaltyStatus === "PENALIZADO_RESERVA") {
+      return "badge-orange"; // Color preventivo para penalizaciones parciales
+    }
+
+    if (accountStatus === "AL_CORRIENTE" || accountStatus === "ACTIVO") return "badge-green";
+
     return "badge-gray";
   });
 
@@ -98,8 +132,12 @@ export const useProfileStore = defineStore("profile", () => {
     modalidadPlan,
     idSocio,
     esAdmin,
+    isLudotecaBlocked,
+    isReservationsBlocked,
     fetchProfile,
     updateProfile,
+    tienePlanFamiliar,
+    fechaFinPenalizacion,
     logout,
     getSupportLink
   };

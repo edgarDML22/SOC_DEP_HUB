@@ -117,27 +117,6 @@ const eliminarAmigo = async (amigo) => {
     actionTypeLoading.value = ''
   }
 }
-
-const eliminarAmigo = async (amigo) => {
-  const result = await confirmDelete(
-    'Eliminar Amigo',
-    `¿Estás seguro de que deseas eliminar a ${amigo.nombre_amigo}? Esta acción no se puede deshacer.`
-  )
-  
-  if (result.isConfirmed) {
-    actionLoadingId.value = amigo.id_amistad
-    actionTypeLoading.value = 'eliminar'
-    try {
-      await friendStore.removeFriend({ id_amistad: amigo.id_amistad })
-      toastInfo('Eliminado', 'Amigo removido de tu lista', 'success')
-    } catch (e) {
-      toastInfo('Error', e.response?.data?.message || 'Error al eliminar al amigo', 'error')
-    } finally {
-      actionLoadingId.value = null
-      actionTypeLoading.value = ''
-    }
-  }
-}
 </script>
 
 

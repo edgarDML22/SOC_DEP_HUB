@@ -74,9 +74,6 @@ async function enviarSolicitud(socio) {
       
       <!-- Encabezado con Botón Volver -->
       <div>
-        <button @click="router.back()" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit group">
-            <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
-        </button>
         <div class="flex flex-col gap-1">
           <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Agregar Nuevo Amigo</h2>
           <p class="text-surface-500 font-medium text-sm md:text-base m-0">Busca a otros socios por nombre para enviarles una solicitud.</p>
