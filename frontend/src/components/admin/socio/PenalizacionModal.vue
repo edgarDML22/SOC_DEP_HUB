@@ -203,7 +203,7 @@ const save = async () => {
                 <!-- COLUMNA IZQUIERDA: KPIs + selectores de días -->
                 <div class="flex flex-col gap-6">
                   <div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-3">Historial de Incidencias</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-3">Historial del Socio</p>
 
                     <!-- KPI: No Shows -->
                     <div class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm overflow-hidden mb-4">
@@ -326,22 +326,7 @@ const save = async () => {
                     </div>
                   </div>
 
-                  <!-- Estatus de cuenta (solo lectura) -->
-                  <div class="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-2">Estatus de Cuenta</p>
-                    <div class="flex items-center gap-2.5">
-                      <div class="w-2 h-2 rounded-full"
-                           :class="{
-                             'bg-emerald-500': socio?.estatus_cuenta === 'AL_CORRIENTE',
-                             'bg-red-500':     socio?.estatus_cuenta === 'MOROSO',
-                             'bg-surface-400': socio?.estatus_cuenta === 'SUSPENDIDO',
-                           }"/>
-                      <span class="text-sm font-black text-surface-800">{{ socio?.estatus_cuenta ?? '—' }}</span>
-                    </div>
-                    <p class="text-[11px] text-surface-400 font-medium mt-2">
-                      Este campo es independiente de las penalizaciones y se gestiona desde el módulo de pagos.
-                    </p>
-                  </div>
+                  
                 </div>
 
                 <!-- COLUMNA DERECHA: Tarjetas de penalización -->
@@ -439,9 +424,7 @@ const save = async () => {
 
             <!-- ── Pie ── -->
             <div class="flex items-center justify-between gap-3 px-8 py-5 border-t border-surface-100 bg-white">
-              <p class="text-xs font-semibold text-surface-400 hidden sm:block">
-                Solo se actualiza <span class="font-black text-surface-600">estatus_penalizacion</span> — el estatus de cuenta no se modifica.
-              </p>
+              
               <div class="flex items-center gap-3 ml-auto">
                 <button @click="close"
                   class="px-6 py-3 rounded-xl border border-surface-200 bg-white
