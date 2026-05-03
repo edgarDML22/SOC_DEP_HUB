@@ -19,8 +19,9 @@ class CategoriaDisciplinaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'nombre_categoria' => 'required|string|unique:categorias_disciplinas,nombre_categoria',
-            'descripcion_categoria' => 'nullable|string'
+            'nombre' => 'required|string|unique:categorias,nombre',
+            'descripcion' => 'nullable|string',
+            'estatus' => 'nullable|string'
         ]);
 
         $categoria = CategoriaDisciplina::create($data);
@@ -49,8 +50,9 @@ class CategoriaDisciplinaController extends Controller
         }
 
         $data = $request->validate([
-            'nombre_categoria' => 'string|unique:categorias_disciplinas,nombre_categoria,' . $id,
-            'descripcion_categoria' => 'nullable|string'
+            'nombre' => 'string|unique:categorias,nombre,' . $id . ',id_categoria',
+            'descripcion' => 'nullable|string',
+            'estatus' => 'nullable|string'
         ]);
 
         $categoria->update($data);

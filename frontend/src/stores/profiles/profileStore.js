@@ -1,3 +1,4 @@
+import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api";
 import router from "@/router";
@@ -6,6 +7,9 @@ import { useFamilyStore } from "@/stores/community/familyStore";
 import { useGuestStore } from "@/stores/community/guestStore";
 import { useNotificacionesStore } from "@/stores/profiles/notificacionesStore";
 import { useReservationStore } from "@/stores/reservationStore";
+import { useformat } from '@/utils/formatters';
+
+const { formatText } = useformat();
 
 export function useProfileLogic(endpointUrl = '/profile') {
     const profileData = ref(null);
@@ -82,7 +86,7 @@ export function useProfileLogic(endpointUrl = '/profile') {
         } finally {
             // ── Limpiar datos del perfil ──
             profileData.value = null;
-            profilePromise    = null;
+            profilePromise = null;
 
             // ── Resetear TODOS los stores con datos de usuario ──
             // Importados localmente para evitar dependencias circulares en el módulo
@@ -108,14 +112,6 @@ export function useProfileLogic(endpointUrl = '/profile') {
         }
     };
 
-    const formatText = (text) => {
-        if (!text) return "N/A";
-        return text
-            .toLowerCase()
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    };
 
     return {
         profileData,
