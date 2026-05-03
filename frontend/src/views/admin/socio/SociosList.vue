@@ -3,27 +3,24 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSocioStore } from '@/stores/admin/socioStore'
 import { storeToRefs } from 'pinia'
-import { useAlerts } from '@/composables/useAlerts'
-
-import Select from 'primevue/select'
-
-import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
-import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
-import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
+import AdminPageHeader    from '@/components/gerente/ui/AdminPageHeader.vue'
+import BadgeStatus        from '@/components/gerente/ui/BadgeStatus.vue'
+import ActionMenu         from '@/components/gerente/ui/ActionMenu.vue'
+import PenalizacionModal  from '@/components/admin/socio/PenalizacionModal.vue'
 
 const router     = useRouter()
 const socioStore = useSocioStore()
-const { toastInfo } = useAlerts()
 
 const { socios, isLoading, error: errorMsg } = storeToRefs(socioStore)
-const { fetchSocios, fetchSocioDetails, updateSocio } = socioStore
+const { fetchSocios, fetchSocioDetails } = socioStore
 
 // ── FILTROS ────────────────────────────────────────────────────
 const search          = ref('')
 const filterTipo      = ref(null)
 const filterModalidad = ref(null)
 const filterGenero    = ref(null)
-const filterEstatus   = ref(null)
+const filterEstatus       = ref(null)
+const filterPenalizacion  = ref(null)
 
 const OPT_TIPO = [
   { label: 'Todos los tipos',   value: null },
@@ -40,15 +37,19 @@ const OPT_GENERO = [
   { label: 'Masculino',         value: 'M' },
   { label: 'Femenino',          value: 'F' },
 ]
-const OPT_ESTATUS = [
-  { label: 'Todos los estatus',        value: null },
-  { label: 'Al Corriente',             value: 'AL_CORRIENTE' },
-  { label: 'Moroso',                   value: 'MOROSO' },
-  { label: 'Suspendido',               value: 'SUSPENDIDO' },
-  { label: 'Penalizado (General)',      value: 'PENALIZADO' },
-  { label: 'Pen. Ambos',               value: 'PENALIZADO_AMBOS' },
-  { label: 'Pen. Reservas',            value: 'PENALIZADO_RESERVA' },
-  { label: 'Pen. Ludoteca',            value: 'PENALIZADO_LUDOTECA' },
+const OPT_ESTATUS_CUENTA = [
+  { label: 'Todos los estatus',   value: null },
+  { label: 'Al Corriente',        value: 'AL_CORRIENTE' },
+  { label: 'Moroso',              value: 'MOROSO' },
+  { label: 'Suspendido',          value: 'SUSPENDIDO' },
+  { label: 'Penalizado',          value: 'PENALIZADO' },
+]
+const OPT_ESTATUS_PENALIZACION = [
+  { label: 'Todos', value: null },
+  { label: 'Sin Penalización',         value: 'SIN_PENALIZACION' },
+  { label: 'Penalización Reservas',            value: 'PENALIZADO_RESERVA' },
+  { label: 'Penalización Ludoteca',            value: 'PENALIZADO_LUDOTECA' },
+  { label: 'Penalización Ambos',               value: 'PENALIZADO_AMBOS' },
 ]
 
 const filteredSocios = computed(() => {
@@ -61,21 +62,24 @@ const filteredSocios = computed(() => {
       String(s.numero_accion ?? '').includes(q)
     )
   }
-  if (filterTipo.value)      r = r.filter(s => s.tipo_socio      === filterTipo.value)
-  if (filterModalidad.value) r = r.filter(s => s.modalidad_plan  === filterModalidad.value)
-  if (filterGenero.value)    r = r.filter(s => s.genero          === filterGenero.value)
-  if (filterEstatus.value)   r = r.filter(s => s.estatus_cuenta  === filterEstatus.value)
+  if (filterTipo.value)         r = r.filter(s => s.tipo_socio         === filterTipo.value)
+  if (filterModalidad.value)    r = r.filter(s => s.modalidad_plan     === filterModalidad.value)
+  if (filterGenero.value)       r = r.filter(s => s.genero             === filterGenero.value)
+  if (filterEstatus.value)      r = r.filter(s => s.estatus_cuenta     === filterEstatus.value)
+  if (filterPenalizacion.value) r = r.filter(s => (s.estatus_penalizacion ?? 'SIN_PENALIZACION') === filterPenalizacion.value)
 
   return r
 })
 
 const hasActiveFilters = computed(() =>
-  search.value || filterTipo.value || filterModalidad.value || filterGenero.value || filterEstatus.value
+  search.value || filterTipo.value || filterModalidad.value || filterGenero.value ||
+  filterEstatus.value || filterPenalizacion.value
 )
 
 const clearFilters = () => {
-  search.value = filterTipo.value = filterModalidad.value = filterGenero.value = filterEstatus.value = null
   search.value = ''
+  filterTipo.value = filterModalidad.value = filterGenero.value =
+  filterEstatus.value = filterPenalizacion.value = null
 }
 
 // ── AVATAR ────────────────────────────────────────────────────
@@ -132,17 +136,6 @@ const buildMenuItems = (socio) => [
            </svg>`,
     action: () => openGuests(socio),
   },
-  { separator: true },
-  {
-    label: 'Suspender cuenta',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-             <circle cx="12" cy="12" r="10"/>
-             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-           </svg>`,
-    action: () => applySpecificPenalty(socio, 'SUSPENDIDO'),
-    destructive: true,
-    disabled: socio.estatus_cuenta === 'SUSPENDIDO',
-  },
 ]
 
 // ── MODALES ───────────────────────────────────────────────────
@@ -150,21 +143,9 @@ const showPenaltyModal = ref(false)
 const showFamilyModal  = ref(false)
 const showGuestsModal  = ref(false)
 const selectedSocio    = ref(null)
-const isSaving         = ref(false)
-
-const editForm = ref({
-  estatus_cuenta:     'AL_CORRIENTE',
-  contador_no_shows:  0,
-  retrasos_ludoteca:  0,
-})
 
 const openPenalty = (socio) => {
   selectedSocio.value = socio
-  editForm.value = {
-    estatus_cuenta:    socio.estatus_cuenta    ?? 'AL_CORRIENTE',
-    contador_no_shows: socio.contador_no_shows ?? 0,
-    retrasos_ludoteca: socio.retrasos_ludoteca ?? 0,
-  }
   showPenaltyModal.value = true
 }
 
@@ -181,63 +162,6 @@ const openGuests = async (socio) => {
   await fetchSocioDetails(socio.id_socio)
   selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
 }
-
-const savePenaltyUpdates = async () => {
-  if (!selectedSocio.value) return
-  isSaving.value = true
-  try {
-    const res = await updateSocio(selectedSocio.value.id_socio, editForm.value)
-    if (res.success) {
-      showPenaltyModal.value = false
-      toastInfo('Actualizado', 'Penalizaciones guardadas correctamente.', 'success')
-    } else {
-      toastInfo('Error', res.error, 'error')
-    }
-  } finally {
-    isSaving.value = false
-  }
-}
-
-const applySpecificPenalty = async (socio, status) => {
-  selectedSocio.value = socio
-  editForm.value = {
-    estatus_cuenta:    status,
-    contador_no_shows: socio.contador_no_shows ?? 0,
-    retrasos_ludoteca: socio.retrasos_ludoteca ?? 0,
-  }
-  await savePenaltyUpdates()
-}
-
-const PENALTY_ACTIONS = [
-  {
-    label:    'Penalizar por Reservas',
-    sublabel: 'Bloquea reservaciones 7 días',
-    status:   'PENALIZADO_RESERVA',
-    classes:  'border-red-200 text-red-700 hover:bg-red-50',
-  },
-  {
-    label:    'Penalizar por Ludoteca',
-    sublabel: 'Bloquea ludoteca 7 días',
-    status:   'PENALIZADO_LUDOTECA',
-    classes:  'border-amber-200 text-amber-700 hover:bg-amber-50',
-  },
-  {
-    label:    'Quitar todas las penalizaciones',
-    sublabel: 'Restablecer estatus "Al Corriente"',
-    status:   'AL_CORRIENTE',
-    classes:  'border-emerald-200 text-emerald-700 hover:bg-emerald-50',
-  },
-]
-
-const OPT_ESTATUS_MODAL = [
-  { label: 'Al Corriente (Sin Bloqueos)',         value: 'AL_CORRIENTE' },
-  { label: 'Penalizado — Ambos',                  value: 'PENALIZADO_AMBOS' },
-  { label: 'Penalizado — Reservas (No Show)',      value: 'PENALIZADO_RESERVA' },
-  { label: 'Penalizado — Ludoteca (Retrasos)',     value: 'PENALIZADO_LUDOTECA' },
-  { label: 'Penalizado (General)',                 value: 'PENALIZADO' },
-  { label: 'Moroso (Deuda Pendiente)',             value: 'MOROSO' },
-  { label: 'Suspendido (Bloqueo Permanente)',      value: 'SUSPENDIDO' },
-]
 
 // ── INIT ──────────────────────────────────────────────────────
 onMounted(fetchSocios)
@@ -273,7 +197,7 @@ onMounted(fetchSocios)
                    focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
           />
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
             <div class="relative">
@@ -304,12 +228,23 @@ onMounted(fetchSocios)
               <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
+          <!-- Fila 2: los 2 filtros de estatus -->
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Cuenta</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
               <select v-model="filterEstatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                <option v-for="opt in OPT_ESTATUS_CUENTA" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Penalización</label>
+            <div class="relative">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <select v-model="filterPenalizacion" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_ESTATUS_PENALIZACION" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
               <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
@@ -344,6 +279,7 @@ onMounted(fetchSocios)
               <div class="h-3 bg-surface-100 rounded-lg w-28"/>
             </div>
             <div class="h-5 w-20 bg-surface-100 rounded-full"/>
+            <div class="h-5 w-24 bg-surface-100 rounded-full hidden xl:block"/>
             <div class="h-3 w-16 bg-surface-100 rounded-lg hidden sm:block"/>
             <div class="h-3 w-16 bg-surface-100 rounded-lg hidden lg:block"/>
             <div class="h-3 w-16 bg-surface-100 rounded-lg hidden lg:block"/>
@@ -376,13 +312,14 @@ onMounted(fetchSocios)
         <table v-else class="w-full text-sm">
           <thead>
             <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500">Socio</th>
-              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden sm:table-cell">Acción</th>
-              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden md:table-cell">Tipo</th>
-              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden lg:table-cell">Modalidad</th>
-              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500 hidden lg:table-cell">Género</th>
-              <th class="px-4 py-3.5 text-left text-xs font-extrabold uppercase tracking-widest text-surface-500">Estatus</th>
-              <th class="px-4 py-3.5 text-right text-xs font-extrabold uppercase tracking-widest text-surface-500">Acciones</th>
+              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Socio</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">Acción</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">Tipo</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">Modalidad</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">Género</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estatus Cuenta</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden xl:table-cell">Estatus Penalización</th>
+              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700">Acciones</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100">
@@ -413,21 +350,23 @@ onMounted(fetchSocios)
               </td>
               <!-- Tipo -->
               <td class="px-4 py-3.5 hidden md:table-cell">
-                <span class="text-xs font-semibold text-surface-700">{{ socio.tipo_socio }}</span>
+                <BadgeStatus :status="socio.tipo_socio" />
               </td>
               <!-- Modalidad -->
               <td class="px-4 py-3.5 hidden lg:table-cell">
-                <span class="text-xs font-semibold text-surface-700">{{ socio.modalidad_plan }}</span>
+                <BadgeStatus :status="socio.modalidad_plan" />
               </td>
               <!-- Género -->
               <td class="px-4 py-3.5 hidden lg:table-cell">
-                <span class="text-xs font-semibold text-surface-700">
-                  {{ socio.genero === 'M' ? 'Masculino' : 'Femenino' }}
-                </span>
+                <BadgeStatus :status="socio.genero" />
               </td>
-              <!-- Estatus -->
+              <!-- Estatus Cuenta -->
               <td class="px-4 py-3.5" @click.stop>
                 <BadgeStatus :status="socio.estatus_cuenta" />
+              </td>
+              <!-- Estatus Penalización -->
+              <td class="px-4 py-3.5 hidden xl:table-cell" @click.stop>
+                <BadgeStatus :status="socio.estatus_penalizacion ?? 'SIN_PENALIZACION'" />
               </td>
               <!-- Menú acciones -->
               <td class="px-4 py-3.5 text-right" @click.stop>
@@ -443,120 +382,10 @@ onMounted(fetchSocios)
     <!-- ══════════════════════════════════════════════════════════
          MODAL: PENALIZACIONES
     ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0"
-      >
-        <div v-if="showPenaltyModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showPenaltyModal = false"
-        >
-          <Transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-          >
-            <div v-if="showPenaltyModal"
-              class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-            >
-              <!-- Cabecera -->
-              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-                <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Penalizaciones y Detalles</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider truncate max-w-[300px]">
-                    {{ selectedSocio?.nombre_completo }}
-                  </p>
-                </div>
-                <button @click="showPenaltyModal = false"
-                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200
-                         flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Cuerpo -->
-              <div class="overflow-y-auto p-8 space-y-8 bg-surface-50/50">
-
-                <!-- KPIs -->
-                <div class="grid grid-cols-2 gap-6">
-                  <div class="bg-white rounded-[1.5rem] p-6 border border-surface-200 text-center shadow-sm relative overflow-hidden group">
-                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-red-500 opacity-0 transition-opacity" :class="editForm.contador_no_shows > 0 ? 'opacity-100' : ''"></div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-2">No Shows</p>
-                    <p class="text-5xl font-black leading-none"
-                       :class="editForm.contador_no_shows > 0 ? 'text-red-600' : 'text-surface-900'">
-                      {{ editForm.contador_no_shows }}
-                    </p>
-                  </div>
-                  <div class="bg-white rounded-[1.5rem] p-6 border border-surface-200 text-center shadow-sm relative overflow-hidden group">
-                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-amber-500 opacity-0 transition-opacity" :class="editForm.retrasos_ludoteca > 0 ? 'opacity-100' : ''"></div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-2">Retrasos Ludoteca</p>
-                    <p class="text-5xl font-black leading-none"
-                       :class="editForm.retrasos_ludoteca > 0 ? 'text-amber-600' : 'text-surface-900'">
-                      {{ editForm.retrasos_ludoteca }}
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Selector estatus -->
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
-                    Estatus de Penalización Actual
-                  </label>
-                  <Select
-                    v-model="editForm.estatus_cuenta"
-                    :options="OPT_ESTATUS_MODAL"
-                    option-label="label"
-                    option-value="value"
-                    class="w-full shadow-sm"
-                  />
-                </div>
-
-                <!-- Acciones rápidas -->
-                <div class="space-y-3">
-                  <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Acciones Rápidas</p>
-                  <div class="flex flex-col gap-3">
-                    <button
-                      v-for="pa in PENALTY_ACTIONS"
-                      :key="pa.status"
-                      @click="editForm.estatus_cuenta = pa.status"
-                      :disabled="isSaving"
-                      class="flex flex-col items-start px-5 py-4 rounded-[1.25rem] border-2 text-left
-                             transition-all disabled:opacity-40 shadow-sm hover:-translate-y-0.5"
-                      :class="[pa.classes, editForm.estatus_cuenta === pa.status ? 'ring-4 ring-offset-0 ring-current opacity-100 bg-white' : 'bg-surface-50 opacity-80 hover:bg-white']"
-                    >
-                      <p class="text-sm font-bold m-0" :class="editForm.estatus_cuenta === pa.status ? 'text-current' : 'text-surface-700'">{{ pa.label }}</p>
-                      <p class="text-xs font-semibold opacity-70 mt-1">{{ pa.sublabel }}</p>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pie del modal -->
-              <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
-                <button @click="showPenaltyModal = false"
-                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white
-                         text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
-                  Cancelar
-                </button>
-                <button @click="savePenaltyUpdates" :disabled="isSaving"
-                  class="px-6 py-3 rounded-xl bg-primary-600 text-white text-sm font-bold
-                         hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2">
-                  <svg v-if="isSaving" class="w-4 h-4 animate-spin"
-                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  {{ isSaving ? 'Guardando…' : 'Guardar cambios' }}
-                </button>
-              </div>
-            </div>
-          </Transition>
-        </div>
-      </Transition>
-    </Teleport>
+    <PenalizacionModal
+      v-model="showPenaltyModal"
+      :socio="selectedSocio"
+    />
 
     <!-- ══════════════════════════════════════════════════════════
          MODAL: MIEMBROS FAMILIARES

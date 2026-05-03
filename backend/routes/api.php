@@ -141,11 +141,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/activities/{activityId}/substitutes', [InstructorController::class, 'getCandidateSubstitutes']);
     Route::post('/v1/instructors/{id}/apply-status', [InstructorController::class, 'applyStatusChange']);
 
-    // CRUD SOCIOS
+    // CRUD SOCIOS (rutas estáticas antes del parámetro dinámico {id})
     Route::get('/v1/socios/all', [SocioController::class, 'index']);
+    Route::get('/v1/socios/search', [SocioController::class, 'search']);
     Route::get('/v1/socios/{id}', [SocioController::class, 'show']);
     Route::put('/v1/socios/update/{id}', [SocioController::class, 'update']);
-    Route::get('/v1/socios/search', [SocioController::class, 'search']);
 
     // CRUD DISCIPLINAS
     Route::get('/v1/disciplinas/all', [DisciplinaController::class, 'index']);
@@ -216,6 +216,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/friends-list', [FriendsController::class, 'show']);
     Route::post('/v1/friend-add', [FriendsController::class, 'store']);
     Route::delete('/v1/friend-remove', [FriendsController::class, 'destroy']);
+    Route::delete('/v1/friend-cancel', [FriendsController::class, 'cancel']);
     Route::post('/v1/friend-accept', [FriendsController::class, 'accept']);
     Route::post('/v1/friend-reject', [FriendsController::class, 'reject']);
 
@@ -249,6 +250,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // RUTAS DE SANCIONES
     Route::post('/v1/sanciones/ludoteca', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesAPI']);
     Route::post('/v1/sanciones/reservas', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesReservasAPI']);
+
+    // RUTAS DE NOTIFICACIONES (socio autenticado)
+    Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
+    Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
+    Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
 
 });
 

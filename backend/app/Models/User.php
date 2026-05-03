@@ -29,6 +29,8 @@ class User extends Authenticatable
 
     public function instructor()
     {
-        return $this->hasOne(Instructor::class, 'id_usuario', 'id');
+        // La tabla `instructores` no tiene `id_usuario`.
+        // El vínculo es: users.user_id → instructores.id_instructor
+        return $this->hasOne(Instructor::class, 'id_instructor', 'user_id');
     }
 }

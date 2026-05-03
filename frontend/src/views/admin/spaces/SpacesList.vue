@@ -12,7 +12,6 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 
-// Iconos de deportes para el selector de disciplinas
 import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
 import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue'
 import IconTenis      from '@/components/icons/sports/IconTenis.vue'
@@ -50,7 +49,6 @@ const OPT_STATUS = [
 
 const filteredSpaces = computed(() => {
   let r = [...spaces.value]
-
   if (search.value) {
     const q = search.value.toLowerCase()
     r = r.filter(s => s.nombre_espacio.toLowerCase().includes(q))
@@ -59,7 +57,6 @@ const filteredSpaces = computed(() => {
   else if (filterTipo.value === 'CLASE_PROGRAMADA') r = r.filter(s => s.es_clase_programada)
   else if (filterTipo.value === 'USO_LIBRE')  r = r.filter(s => s.es_uso_libre)
   if (filterStatus.value) r = r.filter(s => s.estatus === filterStatus.value)
-
   return r.sort((a, b) => a.nombre_espacio.localeCompare(b.nombre_espacio))
 })
 
@@ -72,28 +69,28 @@ const clearFilters = () => {
 // ── ICONO DEPORTE ──────────────────────────────────────────────
 const getIcon = (name = '') => {
   const n = name.toLowerCase()
-  if (n.includes('futbol'))   return IconFutbol
-  if (n.includes('basquet'))  return IconBasquetbol
+  if (n.includes('futbol'))    return IconFutbol
+  if (n.includes('basquet'))   return IconBasquetbol
   if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis
-  if (n.includes('voleibol')) return IconVoleibol
-  if (n.includes('squash'))   return IconSquash
-  if (n.includes('frontenis'))return IconFrontenis
-  if (n.includes('padel'))    return IconPadel
+  if (n.includes('voleibol'))  return IconVoleibol
+  if (n.includes('squash'))    return IconSquash
+  if (n.includes('frontenis')) return IconFrontenis
+  if (n.includes('padel'))     return IconPadel
   return IconDefault
 }
 
-// Paleta de color de acento según estatus del espacio
-const statusAccent = (estatus) => ({
-  ACTIVO:         'border-t-emerald-400',
-  MANTENIMIENTO:  'border-t-amber-400',
-  DESHABILITADO:  'border-t-red-400',
-}[estatus] ?? 'border-t-surface-200')
+// ── FRANJA DE COLOR ESTATUS ────────────────────────────────────
+const statusAccentLeft = (estatus) => ({
+  ACTIVO:        'bg-emerald-500',
+  MANTENIMIENTO: 'bg-amber-500',
+  DESHABILITADO: 'bg-red-500',
+}[estatus] ?? 'bg-slate-300')
 
 // ── BADGES DE TIPO ─────────────────────────────────────────────
 const tipoBadges = (space) => {
   const b = []
   if (space.es_reserva_on_demand) b.push({ label: 'On Demand',  classes: 'bg-indigo-50 text-indigo-700 border-indigo-100' })
-  if (space.es_clase_programada)  b.push({ label: 'Clase',      classes: 'bg-primary-50   text-primary-700   border-primary-100'   })
+  if (space.es_clase_programada)  b.push({ label: 'Clase',      classes: 'bg-blue-50 text-blue-700 border-blue-100' })
   if (space.es_uso_libre)         b.push({ label: 'Uso Libre',  classes: 'bg-emerald-50 text-emerald-700 border-emerald-100' })
   return b
 }
@@ -119,7 +116,9 @@ const buildMenuItems = (space) => [
   {
     label:  'Gestionar disciplinas',
     icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+               <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+               <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+               <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
              </svg>`,
     action: () => router.push({ name: 'spaces-disciplines', params: { id: space.id_espacio } }),
   },
@@ -227,7 +226,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
+  <main class="min-h-screen bg-slate-50 p-6 lg:p-8 pb-16 font-sans">
     <div class="max-w-7xl mx-auto space-y-8">
 
       <!-- CABECERA -->
@@ -235,14 +234,14 @@ onMounted(() => {
         title="Espacios Físicos"
         subtitle="Gestiona las canchas, salones e instalaciones del club."
       >
-        <span class="text-sm font-bold text-surface-500">
+        <span class="text-sm font-bold text-slate-500">
           {{ filteredSpaces.length }}
-          <span class="font-medium text-surface-400">de {{ spaces.length }}</span>
+          <span class="font-medium text-slate-400">de {{ spaces.length }}</span>
         </span>
         <button
           @click="openNewModal"
-          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white
-                 text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
+                 text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
@@ -252,50 +251,40 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- BARRA DE FILTROS -->
-      <div class="bg-white rounded-3xl border border-surface-200 shadow-sm p-6 space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
         <div class="relative">
-          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
             v-model="search"
             placeholder="Buscar espacio por nombre…"
-            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
-                   font-medium text-surface-900 placeholder:text-surface-400
-                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm
+                   font-medium text-slate-900 placeholder:text-slate-400
+                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"
           />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo de uso</label>
-            <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-              <select v-model="filterTipo" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo de uso</label>
+            <Select v-model="filterTipo" :options="OPT_TIPO" option-label="label" option-value="value"
+                    placeholder="Todos los tipos" class="w-full text-sm" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-            <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
+            <Select v-model="filterStatus" :options="OPT_STATUS" option-label="label" option-value="value"
+                    placeholder="Todos los estados" class="w-full text-sm" />
           </div>
         </div>
         <Transition
-          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -transurface-y-1"
-          enter-to-class="opacity-100 transurface-y-0"  leave-active-class="transition-all duration-150 ease-in"
-          leave-from-class="opacity-100 transurface-y-0" leave-to-class="opacity-0 -transurface-y-1"
+          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1"
+          enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
         >
           <div v-if="hasActiveFilters" class="flex justify-end">
             <button @click="clearFilters"
-              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
+              class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 transition-colors">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
@@ -306,43 +295,49 @@ onMounted(() => {
       </div>
 
       <!-- SKELETON -->
-      <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div v-for="n in 6" :key="n"
-          class="bg-white rounded-3xl border border-t-4 border-surface-200 border-t-surface-200 p-6 animate-pulse space-y-4">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-surface-200"/>
-            <div class="flex-1 space-y-2">
-              <div class="h-4 bg-surface-200 rounded-lg w-3/4"/>
-              <div class="h-3 bg-surface-100 rounded-lg w-1/2"/>
+      <div v-if="isLoading" class="flex flex-col gap-4">
+        <div v-for="n in 4" :key="n"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex gap-5 animate-pulse">
+          <div class="w-14 h-14 rounded-2xl bg-slate-200 shrink-0"/>
+          <div class="flex-1 space-y-3 py-1">
+            <div class="h-4 bg-slate-200 rounded-lg w-48"/>
+            <div class="flex gap-2">
+              <div class="h-5 w-20 bg-slate-100 rounded-lg"/>
+              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
+            </div>
+            <div class="flex gap-1.5">
+              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
+              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
+              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
             </div>
           </div>
-          <div class="flex gap-2"><div class="h-5 w-20 bg-surface-100 rounded-lg"/><div class="h-5 w-16 bg-surface-100 rounded-lg"/></div>
-          <div class="h-3 bg-surface-100 rounded-lg w-full"/>
+          <div class="w-28 h-9 rounded-xl bg-slate-100 self-center shrink-0"/>
         </div>
       </div>
 
       <!-- VACÍO -->
       <div v-else-if="filteredSpaces.length === 0"
-        class="bg-white rounded-3xl border-2 border-dashed border-surface-200 p-16
+        class="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16
                flex flex-col items-center justify-center text-center">
-        <div class="w-20 h-20 rounded-3xl bg-surface-100 flex items-center justify-center mb-4">
-          <svg class="w-9 h-9 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+          <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         </div>
-        <h3 class="text-lg font-black text-surface-900">Sin resultados</h3>
-        <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron espacios con los filtros actuales.</p>
-        <button @click="clearFilters" class="mt-4 text-sm font-bold text-primary-600 hover:underline">Limpiar filtros</button>
+        <h3 class="text-base font-black text-slate-900">Sin resultados</h3>
+        <p class="text-sm text-slate-500 mt-1 max-w-xs">No se encontraron espacios con los filtros actuales.</p>
+        <button @click="clearFilters" class="mt-4 text-sm font-bold text-blue-600 hover:underline">Limpiar filtros</button>
       </div>
 
-      <!-- GRID CARDS -->
+      <!-- LISTA DE CARDS HORIZONTALES -->
       <TransitionGroup
         v-else
         tag="div"
-        class="grid grid-cols-1 xl:grid-cols-2 gap-5"
+        class="flex flex-col gap-4"
         enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
         leave-active-class="transition-all duration-200 ease-in absolute"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
@@ -350,77 +345,91 @@ onMounted(() => {
         <div
           v-for="space in filteredSpaces"
           :key="space.id_espacio"
-          class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm
-                 hover:shadow-md hover:border-surface-300 transition-all duration-300 group flex flex-col sm:flex-row overflow-hidden relative"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm
+                 hover:shadow-md hover:border-slate-300
+                 transition-all duration-200 group overflow-hidden flex"
         >
-          <!-- Accent border on left for desktop, top for mobile -->
-          <div class="absolute inset-y-0 left-0 w-1.5 sm:w-2" :class="statusAccent(space.estatus)"></div>
+          <!-- Franja color estatus (izquierda) -->
+          <div class="w-1.5 shrink-0" :class="statusAccentLeft(space.estatus)" />
 
-          <!-- Lado Izquierdo: Ícono -->
-          <div class="p-6 sm:w-32 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-surface-100 bg-surface-50/50">
-            <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
-              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- Ícono instalación -->
+          <div class="flex items-center justify-center px-5 py-4 shrink-0">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center
+                        shadow-sm group-hover:scale-105 transition-transform duration-200">
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </div>
           </div>
 
-          <!-- Lado Derecho: Info -->
-          <div class="flex-1 p-6 flex flex-col">
-            <div class="flex justify-between items-start gap-4">
-               <div>
-                 <h3 class="text-base font-black text-surface-900 leading-tight">{{ space.nombre_espacio }}</h3>
-                 <p class="text-xs text-surface-400 font-medium mt-1">Capacidad: {{ space.capacidad_maxima ?? '—' }} personas</p>
-               </div>
-               <ActionMenu :items="buildMenuItems(space)" align="right" />
-            </div>
+          <!-- Contenido principal -->
+          <div class="flex-1 min-w-0 py-4 pr-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
 
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-               <BadgeStatus :status="space.estatus" />
-               <span
-                 v-for="badge in tipoBadges(space)"
-                 :key="badge.label"
-                 class="text-[10px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wider"
-                 :class="badge.classes"
-               >
-                 {{ badge.label }}
-               </span>
-            </div>
+                <!-- Nombre + capacidad -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-sm font-black text-slate-900 truncate leading-tight">
+                    {{ space.nombre_espacio }}
+                  </h3>
+                  <span class="text-[10px] font-bold text-slate-400 shrink-0">
+                    · {{ space.capacidad_maxima ?? '—' }} pers.
+                  </span>
+                </div>
 
-            <!-- Disciplinas -->
-            <div class="mt-4 py-2.5 px-3.5 rounded-xl bg-surface-50 border border-surface-100">
-               <p class="text-[10px] font-black uppercase tracking-wider text-surface-400 mb-2">Disciplinas</p>
-               <div v-if="space.disciplinas?.length" class="flex flex-wrap gap-1.5">
-                 <span
-                   v-for="d in space.disciplinas.slice(0, 4)"
-                   :key="d.id_disciplina"
-                   class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-surface-200 text-[10px] font-bold text-surface-600"
-                 >
-                   <component :is="getIcon(d.nombre_disciplina)" class="w-3 h-3 shrink-0" />
-                   {{ d.nombre_disciplina }}
-                 </span>
-                 <span v-if="space.disciplinas.length > 4"
-                   class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
-                   +{{ space.disciplinas.length - 4 }}
-                 </span>
-               </div>
-               <p v-else class="text-xs text-surface-400 italic">Sin disciplinas asignadas</p>
-            </div>
+                <!-- Estatus + tipo (pills) -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  <BadgeStatus :status="space.estatus" size="sm" />
+                  <span
+                    v-for="badge in tipoBadges(space)"
+                    :key="badge.label"
+                    class="text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wide"
+                    :class="badge.classes"
+                  >
+                    {{ badge.label }}
+                  </span>
+                </div>
 
-            <!-- Footer / Botones -->
-            <div class="mt-4 flex justify-end">
-               <button
-                 @click="router.push({ name: 'spaces-details', params: { id: space.id_espacio } })"
-                 class="px-4 py-2 rounded-xl bg-white border border-surface-200 text-surface-700 text-xs font-bold
-                        hover:bg-surface-50 hover:text-primary-600 transition-colors duration-200
-                        flex items-center justify-center gap-2 shadow-sm"
-               >
-                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
-                 </svg>
-                 Ver detalles
-               </button>
+                <!-- Disciplinas -->
+                <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1 mt-2">
+                  <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">
+                    Disciplinas:
+                  </span>
+                  <span
+                    v-for="d in space.disciplinas.slice(0, 5)"
+                    :key="d.id_disciplina"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200
+                           text-[10px] font-bold text-slate-600"
+                  >
+                    <component :is="getIcon(d.nombre_disciplina)" class="w-3 h-3 shrink-0" />
+                    {{ d.nombre_disciplina }}
+                  </span>
+                  <span v-if="space.disciplinas.length > 5"
+                    class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-bold">
+                    +{{ space.disciplinas.length - 5 }}
+                  </span>
+                </div>
+                <p v-else class="text-[11px] text-slate-400 italic mt-2">Sin disciplinas asignadas</p>
+
+              </div>
+
+              <!-- Botón ver detalles + menú -->
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  @click="router.push({ name: 'spaces-details', params: { id: space.id_espacio } })"
+                  class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100
+                         text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600
+                         transition-colors border border-slate-200 hover:border-blue-200"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                  </svg>
+                  Ver detalles
+                </button>
+                <ActionMenu :items="buildMenuItems(space)" align="right" />
+              </div>
             </div>
           </div>
         </div>
@@ -438,37 +447,40 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showNewModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="showNewModal = false"
         >
           <Transition
             enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 transurface-y-4"
-            enter-to-class="opacity-100 scale-100 transurface-y-0"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
           >
             <div v-if="showNewModal"
-              class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+              class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
 
-              <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100 bg-white">
+              <!-- Cabecera -->
+              <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
                 <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nuevo Espacio</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">Registra una cancha, salón o instalación.</p>
+                  <h2 class="text-lg font-black text-slate-900 leading-tight">Nuevo Espacio</h2>
+                  <p class="text-xs text-slate-500 font-medium mt-0.5">Registra una cancha, salón o instalación.</p>
                 </div>
                 <button @click="showNewModal = false"
-                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M18 6L6 18M6 6l12 12"/>
                   </svg>
                 </button>
               </div>
 
-              <div class="overflow-y-auto p-8 space-y-6 bg-surface-50/50">
+              <!-- Cuerpo -->
+              <div class="overflow-y-auto p-7 space-y-6 bg-slate-50/30">
 
                 <!-- Error banner -->
-                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
+                <Transition enter-active-class="transition-all duration-200"
+                            enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
                   <div v-if="formError"
-                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-bold shadow-sm">
-                    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-semibold">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
                     {{ formError }}
@@ -476,85 +488,83 @@ onMounted(() => {
                 </Transition>
 
                 <!-- Layout 2 columnas -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                   <!-- Columna izquierda -->
-                  <div class="space-y-6">
+                  <div class="space-y-5">
 
                     <div class="space-y-1.5">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
                         Nombre del Espacio <span class="text-red-400">*</span>
                       </label>
                       <input v-model="newSpace.nombre_espacio" placeholder="Ej. Cancha de Tenis 1"
-                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold
-                               text-surface-900 placeholder:text-surface-400 shadow-sm
-                               focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"/>
+                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                               text-slate-900 placeholder:text-slate-400
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
                     </div>
 
                     <div class="space-y-1.5">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Capacidad Máxima</label>
+                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Capacidad Máxima</label>
                       <input v-model.number="newSpace.capacidad_maxima" type="number" min="1"
-                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold shadow-sm
-                               focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"/>
+                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
                     </div>
 
-                    <!-- Configuración de uso -->
-                    <div class="space-y-3 mt-4">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Tipo de Uso</label>
-                      <div class="flex flex-col gap-3">
+                    <!-- Tipo de uso -->
+                    <div class="space-y-2">
+                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo de Uso</label>
+                      <div class="flex flex-col gap-2">
                         <button
                           v-for="uso in [
-                            { key: 'on_demand', label: 'Reserva On Demand', active: newSpace.es_reserva_on_demand, color: 'indigo' },
-                            { key: 'clase',     label: 'Clase Programada',  active: newSpace.es_clase_programada,  color: 'primary' },
-                            { key: 'libre',     label: 'Uso Libre',         active: newSpace.es_uso_libre,         color: 'emerald'},
+                            { key: 'on_demand', label: 'Reserva On Demand', active: newSpace.es_reserva_on_demand },
+                            { key: 'clase',     label: 'Clase Programada',  active: newSpace.es_clase_programada  },
+                            { key: 'libre',     label: 'Uso Libre',         active: newSpace.es_uso_libre         },
                           ]"
                           :key="uso.key"
                           type="button"
                           @click="toggleUso(uso.key)"
-                          class="flex items-center justify-between px-5 py-4 rounded-[1.25rem] border-2 text-sm font-bold transition-all shadow-sm group hover:-translate-y-0.5"
+                          class="flex items-center justify-between px-4 py-3 rounded-xl border text-xs font-bold transition-all"
                           :class="uso.active
-                            ? `bg-${uso.color}-50 text-${uso.color}-700 border-${uso.color}-500 ring-4 ring-${uso.color}-50`
-                            : 'bg-white text-surface-500 border-surface-200 hover:border-surface-300 hover:bg-surface-50'"
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-200 hover:text-blue-600'"
                         >
                           <span>{{ uso.label }}</span>
-                          <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0"
-                            :class="uso.active ? `bg-${uso.color}-600 border-${uso.color}-600 text-white` : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-surface-300'">
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                          </div>
+                          <svg v-if="uso.active" class="w-4 h-4 shrink-0"
+                               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                          <div v-else class="w-4 h-4 rounded-full border-2 border-slate-300 shrink-0"/>
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Columna derecha: disciplinas -->
-                  <div class="space-y-2 flex flex-col h-full">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Disciplinas Permitidas</label>
-                    <div class="flex-1 overflow-y-auto bg-surface-50 rounded-3xl p-2 pr-3 border border-surface-200 space-y-2 custom-scrollbar min-h-[300px]">
+                  <!-- Columna derecha: disciplinas — selector azul institucional -->
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Disciplinas Permitidas</label>
+                    <div class="h-72 overflow-y-auto bg-white rounded-2xl p-2 border border-slate-200 space-y-1.5">
                       <button
                         v-for="d in disciplines"
                         :key="d.id_disciplina"
                         type="button"
                         @click="toggleDisciplina(d.id_disciplina)"
-                        class="w-full flex items-center gap-3 px-4 py-3 rounded-[1.25rem] border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
+                        class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all text-left"
                         :class="newSpace.disciplinas.includes(d.id_disciplina)
-                          ? 'bg-primary-50 text-primary-700 border-primary-500 ring-4 ring-primary-50 hover:bg-primary-100'
-                          : 'bg-white text-surface-400 border-surface-200 hover:border-primary-300 hover:text-primary-600 hover:bg-surface-50 hover:-translate-y-0.5 hover:shadow-md'"
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'"
                       >
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all"
-                          :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-primary-600 text-white shadow-inner' : 'bg-surface-100 text-surface-400 group-hover:bg-primary-100 group-hover:text-primary-600'">
+                        <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all"
+                          :class="newSpace.disciplinas.includes(d.id_disciplina)
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-200 text-slate-500'">
                           <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
                         </div>
                         <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
-                        
-                        <!-- Check -->
-                        <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
-                             :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-primary-300'">
-                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
+                        <svg v-if="newSpace.disciplinas.includes(d.id_disciplina)"
+                          class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="3">
+                          <path d="M20 6L9 17l-5-5"/>
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -562,14 +572,15 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
+              <!-- Pie del modal -->
+              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
                 <button @click="showNewModal = false"
-                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                  class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                   Cancelar
                 </button>
                 <button @click="saveNewSpace" :disabled="isSaving"
-                  class="px-6 py-3 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm">
-                  <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
                   {{ isSaving ? 'Guardando…' : 'Crear Espacio' }}
@@ -591,24 +602,24 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showDisableModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="showDisableModal = false"
         >
-          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-5">
+          <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5">
               <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 9v4M12 17h.01"/>
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               </svg>
             </div>
-            <h3 class="text-xl font-black text-surface-900 mb-2">¿Deshabilitar espacio?</h3>
-            <p class="text-sm text-surface-500 mb-8">
-              ¿Confirmas deshabilitar <span class="font-bold text-surface-800">{{ selectedSpace?.nombre_espacio }}</span>?
+            <h3 class="text-xl font-black text-slate-900 mb-2">¿Deshabilitar espacio?</h3>
+            <p class="text-sm text-slate-500 mb-8">
+              ¿Confirmas deshabilitar <span class="font-bold text-slate-800">{{ selectedSpace?.nombre_espacio }}</span>?
               El sistema validará que no haya actividades pendientes.
             </p>
             <div class="flex gap-3">
               <button @click="showDisableModal = false"
-                class="flex-1 py-3 rounded-2xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                class="flex-1 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                 Cancelar
               </button>
               <button @click="confirmDisable" :disabled="isSaving"

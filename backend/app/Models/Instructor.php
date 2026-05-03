@@ -12,7 +12,6 @@ class Instructor extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_usuario',
         'nombre_completo',
         'telefono',
         'correo_electronico',
@@ -25,7 +24,8 @@ class Instructor extends Model
 
     public function usuario()
     {
-        return $this->belongsTo(User::class, 'id_usuario', 'id');
+        // El user está vinculado por users.user_id = instructores.id_instructor
+        return $this->belongsTo(User::class, 'id_instructor', 'user_id');
     }
 
     

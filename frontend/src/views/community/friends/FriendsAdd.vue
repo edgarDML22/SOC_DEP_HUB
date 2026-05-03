@@ -1,22 +1,45 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useFriendStore } from '@/stores/community/friendStore'
 import { useProfileStore } from '@/stores/profiles/socioStore'
-import { useAlerts } from '@/composables/useAlerts' 
+import { useAlerts } from '@/composables/useAlerts'
 import api from '@/services/api'
 import { useRouter } from 'vue-router'
 import { IconArrowLeft } from '@/components/icons'
 
 const friendStore = useFriendStore()
 const profileStore = useProfileStore()
-const { toastInfo } = useAlerts() 
-const { showLoading, closeLoading, successModal, errorModal } = useAlerts()
+const { toastInfo, showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts()
 const router = useRouter()
 
 const search = ref('')
 const loadingSearch = ref(false)
 const resultados = ref([])
 const sendingId = ref(null)
+
+onMounted(() => {
+  friendStore.fetchFriends()
+})
+
+// IDs de socios con los que ya hay relación activa (amigo o solicitud pendiente)
+const idsRelacionados = computed(() => {
+  const list = Array.isArray(friendStore.friends) ? friendStore.friends : []
+  return new Set(
+    list
+      .filter(f => f.estado?.toUpperCase() !== 'RECHAZADA')
+      .map(f => f.id_amigo)
+  )
+})
+
+function estadoRelacion(socioId) {
+  const list = Array.isArray(friendStore.friends) ? friendStore.friends : []
+  const rel = list.find(f => f.id_amigo === socioId && f.estado?.toUpperCase() !== 'RECHAZADA')
+  if (!rel) return null
+  if (rel.estado?.toUpperCase() === 'ACEPTADA') return 'amigo'
+  if (rel.estado?.toUpperCase() === 'PENDIENTE' && rel.solicitado_por_mi) return 'enviada'
+  if (rel.estado?.toUpperCase() === 'PENDIENTE' && !rel.solicitado_por_mi) return 'recibida'
+  return null
+}
 
 let timeoutId = null
 
@@ -36,13 +59,13 @@ watch(search, (newVal) => {
 async function buscarSocios(query) {
   loadingSearch.value = true
   try {
-    const response = await api.get(`/socios/search?query=${query}`)
-    console.log('🔍 Búsqueda:', query, '→ Resultados:', response.data)
-    // Excluir al socio autenticado de los resultados
+    const response = await api.get(`/socios/search?query=${encodeURIComponent(query)}`)
     const myId = profileStore.idSocio
-    resultados.value = (response.data?.data || []).filter(item => item.id !== myId)
+    // Solo socios titulares, excluyendo al propio usuario
+    resultados.value = (response.data?.data || [])
+      .filter(item => item.tipo_perfil === 'socio_titular' && item.id !== myId)
   } catch (e) {
-    console.error('❌ Error en búsqueda:', e)
+    console.error('Error en búsqueda:', e)
     toastInfo('Error', 'No se pudo completar la búsqueda', 'error')
   } finally {
     loadingSearch.value = false
@@ -50,13 +73,20 @@ async function buscarSocios(query) {
 }
 
 async function enviarSolicitud(socio) {
+  // Modal de confirmación antes de enviar (reciclando confirmWarning de useAlerts)
+  const result = await confirmWarning(
+    '¿Enviar solicitud?',
+    `¿Quieres enviar una solicitud de amistad a ${socio.nombre}?`,
+    'Sí, Enviar'
+  )
+  if (!result.isConfirmed) return
+
   sendingId.value = socio.id
   showLoading('Enviando solicitud...')
   try {
-    await friendStore.addFriend({ receptor_id: socio.id })
+    await friendStore.addFriend({ receptor_id: socio.id, _nombre_receptor: socio.nombre })
     closeLoading()
     await successModal('¡Solicitud enviada!', `Tu solicitud de amistad fue enviada a ${socio.nombre} exitosamente.`)
-    // Redirigir de regreso a la lista
     router.push({ name: 'friends-list' })
   } catch (e) {
     closeLoading()
@@ -109,7 +139,7 @@ async function enviarSolicitud(socio) {
           >
             <!-- Info Izquierda -->
             <div class="flex items-center gap-4 min-w-0">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-bold text-lg uppercase shrink-0">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
                 {{ socio.nombre?.charAt(0) || '?' }}
               </div>
               <div class="flex flex-col min-w-0">
@@ -118,14 +148,34 @@ async function enviarSolicitud(socio) {
               </div>
             </div>
 
-            <!-- Botón Derecha -->
-            <button 
-              @click="enviarSolicitud(socio)" 
-              :disabled="sendingId === socio.id"
-              class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:outline-none shrink-0"
-            >
-              {{ sendingId === socio.id ? 'Enviando...' : 'Enviar Solicitud' }}
-            </button>
+            <!-- Botón / Estado Derecha -->
+            <template v-if="estadoRelacion(socio.id) === 'amigo'">
+              <span class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-green-50 text-green-700 border border-green-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Ya son amigos
+              </span>
+            </template>
+            <template v-else-if="estadoRelacion(socio.id) === 'enviada'">
+              <span class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                Solicitud enviada
+              </span>
+            </template>
+            <template v-else-if="estadoRelacion(socio.id) === 'recibida'">
+              <span class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary-50 text-primary-700 border border-primary-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>
+                Solicitud recibida
+              </span>
+            </template>
+            <template v-else>
+              <button
+                @click="enviarSolicitud(socio)"
+                :disabled="sendingId === socio.id"
+                class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:outline-none shrink-0"
+              >
+                {{ sendingId === socio.id ? 'Enviando...' : 'Enviar Solicitud' }}
+              </button>
+            </template>
           </div>
         </div>
       </div>

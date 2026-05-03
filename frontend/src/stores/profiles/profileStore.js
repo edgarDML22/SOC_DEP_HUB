@@ -1,6 +1,11 @@
 import { ref, computed } from "vue";
 import api from "@/services/api";
 import router from "@/router";
+import { useFriendStore } from "@/stores/community/friendStore";
+import { useFamilyStore } from "@/stores/community/familyStore";
+import { useGuestStore } from "@/stores/community/guestStore";
+import { useNotificacionesStore } from "@/stores/profiles/notificacionesStore";
+import { useReservationStore } from "@/stores/reservationStore";
 
 export function useProfileLogic(endpointUrl = '/profile') {
     const profileData = ref(null);
@@ -75,9 +80,20 @@ export function useProfileLogic(endpointUrl = '/profile') {
         } catch (error) {
             console.error("Error al cerrar sesión en el servidor:", error);
         } finally {
+            // ── Limpiar datos del perfil ──
+            profileData.value = null;
+            profilePromise    = null;
+
+            // ── Resetear TODOS los stores con datos de usuario ──
+            // Importados localmente para evitar dependencias circulares en el módulo
+            useFriendStore().reset()
+            useFamilyStore().$reset()
+            useGuestStore().$reset()
+            useNotificacionesStore().reset()
+            useReservationStore().resetearReserva()
+
             localStorage.clear();
             router.push("/login");
-            profileData.value = null;
         }
     };
 

@@ -10,116 +10,87 @@ class Sanciones extends Controller
 {
     public static function aplicarSanciones($id_socio)
     {
-        // 1. Buscar el socio
         $socio = SocioTitular::find($id_socio);
         if (!$socio) {
-            return response()->json([
-                'message' => 'Socio no encontrado',
-            ], 404);
+            return response()->json(['message' => 'Socio no encontrado'], 404);
         }
 
-        // 2. Ya fue incrementado en el controlador que llama
-
-        // 3. Recargar datos actualizados
         $socio->refresh();
         $retrasos = $socio->retrasos_ludoteca;
 
-        // 4. Lógica de notificaciones/suspensión (NO APLICAR A CANCELADOS)
-        if ($socio->estatus_cuenta !== 'CANCELADO') {
+        if ($socio->estatus_cuenta === 'CANCELADO') {
+            return;
+        }
 
-            if ($retrasos == 3) {
-                $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
-            } elseif ($retrasos == 5) {
-                $socio->update([
-                    'estatus_penalizacion' => 'PENALIZADO_LUDOTECA',
-                    'fecha_fin_penalizacion' => now()->addDay()
-                ]);
-                $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
+        if ($retrasos == 3) {
+            $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
+            return;
+        }
 
-            } elseif ($retrasos == 7) {
-                $socio->update([
-                    'estatus_penalizacion' => 'PENALIZADO_LUDOTECA',
-                    'fecha_fin_penalizacion' => now()->addDays(3)
+        $diasMap = [5 => 1, 7 => 3, 9 => 5];
 
-                ]);
-                $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
-
-            } elseif ($retrasos == 9) {
-                $socio->update([
-                    'estatus_penalizacion' => 'PENALIZADO_LUDOTECA',
-                    'fecha_fin_penalizacion' => now()->addDays(5)
-                ]);
-                $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
-
-            } elseif ($retrasos >= 12) {
-                $socio->notify(new AlertaRecogidaNotification(null, 'cancelacion_ludoteca'));
-                $socio->update([
-                    'estatus_penalizacion' => 'SUSPENDIDO',
-                    'fecha_fin_penalizacion' => null
-                ]);
-            }
+        if (isset($diasMap[$retrasos])) {
+            $fechaLudoteca = now()->addDays($diasMap[$retrasos]);
+            $reservaActiva = $socio->fecha_fin_penalizacion_reserva && $socio->fecha_fin_penalizacion_reserva->isFuture();
+            $socio->update([
+                'estatus_penalizacion'            => $reservaActiva ? 'PENALIZADO_AMBOS' : 'PENALIZADO_LUDOTECA',
+                'fecha_fin_penalizacion_ludoteca' => $fechaLudoteca,
+            ]);
+            $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
+        } elseif ($retrasos >= 12) {
+            $socio->notify(new AlertaRecogidaNotification(null, 'cancelacion_ludoteca'));
+            $socio->update([
+                'estatus_penalizacion'            => 'SUSPENDIDO',
+                'fecha_fin_penalizacion_ludoteca' => null,
+                'fecha_fin_penalizacion_reserva'  => null,
+            ]);
         }
 
         return response()->json([
-            'message' => 'Sanciones aplicadas correctamente',
-            'retrasos' => $socio->refresh()->retrasos_ludoteca,
-            'estatus_actual' => $socio->estatus_cuenta,
-            'estatus_penalizacion' => $socio->estatus_penalizacion
+            'message'             => 'Sanciones aplicadas correctamente',
+            'retrasos'            => $socio->refresh()->retrasos_ludoteca,
+            'estatus_actual'      => $socio->estatus_cuenta,
+            'estatus_penalizacion' => $socio->estatus_penalizacion,
         ]);
     }
+
     public static function aplicarSancionesReservas($id_socio)
     {
-        // 1. Buscar el socio
         $socio = SocioTitular::find($id_socio);
         if (!$socio) {
             return;
         }
 
-        // 2. Ya fue incrementado en el controlador que llama
-
-        // 3. Recargar datos actualizados
         $socio->refresh();
-        $noshows = $socio->contador_noshows;
+        $noshows = $socio->contador_no_shows;
 
-        // 4. Lógica de notificaciones/suspensión (NO APLICAR A CANCELADOS)
-        if ($socio->estatus_cuenta !== 'CANCELADO') {
-
-            if ($noshows == 3) {
-                $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
-
-            } elseif ($noshows == 5) {
-                $socio->update([
-                    'estatus_penalizacion' => 'PENALIZADO_RESERVA',
-                    'fecha_fin_suspension' => now()->addDay()
-                ]);
-
-            } elseif ($noshows == 7) {
-                $socio->update([
-                    'estatus_penalizacion' => 'PENALIZADO_RESERVA',
-                    'fecha_fin_suspension' => now()->addDays(3)
-                ]);
-
-            } elseif ($noshows == 9) {
-                $socio->update([
-                    'estatus_penalizacion' => 'PENALIZADO_RESERVA',
-                    'fecha_fin_suspension' => now()->addDays(5)
-                ]);
-
-            } elseif ($noshows >= 12) {
-                $socio->update([
-                    'estatus_penalizacion' => 'SUSPENDIDO',
-                    'fecha_fin_suspension' => null
-                ]);
-                $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
-            }
+        if ($socio->estatus_cuenta === 'CANCELADO') {
+            return;
         }
 
-        return response()->json([
-            'message' => 'Sanciones aplicadas correctamente',
-            'retrasos' => $socio->refresh()->retrasos_ludoteca,
-            'estatus_actual' => $socio->estatus_cuenta,
-            'estatus_penalizacion' => $socio->estatus_penalizacion
-        ]);
+        if ($noshows == 3) {
+            $socio->notify(new AlertaRecogidaNotification(null, 'advertencia'));
+            return;
+        }
+
+        $diasMap = [5 => 1, 7 => 3, 9 => 5];
+
+        if (isset($diasMap[$noshows])) {
+            $fechaReserva = now()->addDays($diasMap[$noshows]);
+            $ludotecaActiva = $socio->fecha_fin_penalizacion_ludoteca && $socio->fecha_fin_penalizacion_ludoteca->isFuture();
+            $socio->update([
+                'estatus_penalizacion'           => $ludotecaActiva ? 'PENALIZADO_AMBOS' : 'PENALIZADO_RESERVA',
+                'fecha_fin_penalizacion_reserva' => $fechaReserva,
+            ]);
+            $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
+        } elseif ($noshows >= 12) {
+            $socio->update([
+                'estatus_penalizacion'            => 'SUSPENDIDO',
+                'fecha_fin_penalizacion_ludoteca' => null,
+                'fecha_fin_penalizacion_reserva'  => null,
+            ]);
+            $socio->notify(new AlertaRecogidaNotification(null, 'suspension_ludoteca'));
+        }
     }
 
     /**

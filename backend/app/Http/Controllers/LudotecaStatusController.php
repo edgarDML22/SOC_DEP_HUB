@@ -54,10 +54,15 @@ class LudotecaStatusController extends Controller
             ], 403);
         }
 
-        if ($modalidad_plan->estatus_penalizacion === 'PENALIZADO_LUDOTECA' || $modalidad_plan->estatus_penalizacion === 'PENALIZADO_AMBOS' || $modalidad_plan->estatus_penalizacion === 'SUSPENDIDO') {
+        $penalizacionLudoteca = in_array($modalidad_plan->estatus_penalizacion, ['PENALIZADO_LUDOTECA', 'PENALIZADO_AMBOS', 'SUSPENDIDO'])
+            && ($modalidad_plan->estatus_penalizacion === 'SUSPENDIDO'
+                || ($modalidad_plan->fecha_fin_penalizacion_ludoteca && $modalidad_plan->fecha_fin_penalizacion_ludoteca->isFuture()));
+
+        if ($penalizacionLudoteca) {
             return response()->json([
-                'message' => 'Su cuenta está suspendida',
-                'error' => 'CUENTA SUSPENDIDA'
+                'message' => 'Su cuenta tiene una penalización activa en Ludoteca.',
+                'error'   => 'PENALIZACION_LUDOTECA',
+                'fecha_liberacion' => $modalidad_plan->fecha_fin_penalizacion_ludoteca?->toDateTimeString(),
             ], 403);
         }
 

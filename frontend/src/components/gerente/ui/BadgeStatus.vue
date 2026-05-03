@@ -15,14 +15,29 @@ const props = defineProps({
 })
 
 const STATUS_MAP = {
-  // Socios
+  // Socios — estatus_cuenta
   AL_CORRIENTE:        { label: 'Al Corriente',      classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   MOROSO:              { label: 'Moroso',             classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
   SUSPENDIDO:          { label: 'Suspendido',         classes: 'bg-red-50    text-red-700    border-red-200'    },
   PENALIZADO:          { label: 'Penalizado',         classes: 'bg-orange-50 text-orange-700 border-orange-200' },
-  PENALIZADO_AMBOS:    { label: 'Pen. Ambos',         classes: 'bg-orange-50 text-orange-700 border-orange-200' },
-  PENALIZADO_RESERVA:  { label: 'Pen. Reservas',      classes: 'bg-orange-50 text-orange-700 border-orange-200' },
-  PENALIZADO_LUDOTECA: { label: 'Pen. Ludoteca',      classes: 'bg-orange-50 text-orange-700 border-orange-200' },
+
+  // Socios — estatus_penalizacion
+  SIN_PENALIZACION:    { label: 'Sin Penalización',       classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  PENALIZADO_AMBOS:    { label: 'Penalizado Ambos',        classes: 'bg-purple-50 text-purple-700 border-purple-200' },
+  PENALIZADO_RESERVA:  { label: 'Penalizado Reservas',     classes: 'bg-red-50    text-red-700    border-red-200'    },
+  PENALIZADO_LUDOTECA: { label: 'Penalizado Ludoteca',     classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
+
+  // Socios — tipo_socio
+  ACCIONISTA:          { label: 'Accionista',              classes: 'bg-indigo-50  text-indigo-700  border-indigo-200'  },
+  RENTISTA:            { label: 'Rentista',                classes: 'bg-teal-50    text-teal-700    border-teal-200'    },
+
+  // Socios — modalidad_plan
+  INDIVIDUAL:          { label: 'Individual',              classes: 'bg-orange-50  text-orange-700  border-orange-200'  },
+  FAMILIAR:            { label: 'Familiar',                classes: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' },
+
+  // Socios — genero
+  M:                   { label: 'Masculino',          classes: 'bg-sky-50    text-sky-700    border-sky-200'    },
+  F:                   { label: 'Femenino',           classes: 'bg-rose-50   text-rose-700   border-rose-200'   },
 
   // Instructores / Usuarios
   ACTIVO:              { label: 'Activo',             classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },

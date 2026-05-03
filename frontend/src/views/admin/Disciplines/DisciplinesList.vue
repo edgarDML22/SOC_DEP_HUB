@@ -39,7 +39,6 @@ const OPT_STATUS = [
 
 const filteredDisciplines = computed(() => {
   let r = [...disciplines.value]
-
   if (search.value) {
     const q = search.value.toLowerCase()
     r = r.filter(d => {
@@ -49,7 +48,6 @@ const filteredDisciplines = computed(() => {
   }
   if (filterStatus.value)   r = r.filter(d => d.estatus === filterStatus.value)
   if (filterCategory.value) r = r.filter(d => d.id_categoria === filterCategory.value)
-
   return r.sort((a, b) => {
     const catA = a.categoria?.nombre_categoria || a.categoria_disciplina || ''
     const catB = b.categoria?.nombre_categoria || b.categoria_disciplina || ''
@@ -64,19 +62,20 @@ const clearFilters = () => {
   filterStatus.value = filterCategory.value = null
 }
 
-// ── COLOR DE ACENTO POR CATEGORÍA ─────────────────────────────
+// ── PALETA POR CATEGORÍA ───────────────────────────────────────
 const CATEGORY_COLORS = [
-  'border-t-primary-400',
-  'border-t-purple-400',
-  'border-t-emerald-400',
-  'border-t-orange-400',
-  'border-t-rose-400',
-  'border-t-cyan-400',
-  'border-t-amber-400',
-  'border-t-indigo-400',
+  { left: 'bg-blue-500',    icon: 'bg-blue-50 text-blue-600'     },
+  { left: 'bg-purple-500',  icon: 'bg-purple-50 text-purple-600'  },
+  { left: 'bg-emerald-500', icon: 'bg-emerald-50 text-emerald-600' },
+  { left: 'bg-orange-500',  icon: 'bg-orange-50 text-orange-600'  },
+  { left: 'bg-rose-500',    icon: 'bg-rose-50 text-rose-600'     },
+  { left: 'bg-cyan-500',    icon: 'bg-cyan-50 text-cyan-600'     },
+  { left: 'bg-amber-500',   icon: 'bg-amber-50 text-amber-600'   },
+  { left: 'bg-indigo-500',  icon: 'bg-indigo-50 text-indigo-600'  },
 ]
-const categoryAccent = (catName = '') => {
-  const idx = (catName.charCodeAt(0) ?? 0) % CATEGORY_COLORS.length
+const categoryPalette = (catName = '') => {
+  const code = catName.length > 0 ? catName.charCodeAt(0) : 0
+  const idx = code % CATEGORY_COLORS.length
   return CATEGORY_COLORS[idx]
 }
 
@@ -120,7 +119,7 @@ const buildMenuItems = (discipline) => [
   },
 ]
 
-// ── MODAL: NUEVO DISCIPLINA ────────────────────────────────────
+// ── MODAL: NUEVA DISCIPLINA ────────────────────────────────────
 const showNewModal = ref(false)
 const isSaving     = ref(false)
 const formError    = ref('')
@@ -209,7 +208,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
+  <main class="min-h-screen bg-slate-50 p-6 lg:p-8 pb-16 font-sans">
     <div class="max-w-7xl mx-auto space-y-8">
 
       <!-- CABECERA -->
@@ -217,15 +216,14 @@ onMounted(() => {
         title="Disciplinas"
         subtitle="Gestiona los deportes y actividades del club."
       >
-        <span class="text-sm font-bold text-surface-500">
+        <span class="text-sm font-bold text-slate-500">
           {{ filteredDisciplines.length }}
-          <span class="font-medium text-surface-400">de {{ disciplines.length }}</span>
+          <span class="font-medium text-slate-400">de {{ disciplines.length }}</span>
         </span>
-        <!-- Botón Categorías -->
         <button
           @click="router.push({ name: 'disciplines-categories' })"
-          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-surface-200 shadow-sm
-                 text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 shadow-sm
+                 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -235,8 +233,8 @@ onMounted(() => {
         </button>
         <button
           @click="openNewModal"
-          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white
-                 text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
+                 text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
@@ -246,50 +244,40 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- FILTROS -->
-      <div class="bg-white rounded-3xl border border-surface-200 shadow-sm p-6 space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
         <div class="relative">
-          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
             v-model="search"
             placeholder="Buscar por nombre o categoría…"
-            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
-                   font-medium text-surface-900 placeholder:text-surface-400
-                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm
+                   font-medium text-slate-900 placeholder:text-slate-400
+                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"
           />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Categoría</label>
-            <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-              <select v-model="filterCategory" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in categoryOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoría</label>
+            <Select v-model="filterCategory" :options="categoryOpts" option-label="label" option-value="value"
+                    placeholder="Todas las categorías" class="w-full text-sm" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-            <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
+            <Select v-model="filterStatus" :options="OPT_STATUS" option-label="label" option-value="value"
+                    placeholder="Todos los estados" class="w-full text-sm" />
           </div>
         </div>
         <Transition
-          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -transurface-y-1"
-          enter-to-class="opacity-100 transurface-y-0" leave-active-class="transition-all duration-150 ease-in"
-          leave-from-class="opacity-100 transurface-y-0" leave-to-class="opacity-0 -transurface-y-1"
+          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1"
+          enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
         >
           <div v-if="hasActiveFilters" class="flex justify-end">
             <button @click="clearFilters"
-              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
+              class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 transition-colors">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
@@ -300,45 +288,43 @@ onMounted(() => {
       </div>
 
       <!-- SKELETON -->
-      <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div v-for="n in 6" :key="n"
-          class="bg-white rounded-3xl border border-t-4 border-surface-200 border-t-indigo-200 p-6 animate-pulse space-y-4">
-          <div class="flex justify-between items-start">
-            <div class="w-12 h-12 rounded-2xl bg-surface-200"/>
-            <div class="h-5 w-16 bg-surface-100 rounded-full"/>
+      <div v-if="isLoading" class="flex flex-col gap-4">
+        <div v-for="n in 4" :key="n"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex gap-5 animate-pulse">
+          <div class="w-14 h-14 rounded-2xl bg-slate-200 shrink-0"/>
+          <div class="flex-1 space-y-3 py-1">
+            <div class="h-4 bg-slate-200 rounded-lg w-40"/>
+            <div class="h-3 bg-indigo-100 rounded-lg w-24"/>
+            <div class="h-3 bg-slate-100 rounded-lg w-full"/>
+            <div class="h-3 bg-slate-100 rounded-lg w-3/4"/>
           </div>
-          <div class="space-y-2">
-            <div class="h-5 bg-surface-200 rounded-lg w-3/4"/>
-            <div class="h-3 bg-surface-100 rounded-lg w-1/3"/>
-            <div class="h-3 bg-surface-100 rounded-lg w-full"/>
-            <div class="h-3 bg-surface-100 rounded-lg w-2/3"/>
-          </div>
+          <div class="w-24 h-9 rounded-xl bg-slate-100 self-center shrink-0"/>
         </div>
       </div>
 
       <!-- VACÍO -->
       <div v-else-if="filteredDisciplines.length === 0"
-        class="bg-white rounded-3xl border-2 border-dashed border-surface-200 p-16
+        class="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16
                flex flex-col items-center justify-center text-center">
-        <div class="w-20 h-20 rounded-3xl bg-surface-100 flex items-center justify-center mb-4">
-          <svg class="w-9 h-9 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+          <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
             <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
           </svg>
         </div>
-        <h3 class="text-lg font-black text-surface-900">Sin resultados</h3>
-        <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron disciplinas con los filtros actuales.</p>
-        <button @click="clearFilters" class="mt-4 text-sm font-bold text-primary-600 hover:underline">Limpiar filtros</button>
+        <h3 class="text-base font-black text-slate-900">Sin resultados</h3>
+        <p class="text-sm text-slate-500 mt-1 max-w-xs">No se encontraron disciplinas con los filtros actuales.</p>
+        <button @click="clearFilters" class="mt-4 text-sm font-bold text-blue-600 hover:underline">Limpiar filtros</button>
       </div>
 
-      <!-- GRID CARDS -->
+      <!-- LISTA DE CARDS HORIZONTALES -->
       <TransitionGroup
         v-else
         tag="div"
-        class="grid grid-cols-1 xl:grid-cols-2 gap-5"
+        class="flex flex-col gap-4"
         enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
         leave-active-class="transition-all duration-200 ease-in absolute"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
@@ -346,16 +332,24 @@ onMounted(() => {
         <div
           v-for="discipline in filteredDisciplines"
           :key="discipline.id_disciplina"
-          class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm
-                 hover:shadow-md hover:border-surface-300 transition-all duration-300 group flex flex-col sm:flex-row overflow-hidden relative"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm
+                 hover:shadow-md hover:border-slate-300
+                 transition-all duration-200 group overflow-hidden flex"
         >
-          <!-- Accent border on left for desktop, top for mobile -->
-          <div class="absolute inset-y-0 left-0 w-1.5 sm:w-2" :class="categoryAccent(discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '')"></div>
+          <!-- Franja de color de categoría -->
+          <div
+            class="w-1.5 shrink-0"
+            :class="categoryPalette(discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '').left"
+          />
 
-          <!-- Lado Izquierdo: Ícono -->
-          <div class="p-6 sm:w-32 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-surface-100 bg-surface-50/50">
-            <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
-              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- Ícono disciplina coloreado por categoría -->
+          <div class="flex items-center justify-center px-5 py-4 shrink-0">
+            <div
+              class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm
+                     group-hover:scale-105 transition-transform duration-200"
+              :class="categoryPalette(discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '').icon"
+            >
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
                 <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
                 <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
@@ -363,43 +357,47 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Lado Derecho: Info -->
-          <div class="flex-1 p-6 flex flex-col">
-            <div class="flex justify-between items-start gap-4">
-               <div>
-                 <h3 class="text-base font-black text-surface-900 leading-tight">{{ discipline.nombre_disciplina }}</h3>
-                 <p class="text-xs font-bold uppercase tracking-wider text-indigo-500 mt-1">
-                   {{ discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '—' }}
-                 </p>
-               </div>
-               <ActionMenu :items="buildMenuItems(discipline)" align="right" />
-            </div>
+          <!-- Contenido principal -->
+          <div class="flex-1 min-w-0 py-4 pr-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
 
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-               <BadgeStatus :status="discipline.estatus" />
-            </div>
+                <!-- Nombre -->
+                <h3 class="text-sm font-black text-slate-900 truncate leading-tight">
+                  {{ discipline.nombre_disciplina }}
+                </h3>
 
-            <!-- Descripción -->
-            <div class="mt-4 py-2.5 px-3.5 rounded-xl bg-surface-50 border border-surface-100">
-               <p class="text-[10px] font-black uppercase tracking-wider text-surface-400 mb-1">Descripción</p>
-               <p class="text-xs text-surface-500 font-medium line-clamp-2 leading-relaxed">
-                 {{ discipline.descripcion || 'Sin descripción disponible.' }}
-               </p>
-            </div>
+                <!-- Categoría + Estatus pills -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600
+                               bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                    {{ discipline.categoria?.nombre_categoria || discipline.categoria_disciplina || '—' }}
+                  </span>
+                  <BadgeStatus :status="discipline.estatus" size="sm" />
+                </div>
 
-            <!-- Footer / Botones -->
-            <div class="mt-4 flex justify-end">
-               <button
-                 @click="router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } })"
-                 class="px-4 py-2 rounded-xl bg-white border border-surface-200 text-surface-700 text-xs font-bold
-                        hover:bg-surface-50 hover:text-indigo-600 transition-colors duration-200
-                        flex items-center justify-center gap-2 shadow-sm"
-               >
-                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
-                 </svg>
-                 Ver detalles
-               </button>
+                <!-- Descripción -->
+                <p class="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed mt-1.5 max-w-2xl">
+                  {{ discipline.descripcion || 'Sin descripción disponible.' }}
+                </p>
+              </div>
+
+              <!-- Botón + menú -->
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  @click="router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } })"
+                  class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100
+                         text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600
+                         transition-colors border border-slate-200 hover:border-blue-200"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                  </svg>
+                  Ver detalles
+                </button>
+                <ActionMenu :items="buildMenuItems(discipline)" align="right" />
+              </div>
             </div>
           </div>
         </div>
@@ -417,7 +415,7 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showNewModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="showNewModal = false"
         >
           <Transition
@@ -426,94 +424,85 @@ onMounted(() => {
             enter-to-class="opacity-100 scale-100 translate-y-0"
           >
             <div v-if="showNewModal"
-              class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+              class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
 
-              <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100 bg-white">
+              <!-- Cabecera -->
+              <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
                 <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nueva Disciplina</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">Registra un deporte o actividad del club.</p>
+                  <h2 class="text-lg font-black text-slate-900 leading-tight">Nueva Disciplina</h2>
+                  <p class="text-xs text-slate-500 font-medium mt-0.5">Registra un deporte o actividad del club.</p>
                 </div>
                 <button @click="showNewModal = false"
-                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M18 6L6 18M6 6l12 12"/>
                   </svg>
                 </button>
               </div>
 
-              <div class="overflow-y-auto p-8 space-y-6 bg-surface-50/50">
+              <!-- Cuerpo -->
+              <div class="overflow-y-auto p-7 space-y-5 bg-slate-50/30">
 
-                <!-- Error -->
-                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
+                <Transition enter-active-class="transition-all duration-200"
+                            enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
                   <div v-if="formError"
-                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-bold shadow-sm">
-                    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-semibold">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
                     {{ formError }}
                   </div>
                 </Transition>
 
-                <!-- Nombre -->
                 <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
                     Nombre <span class="text-red-400">*</span>
                   </label>
                   <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
-                    class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold
-                           text-surface-900 placeholder:text-surface-400 shadow-sm
-                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"/>
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                           text-slate-900 placeholder:text-slate-400
+                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
                 </div>
 
-                <!-- Categoría + Estatus -->
-                <div class="grid grid-cols-2 gap-6">
+                <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
                       Categoría <span class="text-red-400">*</span>
                     </label>
                     <Select
                       v-model="newDiscipline.id_categoria"
-                      :options="[{ label: 'Seleccionar categoría…', value: null }, ...categories.map(c => ({ label: c.nombre_categoria, value: c.id }))]"
-                      option-label="label"
-                      option-value="value"
-                      class="w-full shadow-sm"
+                      :options="[{ label: 'Seleccionar…', value: null }, ...categories.map(c => ({ label: c.nombre_categoria, value: c.id }))]"
+                      option-label="label" option-value="value" class="w-full"
                     />
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Estatus</label>
-                    <Select
-                      v-model="newDiscipline.estatus"
-                      :options="OPT_ESTATUS_FORM"
-                      option-label="label"
-                      option-value="value"
-                      class="w-full shadow-sm"
-                    />
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
+                    <Select v-model="newDiscipline.estatus" :options="OPT_ESTATUS_FORM"
+                            option-label="label" option-value="value" class="w-full" />
                   </div>
                 </div>
 
-                <!-- Descripción -->
                 <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Descripción</label>
+                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Descripción</label>
                   <textarea
-                    v-model="newDiscipline.descripcion"
-                    rows="4"
+                    v-model="newDiscipline.descripcion" rows="4"
                     placeholder="Breve descripción de la actividad…"
-                    class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-medium
-                           text-surface-900 placeholder:text-surface-400 resize-none shadow-sm
-                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
+                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                           text-slate-900 placeholder:text-slate-400 resize-none
+                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"
                   />
                 </div>
-
               </div>
 
-              <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
+              <!-- Pie -->
+              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
                 <button @click="showNewModal = false"
-                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                  class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                   Cancelar
                 </button>
                 <button @click="saveNewDiscipline" :disabled="isSaving"
-                  class="px-6 py-3 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2">
-                  <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
                   {{ isSaving ? 'Guardando…' : 'Crear Disciplina' }}
@@ -535,78 +524,79 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showInstructorsModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="showInstructorsModal = false"
         >
-          <Transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-          >
-            <div v-if="showInstructorsModal"
-              class="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
-            >
-              <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100 bg-white">
-                <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Instructores Asignados</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                    Plantilla de instructores para esta disciplina
-                  </p>
-                </div>
-                <button @click="showInstructorsModal = false"
-                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12"/>
+          <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+
+            <!-- Cabecera -->
+            <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
+              <div>
+                <h2 class="text-lg font-black text-slate-900 leading-tight">Instructores Asignados</h2>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Instructores vinculados a esta disciplina</p>
+              </div>
+              <button @click="showInstructorsModal = false"
+                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="overflow-y-auto p-6 bg-slate-50/30">
+
+              <!-- Cargando -->
+              <div v-if="isFetchingInstructors" class="flex justify-center py-12">
+                <div class="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-600 animate-spin"/>
+              </div>
+
+              <!-- Vacío — mismo esqueleto que Miembros Familiares -->
+              <div v-else-if="!selectedInstructors.length"
+                class="flex flex-col items-center justify-center py-14 text-center
+                       bg-white rounded-2xl border-2 border-dashed border-slate-200">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                  <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
-                </button>
+                </div>
+                <p class="text-sm font-bold text-slate-700">Sin instructores asignados</p>
+                <p class="text-xs text-slate-400 mt-1 max-w-[200px]">
+                  Ningún instructor está vinculado a esta disciplina todavía.
+                </p>
               </div>
 
-              <div class="overflow-y-auto p-8 bg-surface-50/50">
-                <!-- Cargando -->
-                <div v-if="isFetchingInstructors" class="flex justify-center py-16">
-                  <div class="w-12 h-12 rounded-full border-4 border-surface-200 border-t-primary-600 animate-spin"/>
-                </div>
-
-                <!-- Vacío -->
-                <div v-else-if="!selectedInstructors.length"
-                  class="flex flex-col items-center justify-center py-16 text-center bg-surface-50 rounded-[2rem] border-2 border-dashed border-surface-200">
-                  <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-4 shadow-sm border border-surface-100">
-                    <svg class="w-8 h-8 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
+              <!-- Lista -->
+              <div v-else class="flex flex-col gap-2.5">
+                <div
+                  v-for="ins in selectedInstructors"
+                  :key="ins.id_instructor"
+                  class="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200
+                         hover:border-blue-200 hover:shadow-sm transition-all group"
+                >
+                  <div class="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-400 to-indigo-600
+                              text-white flex items-center justify-center font-bold text-sm shrink-0
+                              group-hover:scale-105 transition-transform">
+                    {{ ins.nombre_completo?.charAt(0) ?? '?' }}
                   </div>
-                  <p class="text-sm font-bold text-surface-400 italic">Sin instructores asignados</p>
-                </div>
-
-                <!-- Lista -->
-                <div v-else class="space-y-4">
-                  <div
-                    v-for="ins in selectedInstructors"
-                    :key="ins.id_instructor"
-                    class="flex items-center gap-4 p-4 rounded-2xl bg-white border border-surface-200 shadow-sm
-                           hover:border-primary-200 hover:shadow-md transition-all group"
-                  >
-                    <div class="w-12 h-12 rounded-[1.25rem] bg-linear-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-black text-lg shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                      {{ ins.nombre_completo?.charAt(0) ?? '?' }}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-bold text-surface-900 m-0 truncate">{{ ins.nombre_completo }}</p>
-                      <p class="text-[11px] font-bold text-surface-400 uppercase tracking-widest mt-0.5">ID: #{{ ins.id_instructor }}</p>
-                    </div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shrink-0"/>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-slate-900 truncate">{{ ins.nombre_completo }}</p>
+                    <p class="text-xs text-slate-500 font-medium">ID #{{ ins.id_instructor }}</p>
                   </div>
+                  <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"/>
                 </div>
-              </div>
-
-              <div class="px-8 py-5 border-t border-surface-100 flex justify-end bg-white">
-                <button @click="showInstructorsModal = false"
-                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
-                  Cerrar
-                </button>
               </div>
             </div>
-          </Transition>
+
+            <!-- Pie -->
+            <div class="px-7 py-4 border-t border-slate-100 flex justify-end">
+              <button @click="showInstructorsModal = false"
+                class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       </Transition>
     </Teleport>
@@ -621,24 +611,24 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showDisableModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="showDisableModal = false"
         >
-          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-5">
+          <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5">
               <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 9v4M12 17h.01"/>
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               </svg>
             </div>
-            <h3 class="text-xl font-black text-surface-900 mb-2">¿Deshabilitar disciplina?</h3>
-            <p class="text-sm text-surface-500 mb-8">
-              ¿Confirmas deshabilitar <span class="font-bold text-surface-800">{{ selectedDiscipline?.nombre_disciplina }}</span>?
+            <h3 class="text-xl font-black text-slate-900 mb-2">¿Deshabilitar disciplina?</h3>
+            <p class="text-sm text-slate-500 mb-8">
+              ¿Confirmas deshabilitar <span class="font-bold text-slate-800">{{ selectedDiscipline?.nombre_disciplina }}</span>?
               El sistema validará que no haya sesiones o torneos activos.
             </p>
             <div class="flex gap-3">
               <button @click="showDisableModal = false"
-                class="flex-1 py-3 rounded-2xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                class="flex-1 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                 Cancelar
               </button>
               <button @click="confirmDisable" :disabled="isSaving"

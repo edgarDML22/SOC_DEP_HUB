@@ -14,6 +14,7 @@ use App\Models\SesionActiva;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\SocioTitular;
+use App\Http\Controllers\Sanciones;
 
 class ReservacionController extends Controller
 {
@@ -49,15 +50,23 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'La reservación no puede exceder las 2 horas.'], 400);
         }
 
-        // VALIDAR PENALIZACIÓN
+        // VALIDAR PENALIZACIÓN DE RESERVAS
         $user = $request->user();
         if ($user->rol === 'socio_titular') {
             $socio = SocioTitular::find($user->user_id);
-            if ($socio && $socio->estatus_cuenta === 'PENALIZADO') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tu cuenta se encuentra PENALIZADA por acumulacion de No Shows. No puedes realizar nuevas reservaciones hasta que expire la sanción.'
-                ], 403);
+            if ($socio) {
+                $bloqueadoPorEstatus = in_array($socio->estatus_penalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_AMBOS', 'SUSPENDIDO']);
+                $fechaActiva = $socio->estatus_penalizacion !== 'SUSPENDIDO'
+                    && $socio->fecha_fin_penalizacion_reserva
+                    && $socio->fecha_fin_penalizacion_reserva->isFuture();
+
+                if ($bloqueadoPorEstatus && ($socio->estatus_penalizacion === 'SUSPENDIDO' || $fechaActiva)) {
+                    return response()->json([
+                        'success'          => false,
+                        'message'          => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes realizar nuevas reservas hasta que expire la sanción.',
+                        'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
+                    ], 403);
+                }
             }
         }
 
@@ -194,11 +203,19 @@ class ReservacionController extends Controller
         $user = $request->user();
         if ($user->rol === 'socio_titular') {
             $socio = SocioTitular::find($user->user_id);
-            if ($socio && $socio->estatus_cuenta === 'PENALIZADO') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tu cuenta se encuentra PENALIZADA. No puedes confirmar reservaciones en este momento.'
-                ], 403);
+            if ($socio) {
+                $bloqueadoPorEstatus = in_array($socio->estatus_penalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_AMBOS', 'SUSPENDIDO']);
+                $fechaActiva = $socio->estatus_penalizacion !== 'SUSPENDIDO'
+                    && $socio->fecha_fin_penalizacion_reserva
+                    && $socio->fecha_fin_penalizacion_reserva->isFuture();
+
+                if ($bloqueadoPorEstatus && ($socio->estatus_penalizacion === 'SUSPENDIDO' || $fechaActiva)) {
+                    return response()->json([
+                        'success'          => false,
+                        'message'          => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes confirmar reservas hasta que expire la sanción.',
+                        'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
+                    ], 403);
+                }
             }
         }
 
@@ -303,21 +320,12 @@ class ReservacionController extends Controller
         $reservacion->estatus_operativo = $nuevoEstatus;
         $reservacion->save();
 
-        // Si es NO_SHOW, incrementar el contador del socio y evaluar penalización
+        // Si es NO_SHOW, incrementar el contador y delegar la sanción a Sanciones
         if ($nuevoEstatus === 'NO_SHOW') {
-            $socio = \App\Models\SocioTitular::find($reservacion->id_socio_titular);
+            $socio = SocioTitular::find($reservacion->id_socio_titular);
             if ($socio) {
-                $socio->contador_no_shows = ($socio->contador_no_shows ?? 0) + 1;
-
-                if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
-                    $socio->estatus_cuenta = 'PENALIZADO';
-                    // Guardar la fecha en que vence la penalización (con hora 00:00)
-                    if (\Illuminate\Support\Facades\Schema::hasColumn('socios_titulares', 'fecha_fin_penalizacion')) {
-                        $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
-                    }
-                }
-
-                $socio->save();
+                $socio->increment('contador_no_shows');
+                Sanciones::aplicarSancionesReservas($socio->id_socio);
             }
         }
 

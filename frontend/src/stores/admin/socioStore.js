@@ -91,6 +91,31 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         return await updateSocio(id, { ...data, estatus_cuenta: status });
     };
 
+    const updatePenalizacion = async (id, payload) => {
+        // payload puede ser { estatus_penalizacion, dias_penalizacion_reserva?, dias_penalizacion_ludoteca? }
+        const body = typeof payload === 'string'
+            ? { estatus_penalizacion: payload }
+            : { ...payload };
+
+        // Limpiar campos undefined antes de enviar
+        Object.keys(body).forEach((k) => body[k] === undefined && delete body[k]);
+
+        try {
+            const response = await api.put(`/socios/update/${id}`, body);
+            if (response.data && response.data.success) {
+                const index = socios.value.findIndex((s) => String(s.id_socio) === String(id));
+                if (index !== -1) {
+                    socios.value[index] = { ...socios.value[index], ...response.data.data };
+                }
+                return { success: true, data: response.data.data };
+            }
+            return { success: false, error: 'Respuesta inesperada del servidor.' };
+        } catch (err) {
+            console.error('Error updating penalizacion:', err);
+            return { success: false, error: err.response?.data?.message || 'Error al actualizar.' };
+        }
+    };
+
     return {
         socios,
         isLoading,
@@ -99,6 +124,7 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         getSocioById,
         updateSocio,
         penalizeSocio,
+        updatePenalizacion,
         fetchSocioDetails
     };
 });

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Amistades;
 use App\Models\SocioTitular;
 use App\Models\Reservacion;
+use App\Notifications\SolicitudAmistadNotification;
 
 class FriendsController extends Controller
 {
@@ -73,10 +74,16 @@ class FriendsController extends Controller
         })->first();
 
         if ($existe) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ya existe una relación de amistad o solicitud pendiente'
-            ], 400);
+            // Si fue rechazada, el registro es basura: borrarlo y permitir reenvío
+            if ($existe->estado === 'RECHAZADA') {
+                $existe->delete();
+            } else {
+                // PENDIENTE o ACEPTADA → sí bloqueamos
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya existe una relación de amistad o solicitud pendiente'
+                ], 400);
+            }
         }
 
         $amistad = Amistades::create([
@@ -86,6 +93,17 @@ class FriendsController extends Controller
             'created_at' => now(),
             'updated_at' => now()
         ]);
+
+        // Notificar al receptor que recibió una solicitud
+        $solicitante = $request->user()->socioTitular ?? \App\Models\SocioTitular::find($socioId);
+        $receptor    = \App\Models\SocioTitular::find($receptorId);
+        if ($solicitante && $receptor) {
+            $receptor->notify(new SolicitudAmistadNotification(
+                tipo: 'SOLICITUD_ENVIADA',
+                nombre_remitente: $solicitante->nombre_completo,
+                id_remitente: (int) $socioId,
+            ));
+        }
 
         return response()->json([
             'success' => true,
@@ -163,8 +181,18 @@ class FriendsController extends Controller
 
         $amistad->estado = 'ACEPTADA';
         $amistad->updated_at = now();
-        // save() en un modelo con timestamps inhabilitados actualiza de todos modos los campos asignados
         $amistad->save();
+
+        // Notificar al solicitante que su solicitud fue aceptada
+        $receptor    = \App\Models\SocioTitular::find($socioId);
+        $solicitante = \App\Models\SocioTitular::find($amistad->solicitante_id);
+        if ($receptor && $solicitante) {
+            $solicitante->notify(new SolicitudAmistadNotification(
+                tipo: 'SOLICITUD_ACEPTADA',
+                nombre_remitente: $receptor->nombre_completo,
+                id_remitente: $socioId,
+            ));
+        }
 
         return response()->json([
             'success' => true,
@@ -198,10 +226,50 @@ class FriendsController extends Controller
         $amistad->updated_at = now();
         $amistad->save();
 
+        // Notificar al solicitante que su solicitud fue rechazada
+        $receptor    = \App\Models\SocioTitular::find($socioId);
+        $solicitante = \App\Models\SocioTitular::find($amistad->solicitante_id);
+        if ($receptor && $solicitante) {
+            $solicitante->notify(new SolicitudAmistadNotification(
+                tipo: 'SOLICITUD_RECHAZADA',
+                nombre_remitente: $receptor->nombre_completo,
+                id_remitente: $socioId,
+            ));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Solicitud de amistad rechazada',
             'data' => $amistad
+        ], 200);
+    }
+
+    // MÉTODO 6: Cancelar solicitud enviada (solo el solicitante, solo PENDIENTE)
+    public function cancel(Request $request)
+    {
+        $request->validate([
+            'id_amistad' => 'required|integer|exists:amistades,id_amistad'
+        ]);
+
+        $socioId = $request->user()->user_id;
+
+        $amistad = Amistades::where('id_amistad', $request->id_amistad)
+            ->where('solicitante_id', $socioId)
+            ->where('estado', 'PENDIENTE')
+            ->first();
+
+        if (!$amistad) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solicitud no encontrada o no autorizada para cancelar'
+            ], 404);
+        }
+
+        $amistad->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitud de amistad cancelada'
         ], 200);
     }
 }

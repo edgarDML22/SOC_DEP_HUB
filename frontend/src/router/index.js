@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAlerts } from '@/composables/useAlerts'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,6 +76,11 @@ const router = createRouter({
             }
 
             if (profileStore.isReservationsBlocked) {
+              const { toastInfo } = useAlerts();
+              const fecha = profileStore.fechaLiberacionReserva
+                ? `Acceso bloqueado hasta el ${profileStore.fechaLiberacionReserva}.`
+                : 'Tu cuenta tiene una penalización activa en Reservaciones.';
+              toastInfo('Acceso restringido', fecha, 'error');
               return "/socio/home";
             }
           },
@@ -105,6 +111,15 @@ const router = createRouter({
               } catch (error) {
                 console.error("Error cargando el store desde el router", error);
               }
+            }
+
+            if (profileStore.isLudotecaBlocked) {
+              const { toastInfo } = useAlerts();
+              const fecha = profileStore.fechaLiberacionLudoteca
+                ? `Acceso bloqueado hasta el ${profileStore.fechaLiberacionLudoteca}.`
+                : 'Tu cuenta tiene una penalización activa en Ludoteca.';
+              toastInfo('Acceso restringido', fecha, 'error');
+              return "/socio/home";
             }
           },
           children: [

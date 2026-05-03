@@ -83,7 +83,7 @@ class GuestStatusController extends Controller
 
         /* 6. Generar código QR */
         do {
-            $codigoQR = 'QI' . substr(str_replace('-', '', Str::uuid()), 0, 6);
+            $codigoQR = 'QI' . strtoupper(substr(str_replace('-', '', Str::uuid()), 0, 6));
         } while (Invitados::where('codigo_qr', $codigoQR)->exists());
 
         try {

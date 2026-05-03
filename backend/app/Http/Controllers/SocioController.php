@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\SocioTitular;
 use App\Models\User;
+use App\Notifications\SancionAsignadaNotification;
+use App\Notifications\SancionLevantadaNotification;
 
 class SocioController extends Controller
 {
@@ -87,34 +89,68 @@ class SocioController extends Controller
 
         DB::beginTransaction();
         try {
-            // Datos base para actualizar (Filtrar nulos para evitar sobreescribir con NULL si no vienen en el request)
             $updateData = array_filter($request->only([
                 'nombre_completo',
                 'correo_electronico',
                 'tipo_socio',
                 'modalidad_plan',
                 'estatus_cuenta',
+                'estatus_penalizacion',
                 'contador_no_shows',
                 'retrasos_ludoteca',
                 'fecha_nacimiento',
-                'genero'
-            ]), function ($value) {
-                return !is_null($value);
-            });
+                'genero',
+            ]), fn($value) => !is_null($value));
 
-            // Lógica específica para penalización
-            $penalizadoStatuses = ['PENALIZADO', 'PENALIZADO_AMBOS', 'PENALIZADO_LUDOTECA', 'PENALIZADO_RESERVA'];
-            if (in_array($request->input('estatus_cuenta'), $penalizadoStatuses)) {
-                if (!$socio->fecha_fin_penalizacion || !in_array($socio->estatus_cuenta, $penalizadoStatuses)) {
-                    // Usar helper now() que es más directo en Laravel
-                    $updateData['fecha_fin_penalizacion'] = now('America/Mexico_City')->addDays(7)->startOfDay();
-                }
-            } elseif ($request->input('estatus_cuenta') === 'AL_CORRIENTE') {
-                $updateData['fecha_fin_penalizacion'] = null;
+            // Lógica de estatus_cuenta (pagos — independiente de penalizaciones)
+            if ($request->input('estatus_cuenta') === 'AL_CORRIENTE') {
                 $updateData['contador_no_shows'] = 0;
             }
 
+            // Lógica de estatus_penalizacion con fechas por servicio
+            if ($request->has('estatus_penalizacion')) {
+                $nuevoPenalizacion = $request->input('estatus_penalizacion');
+                $diasLudoteca      = (int) $request->input('dias_penalizacion_ludoteca', 7);
+                $diasReserva       = (int) $request->input('dias_penalizacion_reserva', 7);
+                $ahora             = now('America/Mexico_City');
+
+                if ($nuevoPenalizacion === 'SIN_PENALIZACION') {
+                    $updateData['fecha_fin_penalizacion_ludoteca'] = null;
+                    $updateData['fecha_fin_penalizacion_reserva']  = null;
+                    $updateData['contador_no_shows']               = 0;
+                } elseif ($nuevoPenalizacion === 'PENALIZADO_LUDOTECA') {
+                    $updateData['fecha_fin_penalizacion_ludoteca'] = $ahora->copy()->addDays($diasLudoteca)->startOfDay();
+                    $updateData['fecha_fin_penalizacion_reserva']  = null;
+                } elseif ($nuevoPenalizacion === 'PENALIZADO_RESERVA') {
+                    $updateData['fecha_fin_penalizacion_reserva']  = $ahora->copy()->addDays($diasReserva)->startOfDay();
+                    $updateData['fecha_fin_penalizacion_ludoteca'] = null;
+                } elseif ($nuevoPenalizacion === 'PENALIZADO_AMBOS') {
+                    $updateData['fecha_fin_penalizacion_ludoteca'] = $ahora->copy()->addDays($diasLudoteca)->startOfDay();
+                    $updateData['fecha_fin_penalizacion_reserva']  = $ahora->copy()->addDays($diasReserva)->startOfDay();
+                }
+            }
+
             $socio->update($updateData);
+
+            // Notificaciones al socio cuando el admin cambia el estatus_penalizacion
+            if ($request->has('estatus_penalizacion')) {
+                $socio->refresh();
+                $nuevoPenalizacion = $socio->estatus_penalizacion;
+
+                if (in_array($nuevoPenalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_LUDOTECA', 'PENALIZADO_AMBOS'])) {
+                    $socio->notify(new SancionAsignadaNotification(
+                        estatus_penalizacion: $nuevoPenalizacion,
+                        fecha_fin_reserva:    $socio->fecha_fin_penalizacion_reserva?->toDateString(),
+                        fecha_fin_ludoteca:   $socio->fecha_fin_penalizacion_ludoteca?->toDateString(),
+                        nombre_socio:         $socio->nombre_completo,
+                    ));
+                } elseif ($nuevoPenalizacion === 'SIN_PENALIZACION') {
+                    $socio->notify(new SancionLevantadaNotification(
+                        nombre_socio: $socio->nombre_completo,
+                        motivo:       'manual',
+                    ));
+                }
+            }
 
             // Sincronizar con la tabla 'users' si hay campos en común (email)
             if ($request->has('correo_electronico') && $request->input('correo_electronico')) {

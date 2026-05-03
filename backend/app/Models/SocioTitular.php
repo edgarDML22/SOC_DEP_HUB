@@ -22,20 +22,21 @@ class SocioTitular extends Model
         'genero',
         'correo_electronico',
         'estatus_cuenta',
-        'contador_no_shows', // <-- Asegúrate de que este nombre sea el correcto en la BD
+        'contador_no_shows',
         'fecha_afiliacion',
         'retrasos_ludoteca',
-        'fecha_fin_penalizacion',
-        'estatus_penalizacion', // <-- Campo nuevo agregado del INCOMING
+        'fecha_fin_penalizacion_ludoteca',
+        'fecha_fin_penalizacion_reserva',
+        'estatus_penalizacion',
     ];
 
-    // 3. Conversión de tipos (Casts) para facilitar su uso en Vue/Controllers
     protected $casts = [
-        'fecha_nacimiento' => 'date',
-        'fecha_afiliacion' => 'date',
-        'fecha_fin_penalizacion' => 'datetime',
-        'contador_no_shows' => 'integer',
-        'retrasos_ludoteca' => 'integer',
+        'fecha_nacimiento'               => 'date',
+        'fecha_afiliacion'               => 'date',
+        'fecha_fin_penalizacion_ludoteca' => 'datetime',
+        'fecha_fin_penalizacion_reserva'  => 'datetime',
+        'contador_no_shows'              => 'integer',
+        'retrasos_ludoteca'              => 'integer',
     ];
 
     public function invitados()

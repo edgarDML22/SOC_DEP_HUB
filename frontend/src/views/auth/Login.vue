@@ -1,13 +1,39 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
-// IMPORTANTE: Importamos tu instancia personalizada, no la librería global
-import api from '@/services/api'; 
+import { getActivePinia } from 'pinia';
+import api from '@/services/api';
 
 const router = useRouter();
 const form = reactive({ email: '', password: '' });
 const errorMessage = ref('');
 const isLoading = ref(false);
+
+// Limpia todos los stores de Pinia para evitar datos residuales de sesiones anteriores
+const resetAllStores = () => {
+    const pinia = getActivePinia();
+    if (!pinia) return;
+    Object.values(pinia.state.value).forEach((storeState) => {
+        Object.keys(storeState).forEach((key) => {
+            if (storeState[key] !== null && typeof storeState[key] === 'object' && !Array.isArray(storeState[key])) {
+                // skip
+            }
+            // Solo reseteamos los campos conocidos de perfil
+        });
+    });
+    // Reset explícito por ID de store
+    ['profile', 'adminProfile', 'instructorProfile', 'notificaciones'].forEach((id) => {
+        if (pinia.state.value[id]) {
+            Object.keys(pinia.state.value[id]).forEach((key) => {
+                const val = pinia.state.value[id][key];
+                if (Array.isArray(val)) pinia.state.value[id][key] = [];
+                else if (val !== null && typeof val === 'object') pinia.state.value[id][key] = null;
+                else if (typeof val === 'boolean') pinia.state.value[id][key] = false;
+                else if (typeof val === 'string') pinia.state.value[id][key] = '';
+            });
+        }
+    });
+};
 
 const handleLogin = async () => {
     errorMessage.value = '';
@@ -16,20 +42,19 @@ const handleLogin = async () => {
         return;
     }
     isLoading.value = true;
-    
+
     try {
-        // 1. Opcional: Si usas Sanctum con cookies, primero pide el CSRF-TOKEN
-        // await api.get('/sanctum/csrf-cookie');
+        resetAllStores();
 
         const response = await api.post('/auth/login', form);
-        
+
         if (response.data.success) {
             const { token, user } = response.data.data;
-            
+
             // Guardamos info para persistencia
             localStorage.setItem('auth_token', token);
             localStorage.setItem('user_data', JSON.stringify(user));
-            
+
             // Redirección por roles
             const routes = {
                 'gerente': '/admin/dashboard',
@@ -42,11 +67,11 @@ const handleLogin = async () => {
         }
     } catch (error) {
         console.error(error);
-        errorMessage.value = error.response?.status === 401 
-            ? 'Credenciales incorrectas' 
+        errorMessage.value = error.response?.status === 401
+            ? 'Credenciales incorrectas'
             : 'Error de conexión con el servidor';
-    } finally { 
-        isLoading.value = false; 
+    } finally {
+        isLoading.value = false;
     }
 };
 </script>
