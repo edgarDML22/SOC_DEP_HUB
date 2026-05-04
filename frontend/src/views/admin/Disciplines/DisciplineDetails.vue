@@ -1,14 +1,19 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useDisciplinesStore } from '@/stores/admin/disciplines';
+import { useCategoryStore } from '@/stores/admin/categoryStore';
+import { useformat } from '@/utils/formatters';
 
 const route = useRoute();
 const router = useRouter();
 const disciplinesStore = useDisciplinesStore();
+const categoryStore = useCategoryStore();
+const { formatText } = useformat();
 
-const { categories, isLoading: storeLoading } = storeToRefs(disciplinesStore);
+const { categories, isLoading: categoriesLoading } = storeToRefs(categoryStore);
+const { isLoading: disciplinesLoading } = storeToRefs(disciplinesStore);
 
 const discipline = ref(null);
 const isLoading = ref(true);
@@ -18,14 +23,14 @@ const showDeleteModal = ref(false);
 
 const editForm = ref({
     nombre_disciplina: '',
-    id_categoria: null,
+    categorias_ids: [],
     descripcion: '',
     estatus: ''
 });
 
 onMounted(async () => {
     try {
-        await disciplinesStore.fetchCategories();
+        await categoryStore.fetchCategories();
         const data = await disciplinesStore.fetchDisciplineDetails(route.params.id);
         discipline.value = data;
         if (route.query.edit === 'true') {
@@ -40,10 +45,13 @@ onMounted(async () => {
     }
 });
 
+// La API devuelve categorias como array (many-to-many)
+const disciplineCategory = computed(() => discipline.value?.categorias?.[0] ?? null)
+
 const resetForm = () => {
     editForm.value = {
+        categorias_ids: discipline.value.categorias?.map(c => c.id_categoria) ?? [],
         nombre_disciplina: discipline.value.nombre_disciplina,
-        id_categoria: discipline.value.id_categoria,
         descripcion: discipline.value.descripcion || '',
         estatus: discipline.value.estatus
     };
@@ -156,8 +164,7 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                                 <path
                                                     d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                                             </svg>
-                                            {{ discipline.categoria?.nombre_categoria || discipline.categoria_disciplina
-                                            }}
+                                            {{ formatText(disciplineCategory?.nombre) || discipline.categoria_disciplina || '—' }}
                                         </p>
                                     </div>
                                 </div>
@@ -197,8 +204,7 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                         <span
                                             class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">Categoría</span>
                                         <span class="text-base font-bold text-surface-900">
-                                            {{ discipline.categoria?.nombre_categoria || discipline.categoria_disciplina
-                                            }}
+                                            {{ formatText(disciplineCategory?.nombre) || discipline.categoria_disciplina || '—' }}
                                         </span>
                                     </div>
                                 </div>
@@ -226,11 +232,11 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                     <div class="space-y-1.5">
                                         <label
                                             class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Categoría</label>
-                                        <select v-model="editForm.id_categoria"
+                                        <select v-model="editForm.categorias_ids[0]"
                                             class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none cursor-pointer">
-                                            <option :value="null" disabled>Selecciona una categoría</option>
-                                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{
-                                                cat.nombre_categoria }}</option>
+                                            <option :value="undefined" disabled>Selecciona una categoría</option>
+                                            <option v-for="cat in categories" :key="cat.id_categoria" :value="cat.id_categoria">{{
+                                                formatText(cat.nombre) }}</option>
                                         </select>
                                     </div>
                                     <div class="space-y-1.5">

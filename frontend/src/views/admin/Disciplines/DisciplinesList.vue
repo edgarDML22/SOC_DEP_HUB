@@ -47,15 +47,18 @@ const filteredDisciplines = computed(() => {
   if (search.value) {
     const q = search.value.toLowerCase()
     r = r.filter(d => {
-      const cat = d.categoria?.nombre || d.categoria_disciplina || ''
-      return d.nombre_disciplina.toLowerCase().includes(q) || cat.toLowerCase().includes(q)
+      // La API devuelve categorias como array (many-to-many)
+      const catName = d.categorias?.[0]?.nombre || d.categoria_disciplina || ''
+      return d.nombre_disciplina.toLowerCase().includes(q) || catName.toLowerCase().includes(q)
     })
   }
   if (filterStatus.value) r = r.filter(d => d.estatus === filterStatus.value)
-  if (filterCategory.value) r = r.filter(d => d.id_categoria === filterCategory.value)
+  if (filterCategory.value) {
+    r = r.filter(d => d.categorias?.some(c => String(c.id_categoria) === String(filterCategory.value)))
+  }
   return r.sort((a, b) => {
-    const catA = a.categoria?.nombre || a.categoria_disciplina || ''
-    const catB = b.categoria?.nombre || b.categoria_disciplina || ''
+    const catA = a.categorias?.[0]?.nombre || a.categoria_disciplina || ''
+    const catB = b.categorias?.[0]?.nombre || b.categoria_disciplina || ''
     const c = catA.localeCompare(catB)
     return c !== 0 ? c : a.nombre_disciplina.localeCompare(b.nombre_disciplina)
   })
@@ -326,13 +329,13 @@ onMounted(() => {
                  transition-all duration-200 group overflow-hidden flex">
           <!-- Franja de color de categoría -->
           <div class="w-1.5 shrink-0"
-            :class="categoryPalette(discipline.categoria?.nombre || discipline.categoria_disciplina || '').left" />
+            :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').left" />
 
           <!-- Ícono disciplina coloreado por categoría -->
           <div class="flex items-center justify-center px-5 py-4 shrink-0">
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm
                      group-hover:scale-105 transition-transform duration-200"
-              :class="categoryPalette(discipline.categoria?.nombre || discipline.categoria_disciplina || '').icon">
+              :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
               <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
                 <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
@@ -357,7 +360,7 @@ onMounted(() => {
                 <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600
                                bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-                    {{ formatText(discipline.categoria?.nombre || discipline.categoria_disciplina || '—') }}
+                    {{ formatText(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
                   </span>
                   <BadgeStatus :status="discipline.estatus" size="sm" />
                 </div>
