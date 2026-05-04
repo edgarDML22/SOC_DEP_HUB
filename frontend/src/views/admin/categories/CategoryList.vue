@@ -10,6 +10,9 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue';
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue';
 import SearchInput from '@/components/gerente/ui/SearchInput.vue';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconAlertCircle, IconChevronDown } from '@/components/icons';
 
 const { formatText } = useformat();
@@ -156,7 +159,7 @@ const buildMenuItems = (cat) => [
 
             <!-- FILTRO -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-                <SearchInput v-model:search="search" placeholder="Buscar categoría por nombre o descripción…" />
+                <SearchInput v-model="search" placeholder="Buscar categoría por nombre o descripción…" />
                 <div class="grid grid-cols-1 gap-3">
                     <div class="flex flex-col gap-1.5">
                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
@@ -327,17 +330,12 @@ const buildMenuItems = (cat) => [
                                 </div>
 
                                 <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
-                                    <button @click="showModal = false"
-                                        class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                                        Cancelar
-                                    </button>
-                                    <button @click="save" :disabled="isSaving"
-                                        class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                                        <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                                        </svg>
-                                        {{ isSaving ? 'Guardando...' : (editingCategory ? 'Actualizar' : 'Crear') }}
-                                    </button>
+                                    <CancelButton @click="showModal = false" />
+                                    <ConfirmButton
+                                        :label="editingCategory ? 'Actualizar' : 'Crear'"
+                                        :loading="isSaving"
+                                        @click="save"
+                                    />
                                 </div>
                             </div>
                         </Transition>

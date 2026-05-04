@@ -35,6 +35,36 @@ export const useAlerts = () => {
         });
     }
 
+    // Action Toast (estilo homogéneo para acciones exitosas/fallidas)
+    const actionToast = (title, type = 'success') => {
+        const bgColors = {
+            success: '#f0fdf4', // green-50
+            error: '#fef2f2',   // red-50
+            info: '#eff6ff'     // blue-50
+        }
+        const textColors = {
+            success: '#166534', // green-800
+            error: '#991b1b',   // red-800
+            info: '#1e40af'     // blue-800
+        }
+        
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: type,
+            title: title,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: bgColors[type] || 'white',
+            color: textColors[type] || '#1f2937',
+            customClass: { 
+                popup: '!rounded-xl !shadow-lg border border-slate-200 !mt-4 !mr-4',
+                title: '!text-sm !font-medium !mt-0'
+            }
+        });
+    }
+
     // Modal de Eliminar 
     const confirmDelete = async (title, text, confirmText = 'Sí, Eliminar') => {
         return await swalApp.fire({
@@ -101,5 +131,5 @@ export const useAlerts = () => {
         Swal.close();
     }
 
-    return { toastInfo, confirmDelete, confirmWarning, successModal, errorModal, showLoading, closeLoading }
+    return { toastInfo, actionToast, confirmDelete, confirmWarning, successModal, errorModal, showLoading, closeLoading }
 }

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSocioStore } from '@/stores/admin/socioStore';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -46,14 +47,14 @@ const goBack = () => {
                 <h1 class="text-2xl font-black text-surface-900 tracking-tight">Detalles del Socio Titular</h1>
             </header>
 
-            <section v-if="errorMsg" class="text-center p-12 bg-red-50 rounded-[2rem] border border-red-100 animate-scale-in">
+            <section v-if="errorMsg" class="text-center p-12 bg-red-50 rounded-4xl border border-red-100 animate-scale-in">
                 <p class="text-red-600 font-bold">{{ errorMsg }}</p>
                 <button @click="goBack" class="mt-4 px-6 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-colors shadow-sm">Volver al listado</button>
             </section>
 
             <section v-if="isLoading" class="flex flex-col items-center justify-center p-20">
-                <div class="w-12 h-12 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400">Cargando detalles...</p>
+                <LoadingSpinner />
+                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400 mt-4">Cargando detalles...</p>
             </section>
 
             <!-- Contenido Detallado -->

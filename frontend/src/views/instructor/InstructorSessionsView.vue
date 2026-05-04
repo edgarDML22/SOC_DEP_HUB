@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
 import {
   IconCalendar,
@@ -76,8 +77,8 @@ const handleSessionClick = (sesion) => {
 
       <!-- Estado de Carga -->
       <section v-if="isLoading" class="flex flex-col items-center justify-center p-12">
-        <div class="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-surface-500 font-medium">Cargando agenda semanal...</p>
+        <LoadingSpinner />
+        <p class="text-surface-500 font-medium mt-4">Cargando agenda semanal...</p>
       </section>
 
       <!-- Estado de Error -->

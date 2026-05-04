@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { IconSearch } from '@/components/icons'
 
 const props = defineProps({
-    search: {
+    modelValue: {
         type: String,
         required: true
     },
@@ -13,11 +13,11 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['update:search'])
+const emit = defineEmits(['update:modelValue'])
 
 const search = computed({
-    get: () => props.search,
-    set: (value) => emit('update:search', value)
+    get: () => props.modelValue,
+    set: (value) => emit('update:modelValue', value)
 })
 </script>
 

@@ -4,6 +4,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useSpacesStore } from '@/stores/admin/spaces';
 import { useDisciplinesStore } from '@/stores/admin/disciplines';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -116,8 +119,8 @@ const goBack = () => router.push({ name: 'spaces-list' });
 
             <!-- Loading -->
             <section v-if="isLoading" class="flex flex-col items-center justify-center p-20">
-                <div class="w-12 h-12 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400">Cargando detalles...</p>
+                <LoadingSpinner />
+                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400 mt-4">Cargando detalles...</p>
             </section>
 
             <Transition enter-active-class="transition-all duration-500 ease-out" enter-from-class="opacity-0 translate-y-4 scale-[0.98]" enter-to-class="opacity-100 translate-y-0 scale-100">
@@ -275,7 +278,7 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                     </div>
 
                                     <div class="space-y-6">
-                                        <div class="bg-primary-50/50 p-8 rounded-[2rem] border border-primary-100 h-full flex flex-col justify-center">
+                                        <div class="bg-primary-50/50 p-8 rounded-4xl border border-primary-100 h-full flex flex-col justify-center">
                                             <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-primary-100 mb-6 text-primary-600">
                                                 <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                             </div>
@@ -289,10 +292,11 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                     </div>
                                 </div>
                                 <div class="flex justify-end gap-3 pt-6">
-                                    <button @click="handleUpdate" :disabled="isSaving" class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center gap-2">
-                                        <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                                        {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-                                    </button>
+                                    <ConfirmButton
+                                        label="Guardar Cambios"
+                                        :loading="isSaving"
+                                        @click="handleUpdate"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -308,13 +312,13 @@ const goBack = () => router.push({ name: 'spaces-list' });
                     <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
                         <div v-if="showDeleteModal" class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden text-center">
                             <div class="p-8">
-                                <div class="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 border border-red-100">
+                                <div class="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-red-100">
                                     <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                 </div>
                                 <h3 class="text-2xl font-black text-surface-900 mb-3">¿Deshabilitar Espacio?</h3>
                                 <p class="text-sm font-medium text-surface-500 mb-8 leading-relaxed">Esta acción cambiará el estado a <b class="text-surface-900">DESHABILITADO</b>. El espacio no podrá ser reservado ni utilizado hasta que se active nuevamente.</p>
                                 
-                                <div class="bg-surface-50 rounded-[1.5rem] p-5 mb-8 text-left space-y-4 border border-surface-200">
+                                <div class="bg-surface-50 rounded-3xl p-5 mb-8 text-left space-y-4 border border-surface-200">
                                     <div class="flex items-center gap-3 text-sm font-bold text-surface-700">
                                         <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
                                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -336,13 +340,13 @@ const goBack = () => router.push({ name: 'spaces-list' });
                                 </div>
 
                                 <div class="flex gap-3">
-                                    <button @click="showDeleteModal = false" class="flex-1 py-3.5 bg-white border border-surface-200 hover:bg-surface-50 text-surface-700 rounded-xl font-bold transition-all text-sm">
-                                        Cancelar
-                                    </button>
-                                    <button @click="confirmDelete" :disabled="isSaving" class="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-sm hover:shadow-md disabled:opacity-50 text-sm flex justify-center items-center gap-2">
-                                        <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                                        {{ isSaving ? 'Procesando...' : 'Deshabilitar' }}
-                                    </button>
+                                    <CancelButton @click="showDeleteModal = false" class="flex-1" />
+                                    <ConfirmButton
+                                        label="Deshabilitar"
+                                        :loading="isSaving"
+                                        @click="confirmDelete"
+                                        class="flex-1 bg-red-600! hover:bg-red-700!"
+                                    />
                                 </div>
                             </div>
                         </div>

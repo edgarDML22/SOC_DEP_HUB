@@ -6,6 +6,9 @@ import Select from 'primevue/select'
 import api from '@/services/api'
 import { useAlerts } from '@/composables/useAlerts'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const router = useRouter()
 const { toastSuccess, toastError } = useAlerts()
@@ -247,27 +250,18 @@ const submit = async () => {
 
             <!-- Actions -->
             <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                @click="router.push('/admin/tournaments')"
-                class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-              >
-                Cancelar
-              </button>
-              <button
+              <CancelButton @click="router.push('/admin/tournaments')" />
+              <ConfirmButton
+                label="Crear torneo"
+                :loading="loading"
                 type="submit"
-                :disabled="loading"
-                class="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
               >
-                <svg v-if="loading" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <svg v-else class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {{ loading ? 'Creando...' : 'Crear torneo' }}
-              </button>
+                <template #icon>
+                  <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </template>
+              </ConfirmButton>
             </div>
 
           </form>

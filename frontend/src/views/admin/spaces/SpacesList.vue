@@ -12,6 +12,9 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput     from '@/components/gerente/ui/SearchInput.vue'
+import LoadingSpinner   from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconLayers, IconAlertCircle, IconChevronDown } from '@/components/icons'
 
 import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
@@ -101,7 +104,7 @@ const tipoBadges = (space) => {
 const buildMenuItems = (space) => [
   {
     label:  'Ver detalles',
-    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
              </svg>`,
@@ -109,7 +112,7 @@ const buildMenuItems = (space) => [
   },
   {
     label:  'Editar espacio',
-    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
              </svg>`,
@@ -117,7 +120,7 @@ const buildMenuItems = (space) => [
   },
   {
     label:  'Gestionar disciplinas',
-    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
                <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
@@ -127,7 +130,7 @@ const buildMenuItems = (space) => [
   { separator: true },
   {
     label:       'Deshabilitar espacio',
-    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
                   </svg>`,
@@ -254,7 +257,7 @@ onMounted(() => {
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model:search="search" placeholder="Buscar espacio por nombre…" />
+        <SearchInput v-model="search" placeholder="Buscar espacio por nombre…" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo de uso</label>
@@ -574,17 +577,12 @@ onMounted(() => {
 
               <!-- Pie del modal -->
               <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
-                <button @click="showNewModal = false"
-                  class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                  Cancelar
-                </button>
-                <button @click="saveNewSpace" :disabled="isSaving"
-                  class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                  <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  {{ isSaving ? 'Guardando…' : 'Crear Espacio' }}
-                </button>
+                <CancelButton @click="showNewModal = false" />
+                <ConfirmButton
+                  label="Crear Espacio"
+                  :loading="isSaving"
+                  @click="saveNewSpace"
+                />
               </div>
             </div>
           </Transition>
@@ -618,17 +616,13 @@ onMounted(() => {
               El sistema validará que no haya actividades pendientes.
             </p>
             <div class="flex gap-3">
-              <button @click="showDisableModal = false"
-                class="flex-1 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                Cancelar
-              </button>
-              <button @click="confirmDisable" :disabled="isSaving"
-                class="flex-1 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-                {{ isSaving ? 'Procesando…' : 'Deshabilitar' }}
-              </button>
+              <CancelButton @click="showDisableModal = false" class="flex-1" />
+              <ConfirmButton
+                label="Deshabilitar"
+                :loading="isSaving"
+                @click="confirmDisable"
+                class="flex-1 bg-red-600! hover:bg-red-700!"
+              />
             </div>
           </div>
         </div>

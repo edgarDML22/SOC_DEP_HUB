@@ -7,6 +7,9 @@ import AdminPageHeader    from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus        from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu         from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput        from '@/components/gerente/ui/SearchInput.vue'
+import LoadingSpinner     from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton     from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton      from '@/components/gerente/ui/CancelButton.vue'
 import PenalizacionModal  from '@/components/admin/socio/PenalizacionModal.vue'
 import { IconFilter, IconChevronDown, IconAlertCircle, IconWarning } from '@/components/icons'
 
@@ -186,7 +189,7 @@ onMounted(fetchSocios)
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model:search="search" placeholder="Buscar por nombre o número de acción…" />
+        <SearchInput v-model="search" placeholder="Buscar por nombre o número de acción…" />
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
@@ -390,7 +393,7 @@ onMounted(fetchSocios)
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showFamilyModal = false"
         >
-          <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div class="bg-white w-full max-w-md rounded-2rem shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
 
             <!-- Cabecera -->
             <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
@@ -412,7 +415,7 @@ onMounted(fetchSocios)
 
               <!-- Cargando -->
               <div v-if="isLoading" class="flex justify-center py-12">
-                <div class="w-8 h-8 rounded-full border-2 border-surface-200 border-t-primary-600 animate-spin" />
+                <LoadingSpinner />
               </div>
 
               <!-- Vacío -->
@@ -440,7 +443,7 @@ onMounted(fetchSocios)
                          hover:border-primary-200 hover:shadow-sm transition-all"
                 >
                   <div class="w-10 h-10 rounded-xl bg-linear-to-br from-purple-400 to-purple-600
-                              text-white flex items-center justify-center font-bold text-sm shrink-0 bg-linear-to-br">
+                              text-white flex items-center justify-center font-bold text-sm shrink-0">
                     {{ fam.nombre_completo?.charAt(0) ?? '?' }}
                   </div>
                   <div class="flex-1 min-w-0">
@@ -453,11 +456,7 @@ onMounted(fetchSocios)
 
             <!-- Pie -->
             <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
-              <button @click="showFamilyModal = false"
-                class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
-                       text-sm font-semibold text-surface-700 hover:bg-surface-50 transition-colors">
-                Cerrar
-              </button>
+              <CancelButton label="Cerrar" @click="showFamilyModal = false" />
             </div>
           </div>
         </div>
@@ -477,7 +476,7 @@ onMounted(fetchSocios)
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showGuestsModal = false"
         >
-          <div class="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div class="bg-white w-full max-w-lg rounded-2rem shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
 
             <!-- Cabecera -->
             <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
@@ -499,7 +498,7 @@ onMounted(fetchSocios)
 
               <!-- Cargando -->
               <div v-if="isLoading" class="flex justify-center py-12">
-                <div class="w-8 h-8 rounded-full border-2 border-surface-200 border-t-primary-600 animate-spin" />
+                <LoadingSpinner />
               </div>
 
               <!-- Vacío — mismo esqueleto que Miembros Familiares -->
@@ -553,11 +552,7 @@ onMounted(fetchSocios)
 
             <!-- Pie -->
             <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
-              <button @click="showGuestsModal = false"
-                class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
-                       text-sm font-semibold text-surface-700 hover:bg-surface-50 transition-colors">
-                Cerrar
-              </button>
+              <CancelButton label="Cerrar" @click="showGuestsModal = false" />
             </div>
           </div>
         </div>

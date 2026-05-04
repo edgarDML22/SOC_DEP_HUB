@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 /**
  * ActionMenu — dropdown de acciones para cards del panel admin.
@@ -22,14 +23,30 @@ const props = defineProps({
 
 const isOpen = ref(false)
 const menuRef = ref(null)
+const loadingIdx = ref(-1)
 
 const toggle = () => { isOpen.value = !isOpen.value }
 const close  = () => { isOpen.value = false }
 
-const handleAction = (item) => {
-  if (item.disabled) return
-  close()
-  item.action?.()
+const handleAction = async (item, idx) => {
+  if (item.disabled || loadingIdx.value !== -1) return
+  
+  if (item.action) {
+    const result = item.action()
+    if (result instanceof Promise) {
+      loadingIdx.value = idx
+      try {
+        await result
+      } finally {
+        loadingIdx.value = -1
+        close()
+      }
+    } else {
+      close()
+    }
+  } else {
+    close()
+  }
 }
 
 const onClickOutside = (e) => {
@@ -75,15 +92,16 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
                border border-slate-100 overflow-hidden py-1"
         :class="align === 'left' ? 'left-0' : 'right-0'"
       >
-        <template v-for="(item, idx) in items" :key="idx">
+        <template v-for="(item, idx) in items">
           <!-- Separador -->
-          <div v-if="item.separator" class="my-1 border-t border-slate-100" />
+          <div v-if="item.separator" :key="'sep-' + idx" class="my-1 border-t border-slate-100" />
 
           <!-- Ítem de acción -->
           <button
             v-else
-            @click="handleAction(item)"
-            :disabled="item.disabled"
+            :key="'btn-' + idx"
+            @click="handleAction(item, idx)"
+            :disabled="item.disabled || loadingIdx === idx"
             class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
                    transition-colors text-left
                    disabled:opacity-40 disabled:cursor-not-allowed"
@@ -93,9 +111,12 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
             type="button"
           >
             <!-- Icono opcional (HTML/SVG raw o slot) -->
-            <span v-if="item.icon" class="w-4 h-4 shrink-0 flex items-center justify-center" v-html="item.icon" />
+            <span v-if="loadingIdx === idx" class="w-4 h-4 shrink-0 flex items-center justify-center">
+              <LoadingSpinner size="sm" :color="item.destructive ? 'danger' : 'slate'" />
+            </span>
+            <span v-else-if="item.icon" class="w-4 h-4 shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full" v-html="item.icon" />
             <span v-else class="w-4 h-4 shrink-0 rounded bg-slate-100" />
-            <span class="truncate">{{ item.label }}</span>
+            <span class="whitespace-nowrap pr-2">{{ item.label }}</span>
           </button>
         </template>
       </div>
