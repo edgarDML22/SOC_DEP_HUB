@@ -30,4 +30,5 @@ class torneos extends Model
     {
         return $this->belongsTo(CategoriaTorneo::class, 'id_categoria');
     }
+
 }

@@ -15,6 +15,7 @@ class SesionActiva extends Model
         'id_actividad_plantilla',
         'id_espacio',
         'fecha_sesion',
+        'id_instructor_sustituto',
     ];
 
     public function actividadPlantilla()

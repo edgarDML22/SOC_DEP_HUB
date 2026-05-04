@@ -87,8 +87,8 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
-
-// ==========================================
+//SDH 194 ruta para eliminar la disciplina de un instructor
+Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
 // Ruta por defecto que incluye Laravel
@@ -116,7 +116,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
-
 
     //CRUD INSTRUCTORES
     // Para instructor
@@ -153,7 +152,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
     Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
-    
+
     // CRUD CATEGORIAS DISCIPLINAS
     Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
     Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);

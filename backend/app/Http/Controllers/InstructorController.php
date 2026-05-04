@@ -12,7 +12,7 @@ use App\Models\ActividadPlantilla;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-
+use App\Models\instructorDisciplina;
 class InstructorController extends Controller
 {
     /**
@@ -466,5 +466,36 @@ class InstructorController extends Controller
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
+
+
+    public function deleteRelationshipDiscipline($id, $disciplina_id)
+    {
+        $available = InstructorAvailabilityService::getRelationship($id, $disciplina_id);
+        if ($available['success'] == true) {
+            return response()->json($available, 422);
+        } else {
+            $exists = InstructorDisciplina::where('id_instructor', $id)
+                ->where('id_disciplina', $disciplina_id)
+                ->exists();
+
+            if ($exists) {
+                InstructorDisciplina::where('id_instructor', $id)
+                    ->where('id_disciplina', $disciplina_id)
+                    ->delete();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Se elimino correctamente la disciplina del instructor'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontro la relacion entre el instructor y la disciplina'
+                ]);
+            }
+
+        }
+    }
+
+
 
 }
