@@ -154,7 +154,11 @@ const goBack = () => {
                                         <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
                                             <span
                                                 class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Género</span>
-                                            <span class="text-sm font-bold text-surface-900">{{ socio.genero }}</span>
+                                            <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider" :class="{
+                                                'bg-blue-50 text-blue-700 border border-blue-200': socio.genero === 'M',
+                                                'bg-pink-50 text-pink-700 border border-pink-200': socio.genero === 'F',
+                                                'bg-surface-100 text-surface-600 border border-surface-200': socio.genero !== 'M' && socio.genero !== 'F'
+                                            }">{{ socio.genero === 'M' ? 'Masculino' : socio.genero === 'F' ? 'Femenino' : 'Otro' }}</span>
                                         </div>
                                         <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
                                             <span
