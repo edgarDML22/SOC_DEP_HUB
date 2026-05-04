@@ -68,6 +68,8 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+// SDH 187: Actualizar estatus de la cuenta del socio
+Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
 
@@ -153,7 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
     Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
-    
+
     // CRUD CATEGORIAS DISCIPLINAS
     Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
     Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);
