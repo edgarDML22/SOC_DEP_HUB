@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { IconBell } from '@/components/icons'
-import { useAdminStore } from '@/stores/profiles/adminSotre'
+import { useAdminStore } from '@/stores/profiles/adminStore'
 
 const profileStore = useAdminStore()
 

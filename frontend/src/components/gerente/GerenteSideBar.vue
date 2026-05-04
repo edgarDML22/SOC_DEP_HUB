@@ -153,8 +153,8 @@ const sections = [
             class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full
                    transition-all duration-200 group"
             :class="[
-              isRouteUnder(section.paths) && !isOpen
-                ? 'bg-blue-600/20 text-blue-300'
+              isRouteUnder(section.paths)
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold'
                 : openSection === section.key
                   ? 'bg-slate-800 text-slate-100'
                   : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100',
@@ -164,7 +164,8 @@ const sections = [
           >
             <component
               :is="section.icon"
-              class="w-5 h-5 shrink-0 transition-transform group-hover:scale-110"
+              class="w-5 h-5 shrink-0 transition-all duration-300 group-hover:scale-110"
+              :class="isRouteUnder(section.paths) ? 'text-white' : 'text-slate-400 group-hover:text-slate-100'"
             />
 
             <Transition
@@ -188,7 +189,10 @@ const sections = [
               <svg
                 v-if="isOpen"
                 class="w-3.5 h-3.5 shrink-0 transition-transform duration-300"
-                :class="openSection === section.key ? 'rotate-180 text-blue-400' : 'text-slate-600'"
+                :class="[
+                  openSection === section.key ? 'rotate-180' : '',
+                  isRouteUnder(section.paths) ? 'text-white' : openSection === section.key ? 'text-blue-400' : 'text-slate-600'
+                ]"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
               >
                 <path d="M6 9l6 6 6-6"/>
@@ -215,13 +219,13 @@ const sections = [
                   class="flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm
                          transition-all duration-150 ml-0"
                   :class="route.path.startsWith(child.to)
-                    ? 'text-white font-semibold bg-slate-800/80'
+                    ? 'text-white font-bold bg-blue-600 shadow-md shadow-blue-600/20'
                     : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 font-medium'"
                 >
                   <span
                     class="w-1.5 h-1.5 rounded-full shrink-0 transition-all"
                     :class="route.path.startsWith(child.to)
-                      ? 'bg-blue-400 scale-125'
+                      ? 'bg-white scale-125'
                       : 'bg-slate-700'"
                   />
                   {{ child.label }}
