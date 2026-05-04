@@ -9,6 +9,8 @@ import IconHourglass from '@/components/icons/IconHourglass.vue';
 import IconLock from '@/components/icons/IconLock.vue';
 import IconUser from '@/components/icons/IconUser.vue';
 import IconArrowLeft from '@/components/icons/IconArrowLeft.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -234,7 +236,7 @@ const getStatusColor = (status) => {
                         asignadas. Elige quién las cubrirá o si prefieres suspenderlas por ahora.</p>
 
                     <div class="activities-reassign-list">
-                        <div v-for="(r, index) in reassignments" :key="r.id_actividad" class="reassign-item">
+                        <div v-for="r in reassignments" :key="r.id_actividad" class="reassign-item">
                             <div class="reassign-header">
                                 <div class="act-info">
                                     <span class="act-name">{{ r.nombre }}</span>
@@ -315,12 +317,15 @@ const getStatusColor = (status) => {
 
             <!-- WIZARD ACTIONS -->
             <div class="wizard-actions">
-                <button v-if="currentStep > 1" @click="prevStep" class="btn-secondary">Anterior</button>
-                <div class="flex-grow"></div>
-                <button v-if="currentStep < 3" @click="nextStep" class="btn-primary">Siguiente paso</button>
-                <button v-else @click="saveChanges" class="btn-save" :disabled="isSaving">
-                    {{ isSaving ? 'Guardando...' : 'Confirmar cambios' }}
-                </button>
+                <CancelButton v-if="currentStep > 1" label="Anterior" @click="prevStep" />
+                <div class="grow"></div>
+                <ConfirmButton v-if="currentStep < 3" label="Siguiente paso" @click="nextStep" />
+                <ConfirmButton
+                    v-else
+                    label="Confirmar cambios"
+                    :loading="isSaving"
+                    @click="saveChanges"
+                />
             </div>
         </section>
     </main>

@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useSocioStore } from '@/stores/admin/socioStore'
 import { useAlerts } from '@/composables/useAlerts'
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 
 const props = defineProps({
   socio: { type: Object, default: null },
@@ -10,7 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const socioStore = useSocioStore()
-const { toastInfo } = useAlerts()
+const { actionToast } = useAlerts()
 
 const isSaving       = ref(false)
 const selectedStatus = ref('SIN_PENALIZACION')
@@ -138,10 +139,10 @@ const save = async () => {
       dias_penalizacion_ludoteca:  ludotecaActiva.value ? diasLudoteca.value : undefined,
     })
     if (res.success) {
-      toastInfo('Actualizado', 'Penalización guardada correctamente.', 'success')
+      actionToast('Penalización guardada correctamente.', 'success')
       close()
     } else {
-      toastInfo('Error', res.error, 'error')
+      actionToast(res.error, 'error')
     }
   } finally {
     isSaving.value = false
@@ -166,7 +167,7 @@ const save = async () => {
           enter-to-class="opacity-100 scale-100 translate-y-0"
         >
           <div v-if="modelValue"
-            class="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
+            class="bg-white w-full max-w-4xl rounded-4xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
           >
             <!-- ── Cabecera ── -->
             <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
@@ -206,7 +207,7 @@ const save = async () => {
                     <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-3">Historial del Socio</p>
 
                     <!-- KPI: No Shows -->
-                    <div class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm overflow-hidden mb-4">
+                    <div class="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden mb-4">
                       <div class="h-1.5 transition-all duration-500"
                            :class="(socio?.contador_no_shows ?? 0) > 0 ? 'bg-red-500' : 'bg-surface-100'"/>
                       <div class="p-6 flex items-center justify-between">
@@ -234,7 +235,7 @@ const save = async () => {
                     </div>
 
                     <!-- KPI: Retrasos Ludoteca -->
-                    <div class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm overflow-hidden">
+                    <div class="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
                       <div class="h-1.5 transition-all duration-500"
                            :class="(socio?.retrasos_ludoteca ?? 0) > 0 ? 'bg-amber-500' : 'bg-surface-100'"/>
                       <div class="p-6 flex items-center justify-between">
@@ -339,7 +340,7 @@ const save = async () => {
                       :key="card.status"
                       @click="selectedStatus = card.status"
                       :disabled="isSaving"
-                      class="relative flex flex-col gap-3 p-5 rounded-[1.5rem] border-2 text-left
+                      class="relative flex flex-col gap-3 p-5 rounded-3xl border-2 text-left
                              transition-all duration-200 disabled:opacity-40 cursor-pointer
                              hover:-translate-y-0.5 hover:shadow-md focus:outline-none"
                       :class="selectedStatus === card.status
@@ -438,10 +439,7 @@ const save = async () => {
                          hover:bg-primary-700 active:bg-primary-800 transition-colors shadow-sm
                          disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  <svg v-if="isSaving" class="w-4 h-4 animate-spin"
-                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
+                  <LoadingSpinner v-if="isSaving" size="sm" color="white" />
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                     <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>

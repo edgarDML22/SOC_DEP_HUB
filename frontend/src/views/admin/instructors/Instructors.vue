@@ -12,6 +12,11 @@ import DatePicker from 'primevue/datepicker'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
+import SearchInput     from '@/components/gerente/ui/SearchInput.vue'
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import { IconAlertCircle, IconTarget, IconChevronDown } from '@/components/icons'
 
 // Iconos de deportes para el selector de disciplinas
 import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
@@ -273,38 +278,26 @@ onMounted(async () => {
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <div class="relative">
-          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
-               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            v-model="search"
-            placeholder="Buscar instructor por nombre…"
-            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
-                   font-medium text-surface-900 placeholder:text-surface-400
-                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
-          />
-        </div>
+        <SearchInput v-model="search" placeholder="Buscar instructor por nombre…" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterEstatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <IconTarget class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterDisciplina" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in disciplinasOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -337,7 +330,7 @@ onMounted(async () => {
               <div class="h-3 bg-surface-100 rounded-lg w-32"/>
             </div>
             <div class="h-5 w-16 bg-surface-100 rounded-full hidden sm:block"/>
-            <div class="flex gap-1.5 hidden md:flex">
+            <div class="hidden md:flex gap-1.5">
               <div class="h-5 w-14 bg-primary-50 rounded-lg"/>
               <div class="h-5 w-14 bg-primary-50 rounded-lg"/>
             </div>
@@ -470,7 +463,7 @@ onMounted(async () => {
             enter-to-class="opacity-100 scale-100 transurface-y-0"
           >
             <div v-if="showNewModal"
-              class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl shadow-surface-900/20
+              class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl shadow-surface-900/20
                      flex flex-col max-h-[92vh] overflow-hidden"
             >
               <!-- Cabecera -->
@@ -624,20 +617,12 @@ onMounted(async () => {
 
               <!-- Pie del modal -->
               <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100">
-                <button @click="showNewModal = false"
-                  class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
-                         text-sm font-semibold text-surface-700 hover:bg-surface-50 transition-colors">
-                  Cancelar
-                </button>
-                <button @click="saveNewInstructor" :disabled="isSaving"
-                  class="px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold
-                         hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                  <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin"
-                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  {{ isSaving ? 'Guardando…' : 'Guardar Instructor' }}
-                </button>
+                <CancelButton @click="showNewModal = false" />
+                <ConfirmButton
+                  label="Guardar Instructor"
+                  :loading="isSaving"
+                  @click="saveNewInstructor"
+                />
               </div>
             </div>
           </Transition>

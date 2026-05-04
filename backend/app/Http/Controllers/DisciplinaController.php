@@ -14,7 +14,7 @@ class DisciplinaController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => Disciplina::with(['categoria'])->get()
+            'data' => Disciplina::with(['categorias'])->get()
         ]);
     }
 
@@ -22,32 +22,28 @@ class DisciplinaController extends Controller
     {
         $data = $request->validate([
             'nombre_disciplina' => 'required|string',
-            'id_categoria' => 'required|exists:categorias_disciplinas,id',
-            'categoria_disciplina' => 'nullable|string',
+            'categorias_ids' => 'required|array',
+            'categorias_ids.*' => 'exists:categorias,id_categoria',
             'descripcion' => 'nullable|string',
             'estatus' => 'nullable|string'
         ]);
 
-        // Sincronizar nombre de categoría para compatibilidad con el ENUM legado si es necesario
-        if ($request->id_categoria) {
-            $cat = \App\Models\CategoriaDisciplina::find($request->id_categoria);
-            if ($cat) {
-                $data['categoria_disciplina'] = $cat->nombre_categoria;
-            }
-        }
-
         $disciplina = Disciplina::create($data);
+        
+        if (isset($data['categorias_ids'])) {
+            $disciplina->categorias()->sync($data['categorias_ids']);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Disciplina creada correctamente',
-            'data' => $disciplina
+            'data' => $disciplina->load('categorias')
         ]);
     }
 
     public function show($id): JsonResponse
     {
-        $disciplina = Disciplina::with(['instructores', 'categoria'])->find($id);
+        $disciplina = Disciplina::with(['instructores', 'categorias'])->find($id);
         if (!$disciplina) {
             return response()->json(['success' => false, 'message' => 'Disciplina no encontrada'], 404);
         }
@@ -63,17 +59,19 @@ class DisciplinaController extends Controller
 
         $data = $request->validate([
             'nombre_disciplina' => 'string',
-            'id_categoria' => 'exists:categorias_disciplinas,id',
-            'categoria_disciplina' => 'nullable|string',
+            'categorias_ids' => 'array',
+            'categorias_ids.*' => 'exists:categorias,id_categoria',
             'descripcion' => 'nullable|string',
             'estatus' => 'nullable|string'
         ]);
 
         // Si se intenta deshabilitar o poner en mantenimiento, verificar dependencias
-        if (isset($data['estatus']) && 
-            ($data['estatus'] === 'DESHABILITADO' || $data['estatus'] === 'MANTENIMIENTO') && 
-            $disciplina->estatus !== $data['estatus']) {
-            
+        if (
+            isset($data['estatus']) &&
+            ($data['estatus'] === 'DESHABILITADO' || $data['estatus'] === 'MANTENIMIENTO') &&
+            $disciplina->estatus !== $data['estatus']
+        ) {
+
             if ($this->hasActiveDependencies($id)) {
                 return response()->json([
                     'success' => false,
@@ -82,20 +80,16 @@ class DisciplinaController extends Controller
             }
         }
 
-        // Sincronizar nombre de categoría para compatibilidad con el ENUM legado
-        if (isset($data['id_categoria'])) {
-            $cat = \App\Models\CategoriaDisciplina::find($data['id_categoria']);
-            if ($cat) {
-                $data['categoria_disciplina'] = $cat->nombre_categoria;
-            }
-        }
-
         $disciplina->update($data);
+
+        if (isset($data['categorias_ids'])) {
+            $disciplina->categorias()->sync($data['categorias_ids']);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Disciplina actualizada correctamente',
-            'data' => $disciplina
+            'data' => $disciplina->load('categorias')
         ]);
     }
 
@@ -116,7 +110,7 @@ class DisciplinaController extends Controller
         $disciplina->update(['estatus' => 'DESHABILITADO']);
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'message' => 'Disciplina deshabilitada correctamente'
         ]);
     }
@@ -133,7 +127,8 @@ class DisciplinaController extends Controller
             })
             ->exists();
 
-        if ($hasSessions) return true;
+        if ($hasSessions)
+            return true;
 
         // 2. Torneos futuros o activos
         $hasTournaments = torneos::where('id_disciplina', $id_disciplina)

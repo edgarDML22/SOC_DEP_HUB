@@ -5,6 +5,9 @@ import api from '@/services/api';
 import { useInstructorStore } from '@/stores/admin/instructorStore';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 // Import Icons
 import IconFutbol from '@/components/icons/sports/IconFutbol.vue';
@@ -140,7 +143,7 @@ const goBack = () => {
         <Toast />
 
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="statusOverlay.show" class="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-md" :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
+            <div v-if="statusOverlay.show" class="fixed inset-0 z-9999 flex items-center justify-center bg-white/80 backdrop-blur-md" :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
                 <div class="text-center animate-[bounce_0.5s]">
                     <div class="flex justify-center mb-6">
                         <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -171,12 +174,12 @@ const goBack = () => {
         </header>
 
         <section v-if="isLoading" class="flex flex-col items-center justify-center py-20 gap-4">
-            <div class="w-10 h-10 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin"></div>
+            <LoadingSpinner />
             <p class="text-surface-500 font-medium">Cargando disciplinas...</p>
         </section>
 
         <section v-else class="max-w-7xl mx-auto space-y-8">
-            <div class="bg-primary-50/30 border border-primary-200 rounded-[2rem] p-6 lg:p-8 shadow-sm">
+            <div class="bg-primary-50/30 border border-primary-200 rounded-4xl p-6 lg:p-8 shadow-sm">
                 <div class="flex justify-between items-end mb-6">
                     <div>
                         <h3 class="text-xl font-extrabold text-primary-900">Disciplinas que Imparte</h3>
@@ -207,7 +210,7 @@ const goBack = () => {
                 </div>
             </div>
 
-            <div class="bg-white border border-surface-200 rounded-[2rem] p-6 lg:p-8 shadow-sm">
+            <div class="bg-white border border-surface-200 rounded-4xl p-6 lg:p-8 shadow-sm">
                 <div class="flex justify-between items-end mb-6">
                     <div>
                         <h3 class="text-xl font-extrabold text-surface-700">Otras Disciplinas Disponibles</h3>
@@ -231,10 +234,12 @@ const goBack = () => {
             </div>
 
             <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-50">
-                <button @click="goBack" class="px-8 py-3.5 bg-white text-surface-700 border border-surface-200 rounded-xl font-bold hover:bg-surface-50 transition-colors">Cancelar</button>
-                <button @click="saveChanges" class="px-10 py-3.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0" :disabled="isSaving">
-                    {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-                </button>
+                <CancelButton @click="goBack" />
+                <ConfirmButton
+                    label="Guardar Cambios"
+                    :loading="isSaving"
+                    @click="saveChanges"
+                />
             </div>
         </section>
     </main>

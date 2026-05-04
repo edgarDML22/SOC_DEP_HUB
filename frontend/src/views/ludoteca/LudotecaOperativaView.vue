@@ -4,8 +4,9 @@ import { useLudotecaOperativaStore } from '@/stores/ludoteca/ludotecaOperativaSt
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import { useAlerts } from '@/composables/useAlerts';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
-const { toastInfo, showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
+const { actionToast, showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
 
 const searchQuery = ref('');
 const activeTab = ref('activos'); 
@@ -52,7 +53,7 @@ const moverAInactivo = async (id, nombreNino) => {
 
     const res = await store.cambiarEstatusEstancia(id, 'INACTIVO');
     if (res?.success) {
-        toastInfo('¡Incidencia registrada!', 'El menor fue marcado como inactivo.', 'success');
+        actionToast('El menor fue marcado como inactivo.', 'success');
     } else {
         await errorModal('Error al registrar', res?.message || 'No se pudo registrar la incidencia.');
     }
@@ -69,7 +70,7 @@ const confirmarSalida = async () => {
         correo_receptor: modalSalidaInfo.value.correo
     });
     if (res?.success) {
-        toastInfo('¡Salida registrada!', 'El menor fue entregado correctamente.', 'success');
+        actionToast('El menor fue entregado correctamente.', 'success');
     } else {
         await errorModal('Error al registrar salida', res?.message || 'No se pudo registrar la salida.');
     }
@@ -85,7 +86,7 @@ const confirmarIngreso = async () => {
         correo: modalIngresoInfo.value.correo
     });
     if (res?.success) {
-        toastInfo('¡Ingreso activado!', 'El menor fue activado en la ludoteca correctamente.', 'success');
+        actionToast('El menor fue activado en la ludoteca correctamente.', 'success');
     } else {
         await errorModal('Error al activar', res?.message || 'No se pudo activar el ingreso.');
     }
@@ -271,7 +272,7 @@ const formatTime = (timeString) => {
       
         <!-- Cargando -->
         <div v-if="store.loading && !store.isTurnoActivo" class="flex justify-center p-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <LoadingSpinner />
         </div>
 
     </div>

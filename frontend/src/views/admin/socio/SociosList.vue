@@ -6,7 +6,12 @@ import { storeToRefs } from 'pinia'
 import AdminPageHeader    from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus        from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu         from '@/components/gerente/ui/ActionMenu.vue'
+import SearchInput        from '@/components/gerente/ui/SearchInput.vue'
+import LoadingSpinner     from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton     from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton      from '@/components/gerente/ui/CancelButton.vue'
 import PenalizacionModal  from '@/components/admin/socio/PenalizacionModal.vue'
+import { IconFilter, IconChevronDown, IconAlertCircle, IconWarning } from '@/components/icons'
 
 const router     = useRouter()
 const socioStore = useSocioStore()
@@ -184,69 +189,57 @@ onMounted(fetchSocios)
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <div class="relative">
-          <svg class="absolute left-4 top-1/2 -transurface-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
-               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            v-model="search"
-            placeholder="Buscar por nombre o número de acción…"
-            class="w-full pl-11 pr-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm
-                   font-medium text-surface-900 placeholder:text-surface-400
-                   focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all"
-          />
-        </div>
+        <SearchInput v-model="search" placeholder="Buscar por nombre o número de acción…" />
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterTipo" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Modalidad</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterModalidad" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_MODALIDAD" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Género</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterGenero" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_GENERO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
           <!-- Fila 2: los 2 filtros de estatus -->
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Cuenta</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterEstatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS_CUENTA" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Penalización</label>
             <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <IconWarning class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filterPenalizacion" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS_PENALIZACION" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <svg class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -400,7 +393,7 @@ onMounted(fetchSocios)
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showFamilyModal = false"
         >
-          <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div class="bg-white w-full max-w-md rounded-2rem shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
 
             <!-- Cabecera -->
             <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
@@ -422,7 +415,7 @@ onMounted(fetchSocios)
 
               <!-- Cargando -->
               <div v-if="isLoading" class="flex justify-center py-12">
-                <div class="w-8 h-8 rounded-full border-2 border-surface-200 border-t-primary-600 animate-spin" />
+                <LoadingSpinner />
               </div>
 
               <!-- Vacío -->
@@ -450,7 +443,7 @@ onMounted(fetchSocios)
                          hover:border-primary-200 hover:shadow-sm transition-all"
                 >
                   <div class="w-10 h-10 rounded-xl bg-linear-to-br from-purple-400 to-purple-600
-                              text-white flex items-center justify-center font-bold text-sm shrink-0 bg-linear-to-br">
+                              text-white flex items-center justify-center font-bold text-sm shrink-0">
                     {{ fam.nombre_completo?.charAt(0) ?? '?' }}
                   </div>
                   <div class="flex-1 min-w-0">
@@ -463,11 +456,7 @@ onMounted(fetchSocios)
 
             <!-- Pie -->
             <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
-              <button @click="showFamilyModal = false"
-                class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
-                       text-sm font-semibold text-surface-700 hover:bg-surface-50 transition-colors">
-                Cerrar
-              </button>
+              <CancelButton label="Cerrar" @click="showFamilyModal = false" />
             </div>
           </div>
         </div>
@@ -487,7 +476,7 @@ onMounted(fetchSocios)
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showGuestsModal = false"
         >
-          <div class="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div class="bg-white w-full max-w-lg rounded-2rem shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
 
             <!-- Cabecera -->
             <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
@@ -509,7 +498,7 @@ onMounted(fetchSocios)
 
               <!-- Cargando -->
               <div v-if="isLoading" class="flex justify-center py-12">
-                <div class="w-8 h-8 rounded-full border-2 border-surface-200 border-t-primary-600 animate-spin" />
+                <LoadingSpinner />
               </div>
 
               <!-- Vacío — mismo esqueleto que Miembros Familiares -->
@@ -563,11 +552,7 @@ onMounted(fetchSocios)
 
             <!-- Pie -->
             <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
-              <button @click="showGuestsModal = false"
-                class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
-                       text-sm font-semibold text-surface-700 hover:bg-surface-50 transition-colors">
-                Cerrar
-              </button>
+              <CancelButton label="Cerrar" @click="showGuestsModal = false" />
             </div>
           </div>
         </div>

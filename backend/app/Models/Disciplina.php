@@ -12,8 +12,6 @@ class Disciplina extends Model
     //
     protected $fillable = [
         'nombre_disciplina',
-        'id_categoria',
-        'categoria_disciplina',
         'descripcion',
         'estatus',
     ];
@@ -39,9 +37,9 @@ class Disciplina extends Model
         );
     }
 
-    public function categoria()
+    public function categorias()
     {
-        return $this->belongsTo(CategoriaDisciplina::class, 'id_categoria', 'id');
+        return $this->belongsToMany(CategoriaDisciplina::class, 'categoria_disciplina', 'id_disciplina', 'id_categoria');
     }
 
     public function instructores()
