@@ -12,6 +12,7 @@ import Select from 'primevue/select'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
+import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 
 const router = useRouter()
 const disciplinesStore = useDisciplinesStore()
@@ -248,16 +249,7 @@ onMounted(() => {
 
       <!-- FILTROS -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div class="relative">
-          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
-            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input v-model="search" placeholder="Buscar por nombre o categoría…" class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm
-                   font-medium text-slate-900 placeholder:text-slate-400
-                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
-        </div>
+        <SearchInput v-model:search="search" placeholder="Buscar por nombre o categoría…" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoría</label>
