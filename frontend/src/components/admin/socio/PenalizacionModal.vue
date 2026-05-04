@@ -166,20 +166,20 @@ const save = async () => {
           enter-to-class="opacity-100 scale-100 translate-y-0"
         >
           <div v-if="modelValue"
-            class="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
+            class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <!-- ── Cabecera ── -->
-            <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-              <div class="flex items-center gap-4">
+            <div class="flex items-center justify-between px-7 py-5 bg-white border-b border-surface-100">
+              <div class="flex items-center gap-3">
                 <div
-                  class="w-12 h-12 rounded-2xl bg-linear-to-br flex items-center justify-center
-                         text-white font-black text-base shadow-sm shrink-0"
+                  class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center
+                         text-white font-black text-sm shadow-sm shrink-0"
                   :class="avatarGradient(socio?.nombre_completo)"
                 >
                   {{ initials(socio?.nombre_completo ?? '') }}
                 </div>
                 <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Gestionar Penalizaciones</h2>
+                  <h2 class="text-lg font-black text-surface-900 leading-tight">Gestionar Penalizaciones</h2>
                   <p class="text-xs font-extrabold text-surface-500 mt-0.5 uppercase tracking-widest truncate max-w-xs">
                     {{ socio?.nombre_completo }}
                     <span class="text-surface-300 font-bold normal-case tracking-normal"> · </span>
@@ -188,9 +188,9 @@ const save = async () => {
                 </div>
               </div>
               <button @click="close"
-                class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200
+                class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200
                        flex items-center justify-center text-surface-500 transition-colors shrink-0">
-                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="M18 6L6 18M6 6l12 12"/>
                 </svg>
               </button>
@@ -198,32 +198,32 @@ const save = async () => {
 
             <!-- ── Cuerpo ── -->
             <div class="overflow-y-auto bg-surface-50/40">
-              <div class="p-8 grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-8">
+              <div class="p-6 grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-6">
 
                 <!-- COLUMNA IZQUIERDA: KPIs + selectores de días -->
-                <div class="flex flex-col gap-6">
+                <div class="flex flex-col gap-5">
                   <div>
                     <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-3">Historial del Socio</p>
 
                     <!-- KPI: No Shows -->
-                    <div class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm overflow-hidden mb-4">
-                      <div class="h-1.5 transition-all duration-500"
+                    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden mb-3">
+                      <div class="h-1 transition-all duration-500"
                            :class="(socio?.contador_no_shows ?? 0) > 0 ? 'bg-red-500' : 'bg-surface-100'"/>
-                      <div class="p-6 flex items-center justify-between">
+                      <div class="p-5 flex items-center justify-between">
                         <div>
                           <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">No Shows</p>
-                          <p class="text-5xl font-black leading-none transition-colors"
+                          <p class="text-3xl font-black leading-none transition-colors"
                              :class="(socio?.contador_no_shows ?? 0) > 0 ? 'text-red-600' : 'text-surface-300'">
                             {{ socio?.contador_no_shows ?? 0 }}
                           </p>
-                          <p class="text-xs font-semibold mt-2"
+                          <p class="text-xs font-semibold mt-1.5"
                              :class="(socio?.contador_no_shows ?? 0) > 0 ? 'text-red-500 font-bold' : 'text-surface-400'">
                             {{ (socio?.contador_no_shows ?? 0) > 0 ? 'Reservas canceladas sin aviso' : 'Sin incidencias' }}
                           </p>
                         </div>
-                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors"
                              :class="(socio?.contador_no_shows ?? 0) > 0 ? 'bg-red-50 text-red-500' : 'bg-surface-100 text-surface-300'">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-7 h-7">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
                             <line x1="3" y1="10" x2="21" y2="10"/>
@@ -234,24 +234,24 @@ const save = async () => {
                     </div>
 
                     <!-- KPI: Retrasos Ludoteca -->
-                    <div class="bg-white rounded-[1.5rem] border border-surface-200 shadow-sm overflow-hidden">
-                      <div class="h-1.5 transition-all duration-500"
+                    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+                      <div class="h-1 transition-all duration-500"
                            :class="(socio?.retrasos_ludoteca ?? 0) > 0 ? 'bg-amber-500' : 'bg-surface-100'"/>
-                      <div class="p-6 flex items-center justify-between">
+                      <div class="p-5 flex items-center justify-between">
                         <div>
                           <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Retrasos Ludoteca</p>
-                          <p class="text-5xl font-black leading-none transition-colors"
+                          <p class="text-3xl font-black leading-none transition-colors"
                              :class="(socio?.retrasos_ludoteca ?? 0) > 0 ? 'text-amber-600' : 'text-surface-300'">
                             {{ socio?.retrasos_ludoteca ?? 0 }}
                           </p>
-                          <p class="text-xs font-semibold mt-2"
+                          <p class="text-xs font-semibold mt-1.5"
                              :class="(socio?.retrasos_ludoteca ?? 0) > 0 ? 'text-amber-500 font-bold' : 'text-surface-400'">
                             {{ (socio?.retrasos_ludoteca ?? 0) > 0 ? 'Incidencias de puntualidad' : 'Sin incidencias' }}
                           </p>
                         </div>
-                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors"
                              :class="(socio?.retrasos_ludoteca ?? 0) > 0 ? 'bg-amber-50 text-amber-500' : 'bg-surface-100 text-surface-300'">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-7 h-7">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
                             <circle cx="12" cy="12" r="10"/>
                             <polyline points="12 6 12 12 16 14"/>
                           </svg>
@@ -262,7 +262,7 @@ const save = async () => {
 
                   <!-- ── SELECTORES DE DÍAS ── -->
                   <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
-                    <div class="px-5 py-3.5 border-b border-surface-100">
+                    <div class="px-5 py-3 border-b border-surface-100">
                       <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">Duración de la Sanción</p>
                     </div>
                     <div class="p-5 flex flex-col gap-4">
@@ -339,7 +339,7 @@ const save = async () => {
                       :key="card.status"
                       @click="selectedStatus = card.status"
                       :disabled="isSaving"
-                      class="relative flex flex-col gap-3 p-5 rounded-[1.5rem] border-2 text-left
+                      class="relative flex flex-col gap-2.5 p-4 rounded-2xl border-2 text-left
                              transition-all duration-200 disabled:opacity-40 cursor-pointer
                              hover:-translate-y-0.5 hover:shadow-md focus:outline-none"
                       :class="selectedStatus === card.status
@@ -348,7 +348,7 @@ const save = async () => {
                     >
                       <!-- Icono + check activo -->
                       <div class="flex items-center justify-between">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
                              :class="selectedStatus === card.status
                                ? [card.bgActive, card.text]
                                : ['bg-white/60', card.text]">
@@ -363,9 +363,9 @@ const save = async () => {
                           leave-to-class="opacity-0 scale-50"
                         >
                           <div v-if="selectedStatus === card.status"
-                               class="w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm"
+                               class="w-5.5 h-5.5 rounded-full flex items-center justify-center text-white shadow-sm"
                                :class="card.dot">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="w-3.5 h-3.5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="w-3 h-3">
                               <polyline points="20 6 9 17 4 12"/>
                             </svg>
                           </div>
@@ -374,7 +374,7 @@ const save = async () => {
                       <!-- Textos -->
                       <div>
                         <p class="text-sm font-black leading-tight" :class="card.text">{{ card.label }}</p>
-                        <p class="text-xs font-semibold mt-1 leading-relaxed"
+                        <p class="text-xs font-semibold mt-0.5 leading-relaxed"
                            :class="selectedStatus === card.status ? card.text + ' opacity-70' : 'text-surface-500'">
                           {{ card.sublabel }}
                         </p>
@@ -383,7 +383,7 @@ const save = async () => {
                   </div>
 
                   <!-- Resumen de lo que se va a aplicar -->
-                  <div class="mt-2 rounded-2xl bg-white border border-surface-200 shadow-sm overflow-hidden">
+                  <div class="mt-1 rounded-2xl bg-white border border-surface-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-3 flex items-center gap-3 border-b border-surface-100">
                       <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="activeCard?.dot ?? 'bg-surface-300'"/>
                       <div class="flex-1 min-w-0">
@@ -423,32 +423,29 @@ const save = async () => {
             </div>
 
             <!-- ── Pie ── -->
-            <div class="flex items-center justify-between gap-3 px-8 py-5 border-t border-surface-100 bg-white">
-              
-              <div class="flex items-center gap-3 ml-auto">
-                <button @click="close"
-                  class="px-6 py-3 rounded-xl border border-surface-200 bg-white
-                         text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
-                  Cancelar
-                </button>
-                <button
-                  @click="save"
-                  :disabled="isSaving || !hasChanges"
-                  class="px-7 py-3 rounded-xl bg-primary-600 text-white text-sm font-black
-                         hover:bg-primary-700 active:bg-primary-800 transition-colors shadow-sm
-                         disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  <svg v-if="isSaving" class="w-4 h-4 animate-spin"
-                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                    <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-                  </svg>
-                  {{ isSaving ? 'Guardando…' : 'Guardar cambios' }}
-                </button>
-              </div>
+            <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
+              <button @click="close"
+                class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
+                       text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
+                Cancelar
+              </button>
+              <button
+                @click="save"
+                :disabled="isSaving || !hasChanges"
+                class="px-6 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-black
+                       hover:bg-primary-700 active:bg-primary-800 transition-colors shadow-sm
+                       disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <svg v-if="isSaving" class="w-4 h-4 animate-spin"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                </svg>
+                {{ isSaving ? 'Guardando…' : 'Guardar cambios' }}
+              </button>
             </div>
 
           </div>
