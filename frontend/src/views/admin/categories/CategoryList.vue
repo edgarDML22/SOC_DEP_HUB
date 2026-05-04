@@ -1,15 +1,22 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useCategoryStore } from '@/stores/admin/categoryStore';
 import { useformat } from '@/utils/formatters';
+import { useAlerts } from '@/composables/useAlerts';
+
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue';
+import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
+import ActionMenu from '@/components/gerente/ui/ActionMenu.vue';
 
 const { formatText } = useformat();
+const { toastInfo } = useAlerts();
 const router = useRouter();
 const categoryStore = useCategoryStore();
 const { categories, isLoading } = storeToRefs(categoryStore);
 
+const search = ref('');
 const showModal = ref(false);
 const isSaving = ref(false);
 const editingCategory = ref(null);
@@ -18,6 +25,18 @@ const form = ref({
     nombre: '',
     descripcion: '',
     estatus: 'ACTIVO'
+});
+
+const filteredCategories = computed(() => {
+    let r = [...categories.value];
+    if (search.value) {
+        const q = search.value.toLowerCase();
+        r = r.filter(c => 
+            c.nombre.toLowerCase().includes(q) || 
+            (c.descripcion && c.descripcion.toLowerCase().includes(q))
+        );
+    }
+    return r.sort((a, b) => a.nombre.localeCompare(b.nombre));
 });
 
 onMounted(() => {
@@ -41,8 +60,8 @@ const openEdit = (cat) => {
 };
 
 const save = async () => {
-    if (!form.value.nombre) {
-        alert("El nombre es obligatorio.");
+    if (!form.value.nombre.trim()) {
+        toastInfo('Error', 'El nombre es obligatorio.', 'error');
         return;
     }
     isSaving.value = true;
@@ -55,142 +74,241 @@ const save = async () => {
     isSaving.value = false;
     if (res.success) {
         showModal.value = false;
+        toastInfo('Éxito', editingCategory.value ? 'Categoría actualizada.' : 'Categoría creada.', 'success');
     } else {
-        alert(res.error);
+        toastInfo('Error', res.error, 'error');
     }
 };
 
-const remove = async (id) => {
-    if (!confirm("¿Estás seguro de eliminar esta categoría?")) return;
-    const res = await categoryStore.deleteCategory(id);
-    if (!res.success) {
-        alert(res.error);
+const remove = async (cat) => {
+    if (!confirm(`¿Estás seguro de eliminar la categoría "${cat.nombre}"?`)) return;
+    
+    const res = await categoryStore.deleteCategory(cat.id_categoria);
+    if (res.success) {
+        toastInfo('Éxito', 'Categoría eliminada.', 'success');
+    } else {
+        toastInfo('Error', res.error, 'error');
     }
 };
 
-const goBack = () => router.push({ name: 'disciplines-list' });
+const buildMenuItems = (cat) => [
+    {
+        label: 'Editar',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                   <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+               </svg>`,
+        action: () => openEdit(cat),
+    },
+    { separator: true },
+    {
+        label: 'Eliminar',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+               </svg>`,
+        action: () => remove(cat),
+        destructive: true,
+    }
+];
 </script>
 
 <template>
-    <div class="admin-container p-6 bg-gray-50 min-h-screen">
-        <header class="flex justify-between items-center mb-8">
-            <div class="flex items-center gap-4">
-                <button @click="goBack"
-                    class="p-2 bg-white rounded-xl border border-gray-100 text-gray-500 hover:text-indigo-600 transition-all shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <main class="min-h-screen bg-slate-50 p-6 lg:p-8 pb-16 font-sans">
+        <div class="max-w-7xl mx-auto space-y-8">
+            
+            <AdminPageHeader 
+                title="Categorías de Disciplinas" 
+                subtitle="Administra las categorías disponibles para clasificar deportes"
+                back-route="disciplines-list"
+            >
+                <span class="text-sm font-bold text-slate-500">
+                    {{ filteredCategories.length }}
+                    <span class="font-medium text-slate-400">de {{ categories.length }}</span>
+                </span>
+                <button @click="openCreate"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
+                           text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                     </svg>
+                    Nueva Categoría
                 </button>
-                <div>
-                    <h1 class="text-3xl font-extrabold text-gray-900">Categorías de Disciplinas</h1>
-                    <p class="text-gray-500">Administra las categorías disponibles para clasificar deportes</p>
+            </AdminPageHeader>
+
+            <!-- FILTRO -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div class="relative">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input v-model="search" placeholder="Buscar categoría por nombre o descripción…" 
+                        class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm
+                               font-medium text-slate-900 placeholder:text-slate-400
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                 </div>
             </div>
-            <button @click="openCreate"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Nueva Categoría
-            </button>
-        </header>
 
-        <div v-if="isLoading && categories.length === 0" class="flex justify-center py-20">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        </div>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="cat in categories" :key="cat.id_categoria"
-                class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01" />
-                        </svg>
+            <!-- CARGANDO -->
+            <div v-if="isLoading && categories.length === 0" class="flex flex-col gap-4">
+                <div v-for="n in 3" :key="n"
+                    class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex gap-5 animate-pulse">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-200 shrink-0"/>
+                    <div class="flex-1 space-y-3 py-1">
+                        <div class="h-4 bg-slate-200 rounded-lg w-48"/>
+                        <div class="h-3 bg-slate-100 rounded-lg w-full"/>
                     </div>
-                    <div class="flex gap-2">
-                        <button @click="openEdit(cat)"
-                            class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Editar">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                        <button @click="remove(cat.id_categoria)"
-                            class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Eliminar">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">{{ formatText(cat.nombre) }}</h3>
-                <p class="text-gray-500 text-sm flex-grow">{{ cat.descripcion || 'Sin descripción.' }}</p>
-                <div class="mt-4">
-                    <span :class="cat.estatus === 'ACTIVO' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
-                        class="px-2 py-1 rounded-md text-xs font-bold uppercase">
-                        {{ formatText(cat.estatus) }}
-                    </span>
+                    <div class="w-28 h-9 rounded-xl bg-slate-100 self-center shrink-0"/>
                 </div>
             </div>
-        </div>
 
-        <!-- Modal -->
-        <div v-if="showModal"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
-                <div class="p-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">
-                            {{ editingCategory ? 'Editar Categoría' : 'Nueva Categoría' }}
-                        </h2>
-                        <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
+            <!-- VACÍO -->
+            <div v-else-if="filteredCategories.length === 0"
+                class="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16
+                       flex flex-col items-center justify-center text-center">
+                <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                    <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01" />
+                    </svg>
+                </div>
+                <h3 class="text-base font-black text-slate-900">Sin resultados</h3>
+                <p class="text-sm text-slate-500 mt-1">No se encontraron categorías con los criterios de búsqueda.</p>
+            </div>
+
+            <!-- LISTA -->
+            <div v-else class="flex flex-col gap-4">
+                <div v-for="cat in filteredCategories" :key="cat.id_categoria"
+                    class="bg-white rounded-2xl border border-slate-200 shadow-sm
+                           hover:shadow-md hover:border-slate-300
+                           transition-all duration-200 group overflow-hidden flex">
+                    
+                    <div class="w-1.5 shrink-0 bg-indigo-500" />
+
+                    <div class="flex items-center justify-center px-5 py-4 shrink-0">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center
+                                    shadow-sm group-hover:scale-105 transition-transform duration-200">
+                            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01" />
                             </svg>
-                        </button>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Nombre de la Categoría</label>
-                            <input v-model="form.nombre" type="text" placeholder="Ej. ACUATICO"
-                                class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
-                            <textarea v-model="form.descripcion" rows="3" placeholder="Breve descripción..."
-                                class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Estatus</label>
-                            <select v-model="form.estatus"
-                                class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500">
-                                <option value="ACTIVO">ACTIVO</option>
-                                <option value="INACTIVO">INACTIVO</option>
-                            </select>
                         </div>
                     </div>
-                    <div class="mt-8 flex gap-3">
-                        <button @click="showModal = false"
-                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition-all">Cancelar</button>
-                        <button @click="save" :disabled="isSaving"
-                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
-                            {{ isSaving ? 'Guardando...' : (editingCategory ? 'Actualizar' : 'Crear') }}
-                        </button>
+
+                    <div class="flex-1 min-w-0 py-4 pr-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h3 class="text-sm font-black text-slate-900 truncate leading-tight">
+                                    {{ formatText(cat.nombre) }}
+                                </h3>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                    <BadgeStatus :status="cat.estatus" size="sm" />
+                                </div>
+                                <p class="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed mt-1.5 max-w-2xl">
+                                    {{ cat.descripcion || 'Sin descripción disponible.' }}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button @click="openEdit(cat)"
+                                    class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100
+                                           text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600
+                                           transition-colors border border-slate-200 hover:border-blue-200">
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                    Editar
+                                </button>
+                                <ActionMenu :items="buildMenuItems(cat)" align="right" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- MODAL -->
+            <Teleport to="body">
+                <Transition
+                    enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+                    enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+                    leave-from-class="opacity-100" leave-to-class="opacity-0"
+                >
+                    <div v-if="showModal"
+                        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+                        @click.self="showModal = false"
+                    >
+                        <Transition
+                            enter-active-class="transition-all duration-300 ease-out"
+                            enter-from-class="opacity-0 scale-95 translate-y-4"
+                            enter-to-class="opacity-100 scale-100 translate-y-0"
+                        >
+                            <div v-if="showModal"
+                                class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col overflow-hidden">
+                                
+                                <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
+                                    <div>
+                                        <h2 class="text-lg font-black text-slate-900 leading-tight">
+                                            {{ editingCategory ? 'Editar Categoría' : 'Nueva Categoría' }}
+                                        </h2>
+                                        <p class="text-xs text-slate-500 font-medium mt-0.5">
+                                            {{ editingCategory ? 'Modifica los datos de la categoría.' : 'Crea una nueva clasificación para disciplinas.' }}
+                                        </p>
+                                    </div>
+                                    <button @click="showModal = false"
+                                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <path d="M18 6L6 18M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div class="p-7 space-y-5 bg-slate-50/30">
+                                    <div class="space-y-1.5">
+                                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                                            Nombre <span class="text-red-400">*</span>
+                                        </label>
+                                        <input v-model="form.nombre" placeholder="Ej. Acuático, Combate..."
+                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                                                   text-slate-900 placeholder:text-slate-400
+                                                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
+                                        <select v-model="form.estatus"
+                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                                                   text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
+                                            <option value="ACTIVO">Activo</option>
+                                            <option value="INACTIVO">Inactivo</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Descripción</label>
+                                        <textarea v-model="form.descripcion" rows="4" placeholder="Breve descripción de la categoría..."
+                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
+                                                   text-slate-900 placeholder:text-slate-400 resize-none
+                                                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
+                                    <button @click="showModal = false"
+                                        class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                                        Cancelar
+                                    </button>
+                                    <button @click="save" :disabled="isSaving"
+                                        class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                                        <svg v-if="isSaving" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                        </svg>
+                                        {{ isSaving ? 'Guardando...' : (editingCategory ? 'Actualizar' : 'Crear') }}
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+                </Transition>
+            </Teleport>
+
         </div>
-    </div>
+    </main>
 </template>
