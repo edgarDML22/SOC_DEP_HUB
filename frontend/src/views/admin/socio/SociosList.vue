@@ -7,6 +7,7 @@ import AdminPageHeader    from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus        from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu         from '@/components/gerente/ui/ActionMenu.vue'
 import PenalizacionModal  from '@/components/admin/socio/PenalizacionModal.vue'
+import EstatusCuentaModal from '@/components/admin/socio/EstatusCuentaModal.vue'
 
 const router     = useRouter()
 const socioStore = useSocioStore()
@@ -136,13 +137,21 @@ const buildMenuItems = (socio) => [
            </svg>`,
     action: () => openGuests(socio),
   },
+  {
+    label: socio.estatus_cuenta === 'SUSPENDIDO' ? 'Reactivar cuenta' : 'Suspender cuenta',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+           </svg>`,
+    action: () => openEstatus(socio),
+  },
 ]
 
 // ── MODALES ───────────────────────────────────────────────────
-const showPenaltyModal = ref(false)
-const showFamilyModal  = ref(false)
-const showGuestsModal  = ref(false)
-const selectedSocio    = ref(null)
+const showPenaltyModal  = ref(false)
+const showFamilyModal   = ref(false)
+const showGuestsModal   = ref(false)
+const showEstatusModal  = ref(false)
+const selectedSocio     = ref(null)
 
 const openPenalty = (socio) => {
   selectedSocio.value = socio
@@ -161,6 +170,11 @@ const openGuests = async (socio) => {
   showGuestsModal.value = true
   await fetchSocioDetails(socio.id_socio)
   selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
+}
+
+const openEstatus = (socio) => {
+  selectedSocio.value = socio
+  showEstatusModal.value = true
 }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -384,6 +398,14 @@ onMounted(fetchSocios)
     ══════════════════════════════════════════════════════════ -->
     <PenalizacionModal
       v-model="showPenaltyModal"
+      :socio="selectedSocio"
+    />
+
+    <!-- ══════════════════════════════════════════════════════════
+         MODAL: ESTATUS DE CUENTA
+    ══════════════════════════════════════════════════════════ -->
+    <EstatusCuentaModal
+      v-model="showEstatusModal"
       :socio="selectedSocio"
     />
 
