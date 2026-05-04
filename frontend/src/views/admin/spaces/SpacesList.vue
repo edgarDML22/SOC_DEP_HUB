@@ -12,6 +12,7 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput     from '@/components/gerente/ui/SearchInput.vue'
+import { IconLayers, IconAlertCircle, IconChevronDown } from '@/components/icons'
 
 import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
 import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue'
@@ -257,13 +258,23 @@ onMounted(() => {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo de uso</label>
-            <Select v-model="filterTipo" :options="OPT_TIPO" option-label="label" option-value="value"
-                    placeholder="Todos los tipos" class="w-full text-sm" />
+            <div class="relative">
+              <IconLayers class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <select v-model="filterTipo" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-            <Select v-model="filterStatus" :options="OPT_STATUS" option-label="label" option-value="value"
-                    placeholder="Todos los estados" class="w-full text-sm" />
+            <div class="relative">
+              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
+                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
           </div>
         </div>
         <Transition
