@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ConsultarDisponibilidadRequest;
+use App\Models\ActividadPlantilla;
+use App\Models\EncuentrosTorneo;
 use App\Models\EspacioFisico;
 use App\Models\Reservacion;
 use App\Models\SesionActiva;
+use App\Models\torneos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -42,14 +45,14 @@ class EspacioFisicoController extends Controller
     public function store(\Illuminate\Http\Request $request): JsonResponse
     {
         $data = $request->validate([
-            'nombre_espacio'       => 'required|string',
-            'capacidad_maxima'     => 'required|integer',
+            'nombre_espacio' => 'required|string',
+            'capacidad_maxima' => 'required|integer',
             'es_reserva_on_demand' => 'required|boolean',
-            'es_clase_programada'  => 'required|boolean',
-            'es_uso_libre'         => 'required|boolean',
-            'estatus'              => 'required|string',
-            'descripcion'          => 'nullable|string',
-            'disciplinas'          => 'array',
+            'es_clase_programada' => 'required|boolean',
+            'es_uso_libre' => 'required|boolean',
+            'estatus' => 'required|string',
+            'descripcion' => 'nullable|string',
+            'disciplinas' => 'array',
         ]);
 
         if ($data['es_uso_libre']) {
@@ -62,7 +65,7 @@ class EspacioFisicoController extends Controller
         }
 
         $espacio = EspacioFisico::create($data);
-        
+
         if (isset($data['disciplinas'])) {
             $espacio->disciplinas()->sync($data['disciplinas']);
         }
@@ -87,48 +90,64 @@ class EspacioFisicoController extends Controller
     {
         $espacio = EspacioFisico::find($id);
         if (!$espacio) {
-            return response()->json(['success' => false, 'message' => 'Espacio no encontrado'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Espacio no encontrado'
+            ], 404);
         }
 
         $data = $request->validate([
-            'nombre_espacio'       => 'sometimes|string',
-            'capacidad_maxima'     => 'sometimes|integer',
+            'nombre_espacio' => 'sometimes|string',
+            'capacidad_maxima' => 'sometimes|integer',
             'es_reserva_on_demand' => 'sometimes|boolean',
-            'es_clase_programada'  => 'sometimes|boolean',
-            'es_uso_libre'         => 'sometimes|boolean',
-            'estatus'              => 'sometimes|string',
-            'descripcion'          => 'nullable|string',
-            'disciplinas'          => 'array',
+            'es_clase_programada' => 'sometimes|boolean',
+            'es_uso_libre' => 'sometimes|boolean',
+            'descripcion' => 'nullable|string',
+            'disciplinas' => 'array',
+            'nuevo_estatus' => 'sometimes|in:ACTIVO,MANTENIMIENTO,DESHABILITADO',
         ]);
 
-        // Logic validation
+        if (isset($data['nuevo_estatus'])) {
+            $data['estatus'] = $data['nuevo_estatus'];
+            unset($data['nuevo_estatus']);
+        }
+
+        // Si es uso libre, desactiva los otros
         if (isset($data['es_uso_libre']) && $data['es_uso_libre']) {
             $data['es_reserva_on_demand'] = false;
             $data['es_clase_programada'] = false;
         }
 
-        // If updating booleans, check that at least one is true
+        // Validar que al menos uno esté activo
         $reserva = $data['es_reserva_on_demand'] ?? $espacio->es_reserva_on_demand;
         $clase = $data['es_clase_programada'] ?? $espacio->es_clase_programada;
         $uso = $data['es_uso_libre'] ?? $espacio->es_uso_libre;
 
         if (!$reserva && !$clase && !$uso) {
-            return response()->json(['success' => false, 'message' => 'Al menos un tipo de uso debe estar activo.'], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Al menos un tipo de uso debe estar activo.'
+            ], 422);
         }
 
+        // Validación de estatus
         if (isset($data['estatus']) && $data['estatus'] !== $espacio->estatus) {
+
             if (in_array($data['estatus'], ['DESHABILITADO', 'MANTENIMIENTO'])) {
-                if ($this->hasActiveDependencies($id)) {
+
+                $conflictos = $this->getActiveDependencies($id);
+
+                if (array_sum($conflictos) > 0) {
                     return response()->json([
-                        'success' => false,
-                        'message' => "No se puede cambiar el estatus a {$data['estatus']} porque el espacio tiene reservaciones, sesiones o encuentros programados."
-                    ], 400);
+                        'message' => 'No se puede cambiar el estatus',
+                        'conflictos' => $conflictos
+                    ], 422);
                 }
             }
         }
 
         $espacio->update($data);
-        
+
         if (isset($data['disciplinas'])) {
             $espacio->disciplinas()->sync($data['disciplinas']);
         }
@@ -147,11 +166,13 @@ class EspacioFisicoController extends Controller
             return response()->json(['success' => false, 'message' => 'Espacio no encontrado'], 404);
         }
 
-        if ($this->hasActiveDependencies($id)) {
+        $conflictos = $this->getActiveDependencies($id);
+
+        if (array_sum($conflictos) > 0) {
             return response()->json([
-                'success' => false,
-                'message' => 'No se puede deshabilitar el espacio porque tiene actividades (reservaciones, sesiones o encuentros) programadas.'
-            ], 400);
+                'message' => 'No se puede cambiar el estatus',
+                'conflictos' => $conflictos
+            ], 422);
         }
 
         $espacio->update(['estatus' => 'DESHABILITADO']);
@@ -161,42 +182,41 @@ class EspacioFisicoController extends Controller
     /**
      * Verifica si el espacio tiene dependencias activas o futuras.
      */
-    private function hasActiveDependencies($id_espacio): bool
+    private function getActiveDependencies($id_espacio): array
     {
         $today = now()->toDateString();
 
-        // 1. Reservaciones activas o pendientes futuras
-        $hasReservations = Reservacion::where('id_espacio', $id_espacio)
+        //reservaciones
+        $reservaciones = Reservacion::where('id_espacio', $id_espacio)
             ->where('fecha_reserva', '>=', $today)
             ->where(function ($q) {
                 $q->where('estatus_operativo', 'ACTIVA')
-                  ->orWhere(function ($sub) {
-                      $sub->where('estatus_operativo', 'PENDIENTE')
-                          ->where('fecha_expiracion', '>', now());
-                  });
+                    ->orWhere(function ($sub) {
+                        $sub->where('estatus_operativo', 'PENDIENTE')
+                            ->where('fecha_expiracion', '>', now());
+                    });
             })
-            ->exists();
+            ->count();
 
-        if ($hasReservations) return true;
+        //torneos activos
+        $torneos = EncuentrosTorneo::where('id_espacio', $id_espacio)->count();
 
-        // 2. Sesiones activas futuras
-        $hasSessions = SesionActiva::whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
-            ->where('fecha_sesion', '>=', $today)
-            ->whereHas('actividadPlantilla', function ($query) use ($id_espacio) {
-                $query->where('id_espacio', $id_espacio);
-            })
-            ->exists();
+        //sesiones activas
+        $sesiones = SesionActiva::whereHas('actividadPlantilla', function ($query) use ($id_espacio) {
+            $query->where('id_espacio', $id_espacio);
+        })
+            ->where('estatus_sesion', 'EN_CURSO')
+            ->count();
 
-        if ($hasSessions) return true;
+        //actividades programadas
+        $actividades = ActividadPlantilla::where('id_espacio', $id_espacio)->count();
 
-        // 3. Encuentros de torneo futuros
-        $hasTournamentEncounters = DB::table('encuentros_torneo')
-            ->where('id_espacio', $id_espacio)
-            ->whereDate('fecha_hora_inicio', '>=', $today)
-            ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO'])
-            ->exists();
-
-        return $hasTournamentEncounters;
+        return [
+            'reservaciones_activas' => $reservaciones,
+            'sesiones_activas' => $sesiones,
+            'actividades_programadas' => $actividades,
+            'torneos_programados' => $torneos
+        ];
     }
 
     private function getDisponibilidadOnDemand($fecha): array
@@ -218,16 +238,16 @@ class EspacioFisicoController extends Controller
             }
 
             // Mapeamos las disciplinas limpio (El array de objetos que tu front ya espera)
-            $disciplinas = $espacio->disciplinas->isEmpty() 
-                ? [['id_disciplina' => null, 'nombre_disciplina' => 'N/A']] 
+            $disciplinas = $espacio->disciplinas->isEmpty()
+                ? [['id_disciplina' => null, 'nombre_disciplina' => 'N/A']]
                 : $espacio->disciplinas->toArray();
 
             return [
-                'id_espacio'       => $espacio->id_espacio,
-                'nombre_espacio'   => $espacio->nombre_espacio,
-                'disciplinas'      => $disciplinas,
-                'estatus'          => $estatus,
-                'capacidad_maxima' => $espacio->capacidad_maxima 
+                'id_espacio' => $espacio->id_espacio,
+                'nombre_espacio' => $espacio->nombre_espacio,
+                'disciplinas' => $disciplinas,
+                'estatus' => $estatus,
+                'capacidad_maxima' => $espacio->capacidad_maxima
             ];
         });
 
@@ -239,7 +259,7 @@ class EspacioFisicoController extends Controller
     {
         // 1. Iniciamos la consulta en sesiones_activas
         $query = SesionActiva::where('fecha_sesion', $fecha)
-            ->whereHas('actividadPlantilla.espacioFisico', function($q) {
+            ->whereHas('actividadPlantilla.espacioFisico', function ($q) {
                 $q->where('es_clase_programada', true);
             })
             ->with([
@@ -280,12 +300,12 @@ class EspacioFisicoController extends Controller
             }
 
             return [
-                'espacio_id'    => $espacio->id_espacio,
-                'nombre'        => $espacio->nombre_espacio . ' - ' . $disciplina->nombre_disciplina,
-                'categoria'     => $disciplina->categoria_disciplina,
-                'hora_inicio'   => $plantilla->hora_inicio,
-                'hora_fin'       => $plantilla->hora_fin,
-                'estatus'        => $estatus,
+                'espacio_id' => $espacio->id_espacio,
+                'nombre' => $espacio->nombre_espacio . ' - ' . $disciplina->nombre_disciplina,
+                'categoria' => $disciplina->categoria_disciplina,
+                'hora_inicio' => $plantilla->hora_inicio,
+                'hora_fin' => $plantilla->hora_fin,
+                'estatus' => $estatus,
                 'cupo_restante' => $cupoRestante
             ];
         });

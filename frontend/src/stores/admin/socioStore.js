@@ -116,6 +116,29 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         }
     };
 
+    const updateEstatusCuenta = async (id, nuevoEstatus) => {
+        try {
+            const response = await api.patch(`/socios/${id}/estatus-cuenta`, {
+                nuevo_estatus: nuevoEstatus,
+            });
+            if (response.data && response.data.success) {
+                // Actualizar localmente
+                const index = socios.value.findIndex((s) => String(s.id_socio) === String(id));
+                if (index !== -1) {
+                    socios.value[index] = {
+                        ...socios.value[index],
+                        estatus_cuenta: response.data.nuevo_estatus,
+                    };
+                }
+                return { success: true, data: response.data };
+            }
+            return { success: false, error: 'Respuesta inesperada del servidor.' };
+        } catch (err) {
+            console.error('Error updating estatus cuenta:', err);
+            return { success: false, error: err.response?.data?.message || 'Error al actualizar el estatus.' };
+        }
+    };
+
     return {
         socios,
         isLoading,
@@ -125,6 +148,7 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         updateSocio,
         penalizeSocio,
         updatePenalizacion,
+        updateEstatusCuenta,
         fetchSocioDetails
     };
 });
