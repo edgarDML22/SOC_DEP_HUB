@@ -272,7 +272,30 @@ const router = createRouter({
         },
         {
           path: "tournaments",
-          component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
+          component: () => import("@/views/admin/tournaments/Tournaments.vue"),
+          redirect: "/admin/tournaments",
+          children: [
+            {
+              path: "",
+              name: "tournaments",
+              component: () => import("@/views/admin/tournaments/Tournaments.vue"),
+            },
+            {
+              path: "schedule",
+              name: "schedule",
+              component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
+            },
+            {
+              path: "create",
+              name: "create-tournament",
+              component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
+            },
+            {
+              path: "details",
+              name: "details-tournament",
+              component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
+            },
+          ]
         },
         {
           path: "reservations",
