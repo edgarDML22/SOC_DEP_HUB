@@ -18,6 +18,24 @@ import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconGrid, IconAlertCircle, IconChevronDown } from '@/components/icons'
 
+// Import Sports Icons
+import IconFutbol from '@/components/icons/sports/IconFutbol.vue';
+import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue';
+import IconTenis from '@/components/icons/sports/IconTenis.vue';
+import IconVoleibol from '@/components/icons/sports/IconVoleibol.vue';
+import IconSquash from '@/components/icons/sports/IconSquash.vue';
+import IconFrontenis from '@/components/icons/sports/IconFrontenis.vue';
+import IconPadel from '@/components/icons/sports/IconPadel.vue';
+import IconNatacion from '@/components/icons/sports/IconNatacion.vue';
+import IconYoga from '@/components/icons/sports/IconYoga.vue';
+import IconPesas from '@/components/icons/sports/IconPesas.vue';
+import IconArtesMarciales from '@/components/icons/sports/IconArtesMarciales.vue';
+import IconGimnasia from '@/components/icons/sports/IconGimnasia.vue';
+import IconBaile from '@/components/icons/sports/IconBaile.vue';
+import IconSpinning from '@/components/icons/sports/IconSpinning.vue';
+import IconColumna from '@/components/icons/sports/IconColumna.vue';
+import IconDefault from '@/components/icons/sports/IconDefault.vue';
+
 const router = useRouter()
 const disciplinesStore = useDisciplinesStore()
 const categoryStore = useCategoryStore()
@@ -91,6 +109,28 @@ const categoryPalette = (catName = '') => {
   const idx = code % CATEGORY_COLORS.length
   return CATEGORY_COLORS[idx]
 }
+
+// ── DYNAMIC ICONS ────────────────────────────────────────────────
+const getIcon = (name) => {
+  if (!name) return IconDefault;
+  const n = name.toLowerCase();
+  if (n.includes('futbol')) return IconFutbol;
+  if (n.includes('basquetbol') || n.includes('baloncesto')) return IconBasquetbol;
+  if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis;
+  if (n.includes('voleibol')) return IconVoleibol;
+  if (n.includes('squash')) return IconSquash;
+  if (n.includes('frontenis')) return IconFrontenis;
+  if (n.includes('padel')) return IconPadel;
+  if (n.includes('natacion') || n.includes('acuatic') || n.includes('alberca')) return IconNatacion;
+  if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion')) return IconYoga;
+  if (n.includes('pesas') || n.includes('acondicionamiento') || n.includes('crossfit') || n.includes('funcional') || n.includes('gym')) return IconPesas;
+  if (n.includes('marciales') || n.includes('karate') || n.includes('taekwondo') || n.includes('box')) return IconArtesMarciales;
+  if (n.includes('gimnasia')) return IconGimnasia;
+  if (n.includes('baile') || n.includes('zumba') || n.includes('aerobics') || n.includes('jazz') || n.includes('barre')) return IconBaile;
+  if (n.includes('spinning')) return IconSpinning;
+  if (n.includes('columna') || n.includes('higiene')) return IconColumna;
+  return IconDefault;
+};
 
 // ── MENU ITEMS ─────────────────────────────────────────────────
 const buildMenuItems = (discipline) => [
@@ -342,13 +382,7 @@ onMounted(() => {
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm
                      group-hover:scale-105 transition-transform duration-200"
               :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
-              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                <line x1="6" y1="1" x2="6" y2="4" />
-                <line x1="10" y1="1" x2="10" y2="4" />
-                <line x1="14" y1="1" x2="14" y2="4" />
-              </svg>
+              <component :is="getIcon(discipline.nombre_disciplina)" class="w-7 h-7" />
             </div>
           </div>
 

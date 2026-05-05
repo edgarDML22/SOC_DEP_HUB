@@ -17,6 +17,14 @@ import IconVoleibol from '@/components/icons/sports/IconVoleibol.vue';
 import IconSquash from '@/components/icons/sports/IconSquash.vue';
 import IconFrontenis from '@/components/icons/sports/IconFrontenis.vue';
 import IconPadel from '@/components/icons/sports/IconPadel.vue';
+import IconNatacion from '@/components/icons/sports/IconNatacion.vue';
+import IconYoga from '@/components/icons/sports/IconYoga.vue';
+import IconPesas from '@/components/icons/sports/IconPesas.vue';
+import IconArtesMarciales from '@/components/icons/sports/IconArtesMarciales.vue';
+import IconGimnasia from '@/components/icons/sports/IconGimnasia.vue';
+import IconBaile from '@/components/icons/sports/IconBaile.vue';
+import IconSpinning from '@/components/icons/sports/IconSpinning.vue';
+import IconColumna from '@/components/icons/sports/IconColumna.vue';
 import IconDefault from '@/components/icons/sports/IconDefault.vue';
 
 const route = useRoute();
@@ -66,13 +74,38 @@ const fetchAllDisciplines = async () => {
     }
 };
 
-const toggleSelection = (id) => {
+const toggleSelection = async (id) => {
     const index = selectedDisciplines.value.indexOf(id);
     if (index > -1) {
-        selectedDisciplines.value.splice(index, 1);
+        // Attempt to remove via API first
+        try {
+            const res = await api.delete(`/instructores/${instructorId}/disciplinas/${id}`);
+            if (res.data.success) {
+                selectedDisciplines.value.splice(index, 1);
+            } else {
+                showBlockedOverlay(res.data.message || 'La disciplina está bloqueada y no se puede remover.');
+            }
+        } catch (error) {
+            if (error.response && error.response.status === 422) {
+                showBlockedOverlay(error.response.data.message || 'La disciplina está bloqueada por actividades asignadas.');
+            } else {
+                toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo remover la disciplina.', life: 3000 });
+            }
+        }
     } else {
         selectedDisciplines.value.push(id);
     }
+};
+
+const showBlockedOverlay = (message) => {
+    statusOverlay.value = {
+        show: true,
+        type: 'error',
+        message: message
+    };
+    setTimeout(() => {
+        statusOverlay.value.show = false;
+    }, 3000);
 };
 
 const assignedDisciplinesList = computed(() => {
@@ -87,12 +120,20 @@ const getIcon = (name) => {
     if (!name) return IconDefault;
     const n = name.toLowerCase();
     if (n.includes('futbol')) return IconFutbol;
-    if (n.includes('basquetbol')) return IconBasquetbol;
+    if (n.includes('basquetbol') || n.includes('baloncesto')) return IconBasquetbol;
     if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis;
     if (n.includes('voleibol')) return IconVoleibol;
     if (n.includes('squash')) return IconSquash;
     if (n.includes('frontenis')) return IconFrontenis;
     if (n.includes('padel')) return IconPadel;
+    if (n.includes('natacion') || n.includes('acuatic') || n.includes('alberca')) return IconNatacion;
+    if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion')) return IconYoga;
+    if (n.includes('pesas') || n.includes('acondicionamiento') || n.includes('crossfit') || n.includes('funcional') || n.includes('gym')) return IconPesas;
+    if (n.includes('marciales') || n.includes('karate') || n.includes('taekwondo') || n.includes('box')) return IconArtesMarciales;
+    if (n.includes('gimnasia')) return IconGimnasia;
+    if (n.includes('baile') || n.includes('zumba') || n.includes('aerobics') || n.includes('jazz') || n.includes('barre')) return IconBaile;
+    if (n.includes('spinning')) return IconSpinning;
+    if (n.includes('columna') || n.includes('higiene')) return IconColumna;
     return IconDefault;
 };
 
@@ -192,19 +233,19 @@ const goBack = () => {
                     <div v-for="d in assignedDisciplinesList" :key="d.id_disciplina"
                         @click="toggleSelection(d.id_disciplina)" 
                         class="cursor-pointer relative transform transition-transform hover:-translate-y-1">
-                        <div class="bg-white border-2 border-primary-500 rounded-2xl p-5 flex flex-col items-center gap-3 h-full shadow-md">
-                            <div class="w-14 h-14 bg-primary-600 text-white rounded-2xl flex items-center justify-center shadow-sm">
-                                <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8" />
+                        <div class="bg-white border-2 border-primary-500 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full shadow-lg">
+                            <div class="w-16 h-16 bg-primary-600 text-white rounded-2xl flex items-center justify-center shadow-md">
+                                <component :is="getIcon(d.nombre_disciplina)" class="w-10 h-10" />
                             </div>
-                            <span class="text-sm font-bold text-primary-900 text-center leading-tight">{{ d.nombre_disciplina }}</span>
-                            <div class="absolute -top-2 -right-2 bg-primary-600 text-white w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                            <span class="text-base font-extrabold text-primary-950 text-center leading-tight">{{ d.nombre_disciplina }}</span>
+                            <div class="absolute -top-3 -right-3 bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div v-if="assignedDisciplinesList.length === 0" class="col-span-full py-8 text-center text-primary-600/60 italic text-sm bg-white rounded-2xl border-2 border-dashed border-primary-200">
+                    <div v-if="assignedDisciplinesList.length === 0" class="col-span-full py-12 text-center text-primary-600/60 font-medium text-sm bg-white rounded-3xl border-2 border-dashed border-primary-200">
                         No hay disciplinas asignadas. Selecciona una de abajo para agregarla.
                     </div>
                 </div>
@@ -223,23 +264,38 @@ const goBack = () => {
                     <div v-for="d in availableDisciplinesList" :key="d.id_disciplina"
                         @click="toggleSelection(d.id_disciplina)" 
                         class="cursor-pointer group relative transform transition-transform hover:-translate-y-1">
-                        <div class="bg-surface-50 border border-surface-200 rounded-2xl p-5 flex flex-col items-center gap-3 h-full group-hover:bg-primary-50 group-hover:border-primary-200 transition-colors">
-                            <div class="w-14 h-14 bg-surface-100 text-surface-400 rounded-2xl flex items-center justify-center group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors">
-                                <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8 opacity-60 group-hover:opacity-100" />
+                        <div class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full group-hover:bg-primary-50 group-hover:border-primary-300 transition-colors shadow-sm">
+                            <div class="w-16 h-16 bg-surface-100 text-surface-400 rounded-2xl flex items-center justify-center group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors shadow-inner">
+                                <component :is="getIcon(d.nombre_disciplina)" class="w-10 h-10 opacity-70 group-hover:opacity-100" />
                             </div>
-                            <span class="text-sm font-bold text-surface-600 text-center leading-tight group-hover:text-primary-700 transition-colors">{{ d.nombre_disciplina }}</span>
+                            <span class="text-base font-bold text-surface-600 text-center leading-tight group-hover:text-primary-800 transition-colors">{{ d.nombre_disciplina }}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-50">
-                <CancelButton @click="goBack" />
+            <div class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-30 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                <CancelButton @click="goBack">
+                    <template #icon>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </template>
+                </CancelButton>
                 <ConfirmButton
                     label="Guardar Cambios"
                     :loading="isSaving"
                     @click="saveChanges"
-                />
+                >
+                    <template #icon>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </template>
+                </ConfirmButton>
             </div>
         </section>
     </main>

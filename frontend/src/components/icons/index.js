@@ -35,3 +35,10 @@ export { default as IconFilter } from './IconFilter.vue';
 export { default as IconChevronDown } from './IconChevronDown.vue';
 export { default as IconWarning } from './IconWarning.vue';
 export { default as IconTrash } from './IconTrash.vue';
+
+// Sports Icons
+export { default as IconNatacion } from './sports/IconNatacion.vue';
+export { default as IconYoga } from './sports/IconYoga.vue';
+export { default as IconPesas } from './sports/IconPesas.vue';
+export { default as IconArtesMarciales } from './sports/IconArtesMarciales.vue';
+export { default as IconGimnasia } from './sports/IconGimnasia.vue';
