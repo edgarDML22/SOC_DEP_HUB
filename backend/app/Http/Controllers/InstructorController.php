@@ -232,15 +232,7 @@ class InstructorController extends Controller
 
     public function store(Request $request)
     {
-        $admin = Auth::user();
-
-        // Validar acceso
-        if ($admin->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acceso denegado. No eres administrador.'
-            ], 403);
-        }
+        $this->validationAdmin($request);
 
         DB::beginTransaction();
         try {
@@ -249,7 +241,6 @@ class InstructorController extends Controller
             $correoGenerado = strtolower(explode(' ', $nombre)[0]) . '_' . Str::random(4) . '@socdep.com';
 
             $newUser = User::create([
-                'name' => $nombre,
                 'email' => $correoGenerado,
                 'password' => Hash::make('password'),
                 'rol' => 'instructor',
@@ -258,10 +249,9 @@ class InstructorController extends Controller
 
             // 2. Crear el instructor
             $instructor = Instructor::create([
-                'id_usuario' => $newUser->id,
                 'nombre_completo' => $nombre,
                 'telefono' => $request->input('telefono'),
-                'correo_electronico' => $request->input('correo_electronico'),
+                'correo_electronico' => $correoGenerado,
                 'estatus' => $request->input('estatus', 'ACTIVO'),
                 'fecha_afiliacion' => $request->input('fecha_afiliacion'),
                 'fecha_nacimiento' => $request->input('fecha_nacimiento'),
