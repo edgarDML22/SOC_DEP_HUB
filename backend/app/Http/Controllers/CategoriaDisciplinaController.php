@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CategoriaDisciplina;
+use App\Models\Disciplina;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Models\Categorias;
 
 class CategoriaDisciplinaController extends Controller
 {
@@ -64,26 +66,50 @@ class CategoriaDisciplinaController extends Controller
         ]);
     }
 
-    public function destroy($id): JsonResponse
+    public function verify_delete($id): JsonResponse
     {
-        $categoria = CategoriaDisciplina::find($id);
+        $categoria = Categorias::find($id);
         if (!$categoria) {
             return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 404);
         }
 
-        // Validación: no eliminar si está en uso
-        if ($categoria->disciplinas()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se puede eliminar la categoría porque está siendo utilizada por una o más disciplinas.'
-            ], 422);
-        }
-
-        $categoria->delete();
+        $disciplinasActivas = Disciplina::where('id_categoria', $id)
+            ->where('estatus', 'ACTIVO')
+            ->pluck('nombre_disciplina');
 
         return response()->json([
-            'success' => true,
-            'message' => 'Categoría eliminada correctamente'
+            'puede_eliminar' => $disciplinasActivas->isEmpty(),
+            'disciplinas_activas' => $disciplinasActivas->count(),
+            'nombres_disciplinas' => $disciplinasActivas
         ]);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $categoria = Categorias::find($id);
+        if (!$categoria) {
+            return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 404);
+        }
+
+        $disciplinasActivas = Disciplina::where('id_categoria', $id)
+            ->where('estatus', 'ACTIVO')
+            ->pluck('nombre_disciplina');
+
+        if ($disciplinasActivas->isNotEmpty()) {
+            return response()->json([
+                'puede_eliminar' => $disciplinasActivas->isEmpty(),
+                'disciplinas_activas' => $disciplinasActivas->count(),
+                'nombres_disciplinas' => $disciplinasActivas,
+                'message' => 'No se puede eliminar la categoría porque está siendo utilizada por una o más disciplinas activas.'
+            ]);
+        } else {
+            $categoria->update([
+                'estatus' => 'INACTIVO'
+            ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Categoría actualizada correctamente'
+            ]);
+        }
     }
 }
