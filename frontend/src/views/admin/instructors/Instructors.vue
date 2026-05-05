@@ -17,6 +17,7 @@ import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconAlertCircle, IconTarget, IconChevronDown } from '@/components/icons'
+import InstructorStatusModal from './InstructorStatusModal.vue'
 
 // Iconos de deportes para el selector de disciplinas
 import IconFutbol from '@/components/icons/sports/IconFutbol.vue'
@@ -143,9 +144,22 @@ const buildMenuItems = (instructor) => [
              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
              <circle cx="12" cy="7" r="4"/>
            </svg>`,
-    action: () => router.push({ name: 'instructor-status', params: { id: instructor.id_instructor } }),
+    action: () => openStatusModal(instructor),
   },
 ]
+
+// ── MODAL: CAMBIAR ESTATUS ─────────────────────────────────────
+const showStatusModal = ref(false)
+const statusModalInstructorId = ref(null)
+
+const openStatusModal = (instructor) => {
+  statusModalInstructorId.value = instructor.id_instructor
+  showStatusModal.value = true
+}
+
+const onStatusUpdated = async () => {
+  await fetchInstructors(true)
+}
 
 // ── MODAL: NUEVO INSTRUCTOR ────────────────────────────────────
 const showNewModal = ref(false)
@@ -605,6 +619,14 @@ onMounted(async () => {
         </div>
       </Transition>
     </Teleport>
+
+    <!-- MODAL: CAMBIAR ESTATUS -->
+    <InstructorStatusModal
+      :show="showStatusModal"
+      :instructor-id="statusModalInstructorId"
+      @close="showStatusModal = false"
+      @updated="onStatusUpdated"
+    />
 
   </main>
 </template>
