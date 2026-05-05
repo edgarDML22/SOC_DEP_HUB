@@ -68,6 +68,8 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+// SDH 187: Actualizar estatus de la cuenta del socio
+Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
 
