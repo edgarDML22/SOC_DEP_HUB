@@ -408,7 +408,30 @@ const router = createRouter({
         },
         {
           path: "reports",
-          component: () => import("@/views/admin/Reports.vue"),
+          component: () => import("@/views/admin/reports/Reports.vue"),
+          redirect: "/admin/reports/auditoria",
+          children: [
+            {
+              path: "auditoria",
+              name: "auditoria",
+              component: () => import("@/views/admin/reports/Auditoria.vue"),
+            },
+            {
+              path: "ocupation-spaces",
+              name: "ocupation-spaces",
+              component: () => import("@/views/admin/reports/OcupationSpaces.vue"),
+            },
+            {
+              path: "tournaments-analytics",
+              name: "tournaments-analytics",
+              component: () => import("@/views/admin/reports/TournamentsAnalytics.vue"),
+            },
+            {
+              path: "academic-performance",
+              name: "academic-performance",
+              component: () => import("@/views/admin/reports/AcademicPerformance.vue"),
+            },
+          ]
         },
         {
           path: "tournaments/create",
