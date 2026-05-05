@@ -7,7 +7,9 @@ use App\Models\SesionActiva;
 use App\Models\torneos;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-
+use App\Models\Reservacion;
+use App\Models\ActividadPlantilla;
+use App\Models\EncuentrosTorneo;
 class DisciplinaController extends Controller
 {
     public function index(): JsonResponse
@@ -29,7 +31,7 @@ class DisciplinaController extends Controller
         ]);
 
         $disciplina = Disciplina::create($data);
-        
+
         if (isset($data['categorias_ids'])) {
             $disciplina->categorias()->sync($data['categorias_ids']);
         }
@@ -53,46 +55,90 @@ class DisciplinaController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $disciplina = Disciplina::find($id);
+
         if (!$disciplina) {
-            return response()->json(['success' => false, 'message' => 'Disciplina no encontrada'], 404);
+            return response()->json([
+                'message' => 'Disciplina no encontrada'
+            ], 404);
         }
 
         $data = $request->validate([
-            'nombre_disciplina' => 'string',
-            'categorias_ids' => 'array',
-            'categorias_ids.*' => 'exists:categorias,id_categoria',
-            'descripcion' => 'nullable|string',
-            'estatus' => 'nullable|string'
+            'nuevo_estatus' => 'required|in:ACTIVO,PAUSA,CANCELADO'
         ]);
 
-        // Si se intenta deshabilitar o poner en mantenimiento, verificar dependencias
-        if (
-            isset($data['estatus']) &&
-            ($data['estatus'] === 'DESHABILITADO' || $data['estatus'] === 'MANTENIMIENTO') &&
-            $disciplina->estatus !== $data['estatus']
-        ) {
+        $nuevo = $data['nuevo_estatus'];
 
-            if ($this->hasActiveDependencies($id)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede deshabilitar la disciplina porque tiene sesiones o torneos activos vinculados.'
-                ], 422);
+        if ($nuevo !== $disciplina->estatus) {
+
+            if ($nuevo !== 'ACTIVO') {
+
+                $conflictos = $this->getActiveDependencies($id);
+
+                $hayConflictos =
+                    $conflictos['reservaciones_activas'] > 0 ||
+                    $conflictos['sesiones_activas'] > 0 ||
+                    $conflictos['actividades_programadas'] > 0 ||
+                    count($conflictos['torneos_activos']) > 0;
+
+                if ($hayConflictos) {
+                    return response()->json([
+                        'message' => 'No se puede desactivar',
+                        'conflictos' => $conflictos
+                    ], 422);
+                }
             }
         }
 
-        $disciplina->update($data);
-
-        if (isset($data['categorias_ids'])) {
-            $disciplina->categorias()->sync($data['categorias_ids']);
-        }
+        $disciplina->estatus = $nuevo;
+        $disciplina->save();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Disciplina actualizada correctamente',
-            'data' => $disciplina->load('categorias')
+            'message' => 'Estatus actualizado correctamente',
+            'data' => $disciplina
         ]);
     }
 
+
+
+    private function getActiveDependencies($id_disciplina): array
+    {
+        //reservaciones
+        $reservaciones = Reservacion::where('id_disciplina', $id_disciplina)
+            ->where(function ($q) {
+                $q->where('estatus_operativo', 'ACTIVA')
+                    ->orWhere(function ($sub) {
+                        $sub->where('estatus_operativo', 'PENDIENTE');
+                    });
+            })
+            ->count();
+
+        //torneos activos       
+        $torneos = torneos::where('id_disciplina', $id_disciplina)
+            ->whereIn('estatus_torneo', [
+                'EN_INSCRIPCION',
+                'EN_PLANIFICACION',
+                'PROGRAMADO',
+                'EN_CURSO'
+            ])
+            ->pluck('nombre_torneo');
+
+        //sesiones activas
+        $sesiones = SesionActiva::whereHas('actividadPlantilla', function ($query) use ($id_disciplina) {
+            $query->where('id_disciplina', $id_disciplina);
+        })
+            ->where('estatus_sesion', 'EN_CURSO')
+            ->count();
+
+        //actividades programadas
+        $actividades = ActividadPlantilla::where('id_disciplina', $id_disciplina)->count();
+
+        return [
+            'reservaciones_activas' => $reservaciones,
+            'sesiones_activas' => $sesiones,
+            'actividades_programadas' => $actividades,
+            'torneos_activos' => $torneos
+        ];
+    }
     public function destroy($id): JsonResponse
     {
         $disciplina = Disciplina::find($id);
@@ -100,42 +146,18 @@ class DisciplinaController extends Controller
             return response()->json(['success' => false, 'message' => 'Disciplina no encontrada'], 404);
         }
 
-        if ($this->hasActiveDependencies($id)) {
+        if ($this->getActiveDependencies($id)) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se puede deshabilitar la disciplina porque tiene sesiones o torneos activos vinculados.'
+                'message' => 'No se puede cancelar la disciplina porque tiene sesiones o torneos activos vinculados.'
             ], 422);
         }
 
-        $disciplina->update(['estatus' => 'DESHABILITADO']);
+        $disciplina->update(['estatus' => 'CANCELADO']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Disciplina deshabilitada correctamente'
+            'message' => 'Disciplina cancelada correctamente'
         ]);
-    }
-
-    private function hasActiveDependencies($id_disciplina): bool
-    {
-        $today = now()->toDateString();
-
-        // 1. Sesiones activas futuras
-        $hasSessions = SesionActiva::whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
-            ->where('fecha_sesion', '>=', $today)
-            ->whereHas('actividadPlantilla', function ($query) use ($id_disciplina) {
-                $query->where('id_disciplina', $id_disciplina);
-            })
-            ->exists();
-
-        if ($hasSessions)
-            return true;
-
-        // 2. Torneos futuros o activos
-        $hasTournaments = torneos::where('id_disciplina', $id_disciplina)
-            ->where('fecha_fin', '>=', $today)
-            ->whereNotIn('estatus_torneo', ['CANCELADO', 'FINALIZADO'])
-            ->exists();
-
-        return $hasTournaments;
     }
 }

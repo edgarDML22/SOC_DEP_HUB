@@ -72,7 +72,6 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 
 
 
-
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
 
@@ -87,6 +86,8 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
+//elliminar al final
+Route::patch('/v1/disciplinas/{id}/estatus', [DisciplinaController::class, 'update']);
 
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
@@ -151,9 +152,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/disciplinas/all', [DisciplinaController::class, 'index']);
     Route::get('/v1/disciplinas/{id}', [DisciplinaController::class, 'show']);
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
-    Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
+    //Route::patch('/v1/disciplinas/{id}/estatus', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
-    
+
     // CRUD CATEGORIAS DISCIPLINAS
     Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
     Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);
