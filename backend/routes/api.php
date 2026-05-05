@@ -87,6 +87,8 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
+Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
+
 
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
@@ -153,7 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
     Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
-    
+
     // CRUD CATEGORIAS DISCIPLINAS
     Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
     Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);
@@ -166,7 +168,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
     Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
     Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
-    Route::put('/v1/spaces/update/{id}', [EspacioFisicoController::class, 'update']);
+    //Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 
     // Rutas de utilidad/negocio
