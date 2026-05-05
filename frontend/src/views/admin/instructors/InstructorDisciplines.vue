@@ -34,10 +34,12 @@ const toast = useToast();
 
 const instructorId = route.params.id;
 const instructor = ref(null);
-const allDisciplines = ref([]);
+// Usamos las disciplinas directamente del store para evitar problemas de reactividad con storeToRefs
+const disciplinesCatalog = computed(() => instructorStore.disciplinesCatalog || []);
 const selectedDisciplines = ref([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
+const error = ref(null);
 
 const statusOverlay = ref({
     show: false,
@@ -45,12 +47,21 @@ const statusOverlay = ref({
     message: ''
 });
 
+
 onMounted(async () => {
-    await Promise.all([
-        fetchInstructor(),
-        fetchAllDisciplines()
-    ]);
-    isLoading.value = false;
+    isLoading.value = true;
+    try {
+        // Cargamos en paralelo para optimizar tiempo
+        await Promise.all([
+            fetchInstructor(),
+            instructorStore.fetchDisciplinesCatalogAction()
+        ]);
+    } catch (err) {
+        console.error("Error initializing disciplines view:", err);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los datos iniciales.', life: 3000 });
+    } finally {
+        isLoading.value = false;
+    }
 });
 
 const fetchInstructor = async () => {
@@ -60,17 +71,6 @@ const fetchInstructor = async () => {
         selectedDisciplines.value = data.disciplinas ? data.disciplinas.map(d => d.id_disciplina) : [];
     } catch (error) {
         console.error("Error fetching instructor:", error);
-    }
-};
-
-const fetchAllDisciplines = async () => {
-    try {
-        const res = await api.get('/disciplinas/all');
-        if (res.data.success) {
-            allDisciplines.value = res.data.data;
-        }
-    } catch (error) {
-        console.error("Error fetching all disciplines:", error);
     }
 };
 
@@ -109,11 +109,15 @@ const showBlockedOverlay = (message) => {
 };
 
 const assignedDisciplinesList = computed(() => {
-    return allDisciplines.value.filter(d => selectedDisciplines.value.includes(d.id_disciplina));
+    const catalog = disciplinesCatalog.value || [];
+    const selected = selectedDisciplines.value || [];
+    return catalog.filter(d => selected.includes(d.id_disciplina));
 });
 
 const availableDisciplinesList = computed(() => {
-    return allDisciplines.value.filter(d => !selectedDisciplines.value.includes(d.id_disciplina));
+    const catalog = disciplinesCatalog.value || [];
+    const selected = selectedDisciplines.value || [];
+    return catalog.filter(d => !selected.includes(d.id_disciplina));
 });
 
 const getIcon = (name) => {
@@ -183,15 +187,22 @@ const goBack = () => {
     <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-32 font-sans relative">
         <Toast />
 
-        <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="statusOverlay.show" class="fixed inset-0 z-9999 flex items-center justify-center bg-white/80 backdrop-blur-md" :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
+        <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0"
+            enter-to-class="opacity-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100"
+            leave-to-class="opacity-0">
+            <div v-if="statusOverlay.show"
+                class="fixed inset-0 z-9999 flex items-center justify-center bg-white/80 backdrop-blur-md"
+                :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
                 <div class="text-center animate-[bounce_0.5s]">
                     <div class="flex justify-center mb-6">
-                        <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg"
+                            class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                            stroke-linecap="round" stroke-linejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                             <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             <line x1="15" y1="9" x2="9" y2="15" />
                             <line x1="9" y1="9" x2="15" y2="15" />
@@ -201,16 +212,19 @@ const goBack = () => {
                 </div>
             </div>
         </Transition>
-        
+
         <header class="flex items-center gap-6 mb-8 max-w-7xl mx-auto">
-            <button @click="goBack" class="w-11 h-11 bg-white border border-surface-200 rounded-xl flex items-center justify-center text-surface-700 hover:bg-surface-50 transition-colors">
+            <button @click="goBack"
+                class="w-11 h-11 bg-white border border-surface-200 rounded-xl flex items-center justify-center text-surface-700 hover:bg-surface-50 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
             </button>
             <div>
                 <p class="text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Gestión de Disciplinas</p>
-                <h1 class="text-3xl font-extrabold text-surface-900 m-0 leading-none" v-if="instructor">{{ instructor.nombre_completo }}</h1>
+                <h1 class="text-3xl font-extrabold text-surface-900 m-0 leading-none" v-if="instructor">{{
+                    instructor.nombre_completo }}</h1>
             </div>
         </header>
 
@@ -224,28 +238,37 @@ const goBack = () => {
                 <div class="flex justify-between items-end mb-6">
                     <div>
                         <h3 class="text-xl font-extrabold text-primary-900">Disciplinas que Imparte</h3>
-                        <p class="text-sm text-primary-600/70 font-medium">Estas son las disciplinas asignadas actualmente.</p>
+                        <p class="text-sm text-primary-600/70 font-medium">Estas son las disciplinas asignadas
+                            actualmente.</p>
                     </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-primary-100 text-primary-700">{{ assignedDisciplinesList.length }}</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-primary-100 text-primary-700">{{
+                        assignedDisciplinesList.length }}</span>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     <div v-for="d in assignedDisciplinesList" :key="d.id_disciplina"
-                        @click="toggleSelection(d.id_disciplina)" 
+                        @click="toggleSelection(d.id_disciplina)"
                         class="cursor-pointer relative transform transition-transform hover:-translate-y-1">
-                        <div class="bg-white border-2 border-primary-500 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full shadow-lg">
-                            <div class="w-16 h-16 bg-primary-600 text-white rounded-2xl flex items-center justify-center shadow-md">
+                        <div
+                            class="bg-white border-2 border-primary-500 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full shadow-lg">
+                            <div
+                                class="w-16 h-16 bg-primary-600 text-white rounded-2xl flex items-center justify-center shadow-md">
                                 <component :is="getIcon(d.nombre_disciplina)" class="w-10 h-10" />
                             </div>
-                            <span class="text-base font-extrabold text-primary-950 text-center leading-tight">{{ d.nombre_disciplina }}</span>
-                            <div class="absolute -top-3 -right-3 bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <span class="text-base font-extrabold text-primary-950 text-center leading-tight">{{
+                                d.nombre_disciplina }}</span>
+                            <div
+                                class="absolute -top-3 -right-3 bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                    stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div v-if="assignedDisciplinesList.length === 0" class="col-span-full py-12 text-center text-primary-600/60 font-medium text-sm bg-white rounded-3xl border-2 border-dashed border-primary-200">
+                    <div v-if="assignedDisciplinesList.length === 0"
+                        class="col-span-full py-12 text-center text-primary-600/60 font-medium text-sm bg-white rounded-3xl border-2 border-dashed border-primary-200">
                         No hay disciplinas asignadas. Selecciona una de abajo para agregarla.
                     </div>
                 </div>
@@ -257,39 +280,44 @@ const goBack = () => {
                         <h3 class="text-xl font-extrabold text-surface-700">Otras Disciplinas Disponibles</h3>
                         <p class="text-sm text-surface-500 font-medium">Haz clic para agregar una nueva disciplina.</p>
                     </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-surface-100 text-surface-600">{{ availableDisciplinesList.length }}</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-surface-100 text-surface-600">{{
+                        availableDisciplinesList.length }}</span>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     <div v-for="d in availableDisciplinesList" :key="d.id_disciplina"
-                        @click="toggleSelection(d.id_disciplina)" 
+                        @click="toggleSelection(d.id_disciplina)"
                         class="cursor-pointer group relative transform transition-transform hover:-translate-y-1">
-                        <div class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full group-hover:bg-primary-50 group-hover:border-primary-300 transition-colors shadow-sm">
-                            <div class="w-16 h-16 bg-surface-100 text-surface-400 rounded-2xl flex items-center justify-center group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors shadow-inner">
-                                <component :is="getIcon(d.nombre_disciplina)" class="w-10 h-10 opacity-70 group-hover:opacity-100" />
+                        <div
+                            class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full group-hover:bg-primary-50 group-hover:border-primary-300 transition-colors shadow-sm">
+                            <div
+                                class="w-16 h-16 bg-surface-100 text-surface-400 rounded-2xl flex items-center justify-center group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors shadow-inner">
+                                <component :is="getIcon(d.nombre_disciplina)"
+                                    class="w-10 h-10 opacity-70 group-hover:opacity-100" />
                             </div>
-                            <span class="text-base font-bold text-surface-600 text-center leading-tight group-hover:text-primary-800 transition-colors">{{ d.nombre_disciplina }}</span>
+                            <span
+                                class="text-base font-bold text-surface-600 text-center leading-tight group-hover:text-primary-800 transition-colors">{{
+                                    d.nombre_disciplina }}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-30 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+            <div
+                class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-30 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                 <CancelButton @click="goBack">
                     <template #icon>
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </template>
                 </CancelButton>
-                <ConfirmButton
-                    label="Guardar Cambios"
-                    :loading="isSaving"
-                    @click="saveChanges"
-                >
+                <ConfirmButton label="Guardar Cambios" :loading="isSaving" @click="saveChanges">
                     <template #icon>
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                             <polyline points="17 21 17 13 7 13 7 21"></polyline>
                             <polyline points="7 3 7 8 15 8"></polyline>
@@ -300,5 +328,3 @@ const goBack = () => {
         </section>
     </main>
 </template>
-
-
