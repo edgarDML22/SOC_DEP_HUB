@@ -66,7 +66,14 @@ const fetchAllDisciplines = async () => {
     }
 };
 
+const isSpaceActive = computed(() => space.value?.estatus === 'ACTIVO');
+
 const toggleSelection = (id) => {
+    if (isSpaceActive.value && selectedDisciplines.value.includes(id)) {
+        toast.add({ severity: 'warn', summary: 'Acción bloqueada', detail: 'No se pueden eliminar disciplinas mientras el espacio esté ACTIVO.', life: 4000 });
+        return;
+    }
+    
     const index = selectedDisciplines.value.indexOf(id);
     if (index > -1) {
         selectedDisciplines.value.splice(index, 1);
@@ -179,6 +186,11 @@ const goBack = () => {
         </section>
 
         <section v-else class="max-w-7xl mx-auto space-y-8">
+            <div v-if="isSpaceActive" class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-bold flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                El espacio está ACTIVO. No se permite eliminar disciplinas, solo agregar nuevas.
+            </div>
+
             <div class="bg-primary-50/50 border border-primary-100 rounded-[2.5rem] p-8 lg:p-10 shadow-sm relative overflow-hidden">
                 <!-- Decorative background elements -->
                 <div class="absolute top-0 right-0 w-64 h-64 bg-primary-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
@@ -254,5 +266,3 @@ const goBack = () => {
         </section>
     </main>
 </template>
-
-
