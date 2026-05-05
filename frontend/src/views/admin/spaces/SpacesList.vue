@@ -16,6 +16,7 @@ import LoadingSpinner   from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconLayers, IconAlertCircle, IconChevronDown } from '@/components/icons'
+import ModificarEstatusModal from '@/components/admin/ModificarEstatusModal.vue'
 
 import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
 import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue'
@@ -101,9 +102,17 @@ const tipoBadges = (space) => {
 }
 
 // ── MENU ITEMS ─────────────────────────────────────────────────
+const showEstatusModal = ref(false)
+const spaceToEdit = ref(null)
+
+const openEstatusModal = (space) => {
+  spaceToEdit.value = space
+  showEstatusModal.value = true
+}
+
 const buildMenuItems = (space) => [
   {
-    label:  'Ver detalles',
+    label:  'Ver Detalles',
     icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
@@ -111,15 +120,7 @@ const buildMenuItems = (space) => [
     action: () => router.push({ name: 'spaces-details', params: { id: space.id_espacio } }),
   },
   {
-    label:  'Editar espacio',
-    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-               <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-             </svg>`,
-    action: () => router.push({ name: 'spaces-details', params: { id: space.id_espacio }, query: { edit: 'true' } }),
-  },
-  {
-    label:  'Gestionar disciplinas',
+    label:  'Gestionar Disciplinas',
     icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
@@ -127,17 +128,15 @@ const buildMenuItems = (space) => [
              </svg>`,
     action: () => router.push({ name: 'spaces-disciplines', params: { id: space.id_espacio } }),
   },
-  { separator: true },
   {
-    label:       'Deshabilitar espacio',
-    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                  </svg>`,
-    action:      () => openDisableModal(space),
-    destructive: true,
-    disabled:    space.estatus === 'DESHABILITADO',
-  },
+    label:  'Modificar Estatus',
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+               <circle cx="12" cy="12" r="10"/>
+               <line x1="12" y1="8" x2="12" y2="12"/>
+               <line x1="12" y1="16" x2="12.01" y2="16"/>
+             </svg>`,
+    action: () => openEstatusModal(space),
+  }
 ]
 
 // ── MODAL: NUEVO ESPACIO ───────────────────────────────────────
@@ -350,19 +349,16 @@ onMounted(() => {
           :key="space.id_espacio"
           class="bg-white rounded-2xl border border-slate-200 shadow-sm
                  hover:shadow-md hover:border-slate-300
-                 transition-all duration-200 group overflow-hidden flex"
+                 transition-all duration-200 group flex"
         >
           <!-- Franja color estatus (izquierda) -->
-          <div class="w-1.5 shrink-0" :class="statusAccentLeft(space.estatus)" />
+          <div class="w-1.5 shrink-0 rounded-l-2xl" :class="statusAccentLeft(space.estatus)" />
 
           <!-- Ícono instalación -->
           <div class="flex items-center justify-center px-5 py-4 shrink-0">
             <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center
                         shadow-sm group-hover:scale-105 transition-transform duration-200">
-              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
+              <component :is="getIcon(space.nombre_espacio)" class="w-7 h-7" />
             </div>
           </div>
 
@@ -417,20 +413,7 @@ onMounted(() => {
 
               </div>
 
-              <!-- Botón ver detalles + menú -->
               <div class="flex items-center gap-2 shrink-0">
-                <button
-                  @click="router.push({ name: 'spaces-details', params: { id: space.id_espacio } })"
-                  class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100
-                         text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600
-                         transition-colors border border-slate-200 hover:border-blue-200"
-                >
-                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <path d="M14 2v6h6"/>
-                  </svg>
-                  Ver detalles
-                </button>
                 <ActionMenu :items="buildMenuItems(space)" align="right" />
               </div>
             </div>
@@ -628,6 +611,12 @@ onMounted(() => {
         </div>
       </Transition>
     </Teleport>
+    
+    <ModificarEstatusModal 
+      :show="showEstatusModal" 
+      :space="spaceToEdit" 
+      @close="showEstatusModal = false" 
+    />
 
   </main>
 </template>
