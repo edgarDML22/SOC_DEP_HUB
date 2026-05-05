@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import api from '@/services/api'
 import { useRouter } from 'vue-router'
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const router = useRouter()
 
@@ -111,9 +113,14 @@ const submit = async () => {
       
 
       <!-- BOTÓN -->
-      <button type="submit" :disabled="loading">
-        {{ loading ? 'Creando...' : 'Crear categoria' }}
-      </button>
+      <div class="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
+        <CancelButton @click="router.push('/admin/categories')" />
+        <ConfirmButton
+          label="Crear categoria"
+          :loading="loading"
+          type="submit"
+        />
+      </div>
 
     </form>
   </div>

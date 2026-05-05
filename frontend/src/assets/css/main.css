@@ -36,6 +36,14 @@
 /* 
   CLASES GLOBALES
 */
+@layer base {
+  button, 
+  [role="button"],
+  .clickable {
+    cursor: pointer;
+  }
+}
+
 @layer components {
 
   /* --- Badges (Pastillas de estado) --- */

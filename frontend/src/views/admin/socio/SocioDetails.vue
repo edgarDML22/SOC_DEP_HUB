@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSocioStore } from '@/stores/admin/socioStore';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 import { useformat } from '@/utils/formatters';
 
 const route = useRoute();
@@ -77,9 +78,9 @@ const goBack = () => {
             </section>
 
             <section v-if="isLoading" class="flex flex-col items-center justify-center p-20">
-                <div class="w-12 h-12 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin mb-4">
-                </div>
-                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400">Cargando detalles...</p>
+                <LoadingSpinner />
+                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400 mt-4">Cargando detalles...
+                </p>
             </section>
 
             <!-- Contenido Detallado -->
@@ -143,22 +144,25 @@ const goBack = () => {
                                                 class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Tipo
                                                 Socio</span>
                                             <span class="text-sm font-bold text-surface-900">{{ socio.tipo_socio
-                                                }}</span>
+                                            }}</span>
                                         </div>
                                         <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
                                             <span
                                                 class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Modalidad</span>
                                             <span class="text-sm font-bold text-surface-900">{{ socio.modalidad_plan
-                                                }}</span>
+                                            }}</span>
                                         </div>
                                         <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
                                             <span
                                                 class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Género</span>
-                                            <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider" :class="{
-                                                'bg-blue-50 text-blue-700 border border-blue-200': socio.genero === 'M',
-                                                'bg-pink-50 text-pink-700 border border-pink-200': socio.genero === 'F',
-                                                'bg-surface-100 text-surface-600 border border-surface-200': socio.genero !== 'M' && socio.genero !== 'F'
-                                            }">{{ socio.genero === 'M' ? 'Masculino' : socio.genero === 'F' ? 'Femenino' : 'Otro' }}</span>
+                                            <span
+                                                class="inline-flex px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider"
+                                                :class="{
+                                                    'bg-blue-50 text-blue-700 border border-blue-200': socio.genero === 'M',
+                                                    'bg-pink-50 text-pink-700 border border-pink-200': socio.genero === 'F',
+                                                    'bg-surface-100 text-surface-600 border border-surface-200': socio.genero !== 'M' && socio.genero !== 'F'
+                                                }">{{ socio.genero === 'M' ? 'Masculino' : socio.genero === 'F' ?
+                                                'Femenino' : 'Otro' }}</span>
                                         </div>
                                         <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
                                             <span

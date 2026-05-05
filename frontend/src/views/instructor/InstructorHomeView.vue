@@ -3,6 +3,7 @@ import { ref, markRaw, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
 // Importación de componentes SVG
 import {
@@ -103,7 +104,7 @@ const handleGoToDetails = (sessionObj) => {
       
       <!-- ESTADO DE CARGA -->
       <div v-if="isLoading" class="flex justify-center items-center py-20">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <LoadingSpinner />
       </div>
 
       <template v-else>

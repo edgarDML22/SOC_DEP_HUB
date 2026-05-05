@@ -5,6 +5,9 @@ import { storeToRefs } from 'pinia';
 import { useDisciplinesStore } from '@/stores/admin/disciplines';
 import { useCategoryStore } from '@/stores/admin/categoryStore';
 import { useformat } from '@/utils/formatters';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -111,9 +114,8 @@ const goBack = () => router.push({ name: 'disciplines-list' });
 
             <!-- Loading -->
             <section v-if="isLoading" class="flex flex-col items-center justify-center p-20">
-                <div class="w-12 h-12 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin mb-4">
-                </div>
-                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400">Cargando detalles...</p>
+                <LoadingSpinner />
+                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400 mt-4">Cargando detalles...</p>
             </section>
 
             <Transition enter-active-class="transition-all duration-500 ease-out"
@@ -258,14 +260,11 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                         class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none resize-none"></textarea>
                                 </div>
                                 <div class="flex justify-end gap-3 pt-4">
-                                    <button @click="handleUpdate" :disabled="isSaving"
-                                        class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center gap-2">
-                                        <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
-                                            fill="none" stroke="currentColor" stroke-width="2.5">
-                                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                                        </svg>
-                                        {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-                                    </button>
+                                    <ConfirmButton
+                                        label="Guardar Cambios"
+                                        :loading="isSaving"
+                                        @click="handleUpdate"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -305,7 +304,7 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                 </div>
                             </div>
                             <div v-else
-                                class="text-center p-12 bg-surface-50 rounded-[2rem] border-2 border-dashed border-surface-200">
+                                class="text-center p-12 bg-surface-50 rounded-4xl border-2 border-dashed border-surface-200">
                                 <p class="text-sm font-bold text-surface-400 italic">No hay instructores asignados a
                                     esta disciplina.</p>
                             </div>
@@ -327,10 +326,10 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                         enter-from-class="opacity-0 scale-95 translate-y-4"
                         enter-to-class="opacity-100 scale-100 translate-y-0">
                         <div v-if="showDeleteModal"
-                            class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden text-center">
+                            class="bg-white rounded-4xl border border-surface-200 p-2 md:p-6 shadow-sm overflow-hidden text-center">
                             <div class="p-8">
                                 <div
-                                    class="w-20 h-20 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 border border-red-100">
+                                    class="w-20 h-20 bg-red-50 text-red-600 rounded-6xl flex items-center justify-center mx-auto mb-6 border border-red-100">
                                     <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -342,18 +341,13 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                     sistema validará que no haya actividades ni instructores activos.</p>
 
                                 <div class="flex gap-3">
-                                    <button @click="showDeleteModal = false"
-                                        class="flex-1 py-3.5 bg-white border border-surface-200 hover:bg-surface-50 text-surface-700 rounded-xl font-bold transition-all text-sm">
-                                        Cancelar
-                                    </button>
-                                    <button @click="confirmDelete" :disabled="isSaving"
-                                        class="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-sm hover:shadow-md disabled:opacity-50 text-sm flex justify-center items-center gap-2">
-                                        <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24"
-                                            fill="none" stroke="currentColor" stroke-width="2.5">
-                                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                                        </svg>
-                                        {{ isSaving ? 'Procesando...' : 'Deshabilitar' }}
-                                    </button>
+                                    <CancelButton @click="showDeleteModal = false" class="flex-1" />
+                                    <ConfirmButton
+                                        label="Deshabilitar"
+                                        :loading="isSaving"
+                                        @click="confirmDelete"
+                                        class="flex-1 bg-red-600! hover:bg-red-700!"
+                                    />
                                 </div>
                             </div>
                         </div>
