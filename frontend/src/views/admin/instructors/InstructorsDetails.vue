@@ -4,6 +4,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import api from '@/services/api';
 import { useInstructorStore } from '@/stores/admin/instructorStore';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -103,15 +106,15 @@ const goBack = () => {
             </header>
 
             <!-- Estado de Error -->
-            <section v-if="errorMsg || storeError" class="text-center p-12 bg-red-50 rounded-[2rem] border border-red-100 animate-scale-in">
+            <section v-if="errorMsg || storeError" class="text-center p-12 bg-red-50 rounded-4xl border border-red-100 animate-scale-in">
                 <p class="text-red-600 font-bold">{{ errorMsg || storeError }}</p>
-                <button @click="goBack" class="mt-4 px-6 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-colors shadow-sm">Volver a los Instructores</button>
+                <CancelButton label="Volver a los Instructores" @click="goBack" class="mt-4" />
             </section>
 
             <!-- Estado de Carga -->
             <section v-if="isLoading" class="flex flex-col items-center justify-center p-20">
-                <div class="w-12 h-12 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400">Cargando detalles...</p>
+                <LoadingSpinner />
+                <p class="text-sm font-extrabold uppercase tracking-widest text-surface-400 mt-4">Cargando detalles...</p>
             </section>
 
             <!-- Contenido Detallado -->
@@ -170,9 +173,11 @@ const goBack = () => {
                             </div>
 
                             <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end">
-                                <button @click="showEditModal = true" class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition-all shadow-sm hover:shadow-md">
-                                    Gestionar Información Personal
-                                </button>
+                                <ConfirmButton
+                                    label="Gestionar Información Personal"
+                                    @click="showEditModal = true"
+                                    class="w-full sm:w-auto"
+                                />
                             </div>
                         </div>
                     </article>
@@ -235,11 +240,12 @@ const goBack = () => {
 
                             <!-- Pie -->
                             <div class="px-8 py-5 bg-white border-t border-surface-100 flex items-center justify-end gap-3">
-                                <button @click="showEditModal = false" class="px-6 py-3 rounded-xl border border-surface-200 bg-white text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">Cancelar</button>
-                                <button @click="saveEditInstructor" :disabled="isSaving" class="px-6 py-3 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2">
-                                    <svg v-if="isSaving" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                                    {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-                                </button>
+                                <CancelButton @click="showEditModal = false" />
+                                <ConfirmButton
+                                    label="Guardar Cambios"
+                                    :loading="isSaving"
+                                    @click="saveEditInstructor"
+                                />
                             </div>
                         </div>
                     </Transition>

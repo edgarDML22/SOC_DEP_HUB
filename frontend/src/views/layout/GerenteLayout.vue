@@ -1,9 +1,9 @@
 <script setup>
 import GerenteSideBar from '@/components/gerente/GerenteSideBar.vue'
-import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAdminStore } from '@/stores/profiles/adminStore'
 import { onMounted } from 'vue'
 
-const profileStore = useProfileStore()
+const profileStore = useAdminStore()
 onMounted(() => {
   profileStore.fetchProfile()
 })
