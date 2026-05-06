@@ -26,7 +26,6 @@ class DisciplinaController extends Controller
             'nombre_disciplina' => 'required|string',
             'categorias_ids' => 'required|array',
             'categorias_ids.*' => 'exists:categorias,id_categoria',
-            'descripcion' => 'nullable|string',
             'estatus' => 'nullable|string'
         ]);
 

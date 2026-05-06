@@ -1,5 +1,5 @@
 <template>
-    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="800px"
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" height="800px"
         width="800px" version="1.1" id="Capa_1" viewBox="0 0 297.001 297.001" xml:space="preserve">
         <circle cx="236.011" cy="243.119" r="32.765" />
         <path

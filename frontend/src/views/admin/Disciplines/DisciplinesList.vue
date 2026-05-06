@@ -6,22 +6,59 @@ import { useDisciplinesStore } from '@/stores/admin/disciplines'
 import { useCategoryStore } from '@/stores/admin/categoryStore'
 import { useAlerts } from '@/composables/useAlerts'
 import { useformat } from '@/utils/formatters'
+import { 
+  AdminPageHeader, BadgeStatus, ActionMenu, SearchInput, 
+  LoadingSpinner, ConfirmButton, CancelButton 
+} from '@/components/gerente/ui'
 
-import Select from 'primevue/select'
+import CambiarEstatusModal from '@/components/admin/disciplines/CambiarEstatusModal.vue'
 
-import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
-import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
-import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
-import SearchInput from '@/components/gerente/ui/SearchInput.vue'
-import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
-import { IconGrid, IconAlertCircle, IconChevronDown } from '@/components/icons'
+import { 
+  IconGrid, IconAlertCircle, IconChevronDown, IconBaby,
+  IconBasquetbol, IconFrontenis, IconFutbol, IconPadel, IconSquash, 
+  IconTenis, IconVoleibol, IconDance, IconYoga, IconGym, 
+  IconMartialArts, IconSpinning, IconGymnastics, IconSwimming, 
+  IconDefault, IconAerobic, IconBarre, IconHigieneColumna, 
+  IconJazz, IconMeditation, IconPilates, IconZumba
+} from '@/components/icons'
+
+const getDisciplineIcon = (name) => {
+  const n = (name || '').toLowerCase()
+  if (n.includes('basquetbol') || n.includes('baloncesto') || n.includes('basketball')) return IconBasquetbol
+  if (n.includes('frontenis')) return IconFrontenis
+  if (n.includes('futbol') || n.includes('fútbol') || n.includes('soccer')) return IconFutbol
+  if (n.includes('padel') || n.includes('pádel')) return IconPadel
+  if (n.includes('squash')) return IconSquash
+  if (n.includes('tenis') || n.includes('tennis')) return IconTenis
+  if (n.includes('voleibol') || n.includes('volleyball')) return IconVoleibol
+  
+  // Nuevas disciplinas individuales
+  if (n.includes('aerobics')) return IconAerobic
+  if (n.includes('jazz')) return IconJazz
+  if (n.includes('zumba')) return IconZumba
+  if (n.includes('baile')) return IconDance
+  
+  if (n.includes('meditación') || n.includes('meditacion')) return IconMeditation
+  if (n.includes('pilates')) return IconPilates
+  if (n.includes('barre')) return IconBarre
+  if (n.includes('yoga')) return IconYoga
+  
+  if (n.includes('columna')) return IconHigieneColumna
+  if (n.includes('acondicionamiento') || n.includes('entrenamiento')) return IconAerobic
+  if (n.includes('gym')) return IconGym
+  if (n.includes('tae kwon do') || n.includes('artes marciales')) return IconMartialArts
+  if (n.includes('spinning') || n.includes('bici')) return IconSpinning
+  if (n.includes('gimnasia')) return IconGymnastics
+  if (n.includes('natación') || n.includes('natacion') || n.includes('acuatico') || n.includes('acuático')) return IconSwimming
+  if (n.includes('ludoteca')) return IconBaby
+
+  return IconDefault
+}
 
 const router = useRouter()
 const disciplinesStore = useDisciplinesStore()
 const categoryStore = useCategoryStore()
-const { formatText } = useformat()
+const { formatText, formatCategoryEnum } = useformat()
 const { toastInfo } = useAlerts()
 
 const { disciplines, isLoading } = storeToRefs(disciplinesStore)
@@ -37,14 +74,13 @@ const categories = computed(() =>
 )
 const categoryOpts = computed(() => [
   { label: 'Todas las categorías', value: null },
-  ...categories.value.map(c => ({ label: formatText(c.nombre), value: c.id_categoria })),
+  ...categories.value.map(c => ({ label: formatCategoryEnum(c.nombre), value: c.id_categoria })),
 ])
 const OPT_STATUS = [
   { label: 'Todos los estados', value: null },
   { label: 'Activo', value: 'ACTIVO' },
-  { label: 'Inactivo', value: 'INACTIVO' },
-  { label: 'Mantenimiento', value: 'MANTENIMIENTO' },
-  { label: 'Deshabilitado', value: 'DESHABILITADO' },
+  { label: 'En Pausa', value: 'PAUSA' },
+  { label: 'Cancelado', value: 'CANCELADO' },
 ]
 
 const filteredDisciplines = computed(() => {
@@ -103,33 +139,12 @@ const buildMenuItems = (discipline) => [
     action: () => router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } }),
   },
   {
-    label: 'Editar disciplina',
+    label: 'Cambiar estatus',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-               <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-             </svg>`,
-    action: () => router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina }, query: { edit: 'true' } }),
-  },
-  {
-    label: 'Ver instructores',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-               <circle cx="9" cy="7" r="4"/>
-               <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-             </svg>`,
-    action: () => openInstructorsModal(discipline.id_disciplina),
-  },
-  { separator: true },
-  {
-    label: 'Deshabilitar',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                  </svg>`,
-    action: () => openDisableModal(discipline),
-    destructive: true,
-    disabled: discipline.estatus === 'DESHABILITADO',
-  },
+             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+           </svg>`,
+    action: () => openStatusModal(discipline),
+  }
 ]
 
 // ── MODAL: NUEVA DISCIPLINA ────────────────────────────────────
@@ -137,12 +152,12 @@ const showNewModal = ref(false)
 const isSaving = ref(false)
 const formError = ref('')
 
-const EMPTY_DISCIPLINE = () => ({ nombre_disciplina: '', id_categoria: null, descripcion: '', estatus: 'ACTIVO' })
+const EMPTY_DISCIPLINE = () => ({ nombre_disciplina: '', categorias_ids: [null], estatus: 'ACTIVO' })
 const newDiscipline = ref(EMPTY_DISCIPLINE())
 
 const OPT_ESTATUS_FORM = [
   { label: 'Activo', value: 'ACTIVO' },
-  { label: 'Inactivo', value: 'INACTIVO' },
+  { label: 'En Pausa', value: 'PAUSA' },
 ]
 
 const openNewModal = () => {
@@ -157,7 +172,7 @@ const saveNewDiscipline = async () => {
     formError.value = 'El nombre de la disciplina es requerido.'
     return
   }
-  if (!newDiscipline.value.id_categoria) {
+  if (!newDiscipline.value.categorias_ids[0]) {
     formError.value = 'Debes seleccionar una categoría.'
     return
   }
@@ -172,45 +187,17 @@ const saveNewDiscipline = async () => {
   }
 }
 
-// ── MODAL: INSTRUCTORES ────────────────────────────────────────
-const showInstructorsModal = ref(false)
-const selectedInstructors = ref([])
-const isFetchingInstructors = ref(false)
+// ── MODAL: CAMBIAR ESTATUS ─────────────────────────────────────
+const showStatusModal = ref(false)
+const selectedStatusDiscipline = ref(null)
 
-const openInstructorsModal = async (id) => {
-  selectedInstructors.value = []
-  isFetchingInstructors.value = true
-  showInstructorsModal.value = true
-  try {
-    const data = await disciplinesStore.fetchDisciplineDetails(id)
-    selectedInstructors.value = data?.instructores ?? []
-  } catch {
-    selectedInstructors.value = []
-  } finally {
-    isFetchingInstructors.value = false
-  }
+const openStatusModal = (discipline) => {
+  selectedStatusDiscipline.value = discipline
+  showStatusModal.value = true
 }
 
-// ── MODAL: DESHABILITAR ────────────────────────────────────────
-const showDisableModal = ref(false)
-const selectedDiscipline = ref(null)
-
-const openDisableModal = (discipline) => {
-  selectedDiscipline.value = discipline
-  showDisableModal.value = true
-}
-
-const confirmDisable = async () => {
-  if (!selectedDiscipline.value) return
-  isSaving.value = true
-  const res = await disciplinesStore.deleteDiscipline(selectedDiscipline.value.id_disciplina)
-  isSaving.value = false
-  if (res?.success) {
-    showDisableModal.value = false
-    toastInfo('Disciplina deshabilitada', selectedDiscipline.value.nombre_disciplina, 'success')
-  } else {
-    toastInfo('Error', res?.error ?? 'No se pudo deshabilitar.', 'error')
-  }
+const handleStatusUpdated = () => {
+  disciplinesStore.fetchDisciplines()
 }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -221,17 +208,17 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-slate-50 p-6 lg:p-8 pb-16 font-sans">
+  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
     <div class="max-w-7xl mx-auto space-y-8">
 
       <!-- CABECERA -->
       <AdminPageHeader title="Disciplinas" subtitle="Gestiona los deportes y actividades del club.">
-        <span class="text-sm font-bold text-slate-500">
+        <span class="text-sm font-bold text-surface-500">
           {{ filteredDisciplines.length }}
-          <span class="font-medium text-slate-400">de {{ disciplines.length }}</span>
+          <span class="font-medium text-surface-400">de {{ disciplines.length }}</span>
         </span>
-        <button @click="router.push({ name: 'disciplines-categories' })" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 shadow-sm
-                 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+        <button @click="router.push({ name: 'disciplines-categories' })" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-surface-200 shadow-sm
+                 text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7" />
             <rect x="14" y="3" width="7" height="7" />
@@ -252,27 +239,27 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- FILTROS -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
         <SearchInput v-model="search" placeholder="Buscar por nombre o categoría…" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoría</label>
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Categoría</label>
             <div class="relative">
-              <IconGrid class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <select v-model="filterCategory" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
+              <IconGrid class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+              <select v-model="filterCategory" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
                 <option v-for="opt in categoryOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
             <div class="relative">
-              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
+              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -295,23 +282,23 @@ onMounted(() => {
       <!-- SKELETON -->
       <div v-if="isLoading" class="flex flex-col gap-4">
         <div v-for="n in 4" :key="n"
-          class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex gap-5 animate-pulse">
-          <div class="w-14 h-14 rounded-2xl bg-slate-200 shrink-0" />
+          class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 flex gap-5 animate-pulse">
+          <div class="w-14 h-14 rounded-2xl bg-surface-200 shrink-0" />
           <div class="flex-1 space-y-3 py-1">
-            <div class="h-4 bg-slate-200 rounded-lg w-40" />
+            <div class="h-4 bg-surface-200 rounded-lg w-40" />
             <div class="h-3 bg-indigo-100 rounded-lg w-24" />
-            <div class="h-3 bg-slate-100 rounded-lg w-full" />
-            <div class="h-3 bg-slate-100 rounded-lg w-3/4" />
+            <div class="h-3 bg-surface-100 rounded-lg w-full" />
+            <div class="h-3 bg-surface-100 rounded-lg w-3/4" />
           </div>
-          <div class="w-24 h-9 rounded-xl bg-slate-100 self-center shrink-0" />
+          <div class="w-24 h-9 rounded-xl bg-surface-100 self-center shrink-0" />
         </div>
       </div>
 
       <!-- VACÍO -->
-      <div v-else-if="filteredDisciplines.length === 0" class="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16
+      <div v-else-if="filteredDisciplines.length === 0" class="bg-white rounded-2xl border-2 border-dashed border-surface-200 p-16
                flex flex-col items-center justify-center text-center">
-        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-          <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <div class="w-16 h-16 rounded-2xl bg-surface-100 flex items-center justify-center mb-4">
+          <svg class="w-7 h-7 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
             <line x1="6" y1="1" x2="6" y2="4" />
@@ -319,8 +306,8 @@ onMounted(() => {
             <line x1="14" y1="1" x2="14" y2="4" />
           </svg>
         </div>
-        <h3 class="text-base font-black text-slate-900">Sin resultados</h3>
-        <p class="text-sm text-slate-500 mt-1 max-w-xs">No se encontraron disciplinas con los filtros actuales.</p>
+        <h3 class="text-base font-black text-surface-900">Sin resultados</h3>
+        <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron disciplinas con los filtros actuales.</p>
         <button @click="clearFilters" class="mt-4 text-sm font-bold text-blue-600 hover:underline">Limpiar
           filtros</button>
       </div>
@@ -330,11 +317,11 @@ onMounted(() => {
         enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0 -translate-y-2"
         enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-200 ease-in absolute"
         leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-for="discipline in filteredDisciplines" :key="discipline.id_disciplina" class="bg-white rounded-2xl border border-slate-200 shadow-sm
-                 hover:shadow-md hover:border-slate-300
-                 transition-all duration-200 group overflow-hidden flex">
+        <div v-for="discipline in filteredDisciplines" :key="discipline.id_disciplina" class="bg-white rounded-2xl border border-surface-200 shadow-sm
+                 hover:shadow-md hover:border-surface-300
+                 transition-all duration-200 group flex">
           <!-- Franja de color de categoría -->
-          <div class="w-1.5 shrink-0"
+          <div class="w-1.5 shrink-0 rounded-l-2xl"
             :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').left" />
 
           <!-- Ícono disciplina coloreado por categoría -->
@@ -342,13 +329,7 @@ onMounted(() => {
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm
                      group-hover:scale-105 transition-transform duration-200"
               :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
-              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                <line x1="6" y1="1" x2="6" y2="4" />
-                <line x1="10" y1="1" x2="10" y2="4" />
-                <line x1="14" y1="1" x2="14" y2="4" />
-              </svg>
+              <component :is="getDisciplineIcon(discipline.nombre_disciplina)" class="w-7 h-7 fill-current" />
             </div>
           </div>
 
@@ -358,37 +339,24 @@ onMounted(() => {
               <div class="min-w-0">
 
                 <!-- Nombre -->
-                <h3 class="text-sm font-black text-slate-900 truncate leading-tight">
+                <h3 class="text-sm font-black text-surface-900 truncate leading-tight">
                   {{ discipline.nombre_disciplina }}
                 </h3>
 
                 <!-- Categoría + Estatus pills -->
                 <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600
+                  <span class="text-[10px] font-bold tracking-wider text-indigo-600
                                bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-                    {{ formatText(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
+                    {{ formatCategoryEnum(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
                   </span>
                   <BadgeStatus :status="discipline.estatus" size="sm" />
                 </div>
 
-                <!-- Descripción -->
-                <p class="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed mt-1.5 max-w-2xl">
-                  {{ discipline.descripcion || 'Sin descripción disponible.' }}
-                </p>
+
               </div>
 
               <!-- Botón + menú -->
               <div class="flex items-center gap-2 shrink-0">
-                <button @click="router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } })"
-                  class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100
-                         text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600
-                         transition-colors border border-slate-200 hover:border-blue-200">
-                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <path d="M14 2v6h6" />
-                  </svg>
-                  Ver detalles
-                </button>
                 <ActionMenu :items="buildMenuItems(discipline)" align="right" />
               </div>
             </div>
@@ -406,21 +374,21 @@ onMounted(() => {
         enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
         leave-from-class="opacity-100" leave-to-class="opacity-0">
         <div v-if="showNewModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showNewModal = false">
           <Transition enter-active-class="transition-all duration-300 ease-out"
             enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
             <div v-if="showNewModal"
-              class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+              class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden font-sans">
 
               <!-- Cabecera -->
-              <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
+              <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
                 <div>
-                  <h2 class="text-lg font-black text-slate-900 leading-tight">Nueva Disciplina</h2>
-                  <p class="text-xs text-slate-500 font-medium mt-0.5">Registra un deporte o actividad del club.</p>
+                  <h2 class="text-lg font-black text-surface-900 leading-tight">Nueva Disciplina</h2>
+                  <p class="text-xs text-surface-500 font-medium mt-0.5">Registra un deporte o actividad del club.</p>
                 </div>
                 <button @click="showNewModal = false"
-                  class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                  class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
@@ -428,7 +396,7 @@ onMounted(() => {
               </div>
 
               <!-- Cuerpo -->
-              <div class="overflow-y-auto p-7 space-y-5 bg-slate-50/30">
+              <div class="overflow-y-auto p-7 space-y-5 bg-surface-50/30">
 
                 <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1"
                   enter-to-class="opacity-100 translate-y-0">
@@ -445,44 +413,46 @@ onMounted(() => {
                 </Transition>
 
                 <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                     Nombre <span class="text-red-400">*</span>
                   </label>
                   <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                           text-slate-900 placeholder:text-slate-400
+                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
+                           text-surface-900 placeholder:text-surface-400
                            focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                       Categoría <span class="text-red-400">*</span>
                     </label>
-                    <Select v-model="newDiscipline.id_categoria"
-                      :options="[{ label: 'Seleccionar…', value: null }, ...categories.map(c => ({ label: formatText(c.nombre), value: c.id_categoria }))]"
-                      option-label="label" option-value="value" class="w-full" />
+                    <div class="relative">
+                      <select v-model="newDiscipline.categorias_ids[0]"
+                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer shadow-xs">
+                        <option :value="null">Seleccionar…</option>
+                        <option v-for="c in categories" :key="c.id_categoria" :value="c.id_categoria">{{ formatText(c.nombre) }}</option>
+                      </select>
+                      <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-                    <Select v-model="newDiscipline.estatus" :options="OPT_ESTATUS_FORM" option-label="label"
-                      option-value="value" class="w-full" />
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
+                    <div class="relative">
+                      <select v-model="newDiscipline.estatus"
+                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer shadow-xs">
+                        <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
 
-                <div class="space-y-1.5">
-                  <label
-                    class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Descripción</label>
-                  <textarea v-model="newDiscipline.descripcion" rows="4"
-                    placeholder="Breve descripción de la actividad…"
-                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                           text-slate-900 placeholder:text-slate-400 resize-none
-                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
-                </div>
+
               </div>
 
               <!-- Pie -->
-              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
+              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100">
                 <CancelButton @click="showNewModal = false" />
                 <ConfirmButton
                   label="Crear Disciplina"
@@ -496,120 +466,16 @@ onMounted(() => {
       </Transition>
     </Teleport>
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL: INSTRUCTORES ASIGNADOS
-    ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showInstructorsModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="showInstructorsModal = false">
-          <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
 
-            <!-- Cabecera -->
-            <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
-              <div>
-                <h2 class="text-lg font-black text-slate-900 leading-tight">Instructores Asignados</h2>
-                <p class="text-xs text-slate-500 font-medium mt-0.5">Instructores vinculados a esta disciplina</p>
-              </div>
-              <button @click="showInstructorsModal = false"
-                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Cuerpo -->
-            <div class="overflow-y-auto p-6 bg-slate-50/30">
-
-              <!-- Cargando -->
-              <div v-if="isFetchingInstructors" class="flex justify-center py-12">
-                <LoadingSpinner />
-              </div>
-
-              <!-- Vacío — mismo esqueleto que Miembros Familiares -->
-              <div v-else-if="!selectedInstructors.length" class="flex flex-col items-center justify-center py-14 text-center
-                       bg-white rounded-2xl border-2 border-dashed border-slate-200">
-                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                  <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="1.5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
-                <p class="text-sm font-bold text-slate-700">Sin instructores asignados</p>
-                <p class="text-xs text-slate-400 mt-1 max-w-[200px]">
-                  Ningún instructor está vinculado a esta disciplina todavía.
-                </p>
-              </div>
-
-              <!-- Lista -->
-              <div v-else class="flex flex-col gap-2.5">
-                <div v-for="ins in selectedInstructors" :key="ins.id_instructor" class="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200
-                         hover:border-blue-200 hover:shadow-sm transition-all group">
-                  <div class="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-400 to-indigo-600
-                              text-white flex items-center justify-center font-bold text-sm shrink-0
-                              group-hover:scale-105 transition-transform">
-                    {{ ins.nombre_completo?.charAt(0) ?? '?' }}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-900 truncate">{{ ins.nombre_completo }}</p>
-                    <p class="text-xs text-slate-500 font-medium">ID #{{ ins.id_instructor }}</p>
-                  </div>
-                  <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Pie -->
-            <div class="px-7 py-4 border-t border-slate-100 flex justify-end">
-              <CancelButton label="Cerrar" @click="showInstructorsModal = false" />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
 
     <!-- ══════════════════════════════════════════════════════════
-         MODAL: CONFIRMAR DESHABILITAR
+         MODAL: CAMBIAR ESTATUS
     ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showDisableModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="showDisableModal = false">
-          <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5">
-              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 9v4M12 17h.01" />
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-black text-slate-900 mb-2">¿Deshabilitar disciplina?</h3>
-            <p class="text-sm text-slate-500 mb-8">
-              ¿Confirmas deshabilitar <span class="font-bold text-slate-800">{{ selectedDiscipline?.nombre_disciplina
-              }}</span>?
-              El sistema validará que no haya sesiones o torneos activos.
-            </p>
-            <div class="flex gap-3">
-              <CancelButton @click="showDisableModal = false" class="flex-1" />
-              <ConfirmButton
-                label="Deshabilitar"
-                :loading="isSaving"
-                @click="confirmDisable"
-                class="flex-1 bg-red-600! hover:bg-red-700!"
-              />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <CambiarEstatusModal 
+      v-model="showStatusModal" 
+      :discipline="selectedStatusDiscipline"
+      @status-updated="handleStatusUpdated"
+    />
 
   </main>
 </template>

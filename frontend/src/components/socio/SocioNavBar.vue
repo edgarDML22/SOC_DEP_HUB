@@ -372,7 +372,7 @@ onUnmounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="notifSeleccionada"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="cerrarDetalle"
         >
           <Transition
@@ -381,16 +381,16 @@ onUnmounted(() => {
             enter-to-class="opacity-100 scale-100 translate-y-0"
           >
             <div v-if="notifSeleccionada"
-              class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden"
+              class="bg-white w-full max-w-sm rounded-2rem shadow-2xl overflow-hidden"
             >
               <!-- Cabecera coloreada — roja para sanción, verde para liberación -->
               <div
                 class="px-7 py-6 text-white relative overflow-hidden"
                 :class="esTipoAmistad(notifSeleccionada.data?.tipo)
-                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                  ? 'bg-linear-to-br from-blue-500 to-indigo-600'
                   : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                    ? 'bg-gradient-to-br from-green-500 to-emerald-500'
-                    : 'bg-gradient-to-br from-red-500 to-orange-500'"
+                    ? 'bg-linear-to-br from-green-500 to-emerald-500'
+                    : 'bg-linear-to-br from-red-500 to-orange-500'"
               >
                 <div class="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"/>
                 <div class="relative z-10 flex items-start gap-4">

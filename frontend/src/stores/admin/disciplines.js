@@ -96,6 +96,29 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
         }
     };
 
+    const changeDisciplineStatus = async (id, status) => {
+        isLoading.value = true;
+        try {
+            const res = await api.patch(`/disciplinas/${id}/estatus`, { nuevo_estatus: status });
+            if (res.data) {
+                // Actualizar localmente
+                const index = disciplines.value.findIndex((d) => String(d.id_disciplina) === String(id));
+                if (index !== -1) {
+                    disciplines.value[index].estatus = status;
+                }
+                return { success: true, data: res.data.data };
+            }
+        } catch (err) {
+            return { 
+                success: false, 
+                error: err.response?.data?.message || "Error al cambiar estatus.",
+                conflictos: err.response?.data?.conflictos || null
+            };
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     const deleteDiscipline = async (id) => {
         isLoading.value = true;
         try {
@@ -123,6 +146,7 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
         fetchDisciplineDetails,
         createDiscipline,
         updateDiscipline,
+        changeDisciplineStatus,
         deleteDiscipline,
         getDisciplineById
     };
