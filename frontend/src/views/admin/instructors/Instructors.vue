@@ -19,14 +19,14 @@ import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconAlertCircle, IconTarget, IconChevronDown } from '@/components/icons'
 
 // Iconos de deportes para el selector de disciplinas
-import IconFutbol     from '@/components/icons/sports/IconFutbol.vue'
-import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue'
-import IconTenis      from '@/components/icons/sports/IconTenis.vue'
-import IconVoleibol   from '@/components/icons/sports/IconVoleibol.vue'
-import IconSquash     from '@/components/icons/sports/IconSquash.vue'
-import IconFrontenis  from '@/components/icons/sports/IconFrontenis.vue'
-import IconPadel      from '@/components/icons/sports/IconPadel.vue'
-import IconDefault    from '@/components/icons/sports/IconDefault.vue'
+import IconFutbol     from '@/components/icons/disciplines/IconFutbol.vue'
+import IconBasquetbol from '@/components/icons/disciplines/IconBasquetbol.vue'
+import IconTenis      from '@/components/icons/disciplines/IconTenis.vue'
+import IconVoleibol   from '@/components/icons/disciplines/IconVoleibol.vue'
+import IconSquash     from '@/components/icons/disciplines/IconSquash.vue'
+import IconFrontenis  from '@/components/icons/disciplines/IconFrontenis.vue'
+import IconPadel      from '@/components/icons/disciplines/IconPadel.vue'
+import IconDefault    from '@/components/icons/disciplines/IconDefault.vue'
 
 const router          = useRouter()
 const instructorStore = useInstructorStore()

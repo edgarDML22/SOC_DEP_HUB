@@ -381,7 +381,7 @@ onUnmounted(() => {
             enter-to-class="opacity-100 scale-100 translate-y-0"
           >
             <div v-if="notifSeleccionada"
-              class="bg-white w-full max-w-sm rounded-2rem shadow-2xl overflow-hidden"
+              class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
               <!-- Cabecera coloreada — roja para sanción, verde para liberación -->
               <div

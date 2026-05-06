@@ -511,7 +511,7 @@ export const useReservationStore = defineStore("reservation", () => {
       Fronton: "IconFrontenis",
     };
 
-    return mapaIconos[disciplina] || "DefaultIcon";
+    return mapaIconos[disciplina] || "IconDefault";
   };
 
   return {
