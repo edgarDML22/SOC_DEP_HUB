@@ -90,10 +90,8 @@ Route::middleware(['check.turno'])->group(function () {
 });
 //Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
 
-//elliminar al final
-//Route::patch('/v1/disciplinas/{id}/estatus', [DisciplinaController::class, 'update']);
-
-// ==========================================
+//SDH 194 ruta para eliminar la disciplina de un instructor
+Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
 // Ruta por defecto que incluye Laravel
@@ -121,7 +119,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
-
 
     //CRUD INSTRUCTORES
     // Para instructor

@@ -8,11 +8,13 @@ import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { useformat } from '@/utils/formatters';
+import { useAlerts } from '@/composables/useAlerts';
 
 const route = useRoute();
 const router = useRouter();
 const instructorStore = useInstructorStore();
 const { formatText, dateFormat } = useformat();
+const { toastInfo } = useAlerts();
 
 const { isLoading, error: storeError } = storeToRefs(instructorStore);
 
@@ -64,7 +66,7 @@ const fetchInstructorDetails = async () => {
 
 const saveEditInstructor = async () => {
     if (!editForm.value.nombre_completo) {
-        alert("El nombre es requerido.");
+        toastInfo("Campo requerido", "El nombre es requerido.", "error");
         return;
     }
 
@@ -72,12 +74,13 @@ const saveEditInstructor = async () => {
     try {
         const res = await instructorStore.updateInstructor(instructorId, editForm.value);
         if (res.success) {
+            toastInfo("¡Éxito!", "Información del instructor actualizada correctamente.", "success");
             showEditModal.value = false;
             // Al ser reactivo el store y nosotros usar instructor.value = data en fetch,
             // y el store actualizar la lista, deberíamos refrescar la referencia local.
             instructor.value = instructorStore.getInstructorById(instructorId);
         } else {
-            alert(res.error || "Ocurrió un error al actualizar.");
+            toastInfo("Error", res.error || "Ocurrió un error al actualizar.", "error");
         }
     } catch (error) {
         console.error("Error al actualizar instructor:", error);
@@ -236,18 +239,18 @@ const goBack = () => {
                         enter-from-class="opacity-0 scale-95 translate-y-4"
                         enter-to-class="opacity-100 scale-100 translate-y-0">
                         <div v-if="showEditModal"
-                            class="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+                            class="bg-white rounded-2rem w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
 
                             <!-- Cabecera -->
                             <div
                                 class="flex justify-between items-center px-8 py-6 bg-white border-b border-surface-100">
                                 <div>
-                                    <h2 class="text-xl font-black text-surface-900">Editar Instructor</h2>
-                                    <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">Modifica
+                                    <h2 class="text-lg font-black text-surface-900">Editar Instructor</h2>
+                                    <p class="text-xs font-medium text-surface-500 mt-1 uppercase tracking-wider">Modifica
                                         la información personal</p>
                                 </div>
                                 <button @click="showEditModal = false"
-                                    class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                                    class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                         stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -256,7 +259,7 @@ const goBack = () => {
                             </div>
 
                             <!-- Cuerpo -->
-                            <div class="p-8 overflow-y-auto space-y-6 bg-surface-50/50">
+                            <div class="p-6 overflow-y-auto space-y-6 bg-surface-50/30">
                                 <div class="space-y-1.5">
                                     <label
                                         class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Nombre
@@ -285,8 +288,8 @@ const goBack = () => {
                                     <label
                                         class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Correo
                                         Electrónico</label>
-                                    <input type="email" v-model="editForm.correo_electronico"
-                                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                    <input type="email" v-model="editForm.correo_electronico" readonly
+                                        class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-400 cursor-not-allowed outline-none" />
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-6">

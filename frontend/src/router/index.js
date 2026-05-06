@@ -355,11 +355,6 @@ const router = createRouter({
               name: 'instructor-disciplines',
               component: () => import('@/views/admin/instructors/InstructorDisciplines.vue'),
             },
-            {
-              path: ':id/status',
-              name: 'instructor-status',
-              component: () => import('@/views/admin/instructors/InstructorStatus.vue'),
-            },
           ]
         },
         {

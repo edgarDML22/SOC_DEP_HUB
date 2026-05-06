@@ -4,6 +4,7 @@ import api from "@/services/api";
 
 export const useInstructorStore = defineStore("instructorAdmin", () => {
     const instructors = ref([]);
+    const disciplinesCatalog = ref([]);
     const isLoading = ref(false);
     const error = ref(null);
 
@@ -38,7 +39,7 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
      */
     const fetchInstructorDetails = async (id, force = false) => {
         const existing = getInstructorById(id);
-        
+
         // Si ya lo tenemos y tiene disciplinas (indicador de que es el objeto completo), no pedimos de nuevo
         if (!force && existing && Array.isArray(existing.disciplinas)) {
             return existing;
@@ -49,7 +50,7 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
             const response = await api.get(`/instructors/${id}`);
             if (response.data && response.data.success) {
                 const fullData = response.data.data;
-                
+
                 // Actualizar o insertar en la lista local
                 const index = instructors.value.findIndex((i) => String(i.id_instructor) === String(id));
                 if (index !== -1) {
@@ -74,7 +75,7 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
             const response = await api.put(`/instructors/update/${id}`, data);
             if (response.data && response.data.success) {
                 const updatedData = response.data.data;
-                
+
                 // Actualizar localmente
                 const index = instructors.value.findIndex(
                     (i) => String(i.id_instructor) === String(id)
@@ -148,6 +149,26 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
         }
     };
 
+    const fetchDisciplinesCatalogAction = async (force = false) => {
+        // Cache-first approach
+        if (!force && disciplinesCatalog.value && disciplinesCatalog.value.length > 0) return;
+
+        isLoading.value = true;
+        error.value = null;
+        try {
+            const response = await api.get("/disciplinas/all");
+            if (response.data && response.data.success) {
+                disciplinesCatalog.value = response.data.data;
+            }
+        } catch (err) {
+            console.error("Error fetching disciplines catalog:", err);
+            error.value = "Error al cargar el catálogo de disciplinas.";
+            throw err; // Propagate for view handling
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     return {
         instructors,
         isLoading,
@@ -159,6 +180,8 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
         getInstructorById,
         fetchStatusImpact,
         fetchCandidateSubstitutes,
-        applyMeticulousStatus
+        applyMeticulousStatus,
+        disciplinesCatalog,
+        fetchDisciplinesCatalogAction
     };
 });

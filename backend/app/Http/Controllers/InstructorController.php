@@ -12,7 +12,7 @@ use App\Models\ActividadPlantilla;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-
+use App\Models\instructorDisciplina;
 class InstructorController extends Controller
 {
     /**
@@ -232,15 +232,7 @@ class InstructorController extends Controller
 
     public function store(Request $request)
     {
-        $admin = Auth::user();
-
-        // Validar acceso
-        if ($admin->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acceso denegado. No eres administrador.'
-            ], 403);
-        }
+        $this->validationAdmin($request);
 
         DB::beginTransaction();
         try {
@@ -249,7 +241,6 @@ class InstructorController extends Controller
             $correoGenerado = strtolower(explode(' ', $nombre)[0]) . '_' . Str::random(4) . '@socdep.com';
 
             $newUser = User::create([
-                'name' => $nombre,
                 'email' => $correoGenerado,
                 'password' => Hash::make('password'),
                 'rol' => 'instructor',
@@ -258,10 +249,9 @@ class InstructorController extends Controller
 
             // 2. Crear el instructor
             $instructor = Instructor::create([
-                'id_usuario' => $newUser->id,
                 'nombre_completo' => $nombre,
                 'telefono' => $request->input('telefono'),
-                'correo_electronico' => $request->input('correo_electronico'),
+                'correo_electronico' => $correoGenerado,
                 'estatus' => $request->input('estatus', 'ACTIVO'),
                 'fecha_afiliacion' => $request->input('fecha_afiliacion'),
                 'fecha_nacimiento' => $request->input('fecha_nacimiento'),
@@ -466,5 +456,36 @@ class InstructorController extends Controller
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
+
+
+    public function deleteRelationshipDiscipline($id, $disciplina_id)
+    {
+        $available = InstructorAvailabilityService::getRelationship($id, $disciplina_id);
+        if ($available['success'] == true) {
+            return response()->json($available, 422);
+        } else {
+            $exists = InstructorDisciplina::where('id_instructor', $id)
+                ->where('id_disciplina', $disciplina_id)
+                ->exists();
+
+            if ($exists) {
+                InstructorDisciplina::where('id_instructor', $id)
+                    ->where('id_disciplina', $disciplina_id)
+                    ->delete();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Se elimino correctamente la disciplina del instructor'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontro la relacion entre el instructor y la disciplina'
+                ]);
+            }
+
+        }
+    }
+
+
 
 }

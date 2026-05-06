@@ -128,6 +128,28 @@ const categoryPalette = (catName = '') => {
   return CATEGORY_COLORS[idx]
 }
 
+// ── DYNAMIC ICONS ────────────────────────────────────────────────
+const getIcon = (name) => {
+  if (!name) return IconDefault;
+  const n = name.toLowerCase();
+  if (n.includes('futbol')) return IconFutbol;
+  if (n.includes('basquetbol') || n.includes('baloncesto')) return IconBasquetbol;
+  if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis;
+  if (n.includes('voleibol')) return IconVoleibol;
+  if (n.includes('squash')) return IconSquash;
+  if (n.includes('frontenis')) return IconFrontenis;
+  if (n.includes('padel')) return IconPadel;
+  if (n.includes('natacion') || n.includes('acuatic') || n.includes('alberca')) return IconNatacion;
+  if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion')) return IconYoga;
+  if (n.includes('pesas') || n.includes('acondicionamiento') || n.includes('crossfit') || n.includes('funcional') || n.includes('gym')) return IconPesas;
+  if (n.includes('marciales') || n.includes('karate') || n.includes('taekwondo') || n.includes('box')) return IconArtesMarciales;
+  if (n.includes('gimnasia')) return IconGimnasia;
+  if (n.includes('baile') || n.includes('zumba') || n.includes('aerobics') || n.includes('jazz') || n.includes('barre')) return IconBaile;
+  if (n.includes('spinning')) return IconSpinning;
+  if (n.includes('columna') || n.includes('higiene')) return IconColumna;
+  return IconDefault;
+};
+
 // ── MENU ITEMS ─────────────────────────────────────────────────
 const buildMenuItems = (discipline) => [
   {
