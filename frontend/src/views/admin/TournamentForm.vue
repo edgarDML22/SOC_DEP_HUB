@@ -9,6 +9,9 @@ import Select from 'primevue/select'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
+import LoadingSpinner   from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const router      = useRouter()
 const { toastInfo } = useAlerts()
@@ -109,7 +112,7 @@ const formatFecha = (f) => {
 const buildMenuItems = (torneo) => [
   {
     label:  'Ver detalles',
-    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
              </svg>`,
@@ -125,7 +128,7 @@ const buildMenuItems = (torneo) => [
   },
   {
     label:  'Confirmar torneo',
-    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                <polyline points="22 4 12 14.01 9 11.01"/>
              </svg>`,
@@ -143,7 +146,7 @@ const buildMenuItems = (torneo) => [
   { separator: true },
   {
     label:       'Cancelar torneo',
-    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    icon:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
                   </svg>`,
@@ -462,17 +465,14 @@ onMounted(getTorneos)
               como cancelado y no se podrá revertir fácilmente.
             </p>
             <div class="flex gap-3">
-              <button @click="showCancelModal = false"
-                class="flex-1 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                Volver
-              </button>
-              <button @click="confirmCancel" :disabled="isCancelling"
-                class="flex-1 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                <svg v-if="isCancelling" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-                {{ isCancelling ? 'Cancelando…' : 'Sí, cancelar' }}
-              </button>
+              <CancelButton label="Volver" @click="showCancelModal = false" class="flex-1" />
+              <ConfirmButton
+                label="Sí, cancelar"
+                :loading="isCancelling"
+                :disabled="isCancelling"
+                @click="confirmCancel"
+                class="flex-1 bg-red-600! hover:bg-red-700!"
+              />
             </div>
           </div>
         </div>

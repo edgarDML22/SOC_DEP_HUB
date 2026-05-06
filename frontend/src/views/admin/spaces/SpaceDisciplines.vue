@@ -5,6 +5,9 @@ import api from '@/services/api';
 import { useSpacesStore } from '@/stores/admin/spaces';
 import { useToast } from 'primevue/usetoast';
 import Toast from 'primevue/toast';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 // Import Icons
 import IconFutbol from '@/components/icons/sports/IconFutbol.vue';
@@ -63,7 +66,14 @@ const fetchAllDisciplines = async () => {
     }
 };
 
+const isSpaceActive = computed(() => space.value?.estatus === 'ACTIVO');
+
 const toggleSelection = (id) => {
+    if (isSpaceActive.value && selectedDisciplines.value.includes(id)) {
+        toast.add({ severity: 'warn', summary: 'Acción bloqueada', detail: 'No se pueden eliminar disciplinas mientras el espacio esté ACTIVO.', life: 4000 });
+        return;
+    }
+    
     const index = selectedDisciplines.value.indexOf(id);
     if (index > -1) {
         selectedDisciplines.value.splice(index, 1);
@@ -140,7 +150,7 @@ const goBack = () => {
         <Toast />
 
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="statusOverlay.show" class="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-md" :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
+            <div v-if="statusOverlay.show" class="fixed inset-0 z-9999 flex items-center justify-center bg-white/80 backdrop-blur-md" :class="statusOverlay.type === 'success' ? 'text-primary-600' : 'text-red-600'">
                 <div class="text-center animate-[bounce_0.5s]">
                     <div class="flex justify-center mb-6">
                         <svg v-if="statusOverlay.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -171,11 +181,16 @@ const goBack = () => {
         </header>
 
         <section v-if="isLoading" class="flex flex-col items-center justify-center py-20 gap-4">
-            <div class="w-10 h-10 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin"></div>
+            <LoadingSpinner />
             <p class="text-surface-500 font-medium">Cargando disciplinas...</p>
         </section>
 
         <section v-else class="max-w-7xl mx-auto space-y-8">
+            <div v-if="isSpaceActive" class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-bold flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                El espacio está ACTIVO. No se permite eliminar disciplinas, solo agregar nuevas.
+            </div>
+
             <div class="bg-primary-50/50 border border-primary-100 rounded-[2.5rem] p-8 lg:p-10 shadow-sm relative overflow-hidden">
                 <!-- Decorative background elements -->
                 <div class="absolute top-0 right-0 w-64 h-64 bg-primary-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
@@ -195,7 +210,7 @@ const goBack = () => {
                     <div v-for="d in assignedDisciplinesList" :key="d.id_disciplina"
                         @click="toggleSelection(d.id_disciplina)" 
                         class="cursor-pointer relative group">
-                        <div class="bg-white border-2 border-primary-500 rounded-[1.5rem] p-6 flex flex-col items-center gap-4 h-full shadow-md group-hover:-translate-y-1 group-hover:shadow-lg transition-all duration-300">
+                        <div class="bg-white border-2 border-primary-500 rounded-3xl p-6 flex flex-col items-center gap-4 h-full shadow-md group-hover:-translate-y-1 group-hover:shadow-lg transition-all duration-300">
                             <div class="w-16 h-16 bg-primary-600 text-white rounded-[1.25rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
                                 <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8" />
                             </div>
@@ -208,7 +223,7 @@ const goBack = () => {
                             </div>
                         </div>
                     </div>
-                    <div v-if="assignedDisciplinesList.length === 0" class="col-span-full py-12 text-center text-primary-600/60 bg-white rounded-[1.5rem] border-2 border-dashed border-primary-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <div v-if="assignedDisciplinesList.length === 0" class="col-span-full py-12 text-center text-primary-600/60 bg-white rounded-3xl border-2 border-dashed border-primary-200 shadow-sm flex flex-col items-center justify-center gap-3">
                         <svg class="w-8 h-8 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <span class="text-sm font-bold">No hay disciplinas asignadas. Selecciona una de abajo para agregarla.</span>
                     </div>
@@ -230,7 +245,7 @@ const goBack = () => {
                     <div v-for="d in availableDisciplinesList" :key="d.id_disciplina"
                         @click="toggleSelection(d.id_disciplina)" 
                         class="cursor-pointer group relative">
-                        <div class="bg-surface-50 border border-surface-200 rounded-[1.5rem] p-6 flex flex-col items-center gap-4 h-full group-hover:bg-primary-50 group-hover:border-primary-300 group-hover:-translate-y-1 group-hover:shadow-md transition-all duration-300">
+                        <div class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col items-center gap-4 h-full group-hover:bg-primary-50 group-hover:border-primary-300 group-hover:-translate-y-1 group-hover:shadow-md transition-all duration-300">
                             <div class="w-16 h-16 bg-white text-surface-400 border border-surface-200 shadow-sm rounded-[1.25rem] flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white group-hover:border-primary-600 transition-all duration-300 group-hover:scale-110">
                                 <component :is="getIcon(d.nombre_disciplina)" class="w-8 h-8 opacity-80 group-hover:opacity-100" />
                             </div>
@@ -241,13 +256,13 @@ const goBack = () => {
             </div>
 
             <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl px-8 py-5 flex justify-end gap-4 border-t border-surface-200 z-50">
-                <button @click="goBack" class="px-8 py-3.5 bg-white text-surface-700 border border-surface-200 rounded-xl font-bold hover:bg-surface-50 transition-colors">Cancelar</button>
-                <button @click="saveChanges" class="px-10 py-3.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0" :disabled="isSaving">
-                    {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-                </button>
+                <CancelButton @click="goBack" />
+                <ConfirmButton
+                    label="Guardar Cambios"
+                    :loading="isSaving"
+                    @click="saveChanges"
+                />
             </div>
         </section>
     </main>
 </template>
-
-

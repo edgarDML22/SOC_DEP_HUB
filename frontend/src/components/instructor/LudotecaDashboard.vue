@@ -4,6 +4,7 @@ import { useLudotecaOperativaStore } from '@/stores/ludoteca/ludotecaOperativaSt
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import { useAlerts } from '@/composables/useAlerts';
 import BloqueoTurno from '@/components/instructor/BloqueoTurno.vue';
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
 const { showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts();
 
@@ -256,7 +257,7 @@ const formatTime = (timeString) => {
       
       <!-- Cargando -->
       <div v-if="store.loading && !store.isTurnoActivo" class="flex justify-center p-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <LoadingSpinner />
       </div>
 
       <!-- Modales -->

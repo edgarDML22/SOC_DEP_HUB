@@ -309,14 +309,14 @@ const router = createRouter({
               component: () => import('@/views/admin/Disciplines/DisciplinesList.vue'),
             },
             {
+              path: 'categories',
+              name: 'disciplines-categories',
+              component: () => import('@/views/admin/categories/CategoryList.vue'),
+            },
+            {
               path: ':id',
               name: 'disciplines-details',
               component: () => import('@/views/admin/Disciplines/DisciplineDetails.vue'),
-            },
-            {
-              path: 'categories',
-              name: 'disciplines-categories',
-              component: () => import('@/views/admin/Disciplines/CategoryList.vue'),
             },
           ]
         },
@@ -393,7 +393,7 @@ const router = createRouter({
         },
         {
           path: "categories/create",
-          component: () => import("@/views/admin/CreateCategories.vue"),
+          component: () => import("@/views/admin/categories/CreateCategories.vue"),
         },
       ],
     },

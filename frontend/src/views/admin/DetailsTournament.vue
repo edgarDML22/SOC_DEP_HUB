@@ -4,6 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAlerts } from '@/composables/useAlerts'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
+import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -102,16 +105,18 @@ const confirmarTorneo = async () => {
         subtitle="Revisa la información antes de confirmar"
         back-route="/admin/tournaments"
       >
-        <button
+        <ConfirmButton
           v-if="canConfirm"
+          label="Confirmar torneo"
           @click="showConfirmModal = true"
-          class="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
+          class="bg-emerald-600! hover:bg-emerald-700!"
         >
-          <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-          </svg>
-          Confirmar torneo
-        </button>
+          <template #icon>
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </template>
+        </ConfirmButton>
       </AdminPageHeader>
 
       <!-- Error banner -->
@@ -235,74 +240,64 @@ const confirmarTorneo = async () => {
       </div>
 
     </div>
-  </div>
 
-  <!-- Confirm modal -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="showConfirmModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-        @mousedown.self="showConfirmModal = false"
+    <!-- Confirm modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
       >
-        <Transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 scale-95 translate-y-2"
-          enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition duration-150 ease-in"
-          leave-from-class="opacity-100 scale-100 translate-y-0"
-          leave-to-class="opacity-0 scale-95 translate-y-2"
+        <div
+          v-if="showConfirmModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          @mousedown.self="showConfirmModal = false"
         >
-          <div v-if="showConfirmModal" class="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 scale-95 translate-y-2"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 scale-100 translate-y-0"
+            leave-to-class="opacity-0 scale-95 translate-y-2"
+          >
+            <div v-if="showConfirmModal" class="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-            <!-- Accent -->
-            <div class="h-1 bg-linear-to-r from-emerald-500 to-teal-400"></div>
+              <!-- Accent -->
+              <div class="h-1 bg-linear-to-r from-emerald-500 to-teal-400"></div>
 
-            <div class="p-6">
-              <!-- Icon -->
-              <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-100">
-                <svg class="size-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-              </div>
-
-              <h3 class="text-center text-lg font-bold text-slate-900">Confirmar torneo</h3>
-              <p class="mt-2 text-center text-sm text-slate-500">
-                ¿Estás seguro de que deseas confirmar <strong>{{ torneo.nombre_torneo }}</strong>?
-                El estado cambiará a <span class="font-semibold text-blue-600">Programado</span>.
-              </p>
-
-              <div class="mt-6 flex gap-3">
-                <button
-                  @click="showConfirmModal = false"
-                  class="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  @click="confirmarTorneo"
-                  :disabled="confirming"
-                  class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 transition"
-                >
-                  <svg v-if="confirming" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <div class="p-6">
+                <!-- Icon -->
+                <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-100">
+                  <svg class="size-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
-                  {{ confirming ? 'Confirmando...' : 'Sí, confirmar' }}
-                </button>
-              </div>
-            </div>
+                </div>
 
-          </div>
-        </Transition>
-      </div>
-    </Transition>
-  </Teleport>
+                <h3 class="text-center text-lg font-bold text-slate-900">Confirmar torneo</h3>
+                <p class="mt-2 text-center text-sm text-slate-500">
+                  ¿Estás seguro de que deseas confirmar <strong>{{ torneo.nombre_torneo }}</strong>?
+                  El estado cambiará a <span class="font-semibold text-blue-600">Programado</span>.
+                </p>
+
+                <div class="mt-6 flex gap-3">
+                  <CancelButton @click="showConfirmModal = false" class="flex-1" />
+                  <ConfirmButton
+                    label="Sí, confirmar"
+                    :loading="confirming"
+                    @click="confirmarTorneo"
+                    class="flex-1 bg-emerald-600! hover:bg-emerald-700!"
+                  />
+                </div>
+              </div>
+
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+  </div>
 </template>

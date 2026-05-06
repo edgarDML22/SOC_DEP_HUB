@@ -33,6 +33,7 @@ use App\Http\Controllers\DisciplinaController;
 use App\Http\Controllers\CategoriaDisciplinaController;
 use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
+use App\Http\Controllers\CategoriaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -68,10 +69,14 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 // SDH-17: Endpoint para crear reservaciones
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+// SDH 187: Actualizar estatus de la cuenta del socio
+Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
 
-
+//pueba
+//Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
+//Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
@@ -87,6 +92,8 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
+Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
+
 
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
@@ -153,20 +160,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
     Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
-    
+
     // CRUD CATEGORIAS DISCIPLINAS
     Route::get('/v1/disciplinas-categories/all', [CategoriaDisciplinaController::class, 'index']);
     Route::post('/v1/disciplinas-categories/create', [CategoriaDisciplinaController::class, 'store']);
     Route::get('/v1/disciplinas-categories/{id}', [CategoriaDisciplinaController::class, 'show']);
     Route::put('/v1/disciplinas-categories/update/{id}', [CategoriaDisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
+    Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
+
 
     // CRUD ESPACIOS
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
     Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
     Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
-    Route::put('/v1/spaces/update/{id}', [EspacioFisicoController::class, 'update']);
+    //Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 
     // Rutas de utilidad/negocio

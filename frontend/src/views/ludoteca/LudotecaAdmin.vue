@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useAdminLudotecaStore } from "@/stores/ludoteca/adminLudotecaStore";
+import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
 import Card     from "primevue/card";
 import Select   from "primevue/select";
@@ -349,7 +350,7 @@ onMounted(async () => {
             >
               <div v-if="store.loading.stats" class="absolute inset-0 z-50 flex items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-[2.5rem]">
                 <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-surface-100">
-                  <div class="w-12 h-12 border-4 border-surface-100 border-t-surface-900 rounded-full animate-spin"></div>
+                  <LoadingSpinner />
                   <div class="text-center">
                     <p class="text-xs font-black text-surface-900 uppercase tracking-[0.2em] m-0">Sincronizando</p>
                     <p class="text-[10px] font-bold text-surface-400 m-0 mt-1">Obteniendo analíticas frescas...</p>
