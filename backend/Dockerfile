@@ -18,6 +18,30 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure intl
 RUN docker-php-ext-install pdo_pgsql zip intl
 
+# Instalamos las librerías del sistema necesarias para GD y otras extensiones
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libonig-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configuramos GD con soporte de fuentes y colores reales
+RUN docker-php-ext-configure gd \
+    --with-freetype \
+    --with-jpeg
+
+# Instalamos las dependencias de Linux necesarias para las imágenes y luego la extensión GD y BCMath
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd bcmath
+
 # Instalamos y habilitamos el controlador de MongoDB (Para el RF-12 de Telemetría)
 RUN pecl install mongodb && docker-php-ext-enable mongodb
 
