@@ -11,9 +11,18 @@ import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue';
 import SearchInput from '@/components/gerente/ui/SearchInput.vue';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
-import { IconAlertCircle, IconChevronDown } from '@/components/icons';
+import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue';
+import CancelButton from '@/components/gerente/ui/CancelButton.vue';
+import EliminarCategoriaModal from '@/components/admin/categories/EliminarCategoriaModal.vue';
+import { 
+    IconAlertCircle, 
+    IconChevronDown, 
+    IconLayers, 
+    IconEdit, 
+    IconTrash,
+    IconSearch,
+    IconFilter
+} from '@/components/icons';
 
 const { formatText } = useformat();
 const { toastInfo } = useAlerts();
@@ -26,6 +35,8 @@ const filterEstatus = ref(null);
 const showModal = ref(false);
 const isSaving = ref(false);
 const editingCategory = ref(null);
+const showDeleteModal = ref(false);
+const categoryToDelete = ref(null);
 
 const form = ref({
     nombre: '',
@@ -102,21 +113,15 @@ const save = async () => {
     }
 };
 
-const remove = async (cat) => {
-    if (!confirm(`¿Estás seguro de eliminar la categoría "${cat.nombre}"?`)) return;
-    
-    const res = await categoryStore.deleteCategory(cat.id_categoria);
-    if (res.success) {
-        toastInfo('Éxito', 'Categoría eliminada.', 'success');
-    } else {
-        toastInfo('Error', res.error, 'error');
-    }
+const remove = (cat) => {
+    categoryToDelete.value = cat;
+    showDeleteModal.value = true;
 };
 
 const buildMenuItems = (cat) => [
     {
         label: 'Editar',
-        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                </svg>`,
@@ -125,7 +130,7 @@ const buildMenuItems = (cat) => [
     { separator: true },
     {
         label: 'Eliminar',
-        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
                </svg>`,
         action: () => remove(cat),
@@ -164,7 +169,7 @@ const buildMenuItems = (cat) => [
                     <div class="flex flex-col gap-1.5">
                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
                         <div class="relative">
-                            <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                             <select v-model="filterEstatus" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
                                 <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                             </select>
@@ -221,14 +226,12 @@ const buildMenuItems = (cat) => [
                            hover:shadow-md hover:border-slate-300
                            transition-all duration-200 group overflow-hidden flex">
                     
-                    <div class="w-1.5 shrink-0 bg-indigo-500" />
+                    <div class="w-1.5 shrink-0 bg-blue-500" />
 
                     <div class="flex items-center justify-center px-5 py-4 shrink-0">
-                        <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center
+                        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center
                                     shadow-sm group-hover:scale-105 transition-transform duration-200">
-                            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <path d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01" />
-                            </svg>
+                            <IconLayers class="w-7 h-7" />
                         </div>
                     </div>
 
@@ -246,15 +249,21 @@ const buildMenuItems = (cat) => [
                                 </p>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
+                                <!-- Botón Editar (Visible en Desktop) -->
                                 <button @click="openEdit(cat)"
-                                    class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100
-                                           text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600
-                                           transition-colors border border-slate-200 hover:border-blue-200">
-                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                    </svg>
+                                    class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600
+                                           text-xs font-bold text-white hover:bg-blue-700
+                                           transition-colors shadow-sm">
+                                    <IconEdit class="w-3.5 h-3.5" />
                                     Editar
+                                </button>
+                                <!-- Botón Eliminar (Visible en Desktop) -->
+                                <button @click="remove(cat)"
+                                    class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50
+                                           text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white
+                                           transition-all border border-red-100 hover:border-red-600">
+                                    <IconTrash class="w-3.5 h-3.5" />
+                                    Eliminar
                                 </button>
                                 <ActionMenu :items="buildMenuItems(cat)" align="right" />
                             </div>
@@ -299,32 +308,39 @@ const buildMenuItems = (cat) => [
                                     </button>
                                 </div>
 
-                                <div class="p-7 space-y-5 bg-slate-50/30">
+                                <div class="p-7 space-y-6 bg-slate-50/30">
                                     <div class="space-y-1.5">
                                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
                                             Nombre <span class="text-red-400">*</span>
                                         </label>
-                                        <input v-model="form.nombre" placeholder="Ej. Acuático, Combate..."
-                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                                                   text-slate-900 placeholder:text-slate-400
-                                                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                                        <div class="relative">
+                                            <IconLayers class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input v-model="form.nombre" placeholder="Ej. Acuático, Combate..."
+                                                class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
+                                                       text-slate-900 placeholder:text-slate-400
+                                                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"/>
+                                        </div>
                                     </div>
 
                                     <div class="space-y-1.5">
                                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-                                        <select v-model="form.estatus"
-                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                                                   text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
-                                            <option value="ACTIVO">Activo</option>
-                                            <option value="INACTIVO">Inactivo</option>
-                                        </select>
+                                        <div class="relative">
+                                            <IconAlertCircle class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <select v-model="form.estatus"
+                                                class="w-full pl-11 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
+                                                       text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm">
+                                                <option value="ACTIVO">Activo</option>
+                                                <option value="INACTIVO">Inactivo</option>
+                                            </select>
+                                            <IconChevronDown class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        </div>
                                     </div>
 
                                     <div class="space-y-1.5">
                                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Descripción</label>
                                         <textarea v-model="form.descripcion" rows="4" placeholder="Breve descripción de la categoría..."
-                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                                                   text-slate-900 placeholder:text-slate-400 resize-none
+                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
+                                                   text-slate-900 placeholder:text-slate-400 resize-none shadow-sm
                                                    focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                                     </div>
                                 </div>
@@ -342,6 +358,14 @@ const buildMenuItems = (cat) => [
                     </div>
                 </Transition>
             </Teleport>
+
+            <!-- MODAL ELIMINAR -->
+            <EliminarCategoriaModal 
+                :show="showDeleteModal"
+                :category="categoryToDelete"
+                @close="showDeleteModal = false"
+                @deleted="categoryStore.fetchCategories(true)"
+            />
 
         </div>
     </main>
