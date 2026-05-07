@@ -94,6 +94,7 @@ Route::middleware(['check.turno'])->group(function () {
 });
 Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
 
+Route::get('/v1/ludoteca/admin/historial', [AdminLudotecaController::class, 'getHistorial']);
 
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
@@ -252,6 +253,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
         Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
         Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
+        //Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);
     });
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
