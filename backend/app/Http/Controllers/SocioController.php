@@ -51,10 +51,11 @@ class SocioController extends Controller
     // --- MÉTODO SHOW ---
     public function show(Request $request, $id)
     {
-        // Cargamos el socio con su código QR activo
-        $socio = SocioTitular::with('codigoQrActivo')->find($id);
+        // Cargamos el socio con su código QR activo, miembros familiares e invitados
+        $socio = SocioTitular::with(['codigoQrActivo', 'miembrosFamiliares', 'invitados'])->find($id);
 
-        if (!$socio) return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);
+        if (!$socio)
+            return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);
 
         // Adjuntamos el código para el frontend
         $socio->codigo_qr = $socio->codigoQrActivo ? $socio->codigoQrActivo->codigo : null;
@@ -110,23 +111,23 @@ class SocioController extends Controller
             // Lógica de estatus_penalizacion con fechas por servicio
             if ($request->has('estatus_penalizacion')) {
                 $nuevoPenalizacion = $request->input('estatus_penalizacion');
-                $diasLudoteca      = (int) $request->input('dias_penalizacion_ludoteca', 7);
-                $diasReserva       = (int) $request->input('dias_penalizacion_reserva', 7);
-                $ahora             = now('America/Mexico_City');
+                $diasLudoteca = (int) $request->input('dias_penalizacion_ludoteca', 7);
+                $diasReserva = (int) $request->input('dias_penalizacion_reserva', 7);
+                $ahora = now('America/Mexico_City');
 
                 if ($nuevoPenalizacion === 'SIN_PENALIZACION') {
                     $updateData['fecha_fin_penalizacion_ludoteca'] = null;
-                    $updateData['fecha_fin_penalizacion_reserva']  = null;
-                    $updateData['contador_no_shows']               = 0;
+                    $updateData['fecha_fin_penalizacion_reserva'] = null;
+                    $updateData['contador_no_shows'] = 0;
                 } elseif ($nuevoPenalizacion === 'PENALIZADO_LUDOTECA') {
                     $updateData['fecha_fin_penalizacion_ludoteca'] = $ahora->copy()->addDays($diasLudoteca)->startOfDay();
-                    $updateData['fecha_fin_penalizacion_reserva']  = null;
+                    $updateData['fecha_fin_penalizacion_reserva'] = null;
                 } elseif ($nuevoPenalizacion === 'PENALIZADO_RESERVA') {
-                    $updateData['fecha_fin_penalizacion_reserva']  = $ahora->copy()->addDays($diasReserva)->startOfDay();
+                    $updateData['fecha_fin_penalizacion_reserva'] = $ahora->copy()->addDays($diasReserva)->startOfDay();
                     $updateData['fecha_fin_penalizacion_ludoteca'] = null;
                 } elseif ($nuevoPenalizacion === 'PENALIZADO_AMBOS') {
                     $updateData['fecha_fin_penalizacion_ludoteca'] = $ahora->copy()->addDays($diasLudoteca)->startOfDay();
-                    $updateData['fecha_fin_penalizacion_reserva']  = $ahora->copy()->addDays($diasReserva)->startOfDay();
+                    $updateData['fecha_fin_penalizacion_reserva'] = $ahora->copy()->addDays($diasReserva)->startOfDay();
                 }
             }
 
@@ -140,14 +141,14 @@ class SocioController extends Controller
                 if (in_array($nuevoPenalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_LUDOTECA', 'PENALIZADO_AMBOS'])) {
                     $socio->notify(new SancionAsignadaNotification(
                         estatus_penalizacion: $nuevoPenalizacion,
-                        fecha_fin_reserva:    $socio->fecha_fin_penalizacion_reserva?->toDateString(),
-                        fecha_fin_ludoteca:   $socio->fecha_fin_penalizacion_ludoteca?->toDateString(),
-                        nombre_socio:         $socio->nombre_completo,
+                        fecha_fin_reserva: $socio->fecha_fin_penalizacion_reserva?->toDateString(),
+                        fecha_fin_ludoteca: $socio->fecha_fin_penalizacion_ludoteca?->toDateString(),
+                        nombre_socio: $socio->nombre_completo,
                     ));
                 } elseif ($nuevoPenalizacion === 'SIN_PENALIZACION') {
                     $socio->notify(new SancionLevantadaNotification(
                         nombre_socio: $socio->nombre_completo,
-                        motivo:       'manual',
+                        motivo: 'manual',
                     ));
                 }
             }
@@ -241,5 +242,56 @@ class SocioController extends Controller
             'success' => true,
             'data' => $resultados
         ], 200);
+    }
+
+
+    public function updateEstatusController(Request $request, $id)
+    {
+        $socio = SocioTitular::find($id);
+        if (!$socio) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Socio no encontrado'
+            ], 404);
+        }
+        $response = $this->validateStauts($request, $socio);
+        if ($response == false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Estatus no valido'
+            ], 403);
+        }
+        SocioTitular::where('id_socio', $id)->update([
+            'estatus_cuenta' => $request->nuevo_estatus
+        ]);
+        return response()->json([
+            'nuevo_estatus' => $request->nuevo_estatus,
+            'success' => true,
+            'message' => 'Estatus actualizado correctamente',
+
+        ], 200);
+
+
+    }
+
+    public function validateStauts($request, $socio)
+    {
+        if ($request->nuevo_estatus != 'SUSPENDIDO' && $request->nuevo_estatus != 'AL_CORRIENTE') {
+            return false;
+        }
+        if ($request->nuevo_estatus == 'SUSPENDIDO') {
+            if ($socio->estatus_cuenta == 'AL_CORRIENTE' || $socio->estatus_cuenta == 'MOROSO') {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            if ($socio->estatus_cuenta == 'SUSPENDIDO') {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
     }
 }

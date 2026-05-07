@@ -8,6 +8,7 @@ class CategoriaDisciplina extends Model
 {
     protected $table = 'categorias';
     protected $primaryKey = 'id_categoria';
+    public $timestamps = false;
     protected $fillable = ['nombre', 'descripcion', 'estatus'];
 
     public function disciplinas()

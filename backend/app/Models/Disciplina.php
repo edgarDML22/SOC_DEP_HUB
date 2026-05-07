@@ -12,7 +12,6 @@ class Disciplina extends Model
     //
     protected $fillable = [
         'nombre_disciplina',
-        'descripcion',
         'estatus',
     ];
 

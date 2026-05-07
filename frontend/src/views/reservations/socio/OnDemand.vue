@@ -115,7 +115,7 @@ const formatearHora = (horaString) => {
 
 const IconoDeporte = (disciplina) => {
     const nombreArchivo = obtenerIconoName(disciplina);
-    return defineAsyncComponent(() => import(`@/components/icons/sports/${nombreArchivo}.vue`));
+    return defineAsyncComponent(() => import(`@/components/icons/disciplines/${nombreArchivo}.vue`));
 };
 
 const horariosGrupados = computed(() => {
@@ -221,7 +221,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
         <!-- STICKY STATUS BAR (Step 3 móvil) -->
         <Transition name="slide-down">
             <div v-if="pasoActual === '3' && !bottomStatusVisible && (errorValidacion || esHorarioValidoParaPreview)"
-                class="fixed top-0 left-0 right-0 z-[100] md:hidden px-4 pt-2 pb-3 shadow-lg border-b"
+                class="fixed top-0 left-0 right-0 z-100 md:hidden px-4 pt-2 pb-3 shadow-lg border-b"
                 :class="errorValidacion ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'">
                 <div v-if="errorValidacion" class="flex items-center gap-2 text-red-600 font-semibold text-xs">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20"
@@ -246,7 +246,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
 
         <!-- HERO BANNER DRAFT (NUEVO DISEÑO) -->
         <div v-if="mostrarModalDraft"
-            class="w-full max-w-5xl mb-6 bg-gradient-to-br from-primary-800 to-primary-600 text-white rounded-[2.5rem] p-6 md:p-10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 border border-primary-500/30 overflow-hidden transition-all animate-fade-in relative z-10">
+            class="w-full max-w-5xl mb-6 bg-linear-to-br from-primary-800 to-primary-600 text-white rounded-[2.5rem] p-6 md:p-10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 border border-primary-500/30 overflow-hidden transition-all animate-fade-in relative z-10">
             <div class="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none">
             </div>
 
@@ -369,7 +369,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                     class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 w-full">
                     <button v-for="disciplina in disciplinasUnicas" :key="disciplina"
                         @click="seleccionarDisciplina(disciplina)"
-                        class="bg-primary-600 hover:bg-primary-700 flex flex-col items-center justify-center p-6 md:p-8 rounded-[2rem] w-full aspect-square cursor-pointer transition-all hover:shadow-[0_12px_25px_-6px_rgba(37,99,235,0.4)] hover:-translate-y-1.5 group active:scale-95 focus:outline-none border-none">
+                        class="bg-primary-600 hover:bg-primary-700 flex flex-col items-center justify-center p-6 md:p-8 rounded-4xl w-full aspect-square cursor-pointer transition-all hover:shadow-[0_12px_25px_-6px_rgba(37,99,235,0.4)] hover:-translate-y-1.5 group active:scale-95 focus:outline-none border-none">
                         <div
                             class="w-16 h-16 md:w-20 md:h-20 text-white flex justify-center items-center transition-transform group-hover:scale-110 mb-4">
                             <component :is="IconoDeporte(disciplina)" class="w-full h-full fill-current" />
@@ -386,7 +386,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                         <button v-for="cancha in reservationStore.espaciosPorDisciplina" :key="cancha.id_espacio"
                             @click="reservationStore.seleccionarEspacio(cancha.id_espacio)"
                             :disabled="cancha.estatus === 'Bloqueado por Mantenimiento' || cancha.estatus === 'Lleno/No Disponible'"
-                            class="flex items-center justify-between w-full p-5 lg:p-7 rounded-[2rem] border-2 transition-all text-left bg-white font-sans group active:scale-95 focus:outline-none"
+                            class="flex items-center justify-between w-full p-5 lg:p-7 rounded-4xl border-2 transition-all text-left bg-white font-sans group active:scale-95 focus:outline-none"
                             :class="(cancha.estatus === 'Disponible' || cancha.estatus === 'DISPONIBLE') ? 'border-surface-200 hover:border-primary-500 hover:shadow-xl hover:-translate-y-1 cursor-pointer' : 'border-surface-200 opacity-60 bg-surface-50 cursor-not-allowed hidden-hover'">
                             <div class="flex items-center gap-5 min-w-0">
                                 <div class="shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm border border-surface-100"
@@ -424,7 +424,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                 <div v-if="pasoActual === '3'" class="flex flex-col w-full">
                     <!-- Selector de duración -->
                     <div
-                        class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-5 bg-surface-50/80 border border-surface-200 p-5 rounded-[2rem] shadow-sm">
+                        class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-5 bg-surface-50/80 border border-surface-200 p-5 rounded-4xl shadow-sm">
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-10 h-10 bg-white rounded-xl shadow-sm border border-surface-100 flex items-center justify-center text-primary-600">
@@ -528,7 +528,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
 
                     <!-- Status Flotante -->
                     <div ref="bottomStatusRef"
-                        class="mt-12 p-6 md:p-8 bg-surface-50 border border-surface-200 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                        class="mt-12 p-6 md:p-8 bg-surface-50 border border-surface-200 rounded-4xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
                         <div class="flex-1">
                             <div v-if="errorValidacion"
                                 class="flex items-center gap-3 text-red-600 font-semibold text-sm bg-red-50 p-4 rounded-xl border border-red-200">
@@ -567,7 +567,7 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                                 Reservando...
                             </template>
                             <template v-else>
-                                Confirmar Horario <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0"
+                                Confirmar Horario <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
                                     stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M5 12h14" />

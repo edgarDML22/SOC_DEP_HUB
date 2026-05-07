@@ -7,7 +7,7 @@
 export function useformat() {
     const formatText = (text) => {
         if (text === null || text === undefined) return "N/A";
-        
+
         // Handle Booleans
         if (typeof text === 'boolean') {
             return text ? 'Activo' : 'Inactivo';
@@ -60,5 +60,30 @@ export function useformat() {
         });
     };
 
-    return { formatText, formatDateTime, formatStatus, formatDate, formatTime, formatCurrency };
+    const dateFormat = (fecha) => {
+        if (!fecha) return "N/A";
+        const fechaObj = new Date(fecha);
+        let dia = fechaObj.getDate();
+        let mes = fechaObj.getMonth() + 1;
+        const anio = fechaObj.getFullYear();
+        if (dia < 10) dia = '0' + String(dia);
+        if (mes < 10) mes = '0' + String(mes);
+        return `${dia}/${mes}/${anio}`;
+    }
+
+    const formatCategoryEnum = (val) => {
+        if (!val) return '—';
+        const map = {
+            'MENTE_CUERPO': 'Mente y Cuerpo',
+            'ACUATICO': 'Deportes Acuáticos',
+            'DEPORTES_EQUIPO': 'Deportes de Equipo',
+            'DEPORTES_RAQUETA': 'Deportes de Raqueta',
+            'ARTES_MARCIALES': 'Artes Marciales',
+            'GIMNASIA': 'Gimnasia',
+            'ACONDICIONAMIENTO_FISICO': 'Acondicionamiento Físico',
+        };
+        return map[val] || val;
+    };
+
+    return { formatText, formatDateTime, formatStatus, formatDate, formatTime, formatCurrency, dateFormat, formatCategoryEnum };
 }

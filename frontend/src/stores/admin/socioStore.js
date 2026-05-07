@@ -4,9 +4,14 @@ import api from "@/services/api";
 
 export const useSocioStore = defineStore("socioAdmin", () => {
     const socios = ref([]);
+    const currentSocio = ref(null);
     const isLoading = ref(false);
     const error = ref(null);
     const lastFetch = ref(null);
+
+    const setCurrentSocio = (socio) => {
+        currentSocio.value = socio;
+    };
 
     // GETTERS
     const getSocioById = (id) => {
@@ -33,16 +38,21 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         }
     };
 
-    const fetchSocioDetails = async (id) => {
+    const fetchSocioDetails = async (id, force = false, silent = false) => {
         // Intentar encontrar en la lista
         const socioExistente = getSocioById(id);
 
         // Si ya tiene miembros_familiares (indicador de que ya se cargaron los detalles), no pedimos de nuevo
-        if (socioExistente && socioExistente.miembros_familiares) {
+        if (!force && socioExistente && socioExistente.miembros_familiares) {
+            if (currentSocio.value && String(currentSocio.value.id_socio) === String(id)) {
+                currentSocio.value = socioExistente;
+            }
             return socioExistente;
         }
 
-        isLoading.value = true;
+        const isSilentMode = silent || (currentSocio.value && String(currentSocio.value.id_socio) === String(id));
+        if (!isSilentMode) isLoading.value = true;
+
         try {
             const response = await api.get(`/socios/${id}`);
             if (response.data && response.data.success) {
@@ -54,13 +64,17 @@ export const useSocioStore = defineStore("socioAdmin", () => {
                 } else {
                     socios.value.push(fullData);
                 }
+                
+                if (currentSocio.value && String(currentSocio.value.id_socio) === String(id)) {
+                    currentSocio.value = { ...currentSocio.value, ...fullData };
+                }
                 return fullData;
             }
         } catch (err) {
             console.error("Error fetching socio details:", err);
             throw err;
         } finally {
-            isLoading.value = false;
+            if (!isSilentMode) isLoading.value = false;
         }
     };
 
@@ -116,15 +130,41 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         }
     };
 
+    const updateEstatusCuenta = async (id, nuevoEstatus) => {
+        try {
+            const response = await api.patch(`/socios/${id}/estatus-cuenta`, {
+                nuevo_estatus: nuevoEstatus,
+            });
+            if (response.data && response.data.success) {
+                // Actualizar localmente
+                const index = socios.value.findIndex((s) => String(s.id_socio) === String(id));
+                if (index !== -1) {
+                    socios.value[index] = {
+                        ...socios.value[index],
+                        estatus_cuenta: response.data.nuevo_estatus,
+                    };
+                }
+                return { success: true, data: response.data };
+            }
+            return { success: false, error: 'Respuesta inesperada del servidor.' };
+        } catch (err) {
+            console.error('Error updating estatus cuenta:', err);
+            return { success: false, error: err.response?.data?.message || 'Error al actualizar el estatus.' };
+        }
+    };
+
     return {
         socios,
+        currentSocio,
         isLoading,
         error,
         fetchSocios,
         getSocioById,
+        setCurrentSocio,
         updateSocio,
         penalizeSocio,
         updatePenalizacion,
+        updateEstatusCuenta,
         fetchSocioDetails
     };
 });

@@ -319,11 +319,6 @@ const router = createRouter({
               name: 'spaces-details',
               component: () => import('@/views/admin/spaces/SpaceDetails.vue'),
             },
-            {
-              path: ':id/disciplines',
-              name: 'spaces-disciplines',
-              component: () => import('@/views/admin/spaces/SpaceDisciplines.vue'),
-            },
           ]
         },
         {
@@ -376,16 +371,6 @@ const router = createRouter({
               path: ':id',
               name: 'instructors-details',
               component: () => import('@/views/admin/instructors/InstructorsDetails.vue'),
-            },
-            {
-              path: ':id/disciplines',
-              name: 'instructor-disciplines',
-              component: () => import('@/views/admin/instructors/InstructorDisciplines.vue'),
-            },
-            {
-              path: ':id/status',
-              name: 'instructor-status',
-              component: () => import('@/views/admin/instructors/InstructorStatus.vue'),
             },
           ]
         },
@@ -443,7 +428,7 @@ const router = createRouter({
         },
         {
           path: "categories/create",
-          component: () => import("@/views/admin/CreateCategories.vue"),
+          component: () => import("@/views/admin/categories/CreateCategories.vue"),
         },
       ],
     },
