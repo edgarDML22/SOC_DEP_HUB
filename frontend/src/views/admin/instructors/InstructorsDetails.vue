@@ -181,10 +181,6 @@ const goBack = () => {
                                 </div>
                                 <div class="flex flex-col items-end gap-2">
                                     <BadgeStatus :status="instructor.estatus" size="md" />
-                                    <span
-                                        class="text-xs font-bold text-surface-400 uppercase tracking-widest bg-surface-50 px-3 py-1 rounded-lg border border-surface-100">
-                                        ID: #{{ instructor.id_instructor }}
-                                    </span>
                                 </div>
                             </div>
 
