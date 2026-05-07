@@ -12,48 +12,7 @@ import {
 } from '@/components/gerente/ui'
 
 import CambiarEstatusModal from '@/components/admin/disciplines/CambiarEstatusModal.vue'
-
-import { 
-  IconGrid, IconAlertCircle, IconChevronDown, IconBaby,
-  IconBasquetbol, IconFrontenis, IconFutbol, IconPadel, IconSquash, 
-  IconTenis, IconVoleibol, IconDance, IconYoga, IconGym, 
-  IconMartialArts, IconSpinning, IconGymnastics, IconSwimming, 
-  IconDefault, IconAerobic, IconBarre, IconHigieneColumna, 
-  IconJazz, IconMeditation, IconPilates, IconZumba
-} from '@/components/icons'
-
-const getDisciplineIcon = (name) => {
-  const n = (name || '').toLowerCase()
-  if (n.includes('basquetbol') || n.includes('baloncesto') || n.includes('basketball')) return IconBasquetbol
-  if (n.includes('frontenis')) return IconFrontenis
-  if (n.includes('futbol') || n.includes('fútbol') || n.includes('soccer')) return IconFutbol
-  if (n.includes('padel') || n.includes('pádel')) return IconPadel
-  if (n.includes('squash')) return IconSquash
-  if (n.includes('tenis') || n.includes('tennis')) return IconTenis
-  if (n.includes('voleibol') || n.includes('volleyball')) return IconVoleibol
-  
-  // Nuevas disciplinas individuales
-  if (n.includes('aerobics')) return IconAerobic
-  if (n.includes('jazz')) return IconJazz
-  if (n.includes('zumba')) return IconZumba
-  if (n.includes('baile')) return IconDance
-  
-  if (n.includes('meditación') || n.includes('meditacion')) return IconMeditation
-  if (n.includes('pilates')) return IconPilates
-  if (n.includes('barre')) return IconBarre
-  if (n.includes('yoga')) return IconYoga
-  
-  if (n.includes('columna')) return IconHigieneColumna
-  if (n.includes('acondicionamiento') || n.includes('entrenamiento')) return IconAerobic
-  if (n.includes('gym')) return IconGym
-  if (n.includes('tae kwon do') || n.includes('artes marciales')) return IconMartialArts
-  if (n.includes('spinning') || n.includes('bici')) return IconSpinning
-  if (n.includes('gimnasia')) return IconGymnastics
-  if (n.includes('natación') || n.includes('natacion') || n.includes('acuatico') || n.includes('acuático')) return IconSwimming
-  if (n.includes('ludoteca')) return IconBaby
-
-  return IconDefault
-}
+import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
 
 const router = useRouter()
 const disciplinesStore = useDisciplinesStore()
@@ -128,28 +87,6 @@ const categoryPalette = (catName = '') => {
   return CATEGORY_COLORS[idx]
 }
 
-// ── DYNAMIC ICONS ────────────────────────────────────────────────
-const getIcon = (name) => {
-  if (!name) return IconDefault;
-  const n = name.toLowerCase();
-  if (n.includes('futbol')) return IconFutbol;
-  if (n.includes('basquetbol') || n.includes('baloncesto')) return IconBasquetbol;
-  if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis;
-  if (n.includes('voleibol')) return IconVoleibol;
-  if (n.includes('squash')) return IconSquash;
-  if (n.includes('frontenis')) return IconFrontenis;
-  if (n.includes('padel')) return IconPadel;
-  if (n.includes('natacion') || n.includes('acuatic') || n.includes('alberca')) return IconNatacion;
-  if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion')) return IconYoga;
-  if (n.includes('pesas') || n.includes('acondicionamiento') || n.includes('crossfit') || n.includes('funcional') || n.includes('gym')) return IconPesas;
-  if (n.includes('marciales') || n.includes('karate') || n.includes('taekwondo') || n.includes('box')) return IconArtesMarciales;
-  if (n.includes('gimnasia')) return IconGimnasia;
-  if (n.includes('baile') || n.includes('zumba') || n.includes('aerobics') || n.includes('jazz') || n.includes('barre')) return IconBaile;
-  if (n.includes('spinning')) return IconSpinning;
-  if (n.includes('columna') || n.includes('higiene')) return IconColumna;
-  return IconDefault;
-};
-
 // ── MENU ITEMS ─────────────────────────────────────────────────
 const buildMenuItems = (discipline) => [
   {
@@ -158,7 +95,14 @@ const buildMenuItems = (discipline) => [
                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
              </svg>`,
-    action: () => router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } }),
+    action: () => {
+      if (typeof disciplinesStore.setCurrentDiscipline === 'function') {
+        disciplinesStore.setCurrentDiscipline(discipline);
+      } else {
+        disciplinesStore.currentDiscipline = discipline;
+      }
+      router.push({ name: 'disciplines-details', params: { id: discipline.id_disciplina } });
+    },
   },
   {
     label: 'Cambiar estatus',
@@ -351,7 +295,7 @@ onMounted(() => {
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm
                      group-hover:scale-105 transition-transform duration-200"
               :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
-              <component :is="getDisciplineIcon(discipline.nombre_disciplina)" class="w-7 h-7 fill-current" />
+              <DisciplineIcon :name="discipline.nombre_disciplina" class="w-7 h-7" />
             </div>
           </div>
 

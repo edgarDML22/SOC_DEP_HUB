@@ -4,9 +4,14 @@ import api from "@/services/api";
 
 export const useInstructorStore = defineStore("instructorAdmin", () => {
     const instructors = ref([]);
+    const currentInstructor = ref(null);
     const disciplinesCatalog = ref([]);
     const isLoading = ref(false);
     const error = ref(null);
+
+    const setCurrentInstructor = (instructor) => {
+        currentInstructor.value = instructor;
+    };
 
     // GETTERS
     const getInstructorById = (id) => {
@@ -42,10 +47,15 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
 
         // Si ya lo tenemos y tiene disciplinas (indicador de que es el objeto completo), no pedimos de nuevo
         if (!force && existing && Array.isArray(existing.disciplinas)) {
+            if (currentInstructor.value && String(currentInstructor.value.id_instructor) === String(id)) {
+                currentInstructor.value = existing;
+            }
             return existing;
         }
 
-        isLoading.value = true;
+        const isSilent = currentInstructor.value && String(currentInstructor.value.id_instructor) === String(id);
+        if (!isSilent) isLoading.value = true;
+
         try {
             const response = await api.get(`/instructors/${id}`);
             if (response.data && response.data.success) {
@@ -58,6 +68,10 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
                 } else {
                     instructors.value.push(fullData);
                 }
+                
+                if (currentInstructor.value && String(currentInstructor.value.id_instructor) === String(id)) {
+                    currentInstructor.value = { ...currentInstructor.value, ...fullData };
+                }
                 return fullData;
             }
         } catch (err) {
@@ -65,7 +79,7 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
             error.value = "Error al cargar los detalles del instructor.";
             throw err;
         } finally {
-            isLoading.value = false;
+            if (!isSilent) isLoading.value = false;
         }
     };
 
@@ -171,10 +185,12 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
 
     return {
         instructors,
+        currentInstructor,
         isLoading,
         error,
         fetchInstructors,
         fetchInstructorDetails,
+        setCurrentInstructor,
         updateInstructor,
         deleteInstructor,
         getInstructorById,

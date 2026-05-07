@@ -36,7 +36,22 @@ const recoverOriginals = ref(false);
 watch(() => props.show, async (newVal) => {
     if (newVal && props.instructorId) {
         resetState();
-        await loadImpactData();
+        if (instructorStore.currentInstructor && String(instructorStore.currentInstructor.id_instructor) === String(props.instructorId)) {
+            instructor.value = instructorStore.currentInstructor;
+            selectedStatus.value = instructor.value.estatus;
+        } else {
+            isLoading.value = true;
+            try {
+                const data = await instructorStore.fetchInstructorDetails(props.instructorId);
+                instructor.value = data;
+                selectedStatus.value = data.estatus;
+            } catch (error) {
+                toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el instructor', life: 4000 });
+                emit('close');
+            } finally {
+                isLoading.value = false;
+            }
+        }
     }
 });
 
@@ -50,46 +65,42 @@ const resetState = () => {
     activities.value = [];
 };
 
-const loadImpactData = async () => {
-    isLoading.value = true;
-    try {
-        const data = await instructorStore.fetchStatusImpact(props.instructorId);
-        if (data.success) {
-            instructor.value = data.instructor;
-            activities.value = data.actividades;
-            selectedStatus.value = instructor.value.estatus;
-
-            reassignments.value = activities.value.map(a => ({
-                id_actividad: a.id_actividad_plantilla,
-                nombre: a.disciplina?.nombre_disciplina || 'Actividad',
-                horario: `${a.dia_semana} ${a.hora_inicio} - ${a.hora_fin}`,
-                action: 'reasignar',
-                substituteId: null
-            }));
-        }
-    } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el impacto del estatus', life: 4000 });
-        emit('close');
-    } finally {
-        isLoading.value = false;
-    }
-};
-
 const nextStep = async () => {
     if (currentStep.value === 1) {
         if (!selectedStatus.value) return;
-        if (selectedStatus.value === instructor.value.estatus) {
+        if (selectedStatus.value === instructor.value?.estatus) {
             toast.add({ severity: 'info', summary: 'Sin cambios', detail: 'El estatus seleccionado es el mismo actual', life: 3000 });
             return;
         }
 
-        if (selectedStatus.value === 'ACTIVO' && instructor.value.estatus === 'BAJA_TEMPORAL') {
+        if (selectedStatus.value === 'ACTIVO' && instructor.value?.estatus === 'BAJA_TEMPORAL') {
             currentStep.value = 3;
+            return;
+        }
+
+        // Cargar impacto sólo cuando se decide avanzar
+        isLoading.value = true;
+        try {
+            const data = await instructorStore.fetchStatusImpact(props.instructorId);
+            if (data.success) {
+                activities.value = data.actividades;
+                reassignments.value = activities.value.map(a => ({
+                    id_actividad: a.id_actividad_plantilla,
+                    nombre: a.disciplina?.nombre_disciplina || 'Actividad',
+                    horario: `${a.dia_semana} ${a.hora_inicio} - ${a.hora_fin}`,
+                    action: 'reasignar',
+                    substituteId: null
+                }));
+            }
+        } catch (error) {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el impacto', life: 4000 });
+            isLoading.value = false;
             return;
         }
 
         if (activities.value.length === 0) {
             currentStep.value = 3;
+            isLoading.value = false;
         } else {
             currentStep.value = 2;
             await loadAllSubstitutes();

@@ -6,7 +6,7 @@ import api from '@/services/api'
 import { useInstructorStore } from '@/stores/admin/instructorStore'
 import { useAlerts } from '@/composables/useAlerts'
 
-import Select from 'primevue/select'
+
 import DatePicker from 'primevue/datepicker'
 
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
@@ -18,16 +18,8 @@ import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { IconAlertCircle, IconTarget, IconChevronDown } from '@/components/icons'
 import InstructorStatusModal from './InstructorStatusModal.vue'
-
-// Iconos de deportes para el selector de disciplinas
-import IconFutbol     from '@/components/icons/disciplines/IconFutbol.vue'
-import IconBasquetbol from '@/components/icons/disciplines/IconBasquetbol.vue'
-import IconTenis      from '@/components/icons/disciplines/IconTenis.vue'
-import IconVoleibol   from '@/components/icons/disciplines/IconVoleibol.vue'
-import IconSquash     from '@/components/icons/disciplines/IconSquash.vue'
-import IconFrontenis  from '@/components/icons/disciplines/IconFrontenis.vue'
-import IconPadel      from '@/components/icons/disciplines/IconPadel.vue'
-import IconDefault    from '@/components/icons/disciplines/IconDefault.vue'
+import ManageDisciplinesModal from '@/views/admin/Disciplines/ManageDisciplinesModal.vue'
+import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
 
 const router = useRouter()
 const instructorStore = useInstructorStore()
@@ -45,18 +37,6 @@ const fetchDisciplinas = async () => {
   } catch (e) {
     console.error('Error cargando disciplinas:', e)
   }
-}
-
-const getIcon = (name = '') => {
-  const n = name.toLowerCase()
-  if (n.includes('futbol')) return IconFutbol
-  if (n.includes('basquet')) return IconBasquetbol
-  if (n.includes('tenis') && !n.includes('padel') && !n.includes('squash')) return IconTenis
-  if (n.includes('voleibol')) return IconVoleibol
-  if (n.includes('squash')) return IconSquash
-  if (n.includes('frontenis')) return IconFrontenis
-  if (n.includes('padel')) return IconPadel
-  return IconDefault
 }
 
 // ── FILTROS ────────────────────────────────────────────────────
@@ -88,7 +68,8 @@ const filteredInstructors = computed(() => {
   if (filterDisciplina.value)
     r = r.filter(i => i.disciplinas?.some(d => d.id_disciplina == filterDisciplina.value))
 
-  return r
+  // Ordenar alfabéticamente por nombre
+  return [...r].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
 })
 
 const hasActiveFilters = computed(() =>
@@ -124,7 +105,14 @@ const buildMenuItems = (instructor) => [
              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
            </svg>`,
-    action: () => router.push(`/admin/instructors/${instructor.id_instructor}`),
+    action: () => {
+      if (typeof instructorStore.setCurrentInstructor === 'function') {
+        instructorStore.setCurrentInstructor(instructor);
+      } else {
+        instructorStore.currentInstructor = instructor;
+      }
+      router.push(`/admin/instructors/${instructor.id_instructor}`);
+    },
   },
   {
     label: 'Gestionar disciplinas',
@@ -136,7 +124,7 @@ const buildMenuItems = (instructor) => [
              <polyline points="3 12 4 13 6 11"/>
              <polyline points="3 18 4 19 6 17"/>
            </svg>`,
-    action: () => router.push(`/admin/instructors/${instructor.id_instructor}/disciplines`),
+    action: () => openDisciplinesModal(instructor),
   },
   {
     label: 'Cambiar estatus',
@@ -152,7 +140,20 @@ const buildMenuItems = (instructor) => [
 const showStatusModal = ref(false)
 const statusModalInstructorId = ref(null)
 
+const showDisciplinesModal = ref(false)
+const selectedInstructor = ref(null)
+
+const openDisciplinesModal = (instructor) => {
+  selectedInstructor.value = instructor
+  showDisciplinesModal.value = true
+}
+
 const openStatusModal = (instructor) => {
+  if (typeof instructorStore.setCurrentInstructor === 'function') {
+    instructorStore.setCurrentInstructor(instructor);
+  } else {
+    instructorStore.currentInstructor = instructor;
+  }
   statusModalInstructorId.value = instructor.id_instructor
   showStatusModal.value = true
 }
@@ -501,32 +502,37 @@ onMounted(async () => {
 
                 <!-- Nombre -->
                 <div class="space-y-1.5">
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">
-                    Nombre Completo <span class="text-red-500">*</span>
+                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                    Nombre Completo <span class="text-red-400">*</span>
                   </label>
                   <input v-model="newInstructor.nombre_completo" placeholder="Ej. Juan Pérez García"
-                    class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold
+                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
                            text-surface-900 placeholder:text-surface-400
-                           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all" />
+                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                 </div>
 
                 <!-- Teléfono + Estatus -->
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">
-                      Teléfono <span class="text-red-500">*</span>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                      Teléfono <span class="text-red-400">*</span>
                     </label>
                     <input v-model="newInstructor.telefono" placeholder="Ej. 5512345678"
-                      class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold
+                      class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
                              text-surface-900 placeholder:text-surface-400
-                             focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all" />
+                             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                   </div>
                   <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">
-                      Estatus <span class="text-red-500">*</span>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                      Estatus <span class="text-red-400">*</span>
                     </label>
-                    <Select v-model="newInstructor.estatus" :options="OPT_ESTATUS_FORM" option-label="label"
-                      option-value="value" class="w-full" />
+                    <div class="relative">
+                      <select v-model="newInstructor.estatus"
+                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-xs">
+                        <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
 
@@ -537,14 +543,14 @@ onMounted(async () => {
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-1.5">
                     <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">Fecha de
+                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha de
                       Nacimiento</label>
                     <DatePicker v-model="newInstructor.fecha_nacimiento" dateFormat="yy-mm-dd" showIcon
                       iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
                   </div>
                   <div class="space-y-1.5">
                     <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">Fecha de
+                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha de
                       Afiliación</label>
                     <DatePicker v-model="newInstructor.fecha_afiliacion" dateFormat="yy-mm-dd" showIcon
                       iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
@@ -555,14 +561,14 @@ onMounted(async () => {
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-1.5">
                     <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">Hora
+                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Hora
                       Entrada</label>
                     <DatePicker v-model="newInstructor.hora_entrada" timeOnly hourFormat="24" placeholder="00:00"
                       class="w-full" :manualInput="false" showOnFocus fluid />
                   </div>
                   <div class="space-y-1.5">
                     <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-500 px-1 mb-1">Hora
+                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Hora
                       Salida</label>
                     <DatePicker v-model="newInstructor.hora_salida" timeOnly hourFormat="24" placeholder="00:00"
                       class="w-full" :manualInput="false" showOnFocus fluid />
@@ -571,7 +577,7 @@ onMounted(async () => {
 
                 <!-- Selector de disciplinas — estilo premium -->
                 <div class="space-y-2 mt-4">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                     Disciplinas que Imparte
                   </label>
                   <div v-if="disciplinasList.length === 0"
@@ -580,30 +586,27 @@ onMounted(async () => {
                   </div>
                   <div v-else
                     class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-1 pr-2 custom-scrollbar">
-                    <button v-for="d in disciplinasList" :key="d.id_disciplina" type="button"
-                      @click="toggleDisciplina(d.id_disciplina)"
-                      class="flex items-center gap-3 px-4 py-3 rounded-[1.25rem] border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
-                      :class="newInstructor.disciplinas.includes(d.id_disciplina)
-                        ? 'bg-primary-50 text-primary-700 border-primary-500 ring-4 ring-primary-50 hover:bg-primary-100'
-                        : 'bg-white text-surface-400 border-surface-200 hover:border-primary-300 hover:text-primary-600 hover:bg-surface-50 hover:shadow-md hover:-translate-y-0.5'">
-                      <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                      <button v-for="d in disciplinasList" :key="d.id_disciplina" type="button"
+                        @click="toggleDisciplina(d.id_disciplina)"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
                         :class="newInstructor.disciplinas.includes(d.id_disciplina)
-                          ? 'bg-primary-600 text-white shadow-inner'
-                          : 'bg-surface-100 text-surface-400 group-hover:bg-primary-100 group-hover:text-primary-600'">
-                        <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
-                      </div>
-                      <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-surface-50 text-surface-600 border-surface-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md'">
+                        <div class="w-8 h-8 flex items-center justify-center shrink-0 transition-colors">
+                          <DisciplineIcon :name="d.nombre_disciplina" class="w-6 h-6 shrink-0" />
+                        </div>
+                        <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
 
-                      <!-- Icono de Check Dinámico -->
-                      <div
-                        class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
-                        :class="newInstructor.disciplinas.includes(d.id_disciplina) ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-primary-300'">
-                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
-                          stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                    </button>
+                        <!-- Icono de Check Dinámico -->
+                        <div
+                          class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
+                          :class="newInstructor.disciplinas.includes(d.id_disciplina) ? 'border-white text-white' : 'border-surface-300 bg-surface-50 text-transparent group-hover:border-blue-400 group-hover:text-blue-300'">
+                          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                      </button>
                   </div>
                 </div>
 
@@ -626,6 +629,15 @@ onMounted(async () => {
       :instructor-id="statusModalInstructorId"
       @close="showStatusModal = false"
       @updated="onStatusUpdated"
+    />
+
+    <!-- MODAL: GESTIONAR DISCIPLINAS -->
+    <ManageDisciplinesModal
+      :show="showDisciplinesModal"
+      type="instructor"
+      :item="selectedInstructor"
+      @close="showDisciplinesModal = false"
+      @saved="fetchInstructors(true)"
     />
 
   </main>

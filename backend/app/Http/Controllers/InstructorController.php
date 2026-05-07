@@ -477,9 +477,10 @@ class InstructorController extends Controller
                     'message' => 'Se elimino correctamente la disciplina del instructor'
                 ]);
             } else {
+                // Idempotente: Si no existe, ya logramos el objetivo.
                 return response()->json([
-                    'success' => false,
-                    'message' => 'No se encontro la relacion entre el instructor y la disciplina'
+                    'success' => true,
+                    'message' => 'La disciplina ya había sido eliminada o no estaba asignada'
                 ]);
             }
 

@@ -153,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/disciplinas/all', [DisciplinaController::class, 'index']);
     Route::get('/v1/disciplinas/{id}', [DisciplinaController::class, 'show']);
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
+    Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
     Route::patch('/v1/disciplinas/{id}/estatus', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
 

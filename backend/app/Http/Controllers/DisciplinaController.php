@@ -56,44 +56,52 @@ class DisciplinaController extends Controller
         $disciplina = Disciplina::find($id);
 
         if (!$disciplina) {
-            return response()->json([
-                'message' => 'Disciplina no encontrada'
-            ], 404);
+            return response()->json(['message' => 'Disciplina no encontrada'], 404);
         }
 
         $data = $request->validate([
-            'nuevo_estatus' => 'required|in:ACTIVO,PAUSA,CANCELADO'
+            'nombre_disciplina' => 'sometimes|string',
+            'categorias_ids'    => 'sometimes|array',
+            'categorias_ids.*'  => 'exists:categorias,id_categoria',
+            'nuevo_estatus'     => 'sometimes|in:ACTIVO,PAUSA,CANCELADO'
         ]);
 
-        $nuevo = $data['nuevo_estatus'];
+        // 1. Actualizar Nombre
+        if (isset($data['nombre_disciplina'])) {
+            $disciplina->nombre_disciplina = $data['nombre_disciplina'];
+        }
 
-        if ($nuevo !== $disciplina->estatus) {
+        // 2. Actualizar Categorías
+        if (isset($data['categorias_ids'])) {
+            $disciplina->categorias()->sync($data['categorias_ids']);
+        }
 
+        // 3. Actualizar Estatus (con validación de conflictos)
+        if (isset($data['nuevo_estatus']) && $data['nuevo_estatus'] !== $disciplina->estatus) {
+            $nuevo = $data['nuevo_estatus'];
             if ($nuevo !== 'ACTIVO') {
-
                 $conflictos = $this->getActiveDependencies($id);
-
-                $hayConflictos =
-                    $conflictos['reservaciones_activas'] > 0 ||
-                    $conflictos['sesiones_activas'] > 0 ||
-                    $conflictos['actividades_programadas'] > 0 ||
-                    count($conflictos['torneos_activos']) > 0;
+                $hayConflictos = $conflictos['reservaciones_activas'] > 0 ||
+                                 $conflictos['sesiones_activas'] > 0 ||
+                                 $conflictos['actividades_programadas'] > 0 ||
+                                 count($conflictos['torneos_activos']) > 0;
 
                 if ($hayConflictos) {
                     return response()->json([
-                        'message' => 'No se puede desactivar',
+                        'message' => 'No se puede cambiar el estatus debido a conflictos activos.',
                         'conflictos' => $conflictos
                     ], 422);
                 }
             }
+            $disciplina->estatus = $nuevo;
         }
 
-        $disciplina->estatus = $nuevo;
         $disciplina->save();
 
         return response()->json([
-            'message' => 'Estatus actualizado correctamente',
-            'data' => $disciplina
+            'success' => true,
+            'message' => 'Disciplina actualizada correctamente',
+            'data'    => $disciplina->load(['categorias', 'instructores'])
         ]);
     }
 

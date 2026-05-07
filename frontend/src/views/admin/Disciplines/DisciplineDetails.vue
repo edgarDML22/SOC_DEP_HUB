@@ -61,18 +61,40 @@ const editForm = ref({
     categorias_ids: []
 });
 
+const disciplineId = computed(() => route.params.id);
+
 onMounted(async () => {
+    const id = disciplineId.value;
+    if (!id || id === 'undefined') {
+        isLoading.value = false;
+        return;
+    }
+
+    // 1. Intentar cargar desde caché inmediatamente
+    const cached = disciplinesStore.getDisciplineById(id);
+    if (cached) {
+        discipline.value = cached;
+        isLoading.value = false;
+        if (route.query.edit === 'true') isEditing.value = true;
+        resetForm();
+    } else {
+        isLoading.value = true;
+    }
+    
     try {
         await categoryStore.fetchCategories();
-        const data = await disciplinesStore.fetchDisciplineDetails(route.params.id);
-        discipline.value = data;
-        if (route.query.edit === 'true') {
-            isEditing.value = true;
+        
+        // 2. Traer data fresca en segundo plano (silent fetch)
+        const data = await disciplinesStore.fetchDisciplineDetails(id, true, true);
+        if (data) {
+            discipline.value = data;
+            if (route.query.edit === 'true') {
+                isEditing.value = true;
+            }
+            resetForm();
         }
-        resetForm();
     } catch (error) {
-        console.error(error);
-        alert("Error al cargar los detalles.");
+        console.error("Error background loading discipline details:", error);
     } finally {
         isLoading.value = false;
     }

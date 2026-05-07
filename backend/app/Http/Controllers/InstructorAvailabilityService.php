@@ -50,11 +50,14 @@ class InstructorAvailabilityService
     public static function getRelationship($id_instructor, $id_disciplina)
     {
         //revisa que no este activo en algun turno de ludoteca
-        $already_avaible = TurnosLudoteca::where("id_instructor", $id_instructor)
-            ->first();
-        //revisa si hay registros en la ludoteca con ese instructor asignado
-        $registro_ludoteca = RegistrosLudoteca::where("id_instructor_ingreso", $id_instructor)
-            ->first();
+        $already_avaible = null;
+        $registro_ludoteca = null;
+        
+        if ($id_disciplina == 26) {
+            $already_avaible = TurnosLudoteca::where("id_instructor", $id_instructor)->first();
+            $registro_ludoteca = RegistrosLudoteca::where("id_instructor_ingreso", $id_instructor)->first();
+        }
+
         //revisa que no este activo en alguna actividad
         $activity = ActividadPlantilla::with('disciplina')
             ->where("id_disciplina", $id_disciplina)
@@ -69,9 +72,12 @@ class InstructorAvailabilityService
         $torneoEncuentro = EncuentrosTorneo::where('id_arbitro_asignado', $id_instructor)
             ->first();
 
-        $torneos = Torneos::where('id_torneo', $torneoEncuentro->id_torneo ?? null)
-            ->where('id_disciplina', $id_disciplina)
-            ->first();
+        $torneos = null;
+        if ($torneoEncuentro) {
+            $torneos = torneos::where('id_torneo', $torneoEncuentro->id_torneo)
+                ->where('id_disciplina', $id_disciplina)
+                ->first();
+        }
 
         if ($torneos || $activity->isNotEmpty() || $already_avaible || $registro_ludoteca) {
             $response = [

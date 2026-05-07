@@ -51,8 +51,8 @@ class SocioController extends Controller
     // --- MÉTODO SHOW ---
     public function show(Request $request, $id)
     {
-        // Cargamos el socio con su código QR activo
-        $socio = SocioTitular::with('codigoQrActivo')->find($id);
+        // Cargamos el socio con su código QR activo, miembros familiares e invitados
+        $socio = SocioTitular::with(['codigoQrActivo', 'miembrosFamiliares', 'invitados'])->find($id);
 
         if (!$socio)
             return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);

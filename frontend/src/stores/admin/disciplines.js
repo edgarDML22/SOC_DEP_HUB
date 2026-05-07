@@ -4,8 +4,13 @@ import api from "@/services/api";
 
 export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
     const disciplines = ref([]);
+    const currentDiscipline = ref(null);
     const isLoading = ref(false);
     const error = ref(null);
+
+    const setCurrentDiscipline = (discipline) => {
+        currentDiscipline.value = discipline;
+    };
 
     // GETTERS
     const getDisciplineById = (id) => {
@@ -28,15 +33,21 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
         }
     };
 
-    const fetchDisciplineDetails = async (id, force = false) => {
+    const fetchDisciplineDetails = async (id, force = false, silent = false) => {
+        if (!id || id === 'undefined') return null;
         const existing = getDisciplineById(id);
         
         // Si ya lo tenemos y tiene instructores (indicador de objeto completo), retornamos cache
         if (!force && existing && Array.isArray(existing.instructores)) {
+            if (currentDiscipline.value && String(currentDiscipline.value.id_disciplina) === String(id)) {
+                currentDiscipline.value = existing;
+            }
             return existing;
         }
 
-        isLoading.value = true;
+        const isSilentMode = silent || (currentDiscipline.value && String(currentDiscipline.value.id_disciplina) === String(id));
+        if (!isSilentMode) isLoading.value = true;
+
         try {
             const res = await api.get(`/disciplinas/${id}`);
             if (res.data.success) {
@@ -49,6 +60,11 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
                 } else {
                     disciplines.value.push(fullData);
                 }
+
+                if (currentDiscipline.value && String(currentDiscipline.value.id_disciplina) === String(id)) {
+                    currentDiscipline.value = { ...currentDiscipline.value, ...fullData };
+                }
+
                 return fullData;
             }
         } catch (err) {
@@ -56,7 +72,7 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
             error.value = "Error al cargar detalles de la disciplina.";
             throw err;
         } finally {
-            isLoading.value = false;
+            if (!isSilentMode) isLoading.value = false;
         }
     };
 
@@ -140,10 +156,12 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
 
     return {
         disciplines,
+        currentDiscipline,
         isLoading,
         error,
         fetchDisciplines,
         fetchDisciplineDetails,
+        setCurrentDiscipline,
         createDiscipline,
         updateDiscipline,
         changeDisciplineStatus,

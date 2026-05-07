@@ -45,17 +45,33 @@ const editForm = ref({
 });
 
 onMounted(async () => {
+    const id = route.params.id;
+    
+    // 1. Intentar cargar desde caché inmediatamente
+    const cached = spacesStore.spaces.find(s => String(s.id_espacio) === String(id));
+    if (cached) {
+        space.value = cached;
+        isLoading.value = false;
+        if (route.query.edit === 'true') isEditing.value = true;
+        resetForm();
+    } else {
+        isLoading.value = true;
+    }
+    
     try {
         await disciplinesStore.fetchDisciplines();
-        const data = await spacesStore.fetchSpaceDetails(route.params.id);
-        space.value = data;
-        if (route.query.edit === 'true') {
-            isEditing.value = true;
+        
+        // 2. Traer data fresca en segundo plano (silent fetch)
+        const data = await spacesStore.fetchSpaceDetails(id, true, true);
+        if (data) {
+            space.value = data;
+            if (route.query.edit === 'true') {
+                isEditing.value = true;
+            }
+            resetForm();
         }
-        resetForm();
     } catch (error) {
-        console.error(error);
-        alert("Error al cargar los detalles.");
+        console.error("Error background loading space details:", error);
     } finally {
         isLoading.value = false;
     }
