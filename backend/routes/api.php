@@ -43,10 +43,6 @@ use App\Http\Controllers\ReservationAdminController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
-Route::get(
-    '/v1/reservations/admin/filters-meta',
-    [ReservationAdminController::class, 'filterMeta']
-);
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -77,6 +73,8 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 // SDH 187: Actualizar estatus de la cuenta del socio
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
+// SDH 226: Obtener filtros de metadatos para reservaciones
+Route::get('/v1/reservations/admin/filters-meta', [ReservationAdminController::class, 'filterMeta']);
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
