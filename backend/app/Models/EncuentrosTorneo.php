@@ -15,4 +15,5 @@ class EncuentrosTorneo extends Model
         'fecha_hora_inicio',
         'fecha_hora_fin',
     ];
+
 }

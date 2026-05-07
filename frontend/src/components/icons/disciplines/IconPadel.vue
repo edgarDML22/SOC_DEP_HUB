@@ -1,8 +1,8 @@
 <template>
     <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
-        y="0px" viewBox="0 0 595.3 595.3" enable-background="new 0 0 595.3 595.3" xml:space="preserve">
-        <g>
-            <path fill="none" stroke="#000000" stroke-width="4" stroke-miterlimit="10" d="M295.9,554.1c8.2,14.1,32.6,14.6,41.4,0.8
+        y="0px" viewBox="0 0 595.3 595.3" enable-background="new 0 0 595.3 595.3" xml:space="preserve" fill="currentColor">
+        <g fill="currentColor">
+            <path fill="none" stroke="currentColor" stroke-width="4" stroke-miterlimit="10" d="M295.9,554.1c8.2,14.1,32.6,14.6,41.4,0.8
 		c4.7-7.3,5.1-16.7,10.3-23.6c6.8-9.1,19.4-11.3,30.8-12.8c9.3-1.2,18.5-2.4,27.8-3.7c6.8-0.9,13.8-1.9,19.4-5.6
 		c4.1-2.7,14.1-7.9,18.2-10.5c13-8.2-4.9-20.2-21.3-13.8c-10.8,4.2-14.5,7.2-25.7,10.1c-15.5,4-29.2,14.3-37.3,28" />
         </g>
@@ -27,7 +27,7 @@
 	c41.5,17.6,69.1,17.8,110.2,1.3C345,295.2,338.1,302.4,332.1,310z M382.4,191.9c-4.9,4.9-13,4.7-18.1-0.4
 	c-5.2-5.3-5.1-12.6,0.3-17.9c4.9-4.8,12.7-4.8,17.6-0.1C387,178.3,387.1,187.2,382.4,191.9z M382.1,152.7c-4.8,4.6-13,4.7-17.8,0.1
 	c-4.9-4.7-5-13.3-0.2-18.2c5-5.1,13.1-5.1,18.1-0.1C387.1,139.5,387.1,147.8,382.1,152.7z" />
-        <path fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+        <path fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
             stroke-miterlimit="10" d="
 	M317,388.3c0,0-6.6,6.9-4.5,62.8l3.4,67c0,0,9,27.2,1.1,30.3c0,0-12.4,5.2-22.5,5.2s-22.5-5.2-22.5-5.2c-7.9-3.1,1.1-30.3,1.1-30.3
 	l3.4-67c3.5-54.3-4.5-62.8-4.5-62.8s8.4,4.6,22.5,4.6C294.6,392.9,312.3,392.6,317,388.3z" />

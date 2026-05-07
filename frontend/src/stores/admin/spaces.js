@@ -8,6 +8,10 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
     const isLoading = ref(false);
     const error = ref(null);
 
+    const setCurrentSpace = (space) => {
+        currentSpace.value = space;
+    };
+
     const fetchSpaces = async (force = false) => {
         if (!force && spaces.value.length > 0) return;
         isLoading.value = true;
@@ -24,16 +28,27 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
         }
     };
 
-    const fetchSpaceDetails = async (id) => {
-        if (currentSpace.value?.id_espacio == id) return currentSpace.value;
+    const fetchSpaceDetails = async (id, force = false, silent = false) => {
+        if (!force && currentSpace.value?.id_espacio == id && Array.isArray(currentSpace.value.disciplinas)) {
+            return currentSpace.value;
+        }
 
         const cached = spaces.value.find(s => s.id_espacio == id);
-        if (cached) currentSpace.value = { ...cached };
+        if (cached && !currentSpace.value) currentSpace.value = { ...cached };
 
-        isLoading.value = true;
+        const isSilentMode = silent || (currentSpace.value && String(currentSpace.value.id_espacio) === String(id));
+        if (!isSilentMode) isLoading.value = true;
+
         try {
             const res = await api.get(`/spaces/${id}`);
-            currentSpace.value = res.data.data;
+            
+            // Si currentSpace tiene la misma ID, hacer merge sin perder reactividad
+            if (currentSpace.value && String(currentSpace.value.id_espacio) === String(id)) {
+                currentSpace.value = { ...currentSpace.value, ...res.data.data };
+            } else {
+                currentSpace.value = res.data.data;
+            }
+
             const index = spaces.value.findIndex(s => s.id_espacio == id);
             if (index !== -1) spaces.value[index] = res.data.data;
             return res.data.data;
@@ -41,7 +56,7 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
             console.error("Error fetching space details:", err);
             throw err;
         } finally {
-            isLoading.value = false;
+            if (!isSilentMode) isLoading.value = false;
         }
     };
 
@@ -132,6 +147,7 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
         currentSpace,
         isLoading,
         error,
+        setCurrentSpace,
         fetchSpaces,
         fetchSpaceDetails,
         createSpace,

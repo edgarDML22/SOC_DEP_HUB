@@ -82,7 +82,7 @@ const save = async () => {
           enter-to-class="opacity-100 scale-100 translate-y-0"
         >
           <div v-if="modelValue"
-            class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            class="bg-white w-full max-w-md rounded-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <!-- ── Cabecera ── -->
             <div class="flex items-center justify-between px-7 py-5 bg-white border-b border-surface-100">

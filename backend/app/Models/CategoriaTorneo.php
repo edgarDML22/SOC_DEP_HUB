@@ -16,4 +16,5 @@ class CategoriaTorneo extends Model
         'edad_maxima',
         'genero_requerido',
     ];
+
 }
