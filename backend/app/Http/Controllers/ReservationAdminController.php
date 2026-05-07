@@ -159,6 +159,7 @@ class ReservationAdminController extends Controller
 
     }
 
+    //SDH 226                
     public function filterMeta()
     {
         $espacios = Reservacion::query()
@@ -210,6 +211,142 @@ class ReservationAdminController extends Controller
                 "espacios" => $espacios,
                 "socios" => $socios,
                 "disciplinas" => $disciplinas
+            ]
+        ]);
+    }
+    public function getStats(Request $request)
+    {
+        $rango = $request->query('rango', 'hoy');
+
+        $timezone = 'America/Mexico_City';
+
+        switch ($rango) {
+
+            case 'semana':
+
+                $inicio = now($timezone)->startOfWeek();
+                $fin = now($timezone)->endOfWeek();
+
+                break;
+
+            case 'mes':
+
+                $inicio = now($timezone)->startOfMonth();
+                $fin = now($timezone)->endOfMonth();
+
+                break;
+
+            default:
+
+                $inicio = now($timezone)->startOfDay();
+                $fin = now($timezone)->endOfDay();
+
+                break;
+        }
+
+        $reservacionesQuery = Reservacion::whereBetween(
+            'fecha_reserva',
+            [
+                $inicio->toDateString(),
+                $fin->toDateString()
+            ]
+        );
+
+        //KPI 1
+        if ($rango === 'hoy') {
+
+            $reservasPorTiempo = (clone $reservacionesQuery)
+                ->selectRaw('EXTRACT(HOUR FROM hora_inicio) as label, COUNT(*) as total')
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+
+        } else {
+
+            $reservasPorTiempo = (clone $reservacionesQuery)
+                ->selectRaw('DATE(fecha_reserva) as label, COUNT(*) as total')
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+        }
+
+        //KPI 2
+        $estatus = (clone $reservacionesQuery)
+            ->selectRaw('estatus_operativo as estatus, COUNT(*) as total')
+            ->groupBy('estatus_operativo')
+            ->orderBy('estatus_operativo')
+            ->get();
+
+
+        //KPI 3
+        $reservacionesConAcompanantes = (clone $reservacionesQuery)
+            ->whereNotNull('acompanantes_draft')
+            ->where('acompanantes_draft', '!=', '[]')
+            ->get();
+
+        $conteoTipos = [
+            'Amigo' => 0,
+            'Invitado' => 0,
+            'Familiar' => 0
+        ];
+
+        foreach ($reservacionesConAcompanantes as $reservacion) {
+
+            $acompanantes = $reservacion->acompanantes_draft;
+
+            if (!is_array($acompanantes)) {
+                continue;
+            }
+
+            foreach ($acompanantes as $acompanante) {
+
+                if (
+                    isset($acompanante['tipo']) &&
+                    array_key_exists($acompanante['tipo'], $conteoTipos)
+                ) {
+
+                    $conteoTipos[$acompanante['tipo']]++;
+                }
+            }
+        }
+
+        $total = array_sum($conteoTipos);
+
+        if ($total > 0) {
+
+            $porcentajes = [
+                round(($conteoTipos['Amigo'] / $total) * 100),
+                round(($conteoTipos['Invitado'] / $total) * 100),
+                round(($conteoTipos['Familiar'] / $total) * 100)
+            ];
+
+        } else {
+
+            $porcentajes = [0, 0, 0];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+
+                'kpi1_reservas_por_dia' => [
+                    'labels' => $reservasPorTiempo->pluck('label'),
+                    'data' => $reservasPorTiempo->pluck('total')
+                ],
+
+                'kpi2_por_estatus' => [
+                    'labels' => $estatus->pluck('estatus'),
+                    'data' => $estatus->pluck('total')
+                ],
+
+                'kpi3_composicion_acompanantes' => [
+                    'labels' => [
+                        'Socios/Amigos',
+                        'Invitados',
+                        'Familiares'
+                    ],
+                    'data' => $porcentajes
+                ]
             ]
         ]);
     }
