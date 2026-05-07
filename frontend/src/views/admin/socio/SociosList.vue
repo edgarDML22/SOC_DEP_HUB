@@ -48,7 +48,6 @@ const OPT_ESTATUS_CUENTA = [
   { label: 'Al Corriente', value: 'AL_CORRIENTE' },
   { label: 'Moroso', value: 'MOROSO' },
   { label: 'Suspendido', value: 'SUSPENDIDO' },
-  { label: 'Penalizado', value: 'PENALIZADO' },
 ]
 const OPT_ESTATUS_PENALIZACION = [
   { label: 'Todos', value: null },
@@ -74,7 +73,8 @@ const filteredSocios = computed(() => {
   if (filterEstatus.value) r = r.filter(s => s.estatus_cuenta === filterEstatus.value)
   if (filterPenalizacion.value) r = r.filter(s => (s.estatus_penalizacion ?? 'SIN_PENALIZACION') === filterPenalizacion.value)
 
-  return r
+  // Ordenar alfabéticamente por nombre
+  return [...r].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
 })
 
 const hasActiveFilters = computed(() =>
@@ -115,7 +115,14 @@ const buildMenuItems = (socio) => [
              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
            </svg>`,
-    action: () => router.push({ path: `/admin/socios/${socio.id_socio}` }),
+    action: () => {
+      if (typeof socioStore.setCurrentSocio === 'function') {
+        socioStore.setCurrentSocio(socio);
+      } else {
+        socioStore.currentSocio = socio;
+      }
+      router.push({ path: `/admin/socios/${socio.id_socio}` });
+    },
   },
   {
     label: 'Gestionar penalizaciones',
@@ -131,7 +138,7 @@ const buildMenuItems = (socio) => [
              <path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 0-3-3.87"/>
              <circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="4"/>
            </svg>`,
-    action: () => openFamily(socio),
+    action: () => { openFamily(socio) },
   },
   {
     label: 'Pases de invitados',
@@ -140,7 +147,7 @@ const buildMenuItems = (socio) => [
              <circle cx="9" cy="7" r="4"/>
              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
            </svg>`,
-    action: () => openGuests(socio),
+    action: () => { openGuests(socio) },
   },
   {
     label: socio.estatus_cuenta === 'SUSPENDIDO' ? 'Reactivar cuenta' : 'Suspender cuenta',
@@ -157,6 +164,7 @@ const showFamilyModal = ref(false)
 const showGuestsModal = ref(false)
 const showEstatusModal = ref(false)
 const selectedSocio = ref(null)
+const isModalLoading = ref(false)
 
 const openPenalty = (socio) => {
   selectedSocio.value = socio
@@ -166,15 +174,37 @@ const openPenalty = (socio) => {
 const openFamily = async (socio) => {
   selectedSocio.value = socio
   showFamilyModal.value = true
-  await fetchSocioDetails(socio.id_socio)
-  selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
+  
+  // Si ya tenemos la info en caché, no mostramos el spinner global ni bloqueamos
+  const cached = socioStore.getSocioById(socio.id_socio)
+  if (!cached?.miembros_familiares) {
+    isModalLoading.value = true
+  }
+
+  try {
+    // Silent fetch: no dispara el isLoading global del store
+    await fetchSocioDetails(socio.id_socio, true, true)
+    selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
+  } finally {
+    isModalLoading.value = false
+  }
 }
 
 const openGuests = async (socio) => {
   selectedSocio.value = socio
   showGuestsModal.value = true
-  await fetchSocioDetails(socio.id_socio)
-  selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
+
+  const cached = socioStore.getSocioById(socio.id_socio)
+  if (!cached?.invitados) {
+    isModalLoading.value = true
+  }
+
+  try {
+    await fetchSocioDetails(socio.id_socio, true, true)
+    selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
+  } finally {
+    isModalLoading.value = false
+  }
 }
 
 const openEstatus = (socio) => {
@@ -357,8 +387,7 @@ onMounted(fetchSocios)
           </thead>
           <tbody class="divide-y divide-surface-100">
             <tr v-for="socio in filteredSocios" :key="socio.id_socio"
-              class="hover:bg-surface-50/70 transition-colors group cursor-pointer"
-              @click="router.push({ path: `/admin/socios/${socio.id_socio}` })">
+              class="hover:bg-surface-50/70 transition-colors group">
               <!-- Nombre + avatar -->
               <td class="px-5 py-3.5">
                 <div class="flex items-center gap-3">
@@ -427,7 +456,7 @@ onMounted(fetchSocios)
         <div v-if="showFamilyModal"
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showFamilyModal = false">
-          <div class="bg-white w-full max-w-md rounded-2rem shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
 
             <!-- Cabecera -->
             <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
@@ -447,7 +476,7 @@ onMounted(fetchSocios)
             <div class="overflow-y-auto p-6 bg-surface-50/30">
 
               <!-- Cargando -->
-              <div v-if="isLoading" class="flex justify-center py-12">
+              <div v-if="isModalLoading" class="flex justify-center py-12">
                 <LoadingSpinner />
               </div>
 
@@ -503,7 +532,7 @@ onMounted(fetchSocios)
         <div v-if="showGuestsModal"
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showGuestsModal = false">
-          <div class="bg-white w-full max-w-lg rounded-2rem shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
 
             <!-- Cabecera -->
             <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
@@ -523,7 +552,7 @@ onMounted(fetchSocios)
             <div class="overflow-y-auto p-6 bg-surface-50/30">
 
               <!-- Cargando -->
-              <div v-if="isLoading" class="flex justify-center py-12">
+              <div v-if="isModalLoading" class="flex justify-center py-12">
                 <LoadingSpinner />
               </div>
 

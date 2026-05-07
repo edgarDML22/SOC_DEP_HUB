@@ -5,14 +5,17 @@ import { storeToRefs } from 'pinia';
 import api from '@/services/api';
 import { useInstructorStore } from '@/stores/admin/instructorStore';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { useformat } from '@/utils/formatters';
+import { useAlerts } from '@/composables/useAlerts';
 
 const route = useRoute();
 const router = useRouter();
 const instructorStore = useInstructorStore();
 const { formatText, dateFormat } = useformat();
+const { toastInfo } = useAlerts();
 
 const { isLoading, error: storeError } = storeToRefs(instructorStore);
 
@@ -35,6 +38,18 @@ const editForm = ref({
 });
 
 onMounted(async () => {
+    if (instructorStore.currentInstructor && String(instructorStore.currentInstructor.id_instructor) === String(instructorId)) {
+        instructor.value = instructorStore.currentInstructor;
+        // Popular formulario de edición
+        editForm.value = {
+            nombre_completo: instructor.value.nombre_completo,
+            telefono: instructor.value.telefono || '',
+            correo_electronico: instructor.value.correo_electronico || '',
+            fecha_nacimiento: instructor.value.fecha_nacimiento || '',
+            hora_entrada: instructor.value.hora_entrada || '',
+            hora_salida: instructor.value.hora_salida || ''
+        };
+    }
     await fetchInstructorDetails();
 });
 
@@ -64,7 +79,7 @@ const fetchInstructorDetails = async () => {
 
 const saveEditInstructor = async () => {
     if (!editForm.value.nombre_completo) {
-        alert("El nombre es requerido.");
+        toastInfo("Campo requerido", "El nombre es requerido.", "error");
         return;
     }
 
@@ -72,12 +87,13 @@ const saveEditInstructor = async () => {
     try {
         const res = await instructorStore.updateInstructor(instructorId, editForm.value);
         if (res.success) {
+            toastInfo("¡Éxito!", "Información del instructor actualizada correctamente.", "success");
             showEditModal.value = false;
             // Al ser reactivo el store y nosotros usar instructor.value = data en fetch,
             // y el store actualizar la lista, deberíamos refrescar la referencia local.
             instructor.value = instructorStore.getInstructorById(instructorId);
         } else {
-            alert(res.error || "Ocurrió un error al actualizar.");
+            toastInfo("Error", res.error || "Ocurrió un error al actualizar.", "error");
         }
     } catch (error) {
         console.error("Error al actualizar instructor:", error);
@@ -111,7 +127,7 @@ const goBack = () => {
 
             <!-- Estado de Error -->
             <section v-if="errorMsg || storeError"
-                class="text-center p-12 bg-red-50 rounded-[2rem] border border-red-100 animate-scale-in">
+                class="text-center p-12 bg-red-50 rounded-4xl border border-red-100 animate-scale-in">
                 <p class="text-red-600 font-bold">{{ errorMsg || storeError }}</p>
                 <button @click="goBack"
                     class="mt-4 px-6 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-colors shadow-sm">Volver
@@ -164,18 +180,7 @@ const goBack = () => {
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2">
-                                    <span class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest"
-                                        :class="{
-                                            'bg-green-50 text-green-700 border border-green-200': instructor.estatus === 'ACTIVO' || instructor.estatus === 'Activo',
-                                            'bg-red-50 text-red-700 border border-red-200': instructor.estatus === 'INACTIVO' || instructor.estatus === 'Inactivo',
-                                            'bg-amber-50 text-amber-700 border border-amber-200': instructor.estatus === 'BAJA_TEMPORAL'
-                                        }">
-                                        {{ instructor.estatus }}
-                                    </span>
-                                    <span
-                                        class="text-xs font-bold text-surface-400 uppercase tracking-widest bg-surface-50 px-3 py-1 rounded-lg border border-surface-100">
-                                        ID: #{{ instructor.id_instructor }}
-                                    </span>
+                                    <BadgeStatus :status="instructor.estatus" size="md" />
                                 </div>
                             </div>
 
@@ -236,18 +241,18 @@ const goBack = () => {
                         enter-from-class="opacity-0 scale-95 translate-y-4"
                         enter-to-class="opacity-100 scale-100 translate-y-0">
                         <div v-if="showEditModal"
-                            class="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+                            class="bg-white rounded-4xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
 
                             <!-- Cabecera -->
                             <div
                                 class="flex justify-between items-center px-8 py-6 bg-white border-b border-surface-100">
                                 <div>
-                                    <h2 class="text-xl font-black text-surface-900">Editar Instructor</h2>
-                                    <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">Modifica
+                                    <h2 class="text-lg font-black text-surface-900">Editar Instructor</h2>
+                                    <p class="text-xs font-medium text-surface-500 mt-1 uppercase tracking-wider">Modifica
                                         la información personal</p>
                                 </div>
                                 <button @click="showEditModal = false"
-                                    class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                                    class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                         stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -256,53 +261,53 @@ const goBack = () => {
                             </div>
 
                             <!-- Cuerpo -->
-                            <div class="p-8 overflow-y-auto space-y-6 bg-surface-50/50">
+                            <div class="p-6 overflow-y-auto space-y-6 bg-surface-50/30">
                                 <div class="space-y-1.5">
                                     <label
-                                        class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Nombre
+                                        class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
                                         Completo <span class="text-red-400">*</span></label>
                                     <input type="text" v-model="editForm.nombre_completo"
-                                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                        class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div class="space-y-1.5">
                                         <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Teléfono</label>
+                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono</label>
                                         <input type="text" v-model="editForm.telefono"
-                                            class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                            class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
                                     </div>
                                     <div class="space-y-1.5">
                                         <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Fecha
+                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha
                                             de Nacimiento</label>
                                         <input type="date" v-model="editForm.fecha_nacimiento"
-                                            class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                            class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
                                     </div>
                                 </div>
 
                                 <div class="space-y-1.5">
                                     <label
-                                        class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Correo
+                                        class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Correo
                                         Electrónico</label>
-                                    <input type="email" v-model="editForm.correo_electronico"
-                                        class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                    <input type="email" v-model="editForm.correo_electronico" readonly
+                                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-surface-400 cursor-not-allowed outline-none" />
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-6">
                                     <div class="space-y-1.5">
                                         <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Hora
+                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora
                                             Entrada</label>
                                         <input type="time" v-model="editForm.hora_entrada"
-                                            class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                            class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
                                     </div>
                                     <div class="space-y-1.5">
                                         <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Hora
+                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora
                                             Salida</label>
                                         <input type="time" v-model="editForm.hora_salida"
-                                            class="w-full px-4 py-3.5 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none" />
+                                            class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
                                     </div>
                                 </div>
                             </div>
