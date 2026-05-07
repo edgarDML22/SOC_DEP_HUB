@@ -34,6 +34,7 @@ use App\Http\Controllers\CategoriaDisciplinaController;
 use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\ReservationAdminController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -77,6 +78,7 @@ Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateE
 //pueba
 //Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
 //Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
+Route::get('/v1/reservations/admin/list', [ReservationAdminController::class, 'index']);
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
