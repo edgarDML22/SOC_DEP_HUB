@@ -97,12 +97,12 @@ Route::middleware(['check.turno'])->group(function () {
 // ==========================================
 Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
 
-Route::get('/v1/ludoteca/admin/historial', [AdminLudotecaController::class, 'getHistorial']);
+//Route::get('/v1/ludoteca/admin/historial', [AdminLudotecaController::class, 'getHistorial']);
 
-Route::get(
+/* Route::get(
     'v1/ludoteca/admin/socios-con-menores',
     [AdminLudotecaController::class, 'getSociosConMenores']
-);
+); */
 
 
 // ==========================================
@@ -185,7 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
     Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
     Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
-    //Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
+    Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 
     // Rutas de utilidad/negocio
@@ -257,12 +257,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('list', [MiembrosFamiliaresList::class, 'show']);
         Route::post('ingreso', [LudotecaStatusController::class, 'checkIn']);
 
+
+
         // Administrativas (gerente )
         Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
         Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
         Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
-        //Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);
+        Route::get('admin/socios-con-menores', [AdminLudotecaController::class, 'getSociosConMenores']);
+        Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);
     });
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
