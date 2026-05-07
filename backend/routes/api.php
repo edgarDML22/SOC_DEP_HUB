@@ -257,8 +257,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('list', [MiembrosFamiliaresList::class, 'show']);
         Route::post('ingreso', [LudotecaStatusController::class, 'checkIn']);
 
-
-
         // Administrativas (gerente )
         Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
