@@ -74,11 +74,6 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
-//pueba
-//Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
-//Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
-Route::get('/v1/reservations/admin/list', [ReservationAdminController::class, 'index']);
-
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
 
@@ -196,6 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
     Route::get('/v1/reservations/my-list', [ReservacionController::class, 'myReservations']);
+    Route::get('/v1/reservations/admin/list', [ReservationAdminController::class, 'index']);
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
