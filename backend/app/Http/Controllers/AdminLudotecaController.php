@@ -87,6 +87,30 @@ class AdminLudotecaController extends Controller
             'data' => $turnos
         ]);
     }
+    //SDH 220: 
+    public function getSociosConMenores()
+    {
+        $socios = SocioTitular::query()
+            ->from('historial_ludoteca as m')
+            ->join(
+                'socios_titulares as s',
+                'm.id_adulto',
+                '=',
+                's.id_socio'
+            )
+            ->select(
+                's.id_socio',
+                's.nombre_completo',
+                's.numero_accion'
+            )
+            ->distinct()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $socios
+        ]);
+    }
 
     //SDH 219
     public function getHistorial(Request $request)

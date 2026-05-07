@@ -92,9 +92,18 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
+// ==========================================
+// RUTAS PRUEBA GABO (Requieren Token)
+// ==========================================
 Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
 
 Route::get('/v1/ludoteca/admin/historial', [AdminLudotecaController::class, 'getHistorial']);
+
+Route::get(
+    'v1/ludoteca/admin/socios-con-menores',
+    [AdminLudotecaController::class, 'getSociosConMenores']
+);
+
 
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
