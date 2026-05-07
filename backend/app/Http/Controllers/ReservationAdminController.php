@@ -159,6 +159,61 @@ class ReservationAdminController extends Controller
 
     }
 
+    public function filterMeta()
+    {
+        $espacios = Reservacion::query()
+            ->join(
+                'espacios_fisicos as e',
+                'reservaciones_on_demand.id_espacio',
+                '=',
+                'e.id_espacio'
+            )
+            ->select(
+                'e.id_espacio',
+                'e.nombre_espacio as nombre'
+            )
+            ->distinct()
+            ->get();
+
+        $socios = Reservacion::query()
+            ->join(
+                'socios_titulares as s',
+                'reservaciones_on_demand.id_socio_titular',
+                '=',
+                's.id_socio'
+            )
+            ->select(
+                's.id_socio',
+                's.nombre_completo',
+                's.numero_accion'
+            )
+            ->distinct()
+            ->get();
+
+        $disciplinas = Reservacion::query()
+            ->join(
+                'disciplinas as d',
+                'reservaciones_on_demand.id_disciplina',
+                '=',
+                'd.id_disciplina'
+            )
+            ->select(
+                'd.id_disciplina',
+                'd.nombre_disciplina as nombre'
+            )
+            ->distinct()
+            ->get();
+
+        return response()->json([
+            "success" => true,
+            "data" => [
+                "espacios" => $espacios,
+                "socios" => $socios,
+                "disciplinas" => $disciplinas
+            ]
+        ]);
+    }
+
 }
 
 

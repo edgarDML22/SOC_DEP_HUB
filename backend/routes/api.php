@@ -43,6 +43,10 @@ use App\Http\Controllers\ReservationAdminController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+Route::get(
+    '/v1/reservations/admin/filters-meta',
+    [ReservationAdminController::class, 'filterMeta']
+);
 
 // ==========================================
 // RUTAS PÚBLICAS
