@@ -33,6 +33,7 @@ use App\Http\Controllers\DisciplinaController;
 use App\Http\Controllers\CategoriaDisciplinaController;
 use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
+use App\Http\Controllers\CategoriaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -72,7 +73,9 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
-
+//pueba
+//Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
+//Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
@@ -163,6 +166,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/disciplinas-categories/{id}', [CategoriaDisciplinaController::class, 'show']);
     Route::put('/v1/disciplinas-categories/update/{id}', [CategoriaDisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
+    Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
+
 
     // CRUD ESPACIOS
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);

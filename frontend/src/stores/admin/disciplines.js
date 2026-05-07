@@ -154,6 +154,19 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
         }
     };
 
+    const verifyCategoryDelete = async (id) => {
+        isLoading.value = true;
+        try {
+            const res = await api.get(`/categorias/${id}/verificar-eliminacion`);
+            return res.data; // Retorna { puede_eliminar, disciplinas_activas, nombres_disciplinas }
+        } catch (err) {
+            console.error("Error verifying category deletion:", err);
+            return { success: false, error: "Error al verificar eliminación." };
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     return {
         disciplines,
         currentDiscipline,
@@ -166,6 +179,7 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
         updateDiscipline,
         changeDisciplineStatus,
         deleteDiscipline,
+        verifyCategoryDelete,
         getDisciplineById
     };
 });

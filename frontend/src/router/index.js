@@ -378,7 +378,7 @@ const router = createRouter({
         },
         {
           path: "categories/create",
-          component: () => import("@/views/admin/CreateCategories.vue"),
+          component: () => import("@/views/admin/categories/CreateCategories.vue"),
         },
       ],
     },
