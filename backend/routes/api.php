@@ -213,6 +213,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/guest-list', [GuestStatusController::class, 'show']);
     Route::put('/v1/guests/{id}', [GuestStatusController::class, 'update']);
     Route::delete('/v1/guests/{id}', [GuestStatusController::class, 'destroy']);
+    Route::put('/v1/guests/{id}/toggle-pass', [GuestStatusController::class, 'togglePass']);
+
 
     // FAMILY MEMBERS 
     Route::post('/v1/family-member-create', [MiembrosFamiliaresController::class, 'store']);

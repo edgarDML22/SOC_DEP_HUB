@@ -47,12 +47,14 @@ class GuestStatusController extends Controller
         /* 1. Obtenemos el ID del Socio desde el Token */
         $socioId = $request->user()->user_id;
 
+
         /* 2. Validar datos */
         $request->validate([
             'nombre_invitado' => 'required|string|max:255',
             'correo' => 'nullable|email|max:255',
-            'telefono' => 'nullable|digits_between:10,15'
+            'telefono' => 'nullable|digits_between:10,15',
         ]);
+
 
         /* 3. Validar socio */
         $id_valido = SocioTitular::where('id_socio', $socioId)->first();
@@ -89,7 +91,7 @@ class GuestStatusController extends Controller
         try {
             // === INICIA LA TRANSACCIÓN ===
             $result = DB::transaction(function () use ($socioId, $request, $codigoQR) {
-                
+
                 /* 7. Insertar invitado */
                 $insertar = Invitados::create([
                     'socio_id' => $socioId,
@@ -102,7 +104,7 @@ class GuestStatusController extends Controller
                 /* 8. Insertar pase asociado al invitado recién creado */
                 $insertar_pase = PasesDiarios::create([
                     'invitado_id' => $insertar->id_invitado,
-                    'estatus_acceso' => 'EXPIRADO', 
+                    'estatus_acceso' => 'EXPIRADO',
                     'fecha_activacion' => now(),
                 ]);
 
@@ -203,9 +205,9 @@ class GuestStatusController extends Controller
 
         // Traemos al invitado con su relación de pase diario
         $invitado = Invitados::with('pase')
-                             ->where('id_invitado', $id)
-                             ->where('socio_id', $socioId)
-                             ->first();
+            ->where('id_invitado', $id)
+            ->where('socio_id', $socioId)
+            ->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
@@ -214,11 +216,11 @@ class GuestStatusController extends Controller
         try {
             // === INICIA LA TRANSACCIÓN PARA ELIMINACIÓN EN CASCADA ===
             DB::transaction(function () use ($invitado) {
-                
+
                 // 1. Deshabilitar el pase diario (Lo pasamos a EXPIRADO o equivalente)
                 if ($invitado->pase) {
                     $invitado->pase->update([
-                        'estatus_acceso' => 'EXPIRADO' 
+                        'estatus_acceso' => 'EXPIRADO'
                     ]);
                 }
 
@@ -239,6 +241,40 @@ class GuestStatusController extends Controller
                 'message' => 'Hubo un error al procesar la eliminación'
             ], 500);
         }
+    }
+    public function togglePass(Request $request, $invitadoId)
+    {
+        $socioId = $request->user()->user_id;
+
+        // 1. Buscamos al invitado asegurándonos de que pertenezca a este socio
+        $invitado = Invitados::where('id_invitado', $invitadoId)
+            ->where('socio_id', $socioId)
+            ->first();
+
+        if (!$invitado) {
+            return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
+        }
+
+        // 2. Traemos el pase diario y actualizamos el estatus
+        $pase = PasesDiarios::where('invitado_id', $invitadoId)
+            ->first();
+
+        if (!$pase) {
+            return response()->json(['success' => false, 'message' => 'Pase no encontrado'], 404);
+        }
+
+        // 3. Actualizamos el estatus
+        $nuevoEstatus = $pase->estatus_acceso === 'ACTIVO' ? 'EXPIRADO' : 'ACTIVO';
+        $pase->update([
+            'estatus_acceso' => $nuevoEstatus,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pase actualizado',
+            'data' => $pase
+        ], 200);
+
     }
 
 
