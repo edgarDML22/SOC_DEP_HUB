@@ -328,7 +328,7 @@ onMounted(async () => {
                   {{ r }}
                 </button>
               </div>
-              <button @click="store.fetchStats(filtroStats)" 
+              <button @click="store.fetchStats(filtroStats, true)" 
                 :disabled="store.loading.stats"
                 class="p-2.5 rounded-xl bg-white border border-surface-200 shadow-sm hover:bg-surface-50 transition-all active:rotate-180 disabled:opacity-50">
                 <svg class="w-4 h-4 text-surface-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
