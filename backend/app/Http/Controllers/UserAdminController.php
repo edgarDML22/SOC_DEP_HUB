@@ -24,10 +24,12 @@ class UserAdminController extends Controller
                 'subgerente'
             ])
             ->select(
-                'gerentes.id_empleado as id',
+                'users.id',
+                'gerentes.id_empleado',
                 'gerentes.nombre_completo as name',
                 'users.email',
                 'gerentes.cargo',
+                'users.rol',
                 'users.activo'
             )
             ->get();
