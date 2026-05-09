@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActividadPlantilla;
 use App\Models\MiembrosFamiliares;
 use Illuminate\Http\Request;
 use App\Models\SocioTitular;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
-class MiembrosFamiliaresController extends Controller
+use App\Models\Reservacion;
+// SDH 240 
+class AdminFamilyController extends Controller
 {
-    // MOSTRAR TODOS
+
     // --- MÉTODO SHOW ---
-    public function show(Request $request)
+    public function index(Request $request)
     {
         $id_socio = $request->user()->user_id;
 
@@ -37,9 +39,29 @@ class MiembrosFamiliaresController extends Controller
         $id_socio = $request->user()->user_id;
         $miembro = MiembrosFamiliares::where('id_miembro', $id)->where('socio_id', $id_socio)->first();
 
-        if (!$miembro) return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
+        if (!$miembro)
+            return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
 
         try {
+            $reservas_activas = Reservacion::where('id_socio_titular', $id_socio)
+                ->whereIn('estatus_operativo', ['ACTIVA', 'PENDIENTE'])
+                ->whereJsonContains('acompanantes_draft', (string) $miembro->id_miembro)
+                ->count();
+
+            if ($reservas_activas > 0) {
+                return response()->json(['success' => false, 'message' => 'No se puede eliminar al miembro familiar porque tiene reservas activas']);
+            }
+
+            /*  if (
+                 ActividadPlantilla::join('sesiones_activas', 'actividad_plantilla.id_actividad_plantilla', '=', 'sesiones_activas.id_actividad_plantilla')
+                     ->where('actividad_plantilla.socio_id', $id_socio)
+                     ->where('sesiones_activas.socio_id', $id_miembro)
+                     ->exists()
+             ) {
+
+                 return response()->json(['success' => false, 'message' => 'No se puede eliminar al miembro familiar porque tiene asistencias activas']);
+             } */
+
             DB::transaction(function () use ($miembro) {
                 // Actualizamos el estatus del QR usando la relación polimórfica
                 if ($miembro->codigoQrActivo) {
@@ -53,8 +75,6 @@ class MiembrosFamiliaresController extends Controller
         }
     }
 
-
-
     // CREAR 
     public function store(Request $request)
     {
@@ -62,10 +82,10 @@ class MiembrosFamiliaresController extends Controller
 
         // VALIDACION DATOS FRONTEND
         $request->validate([
-            'nombre_completo'    => 'required|string|max:100',
-            'parentesco'         => 'required|in:CONYUGE,HIJO/A,OTRO',
-            'fecha_nacimiento'   => 'required|date',
-            'genero'             => 'required|in:M,F,O,OTRO',
+            'nombre_completo' => 'required|string|max:100',
+            'parentesco' => 'required|in:CONYUGE,HIJO/A,OTRO',
+            'fecha_nacimiento' => 'required|date',
+            'genero' => 'required|in:M,F,O,OTRO',
             'correo' => 'nullable|email|max:255'
         ]);
 
@@ -112,23 +132,23 @@ class MiembrosFamiliaresController extends Controller
 
                 // CREACION MIEMBRO FAMILIAR
                 $miembro = MiembrosFamiliares::create([
-                    'socio_id'           => $id_socio,
-                    'nombre_completo'    => $request->nombre_completo,
-                    'parentesco'         => $request->parentesco,
-                    'fecha_nacimiento'   => $request->fecha_nacimiento,
-                    'genero'             => $request->genero,
+                    'socio_id' => $id_socio,
+                    'nombre_completo' => $request->nombre_completo,
+                    'parentesco' => $request->parentesco,
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                    'genero' => $request->genero,
                     'correo' => $request->correo,
                 ]);
 
                 //
                 DB::table('codigos_qr')->insert([
-                    'codigo'           => $codigoString,
-                    'usuario_id'       => $miembro->id_miembro,
-                    'tipo_usuario'     => 'FAMILIAR',
-                    'estatus'          => 'EXPIRADO',
+                    'codigo' => $codigoString,
+                    'usuario_id' => $miembro->id_miembro,
+                    'tipo_usuario' => 'FAMILIAR',
+                    'estatus' => 'EXPIRADO',
                     'fecha_activacion' => now(),
-                    'created_at'       => now(),
-                    'updated_at'       => now()
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
 
                 return $miembro;
@@ -162,19 +182,19 @@ class MiembrosFamiliaresController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Miembro familiar y QR creados con éxito',
-                'data'    => $result,
-                'qr_url'  => $qrUrl
+                'data' => $result,
+                'qr_url' => $qrUrl
             ], 201);
         } catch (\Exception $e) {
             // === MODO DIAGNÓSTICO EXTREMO (Solo para Desarrollo) ===
             Log::error('Error capturado: ' . $e->getMessage());
 
             return response()->json([
-                'success'    => false,
-                'message'    => '¡El código explotó!',
+                'success' => false,
+                'message' => '¡El código explotó!',
                 'error_real' => $e->getMessage(), // <--- AQUÍ ESTÁ EL CHISME
-                'archivo'    => $e->getFile(),
-                'linea'      => $e->getLine()
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
             ], 500);
         }
     }
@@ -194,20 +214,20 @@ class MiembrosFamiliaresController extends Controller
         }
 
         $request->validate([
-            'nombre_completo'  => 'required|string|max:100',
-            'parentesco'       => 'required|in:CONYUGE,HIJO/A,OTRO',
+            'nombre_completo' => 'required|string|max:100',
+            'parentesco' => 'required|in:CONYUGE,HIJO/A,OTRO',
             'fecha_nacimiento' => 'required|date',
-            'genero'           => 'required|in:M,F,OTRO',
+            'genero' => 'required|in:M,F,OTRO',
             'correo' => 'nullable|email|max:255'
         ]);
 
         try {
             DB::transaction(function () use ($miembro, $request) {
                 $miembro->update([
-                    'nombre_completo'  => $request->nombre_completo,
-                    'parentesco'       => $request->parentesco,
+                    'nombre_completo' => $request->nombre_completo,
+                    'parentesco' => $request->parentesco,
                     'fecha_nacimiento' => $request->fecha_nacimiento,
-                    'genero'           => $request->genero,
+                    'genero' => $request->genero,
                     'correo' => $request->correo,
                 ]);
             });
@@ -215,12 +235,14 @@ class MiembrosFamiliaresController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Miembro familiar actualizado correctamente',
-                'data'    => $miembro
+                'data' => $miembro
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error al actualizar miembro familiar: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Hubo un error al actualizar'], 500);
         }
     }
+
+
 
 }
