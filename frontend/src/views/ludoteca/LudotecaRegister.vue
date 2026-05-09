@@ -8,6 +8,7 @@ import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
+import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import { IconFilter, IconChevronDown, IconCalendar, IconStar, IconUser, IconHourglass, IconAlertCircle } from '@/components/icons'
 import { useformat } from '@/utils/formatters'
 
@@ -178,6 +179,18 @@ const buildMenuItems = (item) => [
                 {{ filteredRecord.length }}
                 <span class="font-medium text-surface-400">registros encontrados</span>
             </span>
+            <ExportCsvButton :data="filteredRecord" filename="ludoteca-registros" :columns="[
+                { label: 'ID', field: 'id_historial' },
+                { label: 'Número Acción', field: 'numero_accion' },
+                { label: 'Nombre Menor', field: 'nombre_menor' },
+                { label: 'Nombre Titular', field: 'nombre_titular' },
+                { label: 'Hora de Ingreso', field: 'hora_ingreso' },
+                { label: 'Hora de Egreso', field: 'hora_egreso' },
+                { label: 'Tiempo Total (minutos)', field: 'tiempo_total_minutos' },
+                { label: 'Estatus Final', field: 'estatus_final' },
+                { label: 'Calificación Servicio', field: 'calificacion_servicio' },
+                { label: 'Observaciones', field: 'observaciones' }
+            ]" />
         </AdminPageHeader>
 
         <!-- BARRA DE FILTROS -->
@@ -364,7 +377,8 @@ const buildMenuItems = (item) => [
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium text-surface-700">{{ item.nombre_titular
                                     }}</span>
-                                    <span class="text-[10px] font-medium text-surface-400 uppercase tracking-wider">Acción
+                                    <span
+                                        class="text-[10px] font-medium text-surface-400 uppercase tracking-wider">Acción
                                         #{{ item.numero_accion }}</span>
                                 </div>
                             </td>
@@ -374,7 +388,8 @@ const buildMenuItems = (item) => [
                                 <div class="flex flex-col gap-0.5">
                                     <div class="flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        <span class="text-xs font-medium text-surface-600">{{ item.hora_ingreso }}</span>
+                                        <span class="text-xs font-medium text-surface-600">{{ item.hora_ingreso
+                                        }}</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
@@ -384,7 +399,7 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Tiempo -->
-                             <td class="px-4 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 <span
                                     class="px-2.5 py-1 rounded-lg bg-surface-100 text-surface-700 font-medium text-[10px]">
                                     {{ item.tiempo_total_minutos }} min
@@ -392,7 +407,7 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Calificación -->
-                             <td class="px-4 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 <div v-if="item.calificacion_servicio" class="flex items-center justify-center gap-0.5">
                                     <span class="text-xs font-medium text-amber-500">{{ item.calificacion_servicio
                                     }}</span>
