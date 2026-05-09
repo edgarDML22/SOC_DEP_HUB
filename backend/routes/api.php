@@ -74,9 +74,12 @@ Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateE
 
 
 //pueba
-//Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
-//Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
-
+Route::prefix('v1/admin/socios/{socioId}/familiares')->group(function () {
+    Route::get('/', [AdminFamilyController::class, 'show']);
+    Route::post('/', [AdminFamilyController::class, 'store']);
+    Route::put('/{id}', [AdminFamilyController::class, 'update']);
+    Route::delete('/{id}', [AdminFamilyController::class, 'destroy']);
+});
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
 
@@ -215,13 +218,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/v1/guests/{id}', [GuestStatusController::class, 'destroy']);
 
     // FAMILY MEMBERS SDH 240
-    Route::prefix('v1/admin/socios/{socioId}/familiares')->group(function () {
-        Route::get('/', [AdminFamilyController::class, 'index']);
-        Route::post('/', [AdminFamilyController::class, 'store']);
-        Route::put('/{id}', [AdminFamilyController::class, 'update']);
-        Route::delete('/{id}', [AdminFamilyController::class, 'destroy']);
-    });
-
+    /*   Route::prefix('v1/admin/socios/{socioId}/familiares')->group(function () {
+          Route::get('/', [AdminFamilyController::class, 'index']);
+          Route::post('/', [AdminFamilyController::class, 'store']);
+          Route::put('/{id}', [AdminFamilyController::class, 'update']);
+          Route::delete('/{id}', [AdminFamilyController::class, 'destroy']);
+      });
+   */
 
 
     // FRIENDS

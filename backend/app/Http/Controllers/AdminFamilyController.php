@@ -4,77 +4,233 @@ namespace App\Http\Controllers;
 
 use App\Models\ActividadPlantilla;
 use App\Models\MiembrosFamiliares;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\SocioTitular;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\Reservacion;
+use App\Models\CodigoQr;
+use App\Models\torneos;
+use App\Models\EncuentrosTorneo;
 // SDH 240 
 class AdminFamilyController extends Controller
 {
 
     // --- MÉTODO SHOW ---
-    public function index(Request $request)
+    public function show($socioId)
     {
-        $id_socio = $request->user()->user_id;
+        if ($socioId != auth()->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado, el socio no es el titular'
+            ], 401);
+        }
 
-        // 1. Usamos with('codigoQrActivo') para cargar el QR de forma eficiente
-        $miembros = MiembrosFamiliares::with('codigoQrActivo')
-            ->where('socio_id', $id_socio)
+
+        $miembros = SocioTitular::query()
+            ->join(
+                'miembros_familiares as m',
+                'm.socio_id',
+                '=',
+                'socios_titulares.id_socio'
+            )
+            ->join(
+                'codigos_qr as c',
+                'c.usuario_id',
+                '=',
+                'm.id_miembro'
+            )
+            ->where('socios_titulares.id_socio', $socioId)
+            ->where('c.tipo_usuario', 'FAMILIAR')
+            ->select(
+                'm.id_miembro',
+                'm.nombre_completo',
+                'm.fecha_nacimiento',
+                'c.codigo',
+                'm.parentesco',
+                'c.tipo_usuario'
+
+            )
+
+            ->orderBy('m.nombre_completo')
             ->get();
 
-        // 2. Mapeamos para mantener la estructura que espera tu frontend
         $miembrosConQR = $miembros->map(function ($miembro) {
-            $miembro->codigo_qr = $miembro->codigoQrActivo ? $miembro->codigoQrActivo->codigo : 'QR_NO_ENCONTRADO';
+            $miembro->edad = Carbon::parse(
+                $miembro->fecha_nacimiento
+            )->age;
             return $miembro;
         });
 
-        return response()->json(['success' => true, 'data' => $miembrosConQR], 200);
+        return response()->json([
+            'success' => true,
+            'data' => $miembrosConQR
+
+        ], 200);
     }
 
     // --- MÉTODO DESTROY ---
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, $socioId, $miembroId)
     {
-        $id_socio = $request->user()->user_id;
-        $miembro = MiembrosFamiliares::where('id_miembro', $id)->where('socio_id', $id_socio)->first();
 
-        if (!$miembro)
-            return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
+        /* $id_socio = $request->user()->user_id; */
+        $id_socio = 1;
+
+        if ($socioId != $id_socio) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado, el socio no es el titular'
+            ], 401);
+        }
+
+        $miembro = MiembrosFamiliares::where(
+            'id_miembro',
+            $miembroId
+        )
+            ->where(
+                'socio_id',
+                $socioId
+            )
+            ->first();
+
+        if (!$miembro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Miembro familiar no encontrado'
+            ], 404);
+        }
+
+        $codigo_qr = CodigoQr::where(
+            'usuario_id',
+            $miembroId
+        )
+            ->where(
+                'tipo_usuario',
+                'FAMILIAR'
+            )
+            ->first();
+
+        if (!$codigo_qr) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Código QR no encontrado'
+            ], 404);
+        }
 
         try {
-            $reservas_activas = Reservacion::where('id_socio_titular', $id_socio)
-                ->whereIn('estatus_operativo', ['ACTIVA', 'PENDIENTE'])
-                ->whereJsonContains('acompanantes_draft', (string) $miembro->id_miembro)
-                ->count();
 
-            if ($reservas_activas > 0) {
-                return response()->json(['success' => false, 'message' => 'No se puede eliminar al miembro familiar porque tiene reservas activas']);
+            /*
+            ---------------------------------------------------
+            HARD DELETE
+            Menos de 1 hora desde creación QR
+            ---------------------------------------------------
+            */
+
+            if (
+                Carbon::parse($codigo_qr->created_at)
+                    ->diffInHours(now()) < 1
+            ) {
+                DB::transaction(function () use ($miembro, $codigo_qr) {
+
+                    // Hard delete QR
+                    $codigo_qr->delete();
+
+                    // Hard delete familiar
+                    $miembro->forceDelete();
+                });
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Miembro eliminado permanentemente'
+                ], 200);
             }
 
-            /*  if (
-                 ActividadPlantilla::join('sesiones_activas', 'actividad_plantilla.id_actividad_plantilla', '=', 'sesiones_activas.id_actividad_plantilla')
-                     ->where('actividad_plantilla.socio_id', $id_socio)
-                     ->where('sesiones_activas.socio_id', $id_miembro)
-                     ->exists()
-             ) {
+            /*
+            ---------------------------------------------------
+            VALIDAR RESERVAS ACTIVAS
+            ---------------------------------------------------
+            */
 
-                 return response()->json(['success' => false, 'message' => 'No se puede eliminar al miembro familiar porque tiene asistencias activas']);
-             } */
+            $available = Reservacion::where(
+                'id_socio_titular',
+                $id_socio
+            )
+                ->whereRaw("
+            EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(
+                    acompanantes_draft
+                ) elem
+                WHERE (elem->>'id')::int = ?
+            )
+        ", [$miembro->id_miembro])
+                ->where(function ($q) {
+                    $q->where(
+                        'estatus_operativo',
+                        '!=',
+                        'CANCELADA'
+                    )
+                        ->orWhereNull(
+                            'estatus_operativo'
+                        );
+                })
+                ->exists();
 
-            DB::transaction(function () use ($miembro) {
-                // Actualizamos el estatus del QR usando la relación polimórfica
-                if ($miembro->codigoQrActivo) {
-                    $miembro->codigoQrActivo->update(['estatus_codigo_qr' => 'INACTIVO']);
-                }
+            /*
+            ---------------------------------------------------
+            VALIDAR TORNEOS
+            ---------------------------------------------------
+            */
+
+            $torneos = EncuentrosTorneo::where(
+                'competidor_1_id',
+                $miembroId
+            )
+                ->orWhere(
+                    'competidor_2_id',
+                    $miembroId
+                )
+                ->exists();
+
+            if ($available || $torneos) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar porque tiene reservas o torneos activos'
+                ], 409);
+            }
+
+            /*
+            ---------------------------------------------------
+            SOFT DELETE
+            ---------------------------------------------------
+            */
+
+            DB::transaction(function () use ($miembro, $codigo_qr) {
+                // Desactivar QR
+                $codigo_qr->update([
+                    'estatus' => 'INACTIVO',
+                    'deleted_at' => now()
+                ]);
+                // Soft delete familiar
                 $miembro->delete();
             });
-            return response()->json(['success' => true, 'message' => 'Eliminado correctamente'], 200);
+            return response()->json([
+                'success' => true,
+                'message' => 'Miembro eliminado correctamente'
+            ], 200);
+
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al procesar'], 500);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
-
     // CREAR 
     public function store(Request $request)
     {
@@ -185,6 +341,7 @@ class AdminFamilyController extends Controller
                 'data' => $result,
                 'qr_url' => $qrUrl
             ], 201);
+
         } catch (\Exception $e) {
             // === MODO DIAGNÓSTICO EXTREMO (Solo para Desarrollo) ===
             Log::error('Error capturado: ' . $e->getMessage());
@@ -201,11 +358,11 @@ class AdminFamilyController extends Controller
 
 
     // ACTUALIZAR
-    public function update(Request $request, $id)
+    public function update(Request $request, $id_socio, $id_miembro)
     {
         $id_socio = $request->user()->user_id;
-
-        $miembro = MiembrosFamiliares::where('id_miembro', $id)
+        //$id_socio = 1;
+        $miembro = MiembrosFamiliares::where('id_miembro', $id_miembro)
             ->where('socio_id', $id_socio)
             ->first();
 
@@ -237,6 +394,7 @@ class AdminFamilyController extends Controller
                 'message' => 'Miembro familiar actualizado correctamente',
                 'data' => $miembro
             ], 200);
+
         } catch (\Exception $e) {
             Log::error('Error al actualizar miembro familiar: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Hubo un error al actualizar'], 500);

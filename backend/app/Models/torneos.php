@@ -20,6 +20,7 @@ class torneos extends Model
         'descripcion',
         'estatus_torneo',
         'id_categoria',
+
     ];
     public function disciplina()
     {
