@@ -41,7 +41,7 @@ const sections = [
     paths: ['/admin/reservations', '/admin/ludoteca', '/admin/tournaments', '/admin/activities'],
     children: [
       { label: 'Reservas On-Demand', to: '/admin/reservations', icon: IconClock },
-      { label: 'Ludoteca', to: '/admin/ludoteca/ludoteca-list', icon: IconBaby },
+      { label: 'Ludoteca', to: '/admin/ludoteca', icon: IconBaby },
       { label: 'Torneos', to: '/admin/tournaments', icon: IconTrophy },
       { label: 'Actividades', to: '/admin/activities', icon: IconTarget }
     ],
