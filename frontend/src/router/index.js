@@ -272,11 +272,38 @@ const router = createRouter({
         },
         {
           path: "tournaments",
-          component: () => import("@/views/admin/TournamentForm.vue"),
+          component: () => import("@/views/admin/tournaments/Tournaments.vue"),
+          redirect: "/admin/tournaments",
+          children: [
+            {
+              path: "",
+              name: "tournaments",
+              component: () => import("@/views/admin/tournaments/Tournaments.vue"),
+            },
+            {
+              path: "schedule",
+              name: "schedule",
+              component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
+            },
+            {
+              path: "create",
+              name: "create-tournament",
+              component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
+            },
+            {
+              path: "details",
+              name: "details-tournament",
+              component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
+            },
+          ]
         },
         {
           path: "reservations",
           component: () => import("@/views/admin/Reservation.vue"),
+        },
+        {
+          path: "activities",
+          component: () => import("@/views/admin/activities/Activities.vue"),
         },
         {
           path: "spaces",
@@ -349,32 +376,48 @@ const router = createRouter({
         },
         {
           path: 'ludoteca',
-          component: () => import('@/views/ludoteca/LudotecaAdmin.vue'),
-          redirect: { name: 'admin-ludoteca-list' },
-          children: [
-            {
-              path: 'ludoteca-list',
-              name: 'admin-ludoteca-list',
-              component: () => import('@/views/ludoteca/List/LudotecaList.vue'),
-            },
-            {
-              path: 'update',
-              name: 'ludoteca/update',
-              component: () => import('@/views/ludoteca/LudotecaUpdate.vue'),
-            },
-          ],
+          name: 'admin-ludoteca',
+          component: () => import('@/views/admin/Ludoteca.vue'),
+        },
+        {
+          path: 'ludoteca/record/:id',
+          name: 'admin-ludoteca-record-details',
+          component: () => import('@/views/ludoteca/LudotecaRegisterDetails.vue'),
         },
         {
           path: "reports",
-          component: () => import("@/views/admin/Reports.vue"),
+          component: () => import("@/views/admin/reports/Reports.vue"),
+          redirect: "/admin/reports/auditoria",
+          children: [
+            {
+              path: "auditoria",
+              name: "auditoria",
+              component: () => import("@/views/admin/reports/Auditoria.vue"),
+            },
+            {
+              path: "ocupation-spaces",
+              name: "ocupation-spaces",
+              component: () => import("@/views/admin/reports/OcupationSpaces.vue"),
+            },
+            {
+              path: "tournaments-analytics",
+              name: "tournaments-analytics",
+              component: () => import("@/views/admin/reports/TournamentsAnalytics.vue"),
+            },
+            {
+              path: "academic-performance",
+              name: "academic-performance",
+              component: () => import("@/views/admin/reports/AcademicPerformance.vue"),
+            },
+          ]
         },
         {
           path: "tournaments/create",
-          component: () => import("@/views/admin/CreateTournament.vue"),
+          component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
         },
         {
           path: "/tournaments/details",
-          component: () => import("@/views/admin/DetailsTournament.vue"),
+          component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
         },
         {
           path: "categories/create",
