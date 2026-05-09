@@ -3,53 +3,51 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\SocioTitular;
+use Illuminate\Support\Facades\DB;
 
 class NotificacionController extends Controller
 {
     // GET /v1/notificaciones — lista las notificaciones del socio autenticado
     public function index(Request $request)
     {
-        $socio = SocioTitular::find($request->user()->user_id);
+        $idSocio = $request->user()->user_id;
 
-        if (!$socio) {
-            return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);
-        }
-
-        $notificaciones = $socio->notifications()
-            ->latest()
-            ->take(6)
-            ->get()
-            ->map(fn($n) => [
-                'id'        => $n->id,
-                'data'      => $n->data,
-                'leida'     => !is_null($n->read_at),
-                'creada_en' => $n->created_at->toIso8601String(),
-            ]);
+        $notificaciones = collect(DB::select("
+            SELECT id, data, read_at, created_at
+            FROM   notifications
+            WHERE  notifiable_type = 'SOCIO'
+              AND  notifiable_id   = ?
+            ORDER  BY created_at DESC
+            LIMIT  6
+        ", [$idSocio]))->map(fn($n) => [
+            'id'        => $n->id,
+            'data'      => json_decode($n->data, true),
+            'leida'     => $n->read_at !== null,
+            'creada_en' => $n->created_at,
+        ]);
 
         return response()->json([
             'success'        => true,
             'notificaciones' => $notificaciones,
-            'no_leidas'      => $socio->unreadNotifications()->count(),
+            'no_leidas'      => $notificaciones->filter(fn($n) => !$n['leida'])->count(),
         ]);
     }
 
     // PATCH /v1/notificaciones/{id}/leer — marca una notificación como leída
     public function marcarLeida(Request $request, string $id)
     {
-        $socio = SocioTitular::find($request->user()->user_id);
+        $affected = DB::update("
+            UPDATE notifications
+            SET    read_at = NOW()
+            WHERE  id              = ?
+              AND  notifiable_type = 'SOCIO'
+              AND  notifiable_id   = ?
+              AND  read_at IS NULL
+        ", [$id, $request->user()->user_id]);
 
-        if (!$socio) {
-            return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);
-        }
-
-        $notificacion = $socio->notifications()->where('id', $id)->first();
-
-        if (!$notificacion) {
+        if (!$affected) {
             return response()->json(['success' => false, 'message' => 'Notificación no encontrada'], 404);
         }
-
-        $notificacion->markAsRead();
 
         return response()->json(['success' => true]);
     }
@@ -57,13 +55,13 @@ class NotificacionController extends Controller
     // PATCH /v1/notificaciones/leer-todas — marca todas como leídas
     public function marcarTodasLeidas(Request $request)
     {
-        $socio = SocioTitular::find($request->user()->user_id);
-
-        if (!$socio) {
-            return response()->json(['success' => false, 'message' => 'Socio no encontrado'], 404);
-        }
-
-        $socio->unreadNotifications->markAsRead();
+        DB::update("
+            UPDATE notifications
+            SET    read_at = NOW()
+            WHERE  notifiable_type = 'SOCIO'
+              AND  notifiable_id   = ?
+              AND  read_at IS NULL
+        ", [$request->user()->user_id]);
 
         return response()->json(['success' => true]);
     }

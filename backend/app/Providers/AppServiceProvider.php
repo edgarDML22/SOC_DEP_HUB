@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Relations\Relation; // <-- 1. Importa esta clase arriba
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Laravel\Sanctum\Sanctum;
+use App\Models\CachedPersonalAccessToken;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 2. Agrega este mapeo estricto
+        Sanctum::usePersonalAccessTokenModel(CachedPersonalAccessToken::class);
+
         Relation::enforceMorphMap([
             'USER'     => 'App\Models\User',
             'SOCIO'    => 'App\Models\SocioTitular',

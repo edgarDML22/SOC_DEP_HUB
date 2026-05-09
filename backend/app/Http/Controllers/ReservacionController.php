@@ -173,7 +173,10 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'Falta el ID de la reservación'], 400);
         }
 
-        $reserva = Reservacion::where('id_reserva', $id)->first();
+        $reserva = Reservacion::with([
+            'espacioFisico:id_espacio,nombre_espacio,capacidad_maxima',
+            'disciplina:id_disciplina,nombre_disciplina',
+        ])->where('id_reserva', $id)->first();
 
         if (!$reserva) {
             return response()->json(['success' => false, 'message' => 'No se encontró la reservación'], 404);
@@ -220,53 +223,49 @@ class ReservacionController extends Controller
         }
 
         try {
-            return DB::transaction(function () use ($request, $reserva) {
+            $datosCorreo = null;
+
+            $resultado = DB::transaction(function () use ($request, $reserva, &$datosCorreo) {
                 // Leer acompañantes del draft almacenado en BD (columna JSONB)
                 $draft = $reserva->acompanantes_draft;
-                
+
                 if (is_string($draft)) {
                     $draft = json_decode($draft, true) ?? [];
                 }
-                
+
                 if (!is_array($draft)) {
                     $draft = [];
                 }
 
-                // Validar capacidad del espacio
-                $espacio = EspacioFisico::where('id_espacio', $reserva->id_espacio)->first();
-                
-                if ($espacio && $espacio->capacidad_maxima) {
+                // Validar capacidad usando la relación ya cargada en eager load
+                $espacioCargado = $reserva->espacioFisico;
+
+                if ($espacioCargado && $espacioCargado->capacidad_maxima) {
                     $totalAsistentes = count($draft) + 1; // +1 por el titular
-                    
-                    if ($totalAsistentes > $espacio->capacidad_maxima) {
+
+                    if ($totalAsistentes > $espacioCargado->capacidad_maxima) {
                         return response()->json([
                             'success' => false,
-                            'message' => "La cancha tiene capacidad para {$espacio->capacidad_maxima} personas. Tienes " . count($draft) . " acompañantes + tú = {$totalAsistentes}."
+                            'message' => "La cancha tiene capacidad para {$espacioCargado->capacidad_maxima} personas. Tienes " . count($draft) . " acompañantes + tú = {$totalAsistentes}."
                         ], 422);
                     }
                 }
 
                 // Cambiar estatus a ACTIVA y limpiar datos temporales de expiración
                 $reserva->estatus_operativo = 'ACTIVA';
-                $reserva->fecha_expiracion = null;
+                $reserva->fecha_expiracion  = null;
                 $reserva->save();
 
-                // Enviar correo de confirmación
-                try {
-                    $user = $reserva->id_socio_titular == $request->user()->user_id ? $request->user() : \App\Models\User::find($reserva->id_socio_titular);
-                    if ($user && $user->email) {
-                        $disciplina = $reserva->disciplina->nombre_disciplina ?? 'Deporte';
-                        $espacio = $reserva->espacioFisico->nombre_espacio ?? 'Espacio';
-                        $hora = $reserva->hora_inicio . ' - ' . $reserva->hora_fin;
-                        $fecha = $reserva->fecha_reserva;
-
-                        Mail::raw("Tu reservación para $disciplina en $espacio ha sido confirmada para el día $fecha en el horario $hora.", function ($message) use ($user) {
-                            $message->to($user->email)
-                                    ->subject('Confirmación de Reservación - SOC-DEP HUB');
-                        });
-                    }
-                } catch (\Exception $mailEx) {
-                    Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
+                // Capturar datos del correo dentro de la transacción, antes de que cierre
+                $user = $request->user();
+                if ($user && $user->email) {
+                    $datosCorreo = [
+                        'email'      => $user->email,
+                        'disciplina' => $reserva->disciplina->nombre_disciplina ?? 'Deporte',
+                        'espacio'    => $reserva->espacioFisico->nombre_espacio  ?? 'Espacio',
+                        'hora'       => $reserva->hora_inicio . ' - ' . $reserva->hora_fin,
+                        'fecha'      => $reserva->fecha_reserva,
+                    ];
                 }
 
                 return response()->json([
@@ -274,6 +273,21 @@ class ReservacionController extends Controller
                     'message' => 'Reservación confirmada exitosamente'
                 ]);
             });
+
+            // Envío del correo FUERA de la transacción — no bloquea la BD
+            if ($datosCorreo) {
+                try {
+                    Mail::raw(
+                        "Tu reservación para {$datosCorreo['disciplina']} en {$datosCorreo['espacio']} " .
+                        "ha sido confirmada para el día {$datosCorreo['fecha']} en el horario {$datosCorreo['hora']}.",
+                        fn($m) => $m->to($datosCorreo['email'])->subject('Confirmación de Reservación - SOC-DEP HUB')
+                    );
+                } catch (\Exception $mailEx) {
+                    Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
+                }
+            }
+
+            return $resultado;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

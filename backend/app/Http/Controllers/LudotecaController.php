@@ -25,7 +25,12 @@ class LudotecaController extends Controller
 
         // Gerente / Subgerente
         if (in_array($user->rol, ['gerente', 'subgerente'])) {
-            $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])->get();
+            $registros = RegistrosLudoteca::with(['adultoIngreso', 'menor'])
+                ->where(function ($query) use ($inicioDia, $finDia) {
+                    $query->whereBetween('hora_ingreso', [$inicioDia, $finDia])
+                          ->orWhereIn('estatus_ludoteca', ['ACTIVA', 'INACTIVO']);
+                })
+                ->get();
 
             if ($registros->isEmpty()) {
                 return response()->json(['message' => 'No se encontraron registros'], 404);

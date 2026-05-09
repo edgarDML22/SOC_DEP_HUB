@@ -1,16 +1,23 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useProfileStore } from '@/stores/profiles/socioStore';
 import OnDemand from './OnDemand.vue';
 import Manage from './Manage.vue';
 
 const router = useRouter();
+const route = useRoute();
 const profileStore = useProfileStore();
 
 const { isPenalized, fechaFinPenalizacion } = profileStore;
 
-const activeView = ref('mis-reservas');
+const validTabs = ['mis-reservas', 'hacer-reserva'];
+const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'mis-reservas';
+const activeView = ref(initialTab);
+
+watch(() => route.query.tab, (tab) => {
+    if (validTabs.includes(tab)) activeView.value = tab;
+});
 
 const tabs = [
   {

@@ -63,7 +63,11 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Eliminar el token actual utilizado en esta sesión
+        $token = $request->bearerToken();
+        if ($token) {
+            cache()->forget('sanctum_token_' . hash('sha256', $token));
+        }
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

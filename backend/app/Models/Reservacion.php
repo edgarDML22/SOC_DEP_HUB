@@ -29,10 +29,10 @@ class Reservacion extends Model
     ];
 
     public function espacioFisico(){
-        return $this->hasOne(EspacioFisico::class, 'id_espacio', 'id_espacio');
+        return $this->belongsTo(EspacioFisico::class, 'id_espacio', 'id_espacio');
     }
 
     public function disciplina(){
-        return $this->hasOne(Disciplina::class,'id_disciplina', 'id_disciplina');
+        return $this->belongsTo(Disciplina::class, 'id_disciplina', 'id_disciplina');
     }
 }

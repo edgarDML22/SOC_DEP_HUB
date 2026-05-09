@@ -5,7 +5,7 @@ import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 
-const { toastInfo, confirmWarning, confirmDelete } = useAlerts();
+const { toastInfo, confirmWarning, confirmDelete, showLoading, closeLoading, successModal } = useAlerts();
 const reservationStore = useReservationStore();
 const router = useRouter(); 
 const emit = defineEmits(['switch-tab']);
@@ -33,7 +33,11 @@ const activeFilterLabel = computed(() => {
 const reservasFiltradas = computed(() => {
     let list = misReservacionesTotales.value;
     if (activeFilter.value !== 'TODAS') {
-        list = list.filter(r => r.estatus_operativo === activeFilter.value);
+        if (activeFilter.value === 'NO SHOW') {
+            list = list.filter(r => r.estatus_operativo === 'NO_SHOW' || r.estatus_operativo === 'NO SHOW');
+        } else {
+            list = list.filter(r => r.estatus_operativo === activeFilter.value);
+        }
     }
     
     // Sort / Ordenamiento
@@ -76,37 +80,57 @@ const isCancelling = ref(false);
 const openCancelModal = async (reserva, event) => {
     event.stopPropagation();
 
-    // 1. Obtener la hora actual forzada a Ciudad de México para comparar correctamente con el servidor
     const ahoraStr = new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" });
     const ahoraMexico = new Date(ahoraStr);
-    
-    // 2. Parsear la fecha de la reservación (que ya está en hora local de CDMX según el backend)
     const fechaHoraReserva = new Date(`${reserva.fecha_reserva}T${reserva.hora_inicio}`);
-    
-    // 3. Calcular la diferencia en minutos
     const minutosRestantes = (fechaHoraReserva - ahoraMexico) / 60000;
-
-    // Caso B: Si faltan menos de 120 min (2 horas) o si la reserva ya inició/pasó.
     const esTardia = minutosRestantes < 120;
 
     const titulo = esTardia ? 'Cancelación con Penalización' : 'Cancelar Reservación';
-    const mensaje = esTardia
-        ? `¡Atención! Faltan menos de 2 horas (o el horario ya inició) para tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}. Al confirmar, se registrará un NO SHOW en tu cuenta.`
-        : `¿Estás seguro de que deseas cancelar tu reservación de ${reserva.disciplina?.nombre_disciplina || 'este espacio'}? El horario quedará libre para otros socios.`;
 
-    const result = await confirmDelete(titulo, mensaje, 'Sí, Cancelar');
+    // Mensaje con NO SHOW en rojo usando html en lugar de text
+    const mensajeHtml = esTardia
+        ? `¡Atención! Faltan menos de 2 horas (o el horario ya inició) para tu reservación de <strong>${reserva.disciplina?.nombre_disciplina || 'este espacio'}</strong>. Si cancelas ahora, se registrará un <span style="color:#dc2626;font-weight:700;">NO SHOW</span> en tu cuenta. ¿Deseas continuar?`
+        : `¿Estás seguro de que deseas cancelar tu reservación de <strong>${reserva.disciplina?.nombre_disciplina || 'este espacio'}</strong>? El horario quedará libre para otros socios.`;
+
+    const Swal = (await import('sweetalert2')).default;
+
+    const result = await Swal.fire({
+        title: titulo,
+        html: mensajeHtml,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Cancelar',
+        cancelButtonText: 'Regresar',
+        buttonsStyling: false,
+        background: 'var(--p-surface-50)',
+        color: 'var(--p-surface-900)',
+        customClass: {
+            popup: 'swal-border-radius',
+            confirmButton: 'btn-delete-confirm',
+            cancelButton: 'btn-cancel',
+        }
+    });
 
     if (result.isConfirmed) {
-        isCancelling.value = true;
+        showLoading('Cancelando reservación...');
         const res = await cancelarReservacion(reserva.id_reserva);
+        closeLoading();
+
         if (res?.success) {
-            toastInfo(
-                res.nuevo_estatus === 'NO_SHOW' ? 'No Show registrado' : 'Reservación cancelada',
-                res.nuevo_estatus === 'NO_SHOW'
-                    ? 'Se registró un No Show en tu cuenta.'
-                    : 'El espacio ha sido liberado.',
-                res.nuevo_estatus === 'NO_SHOW' ? 'warning' : 'success'
-            );
+            if (res.nuevo_estatus === 'NO_SHOW') {
+                await Swal.fire({
+                    title: 'No Show registrado',
+                    html: 'Tu reservación fue cancelada tardíamente.<br>Se registró un <span style="color:#dc2626;font-weight:700;">NO SHOW</span> en tu cuenta.',
+                    icon: 'warning',
+                    confirmButtonText: 'Entendido',
+                    buttonsStyling: false,
+                    background: 'var(--p-surface-50)',
+                    color: 'var(--p-surface-900)',
+                    customClass: { popup: 'swal-border-radius', confirmButton: 'btn-primary' }
+                });
+            } else {
+                await successModal('Reservación cancelada', 'Tu reservación ha sido cancelada correctamente.');
+            }
         } else {
             toastInfo('Error', res?.error || 'No se pudo cancelar la reservación.', 'error');
         }
@@ -170,11 +194,12 @@ const closeDetails = () => {
 
 const getStatusConfig = (status) => {
     const configs = {
-        'ACTIVA': { label: 'ACTIVA', class: 'bg-green-50 text-green-700 border-green-200' },
+        'ACTIVA':     { label: 'ACTIVA',     class: 'bg-green-50 text-green-700 border-green-200' },
         'COMPLETADA': { label: 'COMPLETADA', class: 'bg-blue-50 text-blue-700 border-blue-200' },
-        'CANCELADA': { label: 'CANCELADA', class: 'bg-red-50 text-red-700 border-red-200' },
-        'NO SHOW': { label: 'NO SHOW', class: 'bg-orange-50 text-orange-700 border-orange-200' },
-        'PENDIENTE': { label: 'PENDIENTE', class: 'bg-yellow-50 text-yellow-700 border-yellow-200' }
+        'CANCELADA':  { label: 'CANCELADA',  class: 'bg-orange-50 text-orange-700 border-orange-200' },
+        'NO_SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
+        'NO SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
+        'PENDIENTE':  { label: 'PENDIENTE',  class: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
     };
     return configs[status] || { label: status, class: 'bg-surface-50 text-surface-700 border-surface-200' };
 };

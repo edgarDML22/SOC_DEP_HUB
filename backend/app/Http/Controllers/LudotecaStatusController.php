@@ -91,9 +91,6 @@ class LudotecaStatusController extends Controller
             ], 409);
         }
 
-        //Si el check_in es IN
-        $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
-
         $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
             ->where('socio_id', $request->id_socio)
             ->first();
@@ -179,29 +176,19 @@ class LudotecaStatusController extends Controller
         }
 
         if ($request->estatus_ludoteca == 'ENTREGADO') {
-            // ... (existing code for ENTREGADO)
             $estatusFinal = 'COMPLETADA_A_TIEMPO';
 
+            $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->firstOrFail();
+            $limite = $registro->hora_limite;
             $time = now('America/Mexico_City');
-            $limite = RegistrosLudoteca::where('id_registro', $id)
-                ->value('hora_limite');
 
             if ($time > $limite) {
                 $estatusFinal = 'COMPLETADA_CON_RETRASO';
 
-                /* SocioTitular::where(
-                    'id_socio',
-                    $request->id_socio
-                )->increment('retrasos_ludoteca', 1); */
                 $socio = SocioTitular::find($request->id_socio);
                 $socio->increment('retrasos_ludoteca', 1);
                 Sanciones::aplicarSanciones($request->id_socio);
-
-
-                // aumentar retrasos existentes
-
             }
-            $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->first();
             $horaIngreso = \Carbon\Carbon::parse($registro->hora_ingreso);
             $horaEgreso = now('America/Mexico_City');
 
@@ -222,7 +209,7 @@ class LudotecaStatusController extends Controller
                 'estatus_final' => $estatusFinal
             ]);
 
-            RegistrosLudoteca::where('id_registro', $id)->update([
+            RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
                 'estatus_ludoteca' => $estatusFinal,
                 'hora_egreso' => now('America/Mexico_City'),
                 'id_adulto_egreso' => $request->id_socio,

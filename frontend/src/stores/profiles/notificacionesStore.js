@@ -9,7 +9,9 @@ export const useNotificacionesStore = defineStore('notificaciones', () => {
   const noLeidas = computed(() => notificaciones.value.filter(n => !n.leida).length)
   const tieneNoLeidas = computed(() => noLeidas.value > 0)
 
-  const fetchNotificaciones = async () => {
+  const fetchNotificaciones = async ({ force = false } = {}) => {
+    if (!force && notificaciones.value.length > 0) return
+
     isLoading.value = true
     try {
       const res = await api.get('/notificaciones')

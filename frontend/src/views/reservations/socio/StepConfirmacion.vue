@@ -2,13 +2,17 @@
 import { computed, ref } from 'vue';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
+import { useAlerts } from '@/composables/useAlerts';
 import { useRouter } from 'vue-router';
-import { useProfileStore } from '@/stores/profiles/socioStore'; 
+import { useProfileStore } from '@/stores/profiles/socioStore';
+
+const emit = defineEmits(['confirmed']);
 
 const router = useRouter();
 const profileStore = useProfileStore();
 const reservationStore = useReservationStore();
 const { reservaPayload, cargando, errorNavegacion, acompanantesSeleccionados } = storeToRefs(reservationStore);
+const { showLoading, closeLoading, successModal } = useAlerts();
 
 const isConfirming = ref(false);
 
@@ -20,17 +24,19 @@ const dateToday = computed(() => {
 const handleConfirm = async () => {
     if (isConfirming.value) return;
     isConfirming.value = true;
-    
+
+    showLoading('Confirmando reservación...');
     const result = await reservationStore.confirmarReserva();
+    closeLoading();
+
     isConfirming.value = false;
-    
+
     if (result.success) {
-        // Redirigir al inicio de socio donde podrá ver su reserva activa
+        await successModal('¡Reserva completada!', 'Tu reserva se ha completado con éxito. Puedes verla en tu lista de reservaciones.');
         reservationStore.resetearReserva();
-        router.push('/socio/home');
+        router.replace({ name: 'reservation-on-demand', query: { tab: 'mis-reservas' } });
     } else {
         if (result.status === 409) {
-            // El horario o cancha ya no está disponible
             reservationStore.resetearReserva();
             reservationStore.errorNavegacion = result.error;
             reservationStore.pasoActual = "1";
