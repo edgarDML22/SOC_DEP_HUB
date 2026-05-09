@@ -29,7 +29,7 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         error.value = null;
         try {
             // Es CRÍTICO incluir el prefijo /v1/ y pasar el socio_id para el admin
-            const res = await api.get(`/v1/guest-list?socio_id=${socioId}`);
+            const res = await api.get(`/guest-list?socio_id=${socioId}`);
             if (res.data.success) {
                 // Mapeamos los campos del controlador a los que espera el frontend
                 guests.value = res.data.data.map(g => ({
@@ -53,16 +53,16 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         error.value = null;
         try {
             // Incluimos socio_id en el payload para que el backend sepa a quién asignar el invitado
-            const res = await api.post('/v1/guest-create', { 
+            const res = await api.post('/guest-create', {
                 ...payload,
-                socio_id: socioId 
+                socio_id: socioId
             });
-            
+
             if (res.data.success || res.status === 201) {
                 await fetchGuests(socioId);
                 const responseData = res.data.success ? res.data.data : res.data;
-                return { 
-                    success: true, 
+                return {
+                    success: true,
                     data: {
                         ...responseData,
                         qr_code_image: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${responseData.codigo_qr}`
@@ -86,7 +86,7 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         error.value = null;
         try {
             // Usamos la ruta /v1/guests/{id}
-            const res = await api.put(`/v1/guests/${guestId}`, payload);
+            const res = await api.put(`/guests/${guestId}`, payload);
             if (res.data.success) {
                 await fetchGuests(socioId);
                 return { success: true, data: res.data.data };
@@ -108,8 +108,8 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         error.value = null;
         try {
             // Usamos la ruta /v1/guests/{id}/toggle-pass
-            const res = await api.put(`/v1/guests/${guestId}/toggle-pass`);
-            
+            const res = await api.put(`/guests/${guestId}/toggle-pass`);
+
             if (res.data.success) {
                 await fetchGuests(socioId);
                 return { success: true, data: res.data.data };
@@ -131,7 +131,7 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         error.value = null;
         try {
             // Usamos la ruta /v1/guests/{id}
-            const res = await api.delete(`/v1/guests/${guestId}`);
+            const res = await api.delete(`/guests/${guestId}`);
             if (res.data.success) {
                 await fetchGuests(socioId);
                 return { success: true };

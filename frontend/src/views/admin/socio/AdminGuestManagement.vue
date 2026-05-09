@@ -8,9 +8,13 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue';
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue';
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
-import { IconUser, IconMail, IconPhone, IconQr } from '@/components/icons';
+import { IconUser, IconMail, IconPhone, IconQr, IconSearch } from '@/components/icons';
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue';
 import CancelButton from '@/components/gerente/ui/CancelButton.vue';
+import SearchInput from '@/components/gerente/ui/SearchInput.vue';
+import { useformat } from '@/utils/formatters';
+
+const { dateFormat } = useformat();
 
 const route = useRoute();
 const router = useRouter();
@@ -43,9 +47,22 @@ const initials = (name = '') => {
   return (parts[0]?.[0] ?? '?').toUpperCase();
 };
 
-// SORTED GUESTS
-const sortedGuests = computed(() => {
-  return [...guests.value].sort((a, b) => {
+// SEARCH & SORTED GUESTS
+const search = ref('');
+
+const filteredGuests = computed(() => {
+  let r = guests.value;
+
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    r = r.filter(g =>
+      g.nombre_invitado?.toLowerCase().includes(q) ||
+      g.correo?.toLowerCase().includes(q) ||
+      g.telefono?.includes(q)
+    );
+  }
+
+  return [...r].sort((a, b) => {
     // Primero alfabético por nombre
     const nameA = a.nombre_invitado || '';
     const nameB = b.nombre_invitado || '';
@@ -91,9 +108,15 @@ const buildMenuItems = (guest) => [
 
 onMounted(async () => {
   // Fetch socio details if not already loaded or if it's a different socio
-  if (!currentSocio.value || String(currentSocio.value.id_socio) !== String(socioId)) {
-    await socioStore.fetchSocioDetails(socioId);
+  try {
+    const data = await socioStore.fetchSocioDetails(socioId);
+    if (data) {
+      socioStore.setCurrentSocio(data);
+    }
+  } catch (err) {
+    console.error("Error loading socio details:", err);
   }
+
   // Fetch guests
   await guestStore.fetchGuests(socioId);
 });
@@ -246,24 +269,66 @@ const handleTogglePass = async () => {
         </template>
 
         <div class="flex items-center gap-4">
-          <!-- Contador de pases -->
-          <div class="flex items-center gap-2 px-4 py-2 bg-white border border-surface-200 rounded-2xl shadow-sm">
-            <span class="text-xs font-black uppercase tracking-wider text-surface-400">Pases Activos</span>
-            <div class="px-2.5 py-0.5 rounded-lg text-sm font-black transition-colors"
+          <!-- Total Invitados -->
+          <div class="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-surface-200 rounded-2xl shadow-sm">
+            <span class="text-[11px] font-black uppercase tracking-wider text-surface-400">Total Invitados</span>
+            <div class="px-3 py-1 bg-surface-100 text-surface-900 rounded-xl text-sm font-black">
+              {{ guests.length }}
+            </div>
+          </div>
+
+          <!-- Pases Activos -->
+          <div class="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-surface-200 rounded-2xl shadow-sm">
+            <span class="text-[11px] font-black uppercase tracking-wider text-surface-400">Pases Activos</span>
+            <div class="px-3 py-1 rounded-xl text-sm font-black transition-colors"
               :class="activePasses >= 5 ? 'bg-red-100 text-red-700' : 'bg-primary-100 text-primary-700'">
               {{ activePasses }} / 5
             </div>
           </div>
 
-          <button class="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
-            :disabled="activePasses >= 5" @click="openCreateModal">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Registrar Invitado
-          </button>
+          <!-- Botón Registrar (Se oculta si llega al límite) -->
+          <Transition enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 translate-x-4" enter-to-class="opacity-100 translate-x-0"
+            leave-active-class="transition-all duration-200 ease-in" leave-from-class="opacity-100 translate-x-0"
+            leave-to-class="opacity-0 translate-x-4">
+            <button v-if="activePasses < 5"
+              class="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+              @click="openCreateModal">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Registrar Invitado
+            </button>
+          </Transition>
         </div>
       </AdminPageHeader>
+
+      <!-- BANNER DE ADVERTENCIA (Límite de pases) -->
+      <Transition enter-active-class="transition-all duration-500 ease-out" enter-from-class="opacity-0 -translate-y-4"
+        enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-300 ease-in"
+        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-4">
+        <div v-if="activePasses >= 5"
+          class="bg-red-50 border border-red-100 rounded-3xl p-5 flex items-center gap-5 shadow-sm border-l-4 border-l-red-500">
+          <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="font-black text-red-900 text-base leading-tight">Límite de Pases Activos Alcanzado</h4>
+            <p class="text-red-700/80 text-sm font-medium mt-1">Este socio ha alcanzado el máximo de 5 pases activos
+              permitidos simultáneamente. Para registrar uno nuevo o activar otro, primero debe desactivar uno de los
+              pases
+              actuales.</p>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- BARRA DE BÚSQUEDA -->
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-4">
+        <SearchInput v-model="search" placeholder="Buscar por nombre, correo o teléfono…" />
+      </div>
 
       <!-- TABLA DE INVITADOS -->
       <div class="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
@@ -303,35 +368,35 @@ const handleTogglePass = async () => {
         <!-- Tabla -->
         <table v-else class="w-full text-sm">
           <thead>
-            <tr class="bg-surface-50/50 border-b border-surface-100">
-              <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-surface-400">Invitado
+            <tr class="bg-surface-50 border-b border-surface-200">
+              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Invitado
               </th>
-              <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-surface-400">Contacto
+              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Contacto
               </th>
-              <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-surface-400">Estatus
+              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estatus
                 Invitado</th>
-              <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-surface-400">Daily
+              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Daily
                 Pass
               </th>
-              <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-surface-400">
+              <th class="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-surface-700">
                 Acciones</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-surface-50">
-            <tr v-for="guest in sortedGuests" :key="guest.id_invitado"
-              class="hover:bg-surface-50/50 transition-all group">
+          <tbody class="divide-y divide-surface-100">
+            <tr v-for="guest in filteredGuests" :key="guest.id_invitado"
+              class="hover:bg-surface-50/70 transition-all group">
               <!-- Info Invitado -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-4">
                   <div
-                    class="w-11 h-11 rounded-2xl bg-linear-to-br flex items-center justify-center text-white font-black text-sm shadow-sm shrink-0"
+                    class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shadow-sm shrink-0"
                     :class="avatarGradient(guest.nombre_invitado)">
                     {{ initials(guest.nombre_invitado) }}
                   </div>
                   <div>
-                    <p class="font-bold text-surface-900 text-base leading-none">{{ guest.nombre_invitado }}</p>
-                    <p class="text-xs text-surface-400 mt-1.5 font-medium">Invitado desde {{ guest.fecha_registro ||
-                      'N/A' }}
+                    <p class="font-bold text-surface-900 text-sm leading-none">{{ guest.nombre_invitado }}</p>
+                    <p class="text-[10px] text-surface-400 mt-1.5 font-medium">Invitado desde {{
+                      dateFormat(guest.fecha_registro) || 'N/A' }}
                     </p>
                   </div>
                 </div>
@@ -361,7 +426,7 @@ const handleTogglePass = async () => {
                 <div class="flex flex-col gap-1">
                   <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
                   <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400 ml-1">
-                    Expira: {{ guest.fecha_expiracion }}
+                    Expira: {{ dateFormat(guest.fecha_expiracion) }}
                   </span>
                 </div>
               </td>
@@ -380,29 +445,30 @@ const handleTogglePass = async () => {
 
   <!-- MODAL: CREAR/EDITAR INVITADO -->
   <Teleport to="body">
-    <Transition 
-      enter-active-class="transition-all duration-300 ease-out" 
-      enter-from-class="opacity-0" 
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-200 ease-in" 
-      leave-from-class="opacity-100" 
-      leave-to-class="opacity-0"
-    >
-      <div v-if="showGuestModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="showGuestModal = false">
+    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showGuestModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+        @click.self="showGuestModal = false">
         <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
-          
+
           <!-- Header -->
           <div class="px-8 py-6 border-b border-surface-100 flex items-center justify-between">
             <div>
               <h2 class="text-xl font-black text-surface-900 leading-tight">
-                {{ modalStep === 2 ? 'Pase de Invitado' : (modalMode === 'create' ? 'Registrar Invitado' : 'Editar Invitado') }}
+                {{ modalStep === 2 ? 'Pase de Invitado' :
+                  (modalMode === 'create' ? 'Registrar Invitado' : 'Editar Invitado') }}
               </h2>
               <p class="text-sm text-surface-500 font-medium mt-1">
                 {{ modalStep === 2 ? 'Registro exitoso' : 'Completa la información del invitado' }}
               </p>
             </div>
-            <button @click="showGuestModal = false" class="w-10 h-10 rounded-2xl bg-surface-50 hover:bg-surface-100 flex items-center justify-center text-surface-400 transition-colors">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            <button @click="showGuestModal = false"
+              class="w-10 h-10 rounded-2xl bg-surface-50 hover:bg-surface-100 flex items-center justify-center text-surface-400 transition-colors">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
             </button>
           </div>
 
@@ -412,57 +478,50 @@ const handleTogglePass = async () => {
             <div v-if="modalStep === 1" class="space-y-5">
               <!-- Nombre -->
               <div class="space-y-1.5">
-                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre Completo</label>
+                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
+                  Completo</label>
                 <div class="relative">
                   <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input 
-                    v-model="guestForm.nombre_invitado"
-                    type="text" 
-                    maxlength="255"
-                    placeholder="Ej. Juan Pérez"
+                  <input v-model="guestForm.nombre_invitado" type="text" maxlength="255" placeholder="Ej. Juan Pérez"
                     class="w-full pl-11 pr-4 py-3 bg-surface-50 border rounded-2xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-                    :class="formErrors.nombre_invitado ? 'border-red-300' : 'border-surface-100'"
-                  />
+                    :class="formErrors.nombre_invitado ? 'border-red-300' : 'border-surface-100'" />
                 </div>
-                <p v-if="formErrors.nombre_invitado" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.nombre_invitado }}</p>
+                <p v-if="formErrors.nombre_invitado" class="text-[10px] font-bold text-red-500 px-1">{{
+                  formErrors.nombre_invitado }}</p>
               </div>
 
               <!-- Correo -->
               <div class="space-y-1.5">
-                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Correo (Opcional)</label>
+                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Correo
+                  (Opcional)</label>
                 <div class="relative">
                   <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input 
-                    v-model="guestForm.correo"
-                    type="email" 
-                    placeholder="ejemplo@correo.com"
+                  <input v-model="guestForm.correo" type="email" placeholder="ejemplo@correo.com"
                     class="w-full pl-11 pr-4 py-3 bg-surface-50 border rounded-2xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-                    :class="formErrors.correo ? 'border-red-300' : 'border-surface-100'"
-                  />
+                    :class="formErrors.correo ? 'border-red-300' : 'border-surface-100'" />
                 </div>
                 <p v-if="formErrors.correo" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.correo }}</p>
               </div>
 
               <!-- Teléfono -->
               <div class="space-y-1.5">
-                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono (Opcional)</label>
+                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono
+                  (Opcional)</label>
                 <div class="relative">
                   <IconPhone class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input 
-                    v-model="guestForm.telefono"
-                    type="tel" 
-                    placeholder="10 dígitos"
+                  <input v-model="guestForm.telefono" type="tel" placeholder="10 dígitos"
                     class="w-full pl-11 pr-4 py-3 bg-surface-50 border rounded-2xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-                    :class="formErrors.telefono ? 'border-red-300' : 'border-surface-100'"
-                  />
+                    :class="formErrors.telefono ? 'border-red-300' : 'border-surface-100'" />
                 </div>
-                <p v-if="formErrors.telefono" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.telefono }}</p>
+                <p v-if="formErrors.telefono" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.telefono }}
+                </p>
               </div>
             </div>
 
             <!-- STEP 2: QR -->
             <div v-else class="flex flex-col items-center py-4">
-              <div class="w-56 h-56 bg-surface-50 rounded-[2.5rem] p-6 border border-surface-100 shadow-inner flex items-center justify-center relative overflow-hidden">
+              <div
+                class="w-56 h-56 bg-surface-50 rounded-[2.5rem] p-6 border border-surface-100 shadow-inner flex items-center justify-center relative overflow-hidden">
                 <div class="absolute inset-0 bg-linear-to-br from-primary-500/5 to-transparent"></div>
                 <img v-if="guestQrData" :src="guestQrData" alt="QR Code" class="w-full h-full relative z-10" />
                 <div v-else class="flex flex-col items-center gap-2 text-surface-300 relative z-10">
@@ -472,7 +531,9 @@ const handleTogglePass = async () => {
               </div>
               <div class="mt-8 text-center space-y-2">
                 <p class="text-base font-black text-surface-900">{{ guestForm.nombre_invitado }}</p>
-                <p class="text-sm text-surface-500 font-medium">El pase ha sido generado y está listo para ser utilizado.</p>
+                <p class="text-sm text-surface-500 font-medium">El pase ha sido generado y está listo para ser
+                  utilizado.
+                </p>
               </div>
             </div>
           </div>
@@ -481,11 +542,8 @@ const handleTogglePass = async () => {
           <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
             <template v-if="modalStep === 1">
               <CancelButton label="Cancelar" @click="showGuestModal = false" />
-              <ConfirmButton 
-                :label="modalMode === 'create' ? 'Registrar' : 'Guardar Cambios'" 
-                :loading="loading.create || loading.update"
-                @click="handleGuestSubmit"
-              />
+              <ConfirmButton :label="modalMode === 'create' ? 'Registrar' : 'Guardar Cambios'"
+                :loading="loading.create || loading.update" @click="handleGuestSubmit" />
             </template>
             <template v-else>
               <ConfirmButton label="Finalizar" @click="showGuestModal = false" />
@@ -498,24 +556,24 @@ const handleTogglePass = async () => {
 
   <!-- MODAL: MOSTRAR QR -->
   <Teleport to="body">
-    <Transition 
-      enter-active-class="transition-all duration-300 ease-out" 
-      enter-from-class="opacity-0" 
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-200 ease-in" 
-      leave-from-class="opacity-100" 
-      leave-to-class="opacity-0"
-    >
-      <div v-if="showQrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="showQrModal = false">
+    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showQrModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+        @click.self="showQrModal = false">
         <div class="bg-white w-full max-w-xs rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
           <div class="px-6 py-5 border-b border-surface-100 flex items-center justify-between">
             <h3 class="text-lg font-black text-surface-900">Pase QR</h3>
             <button @click="showQrModal = false" class="text-surface-400 hover:text-surface-600 transition-colors">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
             </button>
           </div>
           <div class="p-8 flex flex-col items-center gap-6">
-            <div class="w-full aspect-square bg-surface-50 rounded-3xl p-4 border border-surface-100 shadow-inner flex items-center justify-center">
+            <div
+              class="w-full aspect-square bg-surface-50 rounded-3xl p-4 border border-surface-100 shadow-inner flex items-center justify-center">
               <img v-if="qrUrl" :src="qrUrl" alt="QR Code" class="w-full h-full" />
               <div v-else class="text-surface-300 flex flex-col items-center gap-2">
                 <IconQr class="w-10 h-10" />
@@ -537,15 +595,12 @@ const handleTogglePass = async () => {
 
   <!-- MODAL: TOGGLE DAILY PASS -->
   <Teleport to="body">
-    <Transition 
-      enter-active-class="transition-all duration-300 ease-out" 
-      enter-from-class="opacity-0" 
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-200 ease-in" 
-      leave-from-class="opacity-100" 
-      leave-to-class="opacity-0"
-    >
-      <div v-if="showToggleModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="showToggleModal = false">
+    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showToggleModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+        @click.self="showToggleModal = false">
         <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
           <div class="p-8">
             <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-3xl flex items-center justify-center mb-6">
@@ -553,23 +608,29 @@ const handleTogglePass = async () => {
             </div>
             <h3 class="text-xl font-black text-surface-900 leading-tight">Gestionar Daily Pass</h3>
             <p class="text-surface-500 mt-3 leading-relaxed">
-              El pase de <span class="font-bold text-surface-900">{{ selectedGuestForToggle?.nombre_invitado }}</span> está actualmente 
-              <span class="font-bold uppercase" :class="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'text-primary-600' : 'text-surface-400'">
+              El pase de <span class="font-bold text-surface-900">{{ selectedGuestForToggle?.nombre_invitado }}</span>
+              está actualmente
+              <span class="font-bold uppercase"
+                :class="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'text-primary-600' : 'text-surface-400'">
                 {{ selectedGuestForToggle?.estatus_acceso || 'INACTIVO' }}
               </span>.
             </p>
             <p class="text-surface-500 mt-2">
-              ¿Deseas {{ selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'desactivar' : 'activar' }} su acceso para hoy?
+              ¿Deseas {{ selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'desactivar' : 'activar' }} su acceso
+              para
+              hoy?
             </p>
 
             <!-- Error Inline -->
-            <Transition
-              enter-active-class="transition-all duration-200 ease-out"
-              enter-from-class="opacity-0 -translate-y-2"
-              enter-to-class="opacity-100 translate-y-0"
-            >
-              <div v-if="toggleError" class="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start animate-shake">
-                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <Transition enter-active-class="transition-all duration-200 ease-out"
+              enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
+              <div v-if="toggleError"
+                class="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start animate-shake">
+                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4M12 16h.01" />
+                </svg>
                 <p class="text-xs font-bold text-red-700 leading-tight">{{ toggleError }}</p>
               </div>
             </Transition>
@@ -577,11 +638,9 @@ const handleTogglePass = async () => {
 
           <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
             <CancelButton label="Cerrar" @click="showToggleModal = false" />
-            <ConfirmButton 
-              :label="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'Desactivar Pase' : 'Activar Pase'" 
-              :loading="loading.toggle"
-              @click="handleTogglePass"
-            />
+            <ConfirmButton
+              :label="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'Desactivar Pase' : 'Activar Pase'"
+              :loading="loading.toggle" @click="handleTogglePass" />
           </div>
         </div>
       </div>

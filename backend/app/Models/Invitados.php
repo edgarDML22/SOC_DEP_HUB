@@ -12,7 +12,7 @@ class Invitados extends Model
 
     protected $table = 'invitados';
     protected $primaryKey = 'id_invitado';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'id_invitado',
