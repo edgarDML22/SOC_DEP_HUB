@@ -251,6 +251,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
         Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
         Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
+        Route::get('admin/socios-con-menores', [AdminLudotecaController::class, 'getSociosConMenores']);
+        Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);
     });
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
