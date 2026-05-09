@@ -364,20 +364,8 @@ const router = createRouter({
         },
         {
           path: 'ludoteca',
-          component: () => import('@/views/ludoteca/LudotecaAdmin.vue'),
-          redirect: { name: 'admin-ludoteca-list' },
-          children: [
-            {
-              path: 'ludoteca-list',
-              name: 'admin-ludoteca-list',
-              component: () => import('@/views/ludoteca/List/LudotecaList.vue'),
-            },
-            {
-              path: 'update',
-              name: 'ludoteca/update',
-              component: () => import('@/views/ludoteca/LudotecaUpdate.vue'),
-            },
-          ],
+          name: 'admin-ludoteca',
+          component: () => import('@/views/admin/Ludoteca.vue'),
         },
         {
           path: "reports",

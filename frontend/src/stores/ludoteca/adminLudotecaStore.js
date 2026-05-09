@@ -32,14 +32,25 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     const error = ref(null);
 
-    // ─── Actions 
+    const lastRango = ref(null);
+    const isLoaded = ref({
+        instructores: false,
+        turnos: false,
+        historial: false
+    });
 
-    const fetchStats = async (rango = 'hoy') => {
+    const fetchStats = async (rango = 'hoy', force = false) => {
+        // Cache: Si ya tenemos datos para ese mismo rango y no se pide forzar, evitamos la petición
+        if (!force && lastRango.value === rango) {
+            return;
+        }
+
         loading.value.stats = true;
         try {
             const res = await api.get(`/ludoteca/admin/stats?rango=${rango}`);
             if (res.data.success) {
                 stats.value = res.data.data;
+                lastRango.value = rango;
             }
         } catch (err) {
             console.error("[adminLudotecaStore] Error al cargar stats:", err);
@@ -48,12 +59,18 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         }
     };
 
-    const fetchInstructores = async () => {
+    const fetchInstructores = async (force = false) => {
+        // Cache: Si ya tenemos la lista de instructores y no se pide forzar, evitamos la petición
+        if (!force && isLoaded.value.instructores) {
+            return;
+        }
+
         loading.value.instructores = true;
         try {
             const res = await api.get("/ludoteca/admin/instructores");
             if (res.data.success) {
                 instructoresHabilitados.value = res.data.data;
+                isLoaded.value.instructores = true;
             }
         } catch (err) {
             console.error("[adminLudotecaStore] Error al cargar instructores:", err);
@@ -65,12 +82,18 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
     /**
      * Carga los turnos asignados de hoy + próximos 6 días.
      */
-    const fetchTurnos = async () => {
+    const fetchTurnos = async (force = false) => {
+        // Cache: Si ya tenemos turnos y no se pide forzar, evitamos la petición
+        if (!force && isLoaded.value.turnos) {
+            return;
+        }
+
         loading.value.turnos = true;
         try {
             const res = await api.get("/ludoteca/admin/turnos");
             if (res.data.success) {
                 turnosAsignados.value = res.data.data;
+                isLoaded.value.turnos = true;
             }
         } catch (err) {
             console.error("[adminLudotecaStore] Error al cargar turnos:", err);
@@ -85,7 +108,8 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
         try {
             await api.post("/ludoteca/admin/turnos", payload);
-            await fetchTurnos();
+            // Al crear uno nuevo, forzamos la actualización de la lista
+            await fetchTurnos(true);
             return { success: true };
 
         } catch (err) {
@@ -106,6 +130,14 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         }
     };
 
+    const clearCache = () => {
+        lastRango.value = null;
+        isLoaded.value.instructores = false;
+        isLoaded.value.turnos = false;
+        isLoaded.value.historial = false;
+        instructoresHabilitados.value = [];
+        turnosAsignados.value = [];
+    };
 
     return {
         // State
@@ -119,5 +151,6 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         fetchInstructores,
         fetchTurnos,
         crearTurno,
+        clearCache
     };
 });
