@@ -10,6 +10,7 @@ import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import PenalizacionModal from '@/components/admin/socio/PenalizacionModal.vue'
 import { IconFilter, IconChevronDown, IconAlertCircle, IconWarning } from '@/components/icons'
 import EstatusCuentaModal from '@/components/admin/socio/EstatusCuentaModal.vue'
@@ -174,7 +175,7 @@ const openPenalty = (socio) => {
 const openFamily = async (socio) => {
   selectedSocio.value = socio
   showFamilyModal.value = true
-  
+
   // Si ya tenemos la info en caché, no mostramos el spinner global ni bloqueamos
   const cached = socioStore.getSocioById(socio.id_socio)
   if (!cached?.miembros_familiares) {
@@ -227,6 +228,15 @@ onMounted(fetchSocios)
           {{ filteredSocios.length }}
           <span class="font-medium text-surface-400">de {{ socios.length }} socios</span>
         </span>
+        <ExportCsvButton :data="filteredSocios" filename="socios-titulares"
+          :columns="[
+            { label: 'ID Socio', field: 'id_socio' },
+            { label: 'Número Acción', field: 'numero_accion' },
+            { label: 'Nombre Completo', field: 'nombre_completo' },
+            { label: 'Tipo', field: 'tipo_socio' },
+            { label: 'Modalidad', field: 'modalidad_plan' },
+            { label: 'Estatus', field: 'estatus_cuenta' }
+          ]" />
       </AdminPageHeader>
 
       <!-- BARRA DE FILTROS -->
