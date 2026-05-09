@@ -204,7 +204,7 @@ const selectTab = (id) => {
                         ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200'
                         : 'bg-white text-surface-600 border-surface-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50'"
                 >
-                    <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 flex-shrink-0"></span>
+                    <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 shrink-0"></span>
                     {{ filter.label }}
                 </button>
             </div>
@@ -331,7 +331,7 @@ const selectTab = (id) => {
 
         <!-- MODAL DE DETALLES -->
         <Transition name="fade">
-            <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div v-if="showModal" class="fixed inset-0 z-100 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm" @click="closeDetails"></div>
 
                 <div

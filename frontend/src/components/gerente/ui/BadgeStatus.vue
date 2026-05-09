@@ -42,6 +42,8 @@ const STATUS_MAP = {
   // Instructores / Usuarios
   ACTIVO:              { label: 'Activo',             classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   INACTIVO:            { label: 'Inactivo',           classes: 'bg-slate-100  text-slate-500  border-slate-200'  },
+  BAJA_TEMPORAL:       { label: 'Baja Temporal',      classes: 'bg-orange-50 text-orange-700 border-orange-200' },
+  PAUSA:               { label: 'En Pausa',           classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
   HABILITADO:          { label: 'Habilitado',         classes: 'bg-blue-50   text-blue-700   border-blue-200'   },
   DESHABILITADO:       { label: 'Deshabilitado',      classes: 'bg-red-50    text-red-700    border-red-200'    },
 
@@ -55,6 +57,11 @@ const STATUS_MAP = {
   ACTIVO_PASE:         { label: 'Pase Activo',        classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   USADO:               { label: 'Usado',              classes: 'bg-slate-100  text-slate-500  border-slate-200'  },
   EXPIRADO:            { label: 'Expirado',           classes: 'bg-red-50    text-red-700    border-red-200'    },
+
+  // Ludoteca
+  COMPLETADA_A_TIEMPO:    { label: 'A Tiempo',             classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  COMPLETADA_CON_RETRASO: { label: 'Con Retraso',          classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
+  FORZADO_POR_SISTEMA:    { label: 'Forzado por Sistema',  classes: 'bg-red-50    text-red-700    border-red-200'    },
 }
 
 const resolved = (status) => {

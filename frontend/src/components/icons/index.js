@@ -23,6 +23,7 @@ export { default as IconInbox } from './IconInbox.vue';
 export { default as IconHourglass } from './IconHourglass.vue';
 export { default as IconMail } from './IconMail.vue';
 export { default as IconGender } from './IconGender.vue';
+export { default as IconStar } from './IconStar.vue';
 export { default as IconStart } from './IconStart.vue';
 export { default as IconArrowLeft } from './IconArrowLeft.vue';
 export { default as IconBaby } from './IconBaby.vue';
@@ -35,3 +36,6 @@ export { default as IconFilter } from './IconFilter.vue';
 export { default as IconChevronDown } from './IconChevronDown.vue';
 export { default as IconWarning } from './IconWarning.vue';
 export { default as IconTrash } from './IconTrash.vue';
+
+// Re-exportamos los iconos de disciplinas para centralizar todos los iconos
+export * from './disciplines';

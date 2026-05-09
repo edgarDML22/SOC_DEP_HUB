@@ -73,7 +73,6 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
-
 //pueba
 //Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
 //Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
@@ -92,10 +91,10 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
-Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
+//Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
 
-
-// ==========================================
+//SDH 194 ruta para eliminar la disciplina de un instructor
+Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
 // Ruta por defecto que incluye Laravel
@@ -123,7 +122,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
-
 
     //CRUD INSTRUCTORES
     // Para instructor
@@ -159,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/disciplinas/{id}', [DisciplinaController::class, 'show']);
     Route::post('/v1/disciplinas/create', [DisciplinaController::class, 'store']);
     Route::put('/v1/disciplinas/update/{id}', [DisciplinaController::class, 'update']);
+    Route::patch('/v1/disciplinas/{id}/estatus', [DisciplinaController::class, 'update']);
     Route::delete('/v1/disciplinas/delete/{id}', [DisciplinaController::class, 'destroy']);
 
     // CRUD CATEGORIAS DISCIPLINAS
@@ -175,7 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
     Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
     Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
-    //Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
+    Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 
     // Rutas de utilidad/negocio
@@ -252,6 +251,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
         Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
         Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
+        Route::get('admin/socios-con-menores', [AdminLudotecaController::class, 'getSociosConMenores']);
+        Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);
     });
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);

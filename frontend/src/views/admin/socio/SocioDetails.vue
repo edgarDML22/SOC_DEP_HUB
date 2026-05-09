@@ -20,6 +20,10 @@ const isLoading = ref(true);
 const errorMsg = ref('');
 
 onMounted(async () => {
+    if (socioStore.currentSocio && String(socioStore.currentSocio.id_socio) === String(socioId)) {
+        isLoading.value = false;
+    }
+    
     try {
         await fetchSocioDetails(socioId);
     } catch (error) {

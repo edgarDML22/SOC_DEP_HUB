@@ -161,7 +161,7 @@ const save = async () => {
         <Transition enter-active-class="transition-all duration-300 ease-out"
           enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
           <div v-if="modelValue"
-            class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            class="bg-white w-full max-w-4xl rounded-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <!-- ── Cabecera ── -->
             <div class="flex items-center justify-between px-7 py-5 bg-white border-b border-surface-100">
               <div class="flex items-center gap-3">
