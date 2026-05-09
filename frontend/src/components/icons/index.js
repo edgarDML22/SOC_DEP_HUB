@@ -36,3 +36,6 @@ export { default as IconFilter } from './IconFilter.vue';
 export { default as IconChevronDown } from './IconChevronDown.vue';
 export { default as IconWarning } from './IconWarning.vue';
 export { default as IconTrash } from './IconTrash.vue';
+
+// Re-exportamos los iconos de disciplinas para centralizar todos los iconos
+export * from './disciplines';

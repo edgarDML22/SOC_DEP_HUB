@@ -9,14 +9,14 @@ import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 // Iconos de Deportes
-import IconFutbol from '@/components/icons/sports/IconFutbol.vue';
-import IconBasquetbol from '@/components/icons/sports/IconBasquetbol.vue';
-import IconTenis from '@/components/icons/sports/IconTenis.vue';
-import IconVoleibol from '@/components/icons/sports/IconVoleibol.vue';
-import IconSquash from '@/components/icons/sports/IconSquash.vue';
-import IconFrontenis from '@/components/icons/sports/IconFrontenis.vue';
-import IconPadel from '@/components/icons/sports/IconPadel.vue';
-import IconDefault from '@/components/icons/sports/IconDefault.vue';
+import IconFutbol from '@/components/icons/disciplines/IconFutbol.vue';
+import IconBasquetbol from '@/components/icons/disciplines/IconBasquetbol.vue';
+import IconTenis from '@/components/icons/disciplines/IconTenis.vue';
+import IconVoleibol from '@/components/icons/disciplines/IconVoleibol.vue';
+import IconSquash from '@/components/icons/disciplines/IconSquash.vue';
+import IconFrontenis from '@/components/icons/disciplines/IconFrontenis.vue';
+import IconPadel from '@/components/icons/disciplines/IconPadel.vue';
+import IconDefault from '@/components/icons/disciplines/IconDefault.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -45,17 +45,33 @@ const editForm = ref({
 });
 
 onMounted(async () => {
+    const id = route.params.id;
+    
+    // 1. Intentar cargar desde caché inmediatamente
+    const cached = spacesStore.spaces.find(s => String(s.id_espacio) === String(id));
+    if (cached) {
+        space.value = cached;
+        isLoading.value = false;
+        if (route.query.edit === 'true') isEditing.value = true;
+        resetForm();
+    } else {
+        isLoading.value = true;
+    }
+    
     try {
         await disciplinesStore.fetchDisciplines();
-        const data = await spacesStore.fetchSpaceDetails(route.params.id);
-        space.value = data;
-        if (route.query.edit === 'true') {
-            isEditing.value = true;
+        
+        // 2. Traer data fresca en segundo plano (silent fetch)
+        const data = await spacesStore.fetchSpaceDetails(id, true, true);
+        if (data) {
+            space.value = data;
+            if (route.query.edit === 'true') {
+                isEditing.value = true;
+            }
+            resetForm();
         }
-        resetForm();
     } catch (error) {
-        console.error(error);
-        alert("Error al cargar los detalles.");
+        console.error("Error background loading space details:", error);
     } finally {
         isLoading.value = false;
     }

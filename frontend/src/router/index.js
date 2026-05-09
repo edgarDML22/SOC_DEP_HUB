@@ -272,11 +272,38 @@ const router = createRouter({
         },
         {
           path: "tournaments",
-          component: () => import("@/views/admin/TournamentForm.vue"),
+          component: () => import("@/views/admin/tournaments/Tournaments.vue"),
+          redirect: "/admin/tournaments",
+          children: [
+            {
+              path: "",
+              name: "tournaments",
+              component: () => import("@/views/admin/tournaments/Tournaments.vue"),
+            },
+            {
+              path: "schedule",
+              name: "schedule",
+              component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
+            },
+            {
+              path: "create",
+              name: "create-tournament",
+              component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
+            },
+            {
+              path: "details",
+              name: "details-tournament",
+              component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
+            },
+          ]
         },
         {
           path: "reservations",
           component: () => import("@/views/admin/Reservation.vue"),
+        },
+        {
+          path: "activities",
+          component: () => import("@/views/admin/activities/Activities.vue"),
         },
         {
           path: "spaces",
@@ -291,11 +318,6 @@ const router = createRouter({
               path: ':id',
               name: 'spaces-details',
               component: () => import('@/views/admin/spaces/SpaceDetails.vue'),
-            },
-            {
-              path: ':id/disciplines',
-              name: 'spaces-disciplines',
-              component: () => import('@/views/admin/spaces/SpaceDisciplines.vue'),
             },
           ]
         },
@@ -350,16 +372,6 @@ const router = createRouter({
               name: 'instructors-details',
               component: () => import('@/views/admin/instructors/InstructorsDetails.vue'),
             },
-            {
-              path: ':id/disciplines',
-              name: 'instructor-disciplines',
-              component: () => import('@/views/admin/instructors/InstructorDisciplines.vue'),
-            },
-            {
-              path: ':id/status',
-              name: 'instructor-status',
-              component: () => import('@/views/admin/instructors/InstructorStatus.vue'),
-            },
           ]
         },
         {
@@ -374,15 +386,38 @@ const router = createRouter({
         },
         {
           path: "reports",
-          component: () => import("@/views/admin/Reports.vue"),
+          component: () => import("@/views/admin/reports/Reports.vue"),
+          redirect: "/admin/reports/auditoria",
+          children: [
+            {
+              path: "auditoria",
+              name: "auditoria",
+              component: () => import("@/views/admin/reports/Auditoria.vue"),
+            },
+            {
+              path: "ocupation-spaces",
+              name: "ocupation-spaces",
+              component: () => import("@/views/admin/reports/OcupationSpaces.vue"),
+            },
+            {
+              path: "tournaments-analytics",
+              name: "tournaments-analytics",
+              component: () => import("@/views/admin/reports/TournamentsAnalytics.vue"),
+            },
+            {
+              path: "academic-performance",
+              name: "academic-performance",
+              component: () => import("@/views/admin/reports/AcademicPerformance.vue"),
+            },
+          ]
         },
         {
           path: "tournaments/create",
-          component: () => import("@/views/admin/CreateTournament.vue"),
+          component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
         },
         {
           path: "/tournaments/details",
-          component: () => import("@/views/admin/DetailsTournament.vue"),
+          component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
         },
         {
           path: "categories/create",

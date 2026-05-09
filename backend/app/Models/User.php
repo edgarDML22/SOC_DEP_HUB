@@ -12,7 +12,7 @@ class User extends Authenticatable
 
     // Al no especificar $connection, Laravel usará la default (pgsql)
     protected $fillable = [
-        'name', 'email', 'password', 'rol', 'user_id',
+        'email', 'password', 'rol', 'user_id',
     ];
 
     protected $hidden = [

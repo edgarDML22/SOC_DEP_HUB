@@ -71,5 +71,19 @@ export function useformat() {
         return `${dia}/${mes}/${anio}`;
     }
 
-    return { formatText, formatDateTime, formatStatus, formatDate, formatTime, formatCurrency, dateFormat };
+    const formatCategoryEnum = (val) => {
+        if (!val) return '—';
+        const map = {
+            'MENTE_CUERPO': 'Mente y Cuerpo',
+            'ACUATICO': 'Deportes Acuáticos',
+            'DEPORTES_EQUIPO': 'Deportes de Equipo',
+            'DEPORTES_RAQUETA': 'Deportes de Raqueta',
+            'ARTES_MARCIALES': 'Artes Marciales',
+            'GIMNASIA': 'Gimnasia',
+            'ACONDICIONAMIENTO_FISICO': 'Acondicionamiento Físico',
+        };
+        return map[val] || val;
+    };
+
+    return { formatText, formatDateTime, formatStatus, formatDate, formatTime, formatCurrency, dateFormat, formatCategoryEnum };
 }
