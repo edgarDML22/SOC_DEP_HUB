@@ -18,7 +18,13 @@ class GuestStatusController extends Controller
     // MÉTODO 1: OBTENER LISTA DE INVITADOS
     public function show(Request $request)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
+
+        // Si es admin, puede consultar los invitados de cualquier socio vía query param
+        if (in_array($user->rol, ['gerente', 'subgerente']) && $request->has('socio_id')) {
+            $socioId = $request->query('socio_id');
+        }
 
         // 2. Traemos todos sus invitados con sus respectivos pases
         $invitados = Invitados::with('pase')->where('socio_id', $socioId)->get();
@@ -44,8 +50,14 @@ class GuestStatusController extends Controller
 
     public function store(Request $request)
     {
-        /* 1. Obtenemos el ID del Socio desde el Token */
-        $socioId = $request->user()->user_id;
+        /* 1. Obtenemos el ID del Socio */
+        $user = $request->user();
+        $socioId = $user->user_id;
+
+        // Si es admin, puede registrar invitados para cualquier socio
+        if (in_array($user->rol, ['gerente', 'subgerente']) && $request->has('socio_id')) {
+            $socioId = $request->input('socio_id');
+        }
 
 
         /* 2. Validar datos */
@@ -167,12 +179,19 @@ class GuestStatusController extends Controller
 
     public function update(Request $request, $id)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
 
-        // 1. Buscamos al invitado asegurándonos de que pertenezca a este socio
-        $invitado = Invitados::where('id_invitado', $id)
-            ->where('socio_id', $socioId)
-            ->first();
+        // 1. Buscamos al invitado
+        $query = Invitados::where('id_invitado', $id);
+        
+        // Si no es admin, solo puede editar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
@@ -201,13 +220,19 @@ class GuestStatusController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
 
         // Traemos al invitado con su relación de pase diario
-        $invitado = Invitados::with('pase')
-            ->where('id_invitado', $id)
-            ->where('socio_id', $socioId)
-            ->first();
+        $query = Invitados::with('pase')->where('id_invitado', $id);
+
+        // Si no es admin, solo puede eliminar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
@@ -244,12 +269,19 @@ class GuestStatusController extends Controller
     }
     public function togglePass(Request $request, $invitadoId)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
 
-        // 1. Buscamos al invitado asegurándonos de que pertenezca a este socio
-        $invitado = Invitados::where('id_invitado', $invitadoId)
-            ->where('socio_id', $socioId)
-            ->first();
+        // 1. Buscamos al invitado
+        $query = Invitados::where('id_invitado', $invitadoId);
+
+        // Si no es admin, solo puede gestionar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);

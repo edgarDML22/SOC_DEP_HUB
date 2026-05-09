@@ -28,9 +28,15 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         loading.value.fetch = true;
         error.value = null;
         try {
-            const res = await api.get(`/socios/${socioId}/guests`);
+            // Es CRÍTICO incluir el prefijo /v1/ y pasar el socio_id para el admin
+            const res = await api.get(`/v1/guest-list?socio_id=${socioId}`);
             if (res.data.success) {
-                guests.value = res.data.data;
+                // Mapeamos los campos del controlador a los que espera el frontend
+                guests.value = res.data.data.map(g => ({
+                    ...g,
+                    id_invitado: g.id,
+                    nombre_invitado: g.nombre
+                }));
             }
         } catch (err) {
             console.error("Error fetching guests:", err);
@@ -46,10 +52,22 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         loading.value.create = true;
         error.value = null;
         try {
-            const res = await api.post(`/socios/${socioId}/guests`, payload);
-            if (res.data.success) {
+            // Incluimos socio_id en el payload para que el backend sepa a quién asignar el invitado
+            const res = await api.post('/v1/guest-create', { 
+                ...payload,
+                socio_id: socioId 
+            });
+            
+            if (res.data.success || res.status === 201) {
                 await fetchGuests(socioId);
-                return { success: true, data: res.data.data };
+                const responseData = res.data.success ? res.data.data : res.data;
+                return { 
+                    success: true, 
+                    data: {
+                        ...responseData,
+                        qr_code_image: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${responseData.codigo_qr}`
+                    }
+                };
             }
         } catch (err) {
             console.error("Error creating guest:", err);
@@ -67,7 +85,8 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         loading.value.update = true;
         error.value = null;
         try {
-            const res = await api.put(`/socios/${socioId}/guests/${guestId}`, payload);
+            // Usamos la ruta /v1/guests/{id}
+            const res = await api.put(`/v1/guests/${guestId}`, payload);
             if (res.data.success) {
                 await fetchGuests(socioId);
                 return { success: true, data: res.data.data };
@@ -88,9 +107,8 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         loading.value.toggle = true;
         error.value = null;
         try {
-            const res = await api.patch(`/socios/${socioId}/guests/${guestId}/status`, { 
-                estatus_acceso: newStatus 
-            });
+            // Usamos la ruta /v1/guests/{id}/toggle-pass
+            const res = await api.put(`/v1/guests/${guestId}/toggle-pass`);
             
             if (res.data.success) {
                 await fetchGuests(socioId);
@@ -112,7 +130,8 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         loading.value.delete = true;
         error.value = null;
         try {
-            const res = await api.delete(`/socios/${socioId}/guests/${guestId}`);
+            // Usamos la ruta /v1/guests/{id}
+            const res = await api.delete(`/v1/guests/${guestId}`);
             if (res.data.success) {
                 await fetchGuests(socioId);
                 return { success: true };
