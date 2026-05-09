@@ -4,19 +4,19 @@ import api from "@/services/api";
 
 export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
-    // ─── State
-    const stats = ref({
-        kpis: {
-            numero_ninos: 0,
-            calificacion_promedio: null,
-            total_incidencias: 0,
-            tiempo_promedio_min: 0
-        },
-        graficas: {
-            afluencia_temporal: { labels: [], data: [] },
-            calificaciones: { labels: [], data: [] },
-            tiempo_uso: { labels: [], data: [] }
-        }
+    const statsCache = ref({
+        hoy: null,
+        semana: null,
+        mes: null
+    });
+
+    const activeRequests = {};
+
+    const isLoaded = ref({
+        instructores: false,
+        turnos: false,
+        record: false,
+        sociosConMenores: false
     });
 
     const instructoresHabilitados = ref([]);
@@ -36,31 +36,34 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     const error = ref(null);
 
-    const lastRango = ref(null);
-    const isLoaded = ref({
-        instructores: false,
-        turnos: false,
-        record: false,
-        sociosConMenores: false
-    });
-
-    const fetchStats = async (rango = 'hoy', force = false) => {
-        // Cache: Si ya tenemos datos para ese mismo rango y no se pide forzar, evitamos la petición
-        if (!force && lastRango.value === rango) {
-            return;
+    const fetchStats = async (rango = 'hoy', silent = false, force = false) => {
+        if (!force && statsCache.value[rango]) {
+            return statsCache.value[rango];
         }
 
-        loading.value.stats = true;
+        if (!force && activeRequests[rango]) {
+            if (!silent) loading.value.stats = true;
+            await activeRequests[rango];
+            if (!silent) loading.value.stats = false;
+            return statsCache.value[rango];
+        }
+
+        if (!silent) loading.value.stats = true;
+        
+        activeRequests[rango] = api.get(`/ludoteca/admin/stats?rango=${rango}`);
+        
         try {
-            const res = await api.get(`/ludoteca/admin/stats?rango=${rango}`);
+            const res = await activeRequests[rango];
             if (res.data.success) {
-                stats.value = res.data.data;
-                lastRango.value = rango;
+                statsCache.value[rango] = res.data.data;
+                return statsCache.value[rango];
             }
         } catch (err) {
             console.error("[adminLudotecaStore] Error al cargar stats:", err);
+            return null;
         } finally {
-            loading.value.stats = false;
+            delete activeRequests[rango];
+            if (!silent) loading.value.stats = false;
         }
     };
 
@@ -173,7 +176,7 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
     };
 
     const clearCache = () => {
-        lastRango.value = null;
+        statsCache.value = { hoy: null, semana: null, mes: null };
         isLoaded.value.instructores = false;
         isLoaded.value.turnos = false;
         isLoaded.value.record = false;
@@ -186,7 +189,7 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     return {
         // State
-        stats,
+        statsCache,
         instructoresHabilitados,
         turnosAsignados,
         record,

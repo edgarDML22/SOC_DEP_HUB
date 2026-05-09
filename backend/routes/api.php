@@ -34,6 +34,7 @@ use App\Http\Controllers\CategoriaDisciplinaController;
 use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\ReservationAdminController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -73,9 +74,6 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
 
-//pueba
-//Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
-//Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
@@ -92,7 +90,7 @@ Route::middleware(['check.turno'])->group(function () {
     });
 });
 //Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
-
+//Route::get('/v1/reservations/admin/stats', [ReservationAdminController::class, 'getStats']);
 //SDH 194 ruta para eliminar la disciplina de un instructor
 Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
 // RUTAS PROTEGIDAS (Requieren Token)
@@ -194,6 +192,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
     Route::get('/v1/reservations/my-list', [ReservacionController::class, 'myReservations']);
+    Route::get('/v1/reservations/admin/list', [ReservationAdminController::class, 'index']);
+    // SDH 226: Obtener filtros de metadatos para reservaciones
+    Route::get('/v1/reservations/admin/filters-meta', [ReservationAdminController::class, 'filterMeta']);
+    Route::get('/v1/reservations/admin/stats', [ReservationAdminController::class, 'getStats']);
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
