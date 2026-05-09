@@ -368,6 +368,11 @@ const router = createRouter({
           component: () => import('@/views/admin/Ludoteca.vue'),
         },
         {
+          path: 'ludoteca/record/:id',
+          name: 'admin-ludoteca-record-details',
+          component: () => import('@/views/ludoteca/LudotecaRegisterDetails.vue'),
+        },
+        {
           path: "reports",
           component: () => import("@/views/admin/Reports.vue"),
         },

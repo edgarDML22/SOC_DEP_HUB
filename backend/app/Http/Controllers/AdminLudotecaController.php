@@ -135,9 +135,11 @@ class AdminLudotecaController extends Controller
                 's.id_socio'
             )
             ->select(
-                'historial_ludoteca.id_registro_operativo as id_historial',
+                'historial_ludoteca.id_historial',
+                'historial_ludoteca.id_registro_operativo',
                 'm.nombre_completo as nombre_menor',
                 's.nombre_completo as nombre_titular',
+                's.id_socio',
                 's.numero_accion',
                 'historial_ludoteca.hora_ingreso',
                 'historial_ludoteca.hora_egreso',
@@ -154,15 +156,6 @@ class AdminLudotecaController extends Controller
                 $request->fecha_inicio . ' 00:00:00',
                 $request->fecha_fin . ' 23:59:59'
             ]);
-        }
-
-        $resultado = $historial->get();
-
-        if ($resultado->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No hay registros en ese rango de fechas'
-            ], 404);
         }
 
         // filtro socio

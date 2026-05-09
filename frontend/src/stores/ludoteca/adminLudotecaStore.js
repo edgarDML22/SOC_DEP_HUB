@@ -22,12 +22,16 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
     const instructoresHabilitados = ref([]);
 
     const turnosAsignados = ref([]);
+    const record = ref([]);
+    const sociosConMenores = ref([]);
 
     const loading = ref({
         stats: false,
         instructores: false,
         turnos: false,
         submit: false,
+        record: false,
+        sociosConMenores: false,
     });
 
     const error = ref(null);
@@ -36,7 +40,8 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
     const isLoaded = ref({
         instructores: false,
         turnos: false,
-        historial: false
+        record: false,
+        sociosConMenores: false
     });
 
     const fetchStats = async (rango = 'hoy', force = false) => {
@@ -130,13 +135,53 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         }
     };
 
+    const fetchRecord = async (params = {}, force = false) => {
+        if (!force && isLoaded.value.record && Object.keys(params).length === 0) {
+            return;
+        }
+        loading.value.record = true;
+        try {
+            const res = await api.get("/ludoteca/admin/historial", { params });
+            if (res.data.success) {
+                record.value = res.data.data;
+                isLoaded.value.record = true;
+            }
+        } catch (err) {
+            console.error("[adminLudotecaStore] Error al cargar record:", err);
+            record.value = [];
+        } finally {
+            loading.value.record = false;
+        }
+    };
+
+    const fetchSociosConMenores = async (force = false) => {
+        if (!force && isLoaded.value.sociosConMenores) {
+            return;
+        }
+        loading.value.sociosConMenores = true;
+        try {
+            const res = await api.get("/ludoteca/admin/socios-con-menores");
+            if (res.data.success) {
+                sociosConMenores.value = res.data.data;
+                isLoaded.value.sociosConMenores = true;
+            }
+        } catch (err) {
+            console.error("[adminLudotecaStore] Error al cargar socios con menores:", err);
+        } finally {
+            loading.value.sociosConMenores = false;
+        }
+    };
+
     const clearCache = () => {
         lastRango.value = null;
         isLoaded.value.instructores = false;
         isLoaded.value.turnos = false;
-        isLoaded.value.historial = false;
+        isLoaded.value.record = false;
+        isLoaded.value.sociosConMenores = false;
         instructoresHabilitados.value = [];
         turnosAsignados.value = [];
+        record.value = [];
+        sociosConMenores.value = [];
     };
 
     return {
@@ -144,12 +189,16 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         stats,
         instructoresHabilitados,
         turnosAsignados,
+        record,
+        sociosConMenores,
         loading,
         error,
         // Actions
         fetchStats,
         fetchInstructores,
         fetchTurnos,
+        fetchRecord,
+        fetchSociosConMenores,
         crearTurno,
         clearCache
     };
