@@ -73,8 +73,7 @@ Route::post('/v1/reservations', [ReservacionController::class, 'store']);
 // SDH 187: Actualizar estatus de la cuenta del socio
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
-// SDH 226: Obtener filtros de metadatos para reservaciones
-Route::get('/v1/reservations/admin/filters-meta', [ReservationAdminController::class, 'filterMeta']);
+
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
 Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
@@ -194,7 +193,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
     Route::get('/v1/reservations/my-list', [ReservacionController::class, 'myReservations']);
     Route::get('/v1/reservations/admin/list', [ReservationAdminController::class, 'index']);
-    //SDH 226
+    // SDH 226: Obtener filtros de metadatos para reservaciones
+    Route::get('/v1/reservations/admin/filters-meta', [ReservationAdminController::class, 'filterMeta']);
     Route::get('/v1/reservations/admin/stats', [ReservationAdminController::class, 'getStats']);
 
     //Ruta para actualizar el perfil del usuario

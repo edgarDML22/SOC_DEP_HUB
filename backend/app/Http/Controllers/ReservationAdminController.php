@@ -38,7 +38,9 @@ class ReservationAdminController extends Controller
                 'reservaciones_on_demand.id_reserva as id_reserva',
                 's.nombre_completo as nombre_titular',
                 's.numero_accion',
+                'e.id_espacio',
                 'e.nombre_espacio',
+                'd.id_disciplina',
                 'd.nombre_disciplina',
 
                 DB::raw("
@@ -58,38 +60,26 @@ class ReservationAdminController extends Controller
             )
             ->orderBy('reservaciones_on_demand.estatus_operativo');
 
-        // filtro fechas
-        if ($request->fecha_inicio && $request->fecha_fin) {
-
-            $reservaciones->whereBetween(
-                'reservaciones_on_demand.fecha_reserva',
-                [
-                    $request->fecha_inicio,
-                    $request->fecha_fin
-                ]
-            );
+        if ($request->fecha_inicio) {
+            $reservaciones->where('reservaciones_on_demand.fecha_reserva', '>=', $request->fecha_inicio);
+        }
+        if ($request->fecha_fin) {
+            $reservaciones->where('reservaciones_on_demand.fecha_reserva', '<=', $request->fecha_fin);
         }
 
-        // filtro socio
-        if ($request->has('socio_id')) {
-
-            $socio = SocioTitular::find($request->socio_id);
-
-            if (!$socio) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Socio no encontrado',
-                ], 404);
-            }
-
-            $reservaciones->where(
-                's.id_socio',
-                $request->socio_id
-            );
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $reservaciones->where(function ($query) use ($searchTerm) {
+                $query->where('s.nombre_completo', 'ilike', "%$searchTerm%")
+                    ->orWhere('s.numero_accion', 'ilike', "%$searchTerm%");
+            });
         }
 
-        // filtro espacio
-        if ($request->has('espacio_id')) {
+        if ($request->has('socio_id') && !empty($request->socio_id)) {
+            $reservaciones->where('s.id_socio', $request->socio_id);
+        }
+
+        if ($request->has('espacio_id') && !empty($request->espacio_id)) {
 
             $espacio = EspacioFisico::find($request->espacio_id);
 
@@ -106,8 +96,7 @@ class ReservationAdminController extends Controller
             );
         }
 
-        // filtro disciplina
-        if ($request->has('disciplina_id')) {
+        if ($request->has('disciplina_id') && !empty($request->disciplina_id)) {
 
             $disciplina = Disciplina::find($request->disciplina_id);
 
@@ -124,7 +113,6 @@ class ReservationAdminController extends Controller
             );
         }
 
-        // filtro estatus
         if ($request->has('estatus_operativo')) {
             if ($request->estatus_operativo) {
                 $estatus_validos = ['CANCELADA', 'CONFIRMADA', 'FINALIZADA', 'NO_SHOW', 'PENDIENTE', 'ACTIVA'];
@@ -147,9 +135,10 @@ class ReservationAdminController extends Controller
 
         if ($resultado->isEmpty()) {
             return response()->json([
-                'success' => false,
+                'success' => true,
+                'data' => [],
                 'message' => 'No hay reservaciones encontradas'
-            ], 404);
+            ]);
         }
 
         return response()->json([
@@ -159,50 +148,18 @@ class ReservationAdminController extends Controller
 
     }
 
-    //SDH 226                
     public function filterMeta()
     {
-        $espacios = Reservacion::query()
-            ->join(
-                'espacios_fisicos as e',
-                'reservaciones_on_demand.id_espacio',
-                '=',
-                'e.id_espacio'
-            )
-            ->select(
-                'e.id_espacio',
-                'e.nombre_espacio as nombre'
-            )
-            ->distinct()
+        $espaciosIds = Reservacion::distinct()->pluck('id_espacio');
+        $espacios = EspacioFisico::whereIn('id_espacio', $espaciosIds)
+            ->select('id_espacio as id', 'nombre_espacio as nombre')
             ->get();
 
-        $socios = Reservacion::query()
-            ->join(
-                'socios_titulares as s',
-                'reservaciones_on_demand.id_socio_titular',
-                '=',
-                's.id_socio'
-            )
-            ->select(
-                's.id_socio',
-                's.nombre_completo',
-                's.numero_accion'
-            )
-            ->distinct()
-            ->get();
+        $socios = [];
 
-        $disciplinas = Reservacion::query()
-            ->join(
-                'disciplinas as d',
-                'reservaciones_on_demand.id_disciplina',
-                '=',
-                'd.id_disciplina'
-            )
-            ->select(
-                'd.id_disciplina',
-                'd.nombre_disciplina as nombre'
-            )
-            ->distinct()
+        $disciplinasIds = Reservacion::distinct()->pluck('id_disciplina');
+        $disciplinas = Disciplina::whereIn('id_disciplina', $disciplinasIds)
+            ->select('id_disciplina as id', 'nombre_disciplina as nombre')
             ->get();
 
         return response()->json([
