@@ -91,8 +91,12 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
-            'timezone' => 'America/Mexico_City'
+            'sslmode' => 'require',
+            'timezone' => 'America/Mexico_City',
+            'options' => [
+                PDO::ATTR_PERSISTENT => true,
+                PDO::ATTR_TIMEOUT => 10,
+            ],
         ],
 
         'sqlsrv' => [

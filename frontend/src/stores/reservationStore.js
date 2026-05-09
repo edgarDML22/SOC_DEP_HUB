@@ -32,6 +32,8 @@ export const useReservationStore = defineStore("reservation", () => {
   // --- VARIABLES PARA LISTA LOCAL ---
   const misReservacionesTotales = ref([]);
   const misReservacionesCargadas = ref(false);
+  const misReservacionesTimestamp = ref(0);
+  const RESERVACIONES_TTL_MS = 5 * 60 * 1000;
 
   // Flag: ya consultamos si hay borrador activo (evita re-fetch al alternar pestañas)
   const draftVerificado = ref(false);
@@ -140,8 +142,8 @@ export const useReservationStore = defineStore("reservation", () => {
   };
 
   // --- ACTIONS ---
-  const fetchDisponibilidadEspacios = async () => {
-    if (disciplinasUnicas.value && disciplinasUnicas.value.length > 0) return;
+  const fetchDisponibilidadEspacios = async (forceRefresh = false) => {
+    if (!forceRefresh && espaciosDisponibles.value.length > 0) return;
 
     cargando.value = true;
     errorApi.value = null;
@@ -163,7 +165,15 @@ export const useReservationStore = defineStore("reservation", () => {
   };
 
   const fetchMisReservaciones = async (forceRefresh = false) => {
-    if (!forceRefresh && misReservacionesCargadas.value) return;
+    const isStale = Date.now() - misReservacionesTimestamp.value > RESERVACIONES_TTL_MS;
+
+    if (!forceRefresh && misReservacionesCargadas.value && !isStale) return;
+
+    // Stale-While-Revalidate: hay caché pero expiró → devolver caché y revalidar en bg
+    if (misReservacionesCargadas.value && isStale && !forceRefresh) {
+      _revalidarReservaciones();
+      return;
+    }
 
     cargando.value = true;
     try {
@@ -171,12 +181,23 @@ export const useReservationStore = defineStore("reservation", () => {
       if (res.data.success) {
         misReservacionesTotales.value = res.data.data;
         misReservacionesCargadas.value = true;
+        misReservacionesTimestamp.value = Date.now();
       }
     } catch (error) {
       console.error("Error fetching reservations list:", error);
     } finally {
       cargando.value = false;
     }
+  };
+
+  const _revalidarReservaciones = async () => {
+    try {
+      const res = await api.get('/reservations/my-list', { params: { limit: 20 } });
+      if (res.data.success) {
+        misReservacionesTotales.value = res.data.data;
+        misReservacionesTimestamp.value = Date.now();
+      }
+    } catch { /* silencioso — no afecta UX */ }
   };
 
   const fetchHorarioEspacio = async (id_espacio) => {
@@ -232,7 +253,7 @@ export const useReservationStore = defineStore("reservation", () => {
 
         horaInicioTemp.value = horaInicioLimpia;
         horaFinTemp.value = horaFinLimpia;
-        fetchHorarioEspacio(r.id_espacio);
+        await fetchHorarioEspacio(r.id_espacio);
         return true;
       }
     } catch (e) {
