@@ -32,10 +32,12 @@ watch(filtroStats, (newVal) => {
     store.fetchStats(newVal);
 });
 
+const currentStats = computed(() => store.statsCache[filtroStats.value] || { kpis: {}, graficas: {} });
+
 // Configuración de gráficas
 const afluenciaData = computed(() => {
-    let labels = store.stats.graficas?.afluencia_temporal?.labels || [];
-    let data = store.stats.graficas?.afluencia_temporal?.data || [];
+    let labels = currentStats.value.graficas?.afluencia_temporal?.labels || [];
+    let data = currentStats.value.graficas?.afluencia_temporal?.data || [];
 
     if (filtroStats.value === 'hoy') {
         const fullLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
@@ -78,8 +80,8 @@ const afluenciaData = computed(() => {
 });
 
 const calificacionesData = computed(() => {
-    const labels = store.stats.graficas?.calificaciones?.labels || [];
-    const data = store.stats.graficas?.calificaciones?.data || [];
+    const labels = currentStats.value.graficas?.calificaciones?.labels || [];
+    const data = currentStats.value.graficas?.calificaciones?.data || [];
     const bgColors = { '1': '#ef4444', '2': '#f97316', '3': '#eab308', '4': '#84cc16', '5': '#22c55e' };
     
     return {
@@ -130,8 +132,8 @@ const chartOptionsPie = {
 };
 
 const tiempoUsoData = computed(() => {
-    let labels = store.stats.graficas?.tiempo_uso?.labels || [];
-    let data = store.stats.graficas?.tiempo_uso?.data || [];
+    let labels = currentStats.value.graficas?.tiempo_uso?.labels || [];
+    let data = currentStats.value.graficas?.tiempo_uso?.data || [];
 
     if (filtroStats.value === 'hoy') {
         const fullLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
@@ -155,25 +157,18 @@ const tiempoUsoData = computed(() => {
             {
                 label: 'Tiempo Promedio (min)',
                 data: data,
-                borderColor: '#8b5cf6', // purple-500
                 backgroundColor: (context) => {
                     const chart = context.chart;
                     const { ctx, chartArea } = chart;
-                    if (!chartArea) return 'rgba(139, 92, 246, 0.2)';
+                    if (!chartArea) return '#8b5cf6';
                     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                    gradient.addColorStop(0, 'rgba(139, 92, 246, 0)');
-                    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.4)');
+                    gradient.addColorStop(0, '#7c3aed');
+                    gradient.addColorStop(1, '#a78bfa');
                     return gradient;
                 },
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointBackgroundColor: '#8b5cf6',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#8b5cf6',
-                pointRadius: 4,
-                pointHoverRadius: 6,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#6d28d9',
             }
         ]
     };
@@ -190,7 +185,7 @@ const chartOptionsLine = {
 };
 
 const totalEncuestas = computed(() => {
-    const data = store.stats.graficas?.calificaciones?.data || [];
+    const data = currentStats.value.graficas?.calificaciones?.data || [];
     return data.reduce((a, b) => a + Number(b), 0);
 });
 
@@ -368,7 +363,7 @@ onMounted(async () => {
                     </div>
                     <div>
                         <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Número de Niños</p>
-                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.numero_ninos || 0 }}</h3>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ currentStats.kpis?.numero_ninos || 0 }}</h3>
                     </div>
                 </div>
             </div>
@@ -382,7 +377,7 @@ onMounted(async () => {
                     </div>
                     <div>
                         <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Calificación Promedio</p>
-                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.calificacion_promedio || 0 }} <span class="text-sm font-medium text-surface-300">/ 5</span></h3>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ currentStats.kpis?.calificacion_promedio || 0 }} <span class="text-sm font-medium text-surface-300">/ 5</span></h3>
                     </div>
                 </div>
             </div>
@@ -397,7 +392,7 @@ onMounted(async () => {
                     </div>
                     <div>
                         <p class="text-[10px] uppercase font-bold tracking-widest text-surface-400 m-0">Total Incidencias</p>
-                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ store.stats.kpis?.total_incidencias || 0 }}</h3>
+                        <h3 class="text-3xl font-black text-surface-900 m-0">{{ currentStats.kpis?.total_incidencias || 0 }}</h3>
                     </div>
                 </div>
             </div>
@@ -422,7 +417,7 @@ onMounted(async () => {
           <div class="flex justify-center mt-8">
             <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm w-full lg:w-2/3">
               <h3 class="text-xl font-black text-surface-900 mb-6 text-center">Tiempo de Uso Promedio</h3>
-              <div class="h-[350px]"><Chart type="line" :data="tiempoUsoData" :options="chartOptionsLine" class="h-full" /></div>
+              <div class="h-[350px]"><Chart type="bar" :data="tiempoUsoData" :options="chartOptionsLine" class="h-full" /></div>
             </div>
           </div>
 
