@@ -127,8 +127,8 @@ class GuestStatusController extends Controller
                 /* 8. Insertar pase asociado al invitado recién creado */
                 $insertar_pase = PasesDiarios::create([
                     'invitado_id' => $insertar->id_invitado,
-                    'estatus_acceso' => 'INACTIVO',
-                    'fecha_activacion' => null,
+                    'estatus_acceso' => 'EXPIRADO',
+                    'fecha_activacion' => now(),
                 ]);
 
                 return [
@@ -290,6 +290,47 @@ class GuestStatusController extends Controller
             ], 500);
         }
     }
+    public function restore(Request $request, $id)
+    {
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
+
+        // Buscamos al invitado incluyendo eliminados
+        $query = Invitados::withTrashed()->where('id_invitado', $id);
+
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
+
+        if (!$invitado) {
+            return response()->json(['success' => false, 'message' => 'Invitado no encontrado'], 404);
+        }
+
+        if (!$invitado->trashed()) {
+            return response()->json(['success' => false, 'message' => 'El invitado ya está activo'], 400);
+        }
+
+        try {
+            $invitado->restore();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invitado reactivado correctamente',
+                'data' => $invitado
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error al restaurar invitado: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al reactivar al invitado'
+            ], 500);
+        }
+    }
+
     public function togglePass(Request $request, $invitadoId)
     {
         $user = $request->user();
@@ -320,7 +361,7 @@ class GuestStatusController extends Controller
 
         // 3. Actualizamos el estatus
         $nuevoEstatus = $pase->estatus_acceso === 'ACTIVO' ? 'EXPIRADO' : 'ACTIVO';
-        
+
         $updateData = [
             'estatus_acceso' => $nuevoEstatus,
         ];

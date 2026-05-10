@@ -144,6 +144,27 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         }
     };
 
+    async function restoreGuest(socioId, guestId) {
+        isLoading.value = true;
+        loading.value.update = true;
+        error.value = null;
+        try {
+            const res = await api.put(`/guests/${guestId}/restore`);
+            if (res.data.success) {
+                await fetchGuests(socioId);
+                return { success: true };
+            }
+        } catch (err) {
+            console.error("Error restoring guest:", err);
+            const msg = err.response?.data?.message || "Error al reactivar el invitado.";
+            error.value = msg;
+            return { success: false, error: msg };
+        } finally {
+            isLoading.value = false;
+            loading.value.update = false;
+        }
+    }
+
     return {
         // State
         guests,
@@ -158,6 +179,7 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         createGuest,
         updateGuest,
         togglePass,
-        deleteGuest
+        deleteGuest,
+        restoreGuest
     };
 });

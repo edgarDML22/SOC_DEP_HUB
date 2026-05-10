@@ -78,33 +78,60 @@ const filteredGuests = computed(() => {
 });
 
 // ACTIONS
-const buildMenuItems = (guest) => [
-  {
-    label: 'Editar Información',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-    action: () => openEditModal(guest)
-  },
-  {
-    label: 'Mostrar Código QR',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M7 7h.01M17 7h.01M17 17h.01M7 17h.01"/></svg>`,
-    action: () => openQrModal(guest)
-  },
-  {
-    label: 'Gestionar Daily Pass',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
-    action: () => openToggleModal(guest)
-  },
-  {
-    label: 'Eliminar',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>`,
-    destructive: true,
-    action: () => {
-      if (confirm('¿Estás seguro de eliminar a este invitado?')) {
-        guestStore.deleteGuest(socioId, guest.id_invitado);
+const buildMenuItems = (guest) => {
+  const isDeleted = !!guest.deleted_at;
+
+  if (isDeleted) {
+    return [
+      {
+        label: 'Reactivar Invitado',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+        action: () => openRestoreModal(guest)
       }
-    }
+    ];
   }
-];
+
+  return [
+    {
+      label: 'Editar Información',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      action: () => openEditModal(guest)
+    },
+    {
+      label: 'Mostrar Código QR',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M7 7h.01M17 7h.01M17 17h.01M7 17h.01"/></svg>`,
+      action: () => openQrModal(guest)
+    },
+    {
+      label: 'Gestionar Daily Pass',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+      action: () => openToggleModal(guest)
+    },
+    {
+      label: 'Eliminar',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>`,
+      destructive: true,
+      action: () => openDeleteModal(guest)
+    }
+  ];
+};
+
+// RESTORE MODAL
+const showRestoreModal = ref(false);
+const selectedGuestForRestore = ref(null);
+
+const openRestoreModal = (guest) => {
+  selectedGuestForRestore.value = guest;
+  showRestoreModal.value = true;
+};
+
+const handleRestoreGuest = async () => {
+  if (!selectedGuestForRestore.value) return;
+  const res = await guestStore.restoreGuest(socioId, selectedGuestForRestore.value.id_invitado);
+  if (res.success) {
+    showRestoreModal.value = false;
+  }
+};
 
 onMounted(async () => {
   // Fetch socio details if not already loaded or if it's a different socio
@@ -246,6 +273,23 @@ const handleTogglePass = async () => {
     showToggleModal.value = false;
   } else {
     toggleError.value = res.error || 'Error al cambiar el estatus del pase.';
+  }
+};
+
+// DELETE MODAL
+const showDeleteModal = ref(false);
+const selectedGuestForDelete = ref(null);
+
+const openDeleteModal = (guest) => {
+  selectedGuestForDelete.value = guest;
+  showDeleteModal.value = true;
+};
+
+const handleDeleteGuest = async () => {
+  if (!selectedGuestForDelete.value) return;
+  const res = await guestStore.deleteGuest(socioId, selectedGuestForDelete.value.id_invitado);
+  if (res.success) {
+    showDeleteModal.value = false;
   }
 };
 
@@ -641,6 +685,76 @@ const handleTogglePass = async () => {
             <ConfirmButton
               :label="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'Desactivar Pase' : 'Activar Pase'"
               :loading="loading.toggle" @click="handleTogglePass" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+  <!-- MODAL: REACTIVAR INVITADO -->
+  <Teleport to="body">
+    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showRestoreModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+        @click.self="showRestoreModal = false">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
+          <div class="p-8">
+            <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-3xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-black text-surface-900 leading-tight">¿Reactivar invitado?</h3>
+            <p class="text-surface-500 mt-3 leading-relaxed">
+              Estás a punto de reactivar a <span class="font-bold text-surface-900">{{ selectedGuestForRestore?.nombre_invitado }}</span>.
+              El invitado volverá a estar disponible en la lista activa de este socio.
+            </p>
+          </div>
+
+          <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
+            <CancelButton label="Cancelar" @click="showRestoreModal = false" />
+            <ConfirmButton label="Sí, reactivar" :loading="loading.update" @click="handleRestoreGuest" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- MODAL: ELIMINAR INVITADO -->
+  <Teleport to="body">
+    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showDeleteModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+        @click.self="showDeleteModal = false">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
+          <div class="p-8">
+            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-black text-surface-900 leading-tight">¿Eliminar invitado?</h3>
+            <p class="text-surface-500 mt-3 leading-relaxed">
+              Estás a punto de eliminar a <span class="font-bold text-surface-900">{{ selectedGuestForDelete?.nombre_invitado }}</span>.
+              Esta acción desactivará su pase actual y lo dará de baja de la lista de invitados de este socio.
+            </p>
+            <p class="text-surface-400 text-xs mt-4 font-medium italic">
+              * El registro podrá ser visualizado posteriormente por administración.
+            </p>
+          </div>
+
+          <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
+            <CancelButton label="Cancelar" @click="showDeleteModal = false" />
+            <button
+              class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-600/20 flex items-center gap-2"
+              :disabled="loading.delete"
+              @click="handleDeleteGuest">
+              <LoadingSpinner v-if="loading.delete" size="xs" color="white" />
+              {{ loading.delete ? 'Eliminando...' : 'Sí, eliminar' }}
+            </button>
           </div>
         </div>
       </div>
