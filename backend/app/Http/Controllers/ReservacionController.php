@@ -62,8 +62,8 @@ class ReservacionController extends Controller
 
                 if ($bloqueadoPorEstatus && ($socio->estatus_penalizacion === 'SUSPENDIDO' || $fechaActiva)) {
                     return response()->json([
-                        'success'          => false,
-                        'message'          => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes realizar nuevas reservas hasta que expire la sanción.',
+                        'success' => false,
+                        'message' => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes realizar nuevas reservas hasta que expire la sanción.',
                         'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
                     ], 403);
                 }
@@ -73,18 +73,18 @@ class ReservacionController extends Controller
         return DB::transaction(function () use ($request) {
 
             $id_socio = $request->user()->user_id;
-            
+
             // 1. VALIDAR EMPALMES CON OTRAS RESERVACIONES (Forzando Timezone de México)
             $ahoraMexico = Carbon::now('America/Mexico_City');
-            
+
             $conflictoReserva = Reservacion::where('id_espacio', $request->id_espacio)
                 ->where('fecha_reserva', $request->fecha_reserva)
-                ->where(function ($q) use ($id_socio, $ahoraMexico) { 
+                ->where(function ($q) use ($id_socio, $ahoraMexico) {
                     $q->where('estatus_operativo', 'ACTIVA')
-                        ->orWhere(function ($sub) use ($id_socio, $ahoraMexico) { 
+                        ->orWhere(function ($sub) use ($id_socio, $ahoraMexico) {
                             $sub->where('estatus_operativo', 'PENDIENTE')
                                 ->where('fecha_expiracion', '>', $ahoraMexico) // Corrección Timezone
-                                ->where('id_socio_titular', '!=', $id_socio); 
+                                ->where('id_socio_titular', '!=', $id_socio);
                         });
                 })
                 ->where(function ($query) use ($request) {
@@ -110,15 +110,15 @@ class ReservacionController extends Controller
             // SI TODO ESTÁ LIBRE, CREAMOS LA RESERVA
             $nuevaReserva = Reservacion::updateOrCreate(
                 [
-                    'id_socio_titular'  => $id_socio,
+                    'id_socio_titular' => $id_socio,
                     'estatus_operativo' => 'PENDIENTE'
                 ],
                 [
-                    'id_espacio'       => $request->id_espacio,
-                    'id_disciplina'    => $request->id_disciplina,
-                    'fecha_reserva'    => $request->fecha_reserva,
-                    'hora_inicio'      => $request->hora_inicio,
-                    'hora_fin'         => $request->hora_fin,
+                    'id_espacio' => $request->id_espacio,
+                    'id_disciplina' => $request->id_disciplina,
+                    'fecha_reserva' => $request->fecha_reserva,
+                    'hora_inicio' => $request->hora_inicio,
+                    'hora_fin' => $request->hora_fin,
                     // BLINDAMOS LA HORA DE CREACIÓN EXACTA A MÉXICO:
                     'fecha_expiracion' => Carbon::now('America/Mexico_City')->addMinutes(15),
                     'estatus_operativo' => 'PENDIENTE'
@@ -159,7 +159,7 @@ class ReservacionController extends Controller
         $reserva->save();
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'message' => 'Acompañantes del borrador sincronizados'
         ], 200);
     }
@@ -211,8 +211,8 @@ class ReservacionController extends Controller
 
                 if ($bloqueadoPorEstatus && ($socio->estatus_penalizacion === 'SUSPENDIDO' || $fechaActiva)) {
                     return response()->json([
-                        'success'          => false,
-                        'message'          => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes confirmar reservas hasta que expire la sanción.',
+                        'success' => false,
+                        'message' => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes confirmar reservas hasta que expire la sanción.',
                         'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
                     ], 403);
                 }
@@ -223,21 +223,21 @@ class ReservacionController extends Controller
             return DB::transaction(function () use ($request, $reserva) {
                 // Leer acompañantes del draft almacenado en BD (columna JSONB)
                 $draft = $reserva->acompanantes_draft;
-                
+
                 if (is_string($draft)) {
                     $draft = json_decode($draft, true) ?? [];
                 }
-                
+
                 if (!is_array($draft)) {
                     $draft = [];
                 }
 
                 // Validar capacidad del espacio
                 $espacio = EspacioFisico::where('id_espacio', $reserva->id_espacio)->first();
-                
+
                 if ($espacio && $espacio->capacidad_maxima) {
                     $totalAsistentes = count($draft) + 1; // +1 por el titular
-                    
+
                     if ($totalAsistentes > $espacio->capacidad_maxima) {
                         return response()->json([
                             'success' => false,
@@ -260,10 +260,31 @@ class ReservacionController extends Controller
                         $hora = $reserva->hora_inicio . ' - ' . $reserva->hora_fin;
                         $fecha = $reserva->fecha_reserva;
 
-                        Mail::raw("Tu reservación para $disciplina en $espacio ha sido confirmada para el día $fecha en el horario $hora.", function ($message) use ($user) {
-                            $message->to($user->email)
-                                    ->subject('Confirmación de Reservación - SOC-DEP HUB');
-                        });
+                        Mail::raw(
+                            "Estimado(a) {$user->nombre_completo},
+
+                                Nos complace informarte que tu reservación ha sido confirmada correctamente.
+                                                                
+                                Detalles de la reservación:
+
+                                • Disciplina: {$disciplina}
+                                • Espacio reservado: {$espacio}
+                                • Fecha: {$fecha}
+                                • Horario: {$hora}
+
+                                Por favor, procura llegar con anticipación para disfrutar de tu reservación
+                                sin inconvenientes.
+
+                                Agradecemos tu preferencia.
+
+                                Atentamente,
+                                SOC-DEP HUB",
+                            function ($message) use ($user) {
+
+                                $message->to($user->email)
+                                    ->subject('Confirmación de Reservación | SOC-DEP HUB');
+                            }
+                        );
                     }
                 } catch (\Exception $mailEx) {
                     Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
@@ -310,7 +331,7 @@ class ReservacionController extends Controller
             $reservacion->fecha_reserva . ' ' . $reservacion->hora_inicio,
             'America/Mexico_City'
         );
-        
+
         $minutosRestantes = $now->diffInMinutes($fechaHoraReserva, false);
 
         // Si faltan menos de 120 minutos (2 horas) es NO_SHOW. 
@@ -374,8 +395,8 @@ class ReservacionController extends Controller
             ->where('estatus_operativo', 'PENDIENTE')
             ->where('fecha_expiracion', '>', $ahoraMexico) // Corrección Timezone
             ->with([
-                'espacioFisico:id_espacio,nombre_espacio', 
-                'disciplina:id_disciplina,nombre_disciplina' 
+                'espacioFisico:id_espacio,nombre_espacio',
+                'disciplina:id_disciplina,nombre_disciplina'
             ])
             ->first();
 
@@ -388,7 +409,7 @@ class ReservacionController extends Controller
     public function myReservations(Request $request)
     {
         $socioId = $request->user()->user_id;
-        $limit = $request->query('limit', 20); 
+        $limit = $request->query('limit', 20);
         $ahoraMexico = Carbon::now('America/Mexico_City');
 
         $query = Reservacion::where('id_socio_titular', $socioId)
@@ -397,7 +418,7 @@ class ReservacionController extends Controller
             ->orderBy('hora_inicio', 'desc');
 
         // Omitimos SOLO los borradores que ya expiraron (Timezone correcto)
-        $query->where(function($q) use ($ahoraMexico) {
+        $query->where(function ($q) use ($ahoraMexico) {
             $q->where('estatus_operativo', '!=', 'PENDIENTE')
                 ->orWhere('fecha_expiracion', '>', $ahoraMexico);
         });

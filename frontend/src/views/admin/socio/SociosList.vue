@@ -18,16 +18,8 @@ import EstatusCuentaModal from '@/components/admin/socio/EstatusCuentaModal.vue'
 const router = useRouter()
 const socioStore = useSocioStore()
 
-const { socios, isLoading, error: errorMsg } = storeToRefs(socioStore)
+const { socios, isLoading, error: errorMsg, listFilters } = storeToRefs(socioStore)
 const { fetchSocios, fetchSocioDetails } = socioStore
-
-// ── FILTROS ────────────────────────────────────────────────────
-const search = ref('')
-const filterTipo = ref(null)
-const filterModalidad = ref(null)
-const filterGenero = ref(null)
-const filterEstatus = ref(null)
-const filterPenalizacion = ref(null)
 
 const OPT_TIPO = [
   { label: 'Todos los tipos', value: null },
@@ -60,33 +52,34 @@ const OPT_ESTATUS_PENALIZACION = [
 
 const filteredSocios = computed(() => {
   let r = socios.value
+  const f = listFilters.value
 
-  if (search.value) {
-    const q = search.value.toLowerCase()
+  if (f.search) {
+    const q = f.search.toLowerCase()
     r = r.filter(s =>
       s.nombre_completo?.toLowerCase().includes(q) ||
       String(s.numero_accion ?? '').includes(q)
     )
   }
-  if (filterTipo.value) r = r.filter(s => s.tipo_socio === filterTipo.value)
-  if (filterModalidad.value) r = r.filter(s => s.modalidad_plan === filterModalidad.value)
-  if (filterGenero.value) r = r.filter(s => s.genero === filterGenero.value)
-  if (filterEstatus.value) r = r.filter(s => s.estatus_cuenta === filterEstatus.value)
-  if (filterPenalizacion.value) r = r.filter(s => (s.estatus_penalizacion ?? 'SIN_PENALIZACION') === filterPenalizacion.value)
+  if (f.tipo) r = r.filter(s => s.tipo_socio === f.tipo)
+  if (f.modalidad) r = r.filter(s => s.modalidad_plan === f.modalidad)
+  if (f.genero) r = r.filter(s => s.genero === f.genero)
+  if (f.estatus) r = r.filter(s => s.estatus_cuenta === f.estatus)
+  if (f.penalizacion) r = r.filter(s => (s.estatus_penalizacion ?? 'SIN_PENALIZACION') === f.penalizacion)
 
   // Ordenar alfabéticamente por nombre
   return [...r].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
 })
 
 const hasActiveFilters = computed(() =>
-  search.value || filterTipo.value || filterModalidad.value || filterGenero.value ||
-  filterEstatus.value || filterPenalizacion.value
+  listFilters.value.search || listFilters.value.tipo || listFilters.value.modalidad || listFilters.value.genero ||
+  listFilters.value.estatus || listFilters.value.penalizacion
 )
 
 const clearFilters = () => {
-  search.value = ''
-  filterTipo.value = filterModalidad.value = filterGenero.value =
-    filterEstatus.value = filterPenalizacion.value = null
+  listFilters.value.search = ''
+  listFilters.value.tipo = listFilters.value.modalidad = listFilters.value.genero =
+    listFilters.value.estatus = listFilters.value.penalizacion = null
 }
 
 // ── AVATAR ────────────────────────────────────────────────────
@@ -133,14 +126,14 @@ const buildMenuItems = (socio) => [
            </svg>`,
     action: () => openPenalty(socio),
   },
-  {
-    label: 'Miembros familiares',
+  ...(socio.modalidad_plan === 'FAMILIAR' ? [{
+    label: 'Gestionar Miembros Familiares',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
              <path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 0-3-3.87"/>
              <circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="4"/>
            </svg>`,
-    action: () => { openFamily(socio) },
-  },
+    action: () => { router.push(`/admin/socios/${socio.id_socio}/familiares`) },
+  }] : []),
   {
     label: 'Invitados',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
@@ -224,14 +217,14 @@ onMounted(fetchSocios)
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="search" placeholder="Buscar por nombre o número de acción…" />
+        <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o número de acción…" />
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
             <div class="relative">
               <IconFilter
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterTipo"
+              <select v-model="listFilters.tipo"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -244,7 +237,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconFilter
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterModalidad"
+              <select v-model="listFilters.modalidad"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_MODALIDAD" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -257,7 +250,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconFilter
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterGenero"
+              <select v-model="listFilters.genero"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_GENERO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -271,7 +264,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconAlertCircle
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterEstatus"
+              <select v-model="listFilters.estatus"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS_CUENTA" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -285,7 +278,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconWarning
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterPenalizacion"
+              <select v-model="listFilters.penalizacion"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS_PENALIZACION" :key="opt.value" :value="opt.value">{{ opt.label }}
                 </option>
@@ -312,7 +305,7 @@ onMounted(fetchSocios)
       </div>
 
       <!-- TABLA -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
 
         <!-- Estado: cargando -->
         <div v-if="isLoading" class="p-8 space-y-3">
@@ -356,7 +349,7 @@ onMounted(fetchSocios)
         <table v-else class="w-full text-sm">
           <thead>
             <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Socio</th>
+              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Socio</th>
               <th
                 class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">
                 Acción</th>
@@ -374,7 +367,7 @@ onMounted(fetchSocios)
               <th
                 class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden xl:table-cell">
                 Estatus Penalización</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700">Acciones
+              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones
               </th>
             </tr>
           </thead>
@@ -382,7 +375,7 @@ onMounted(fetchSocios)
             <tr v-for="socio in filteredSocios" :key="socio.id_socio"
               class="hover:bg-surface-50/70 transition-colors group">
               <!-- Nombre + avatar -->
-              <td class="px-5 py-3.5">
+              <td class="px-5 py-3.5 first:last:rounded-bl-2xl">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
                            text-white font-black text-xs shrink-0 shadow-sm"
@@ -419,7 +412,7 @@ onMounted(fetchSocios)
                 <BadgeStatus :status="socio.estatus_penalizacion ?? 'SIN_PENALIZACION'" />
               </td>
               <!-- Menú acciones -->
-              <td class="px-4 py-3.5 text-right" @click.stop>
+              <td class="px-4 py-3.5 text-right last:last:rounded-br-2xl" @click.stop>
                 <ActionMenu :items="buildMenuItems(socio)" align="right" />
               </td>
             </tr>

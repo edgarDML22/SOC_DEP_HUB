@@ -1,15 +1,25 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
     IconHistory,
     IconLayers
 } from '@/components/icons'
+import { useAdminLudotecaStore } from '@/stores/ludoteca/adminLudotecaStore'
 
 // Sub-componentes
 import LudotecaRegister from '@/views/ludoteca/LudotecaRegister.vue'
 import LudotecaAdmin from '@/views/ludoteca/LudotecaAdmin.vue'
 
+const store = useAdminLudotecaStore()
+
 const activeTab = ref('register')
+
+// Prefetch silent para tener los datos listos al cambiar de tab o de filtro
+onMounted(() => {
+    store.fetchStats('hoy', true)
+    store.fetchStats('semana', true)
+    store.fetchStats('mes', true)
+})
 
 const tabs = [
     { name: 'register', label: 'Registros', icon: IconHistory },
