@@ -76,7 +76,7 @@ Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateE
 
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
-Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
+// Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
 
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 

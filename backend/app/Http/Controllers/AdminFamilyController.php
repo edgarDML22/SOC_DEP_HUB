@@ -18,17 +18,9 @@ use App\Models\EncuentrosTorneo;
 class AdminFamilyController extends Controller
 {
 
-    // --- MÉTODO SHOW ---
-    public function show($socioId)
+    // --- MÉTODO INDEX ---
+    public function index($socioId)
     {
-        if ($socioId != auth()->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado, el socio no es el titular'
-            ], 401);
-        }
-
-
         $miembros = SocioTitular::query()
             ->join(
                 'miembros_familiares as m',
@@ -50,7 +42,9 @@ class AdminFamilyController extends Controller
                 'm.fecha_nacimiento',
                 'c.codigo',
                 'm.parentesco',
-                'c.tipo_usuario'
+                'c.tipo_usuario',
+                'm.genero',
+                'm.correo'
 
             )
 
@@ -74,18 +68,6 @@ class AdminFamilyController extends Controller
     // --- MÉTODO DESTROY ---
     public function destroy(Request $request, $socioId, $miembroId)
     {
-
-        /* $id_socio = $request->user()->user_id; */
-        $id_socio = 1;
-
-        if ($socioId != $id_socio) {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado, el socio no es el titular'
-            ], 401);
-        }
-
         $miembro = MiembrosFamiliares::where(
             'id_miembro',
             $miembroId
@@ -156,7 +138,7 @@ class AdminFamilyController extends Controller
 
             $available = Reservacion::where(
                 'id_socio_titular',
-                $id_socio
+                $socioId
             )
                 ->whereRaw("
             EXISTS (
@@ -231,12 +213,10 @@ class AdminFamilyController extends Controller
             ], 500);
         }
     }
-    // CREAR 
-    public function store(Request $request)
+    public function store(Request $request, $socioId)
     {
-        $id_socio = $request->user()->user_id;
+        $id_socio = $socioId;
 
-        // VALIDACION DATOS FRONTEND
         $request->validate([
             'nombre_completo' => 'required|string|max:100',
             'parentesco' => 'required|in:CONYUGE,HIJO/A,OTRO',
@@ -245,7 +225,6 @@ class AdminFamilyController extends Controller
             'correo' => 'nullable|email|max:255'
         ]);
 
-        // COMPROBACION CORREOS DUPLICADOS
         if (!empty($request->correo)) {
             $existeCorreo = MiembrosFamiliares::where('socio_id', $id_socio)
                 ->where('correo', $request->correo)
@@ -259,7 +238,6 @@ class AdminFamilyController extends Controller
             }
         }
 
-        //COMPROBACION MAXIMO 6 MIEMBROS FAMILIARES
         $contador = MiembrosFamiliares::where('socio_id', $id_socio)->count();
 
         if ($contador >= 6) {
@@ -272,9 +250,7 @@ class AdminFamilyController extends Controller
 
 
 
-        // GENERACION CODIGO QR UNICO Y GLOBAL
         do {
-            // Generamos un identificador MF + 6 caracteres aleatorios únicos (Ej: MF6A8B10)
             $codigoString = 'MF' . strtoupper(substr(str_replace('-', '', Str::uuid()), 0, 6));
 
             $existe = DB::table('codigos_qr')
@@ -286,7 +262,6 @@ class AdminFamilyController extends Controller
         try {
             $result = DB::transaction(function () use ($id_socio, $request, $codigoString) {
 
-                // CREACION MIEMBRO FAMILIAR
                 $miembro = MiembrosFamiliares::create([
                     'socio_id' => $id_socio,
                     'nombre_completo' => $request->nombre_completo,
@@ -296,7 +271,6 @@ class AdminFamilyController extends Controller
                     'correo' => $request->correo,
                 ]);
 
-                //
                 DB::table('codigos_qr')->insert([
                     'codigo' => $codigoString,
                     'usuario_id' => $miembro->id_miembro,
@@ -343,13 +317,12 @@ class AdminFamilyController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            // === MODO DIAGNÓSTICO EXTREMO (Solo para Desarrollo) ===
             Log::error('Error capturado: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => '¡El código explotó!',
-                'error_real' => $e->getMessage(), // <--- AQUÍ ESTÁ EL CHISME
+                'error_real' => $e->getMessage(),
                 'archivo' => $e->getFile(),
                 'linea' => $e->getLine()
             ], 500);
@@ -357,11 +330,8 @@ class AdminFamilyController extends Controller
     }
 
 
-    // ACTUALIZAR
     public function update(Request $request, $id_socio, $id_miembro)
     {
-        $id_socio = $request->user()->user_id;
-        //$id_socio = 1;
         $miembro = MiembrosFamiliares::where('id_miembro', $id_miembro)
             ->where('socio_id', $id_socio)
             ->first();

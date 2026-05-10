@@ -356,6 +356,11 @@ const router = createRouter({
               name: 'socios-details',
               component: () => import('@/views/admin/socio/SocioDetails.vue'),
             },
+            {
+              path: ':id/familiares',
+              name: 'socios-familiares',
+              component: () => import('@/views/admin/socio/AdminFamilyManagement.vue'),
+            },
           ]
         },
         {
