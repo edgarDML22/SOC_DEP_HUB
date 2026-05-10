@@ -15,6 +15,11 @@ import { useAdminStore } from '@/stores/profiles/adminStore'
 const adminStore = useAdminStore()
 const { managers, isLoading, listFilters } = storeToRefs(adminStore)
 
+// Inicializar si por alguna razón está null (fallback de seguridad)
+if (!listFilters.value) {
+  listFilters.value = { search: '', rol: null, status: null }
+}
+
 // Auth info
 const currentUser = computed(() => {
   try {
@@ -58,7 +63,7 @@ const OPT_ESTATUS = [
 
 // Filters
 const filteredManagers = computed(() => {
-  let r = managers.value
+  let r = managers.value || []
   const f = listFilters.value
 
   if (f.search) {
@@ -200,7 +205,7 @@ onMounted(() => {
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre, correo o cargo..." />
+        <SearchInput v-if="listFilters" v-model="listFilters.search" placeholder="Buscar por nombre, correo o cargo..." />
 
         <div class="grid grid-cols-2 gap-3 max-w-2xl">
           <!-- Filtro Rol -->
