@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Invitados;
 use App\Models\PasesDiarios;
-use App\Models\Reservacion;
-use App\Models\SesionActiva;
 use App\Models\SocioTitular;
 use Exception;
+// use App\Models\PasesDiarios; // Descomenta si lo usas
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -85,16 +83,15 @@ class GuestStatusController extends Controller
             return response()->json(['success' => false, 'message' => 'Ya existe un invitado con ese correo'], 400);
         }
 
-        /* 5. Validar límite de 5 pases activos */
-        $countActivos = SocioTitular::find($socioId)
-            ->invitados()
+        /* 5. Validar límite */
+        $count = $id_valido->invitados()
             ->whereHas('pase', function ($query) {
                 $query->where('estatus_acceso', 'ACTIVO');
             })
             ->count();
 
-        if ($countActivos >= 5) {
-            return response()->json(['success' => false, 'message' => 'Has alcanzado el límite máximo de 5 pases activos.'], 400);
+        if ($count >= 5) {
+            return response()->json(['success' => false, 'message' => 'Has alcanzado el límite máximo de 5 invitados.'], 400);
         }
 
         /* 6. Generar código QR */
@@ -118,7 +115,7 @@ class GuestStatusController extends Controller
                 /* 8. Insertar pase asociado al invitado recién creado */
                 $insertar_pase = PasesDiarios::create([
                     'invitado_id' => $insertar->id_invitado,
-                    'estatus_acceso' => 'ACTIVO',
+                    'estatus_acceso' => 'EXPIRADO',
                     'fecha_activacion' => now(),
                 ]);
 
@@ -206,7 +203,19 @@ class GuestStatusController extends Controller
             'telefono' => 'nullable|string|max:20'
         ]);
 
-        // 3. Actualizamos
+        // 3. Validamos duplicado de correo (si se está cambiando)
+        if ($request->has('correo') && $request->correo !== $invitado->correo) {
+            $correo_validacion = Invitados::where('correo', $request->correo)
+                ->where('socio_id', $invitado->socio_id)
+                ->where('id_invitado', '!=', $id)
+                ->first();
+
+            if ($correo_validacion) {
+                return response()->json(['success' => false, 'message' => 'Ya existe otro invitado con ese correo'], 400);
+            }
+        }
+
+        // 4. Actualizamos
         $invitado->update([
             'nombre_invitado' => $request->nombre_invitado,
             'correo' => $request->correo,
@@ -222,69 +231,51 @@ class GuestStatusController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        // El admin puede pasar socio_id, el socio usa su propio id
-        $socioId = $request->input('socio_id');
-        $isAdmin = $request->user()->rol === 'gerente' || $request->user()->rol === 'subgerente';
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
 
-        if (!$socioId || !$isAdmin) {
-            $socioId = $request->user()->user_id;
+        // Traemos al invitado con su relación de pase diario
+        $query = Invitados::with('pase')->where('id_invitado', $id);
+
+        // Si no es admin, solo puede eliminar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
         }
 
-        $invitado = Invitados::where('id_invitado', $id)
-            ->where('socio_id', $socioId)
-            ->first();
+        $invitado = $query->first();
 
         if (!$invitado) {
-            return response()->json(['success' => false, 'message' => 'Invitado no encontrado.'], 404);
+            return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
         }
 
-        // Lógica de eliminación: Hard vs Soft
-        // Umbral de 20 minutos
-        $isNew = $invitado->created_at ? $invitado->created_at->diffInMinutes(now()) < 20 : true;
+        try {
+            // === INICIA LA TRANSACCIÓN PARA ELIMINACIÓN EN CASCADA ===
+            DB::transaction(function () use ($invitado) {
 
-        if ($isNew) {
-            // HARD DELETE: Eliminar físicamente
-            try {
-                DB::transaction(function () use ($invitado) {
-                    if ($invitado->pase) {
-                        $invitado->pase->delete();
-                    }
-                    $invitado->forceDelete(); // forceDelete para asegurar que se va de la DB
-                });
-                return response()->json(['success' => true, 'message' => 'Invitado eliminado permanentemente.']);
-            } catch (\Exception $e) {
-                return response()->json(['success' => false, 'message' => 'Error al eliminar el invitado.'], 500);
-            }
-        } else {
-            // SOFT DELETE: Validar que no tenga reservas activas
-            // 1. Verificar en reservaciones_on_demand (acompanantes_draft)
-            $hasReservations = Reservacion::where('estatus_operativo', '!=', 'CANCELADA')
-                ->where(function ($query) use ($invitado) {
-                    // Buscamos el nombre o ID en el JSON de acompañantes
-                    $query->whereJsonContains('acompanantes_draft', ['id_invitado' => $invitado->id_invitado])
-                        ->orWhereJsonContains('acompanantes_draft', ['nombre' => $invitado->nombre_invitado]);
-                })->exists();
+                // 1. Deshabilitar el pase diario (Lo pasamos a EXPIRADO o equivalente)
+                if ($invitado->pase) {
+                    $invitado->pase->update([
+                        'estatus_acceso' => 'EXPIRADO'
+                    ]);
+                }
 
-            if ($hasReservations) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar el invitado porque tiene reservaciones activas.'
-                ], 400);
-            }
+                // 2. Soft delete del invitado (llena el campo deleted_at de forma automática)
+                $invitado->delete();
+            });
+            // === TERMINA LA TRANSACCIÓN ===
 
-            try {
-                DB::transaction(function () use ($invitado) {
-                    // Desactivar pase
-                    if ($invitado->pase) {
-                        $invitado->pase->update(['estatus_acceso' => 'EXPIRADO']);
-                    }
-                    // Soft delete
-                    $invitado->delete();
-                });
-                return response()->json(['success' => true, 'message' => 'Invitado desactivado correctamente.']);
-            } catch (\Exception $e) {
-                return response()->json(['success' => false, 'message' => 'Error al desactivar el invitado.'], 500);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Invitado eliminado y pase deshabilitado correctamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar invitado: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al procesar la eliminación'
+            ], 500);
         }
     }
     public function togglePass(Request $request, $invitadoId)
@@ -317,30 +308,9 @@ class GuestStatusController extends Controller
 
         // 3. Actualizamos el estatus
         $nuevoEstatus = $pase->estatus_acceso === 'ACTIVO' ? 'EXPIRADO' : 'ACTIVO';
-
-        // Validar límite si se va a activar
-        if ($nuevoEstatus === 'ACTIVO') {
-            $countActivos = Invitados::where('socio_id', $invitado->socio_id)
-                ->whereHas('pase', function ($query) {
-                    $query->where('estatus_acceso', 'ACTIVO');
-                })
-                ->count();
-
-            if ($countActivos >= 5) {
-                return response()->json(['success' => false, 'message' => 'Límite máximo de 5 pases activos alcanzado.'], 400);
-            }
-            
-            // Renovar fechas al activar
-            $pase->update([
-                'estatus_acceso' => $nuevoEstatus,
-                'fecha_activacion' => now(),
-                'fecha_expiracion' => now()->addDay(),
-            ]);
-        } else {
-            $pase->update([
-                'estatus_acceso' => $nuevoEstatus,
-            ]);
-        }
+        $pase->update([
+            'estatus_acceso' => $nuevoEstatus,
+        ]);
 
         return response()->json([
             'success' => true,

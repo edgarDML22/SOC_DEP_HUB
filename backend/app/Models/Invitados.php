@@ -12,13 +12,12 @@ class Invitados extends Model
 
     protected $table = 'invitados';
     protected $primaryKey = 'id_invitado';
-    public $timestamps = true;
+    public $timestamps = false;
 
     protected $fillable = [
         'id_invitado',
         'socio_id',
         'nombre_invitado',
-        'socio_titulare',
         'codigo_qr',
         'correo',
         'telefono',
@@ -28,7 +27,7 @@ class Invitados extends Model
 
     public function socioTitular()
     {
-        return $this->belongsTo(SocioTitular::class, 'id_socio', 'socio_id');
+        return $this->belongsTo(SocioTitular::class, 'socio_id', 'id_socio');
     }
     public function pase()
     {

@@ -53,10 +53,7 @@ export const useAdminGuestStore = defineStore("adminGuest", () => {
         error.value = null;
         try {
             // Incluimos socio_id en el payload para que el backend sepa a quién asignar el invitado
-            const res = await api.post('/guest-create', {
-                ...payload,
-                socio_id: socioId
-            });
+            const res = await api.post(`/guest-create?socio_id=${socioId}`, payload);
 
             if (res.data.success || res.status === 201) {
                 await fetchGuests(socioId);
