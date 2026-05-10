@@ -380,6 +380,17 @@ const router = createRouter({
           ]
         },
         {
+          path: "managers",
+          redirect: { name: 'managers-list' },
+          children: [
+            {
+              path: 'managers-list',
+              name: 'managers-list',
+              component: () => import('@/views/admin/managers/ManagersList.vue'),
+            },
+          ]
+        },
+        {
           path: 'ludoteca',
           name: 'admin-ludoteca',
           component: () => import('@/views/admin/Ludoteca.vue'),

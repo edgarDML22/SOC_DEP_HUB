@@ -25,6 +25,12 @@ export const useAdminStore = defineStore("adminProfile", () => {
         toggle: false
     });
 
+    const listFilters = ref({
+        search: '',
+        rol: null,
+        status: null
+    });
+
     const role = computed(() => profileData.value?.rol || "");
     const idAdmin = computed(() => profileData.value?.id_empleado || null);
     const fullName = computed(() => profileData.value?.nombre_completo || "");
@@ -124,6 +130,7 @@ export const useAdminStore = defineStore("adminProfile", () => {
         // Management exports
         managers,
         isLoading,
+        listFilters,
         fetchManagers,
         crearManager,
         actualizarManager,
