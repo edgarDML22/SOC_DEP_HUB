@@ -66,16 +66,31 @@ export const useAlerts = () => {
     }
 
     // Modal de Eliminar 
-    const confirmDelete = async (title, text, confirmText = 'Sí, Eliminar') => {
+    const confirmDelete = async (title, text, confirmText = 'Sí, Eliminar', preConfirmCallback = null) => {
         return await swalApp.fire({
             title: title,
             text: text,
             showCancelButton: true,
-            confirmButtonText: confirmText, // <-- Ahora acepta texto personalizado
+            confirmButtonText: confirmText,
             cancelButtonText: 'Cancelar',
+            showLoaderOnConfirm: !!preConfirmCallback,
+            preConfirm: preConfirmCallback ? async () => {
+                try {
+                    await preConfirmCallback();
+                    return true;
+                } catch (error) {
+                    Swal.showValidationMessage(error.message || 'Error al procesar la solicitud');
+                    return false;
+                }
+            } : undefined,
+            allowOutsideClick: () => !Swal.isLoading(),
             customClass: {
-                ...baseClasses,
-                confirmButton: 'btn-delete-confirm' // <-- Esto mantiene el color rojo
+                popup: '!rounded-3xl !shadow-2xl !p-6 border border-surface-200',
+                title: '!text-xl !font-black !text-surface-900 !m-0 !pb-2',
+                htmlContainer: '!text-sm !font-medium !text-surface-500 !m-0',
+                actions: '!mt-6 !flex !gap-3 !w-full !justify-center',
+                confirmButton: '!px-6 !py-3 !bg-red-500 hover:!bg-red-600 !text-white !font-bold !rounded-xl !shadow-sm !w-full sm:!w-auto transition-colors',
+                cancelButton: '!px-6 !py-3 !bg-white !border !border-surface-200 !text-surface-700 hover:!bg-surface-50 !font-bold !rounded-xl !m-0 !w-full sm:!w-auto transition-colors'
             }
         });
     }

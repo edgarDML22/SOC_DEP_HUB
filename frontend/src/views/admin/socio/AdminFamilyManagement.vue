@@ -18,7 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const familyStore = useAdminFamilyStore()
 const socioStore = useSocioStore()
-const { actionToast, toastInfo } = useAlerts()
+const { actionToast, toastInfo, confirmDelete } = useAlerts()
 
 const socioId = route.params.id
 
@@ -149,13 +149,17 @@ const submitForm = async () => {
 }
 
 const deleteMiembro = async (miembro) => {
-  if (confirm(`¿Estás seguro de eliminar a ${miembro.nombre_completo}?`)) {
-    try {
+  const result = await confirmDelete(
+    'Eliminar Familiar',
+    `¿Estás seguro de eliminar a ${miembro.nombre_completo}? Esta acción no se puede deshacer.`,
+    'Sí, Eliminar',
+    async () => {
       await familyStore.eliminarMiembro(socioId, miembro.id_miembro)
-      toastInfo('Eliminado', 'Miembro familiar eliminado.', 'success')
-    } catch (error) {
-      toastInfo('Error', 'No se pudo eliminar al miembro.', 'error')
     }
+  )
+  
+  if (result.isConfirmed) {
+    toastInfo('Eliminado', 'Miembro familiar eliminado.', 'success')
   }
 }
 const copiarImagenAlPortapapeles = async (url) => {
