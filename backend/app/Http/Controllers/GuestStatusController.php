@@ -26,23 +26,35 @@ class GuestStatusController extends Controller
             $socioId = $request->query('socio_id');
         }
 
-        // 2. Traemos todos sus invitados con sus respectivos pases
-        $invitados = Invitados::with('pase')->where('socio_id', $socioId)->get();
+        // 2. Traemos todos sus invitados con sus respectivos pases (incluyendo eliminados para el CRUD completo)
+        $invitados = Invitados::withTrashed()
+            ->with('pase')
+            ->where('socio_id', $socioId)
+            ->get();
 
         // 3. Formateamos la data para el Front
         return response()->json([
             'success' => true,
             'data' => $invitados->map(function ($inv) {
                 $pase = $inv->pase;
+                $estatusAcceso = $pase?->estatus_acceso ?? 'SIN_PASE';
+
+                // Lógica dinámica: si el pase dice ACTIVO pero la fecha ya pasó, devolver EXPIRADO
+                if ($estatusAcceso === 'ACTIVO' && $pase->fecha_expiracion && now()->greaterThan($pase->fecha_expiracion)) {
+                    $estatusAcceso = 'EXPIRADO';
+                }
+
                 return [
                     'id' => $inv->id_invitado,
                     'nombre' => $inv->nombre_invitado,
                     'codigo_qr' => $inv->codigo_qr,
                     'correo' => $inv->correo,
                     'telefono' => $inv->telefono,
-                    'estatus_acceso' => $pase?->estatus_acceso ?? 'SIN_PASE',
+                    'estatus_acceso' => $estatusAcceso,
                     'fecha_expiracion' => $pase?->fecha_expiracion,
                     'id_pase' => $pase?->id_pase,
+                    'fecha_registro' => $inv->created_at, // Para "Invitado desde"
+                    'deleted_at' => $inv->deleted_at,      // Para badge de ELIMINADO
                 ];
             })
         ], 200);
@@ -115,8 +127,8 @@ class GuestStatusController extends Controller
                 /* 8. Insertar pase asociado al invitado recién creado */
                 $insertar_pase = PasesDiarios::create([
                     'invitado_id' => $insertar->id_invitado,
-                    'estatus_acceso' => 'EXPIRADO',
-                    'fecha_activacion' => now(),
+                    'estatus_acceso' => 'INACTIVO',
+                    'fecha_activacion' => null,
                 ]);
 
                 return [
@@ -308,9 +320,16 @@ class GuestStatusController extends Controller
 
         // 3. Actualizamos el estatus
         $nuevoEstatus = $pase->estatus_acceso === 'ACTIVO' ? 'EXPIRADO' : 'ACTIVO';
-        $pase->update([
+        
+        $updateData = [
             'estatus_acceso' => $nuevoEstatus,
-        ]);
+        ];
+
+        if ($nuevoEstatus === 'ACTIVO') {
+            $updateData['fecha_activacion'] = now();
+        }
+
+        $pase->update($updateData);
 
         return response()->json([
             'success' => true,
