@@ -8,6 +8,15 @@ export const useSocioStore = defineStore("socioAdmin", () => {
     const isLoading = ref(false);
     const error = ref(null);
     const lastFetch = ref(null);
+    
+    const listFilters = ref({
+        search: '',
+        tipo: null,
+        modalidad: null,
+        genero: null,
+        estatus: null,
+        penalizacion: null
+    });
 
     const setCurrentSocio = (socio) => {
         currentSocio.value = socio;
@@ -20,7 +29,7 @@ export const useSocioStore = defineStore("socioAdmin", () => {
 
     // ACTIONS
     const fetchSocios = async (force = false) => {
-        if (!force && socios.value.length > 0) return;
+        if (!force && lastFetch.value !== null) return;
 
         isLoading.value = true;
         error.value = null;
@@ -158,6 +167,7 @@ export const useSocioStore = defineStore("socioAdmin", () => {
         currentSocio,
         isLoading,
         error,
+        listFilters,
         fetchSocios,
         getSocioById,
         setCurrentSocio,

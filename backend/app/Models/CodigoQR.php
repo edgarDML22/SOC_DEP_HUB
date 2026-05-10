@@ -8,8 +8,8 @@ class CodigoQr extends Model
 {
     protected $table = 'codigos_qr';
     protected $primaryKey = 'id_codigo';
-    
-    public $timestamps = true; 
+
+    public $timestamps = true;
 
     protected $fillable = [
         'codigo',
@@ -17,7 +17,8 @@ class CodigoQr extends Model
         'tipo_usuario', // Aquí se guarda 'SOCIO', 'FAMILIAR' o 'EXTERNO'
         'fecha_activacion',
         'fecha_expiracion',
-        'estatus'
+        'estatus',
+        'deleted_at'
     ];
 
     /**

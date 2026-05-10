@@ -20,7 +20,7 @@ use App\Http\Controllers\InstructorController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
-use App\Http\Controllers\MiembrosFamiliaresController;
+use App\Http\Controllers\AdminFamilyController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\FriendsController;
@@ -79,7 +79,7 @@ Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateE
 
 
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
-Route::get('/v1/miembros-familiares', [MiembrosFamiliaresController::class, 'show']);
+// Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
 
 // 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 
@@ -92,9 +92,7 @@ Route::middleware(['check.turno'])->group(function () {
         ]);
     });
 });
-//Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
-//Route::get('/v1/reservations/admin/stats', [ReservationAdminController::class, 'getStats']);
-//SDH 194 ruta para eliminar la disciplina de un instructor
+
 Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -219,11 +217,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/v1/guests/{id}', [GuestStatusController::class, 'update']);
     Route::delete('/v1/guests/{id}', [GuestStatusController::class, 'destroy']);
 
-    // FAMILY MEMBERS 
-    Route::post('/v1/family-member-create', [MiembrosFamiliaresController::class, 'store']);
-    Route::get('/v1/family-member-list', [MiembrosFamiliaresController::class, 'show']);
-    Route::put('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'update']);
-    Route::delete('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'destroy']);
+    // FAMILY MEMBERS SDH 240
+    Route::prefix('v1/admin/socios/{socioId}/familiares')->group(function () {
+        Route::get('/', [AdminFamilyController::class, 'index']);
+        Route::post('/', [AdminFamilyController::class, 'store']);
+        Route::put('/{id}', [AdminFamilyController::class, 'update']);
+        Route::delete('/{id}', [AdminFamilyController::class, 'destroy']);
+    });
+
+
 
     // FRIENDS
     Route::get('/v1/friends-list', [FriendsController::class, 'show']);
