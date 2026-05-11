@@ -35,6 +35,8 @@ use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
+use App\Http\Controllers\UserAdminController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -43,6 +45,7 @@ use App\Http\Controllers\ReservationAdminController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -261,6 +264,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('admin/socios-con-menores', [AdminLudotecaController::class, 'getSociosConMenores']);
         Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);
     });
+
+    //SDH-248:CRUD GERENTES
+    Route::prefix('v1/admin/users')
+        ->middleware('auth:sanctum')
+        ->group(function () {
+
+            Route::get('/', [UserAdminController::class, 'index']);
+
+            Route::post('/', [UserAdminController::class, 'store']);
+
+            Route::put('/{id}', [UserAdminController::class, 'update']);
+
+            Route::patch(
+                '/{id}/toggle-activo',
+                [UserAdminController::class, 'toggleActivo']
+            );
+        });
+
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
 
