@@ -18,25 +18,43 @@ class GuestStatusController extends Controller
     // MÉTODO 1: OBTENER LISTA DE INVITADOS
     public function show(Request $request)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
 
-        // 2. Traemos todos sus invitados con sus respectivos pases
-        $invitados = Invitados::with('pase')->where('socio_id', $socioId)->get();
+        // Si es admin, puede consultar los invitados de cualquier socio vía query param
+        if (in_array($user->rol, ['gerente', 'subgerente']) && $request->has('socio_id')) {
+            $socioId = $request->query('socio_id');
+        }
+
+        // 2. Traemos todos sus invitados con sus respectivos pases (incluyendo eliminados para el CRUD completo)
+        $invitados = Invitados::withTrashed()
+            ->with('pase')
+            ->where('socio_id', $socioId)
+            ->get();
 
         // 3. Formateamos la data para el Front
         return response()->json([
             'success' => true,
             'data' => $invitados->map(function ($inv) {
                 $pase = $inv->pase;
+                $estatusAcceso = $pase?->estatus_acceso ?? 'SIN_PASE';
+
+                // Lógica dinámica: si el pase dice ACTIVO pero la fecha ya pasó, devolver EXPIRADO
+                if ($estatusAcceso === 'ACTIVO' && $pase->fecha_expiracion && now()->greaterThan($pase->fecha_expiracion)) {
+                    $estatusAcceso = 'EXPIRADO';
+                }
+
                 return [
                     'id' => $inv->id_invitado,
                     'nombre' => $inv->nombre_invitado,
                     'codigo_qr' => $inv->codigo_qr,
                     'correo' => $inv->correo,
                     'telefono' => $inv->telefono,
-                    'estatus_acceso' => $pase?->estatus_acceso ?? 'SIN_PASE',
+                    'estatus_acceso' => $estatusAcceso,
                     'fecha_expiracion' => $pase?->fecha_expiracion,
                     'id_pase' => $pase?->id_pase,
+                    'fecha_registro' => $inv->created_at, // Para "Invitado desde"
+                    'deleted_at' => $inv->deleted_at,      // Para badge de ELIMINADO
                 ];
             })
         ], 200);
@@ -44,15 +62,23 @@ class GuestStatusController extends Controller
 
     public function store(Request $request)
     {
-        /* 1. Obtenemos el ID del Socio desde el Token */
-        $socioId = $request->user()->user_id;
+        /* 1. Obtenemos el ID del Socio */
+        $user = $request->user();
+        $socioId = $user->user_id;
+
+        // Si es admin, puede registrar invitados para cualquier socio
+        if (in_array($user->rol, ['gerente', 'subgerente']) && $request->has('socio_id')) {
+            $socioId = $request->input('socio_id');
+        }
+
 
         /* 2. Validar datos */
         $request->validate([
             'nombre_invitado' => 'required|string|max:255',
             'correo' => 'nullable|email|max:255',
-            'telefono' => 'nullable|digits_between:10,15'
+            'telefono' => 'nullable|digits_between:10,15',
         ]);
+
 
         /* 3. Validar socio */
         $id_valido = SocioTitular::where('id_socio', $socioId)->first();
@@ -70,15 +96,14 @@ class GuestStatusController extends Controller
         }
 
         /* 5. Validar límite */
-        $count = SocioTitular::find($socioId)
-            ->invitados()
+        $count = $id_valido->invitados()
             ->whereHas('pase', function ($query) {
                 $query->where('estatus_acceso', 'ACTIVO');
             })
             ->count();
 
-        if ($count >= 8) {
-            return response()->json(['success' => false, 'message' => 'Has alcanzado el límite máximo de 8 invitados.'], 400);
+        if ($count >= 5) {
+            return response()->json(['success' => false, 'message' => 'Has alcanzado el límite máximo de 5 invitados.'], 400);
         }
 
         /* 6. Generar código QR */
@@ -89,7 +114,7 @@ class GuestStatusController extends Controller
         try {
             // === INICIA LA TRANSACCIÓN ===
             $result = DB::transaction(function () use ($socioId, $request, $codigoQR) {
-                
+
                 /* 7. Insertar invitado */
                 $insertar = Invitados::create([
                     'socio_id' => $socioId,
@@ -102,7 +127,7 @@ class GuestStatusController extends Controller
                 /* 8. Insertar pase asociado al invitado recién creado */
                 $insertar_pase = PasesDiarios::create([
                     'invitado_id' => $insertar->id_invitado,
-                    'estatus_acceso' => 'EXPIRADO', 
+                    'estatus_acceso' => 'EXPIRADO',
                     'fecha_activacion' => now(),
                 ]);
 
@@ -165,12 +190,19 @@ class GuestStatusController extends Controller
 
     public function update(Request $request, $id)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
 
-        // 1. Buscamos al invitado asegurándonos de que pertenezca a este socio
-        $invitado = Invitados::where('id_invitado', $id)
-            ->where('socio_id', $socioId)
-            ->first();
+        // 1. Buscamos al invitado
+        $query = Invitados::where('id_invitado', $id);
+
+        // Si no es admin, solo puede editar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
@@ -183,7 +215,19 @@ class GuestStatusController extends Controller
             'telefono' => 'nullable|string|max:20'
         ]);
 
-        // 3. Actualizamos
+        // 3. Validamos duplicado de correo (si se está cambiando)
+        if ($request->has('correo') && $request->correo !== $invitado->correo) {
+            $correo_validacion = Invitados::where('correo', $request->correo)
+                ->where('socio_id', $invitado->socio_id)
+                ->where('id_invitado', '!=', $id)
+                ->first();
+
+            if ($correo_validacion) {
+                return response()->json(['success' => false, 'message' => 'Ya existe otro invitado con ese correo'], 400);
+            }
+        }
+
+        // 4. Actualizamos
         $invitado->update([
             'nombre_invitado' => $request->nombre_invitado,
             'correo' => $request->correo,
@@ -199,13 +243,19 @@ class GuestStatusController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $socioId = $request->user()->user_id;
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
 
         // Traemos al invitado con su relación de pase diario
-        $invitado = Invitados::with('pase')
-                             ->where('id_invitado', $id)
-                             ->where('socio_id', $socioId)
-                             ->first();
+        $query = Invitados::with('pase')->where('id_invitado', $id);
+
+        // Si no es admin, solo puede eliminar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
 
         if (!$invitado) {
             return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
@@ -214,11 +264,11 @@ class GuestStatusController extends Controller
         try {
             // === INICIA LA TRANSACCIÓN PARA ELIMINACIÓN EN CASCADA ===
             DB::transaction(function () use ($invitado) {
-                
+
                 // 1. Deshabilitar el pase diario (Lo pasamos a EXPIRADO o equivalente)
                 if ($invitado->pase) {
                     $invitado->pase->update([
-                        'estatus_acceso' => 'EXPIRADO' 
+                        'estatus_acceso' => 'EXPIRADO'
                     ]);
                 }
 
@@ -239,6 +289,95 @@ class GuestStatusController extends Controller
                 'message' => 'Hubo un error al procesar la eliminación'
             ], 500);
         }
+    }
+    public function restore(Request $request, $id)
+    {
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
+
+        // Buscamos al invitado incluyendo eliminados
+        $query = Invitados::withTrashed()->where('id_invitado', $id);
+
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
+
+        if (!$invitado) {
+            return response()->json(['success' => false, 'message' => 'Invitado no encontrado'], 404);
+        }
+
+        if (!$invitado->trashed()) {
+            return response()->json(['success' => false, 'message' => 'El invitado ya está activo'], 400);
+        }
+
+        try {
+            $invitado->restore();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invitado reactivado correctamente',
+                'data' => $invitado
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error al restaurar invitado: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al reactivar al invitado'
+            ], 500);
+        }
+    }
+
+    public function togglePass(Request $request, $invitadoId)
+    {
+        $user = $request->user();
+        $socioId = $user->user_id;
+        $isAdmin = in_array($user->rol, ['gerente', 'subgerente']);
+
+        // 1. Buscamos al invitado
+        $query = Invitados::where('id_invitado', $invitadoId);
+
+        // Si no es admin, solo puede gestionar sus propios invitados
+        if (!$isAdmin) {
+            $query->where('socio_id', $socioId);
+        }
+
+        $invitado = $query->first();
+
+        if (!$invitado) {
+            return response()->json(['success' => false, 'message' => 'Invitado no encontrado o no autorizado'], 404);
+        }
+
+        // 2. Traemos el pase diario y actualizamos el estatus
+        $pase = PasesDiarios::where('invitado_id', $invitadoId)
+            ->first();
+
+        if (!$pase) {
+            return response()->json(['success' => false, 'message' => 'Pase no encontrado'], 404);
+        }
+
+        // 3. Actualizamos el estatus
+        $nuevoEstatus = $pase->estatus_acceso === 'ACTIVO' ? 'EXPIRADO' : 'ACTIVO';
+
+        $updateData = [
+            'estatus_acceso' => $nuevoEstatus,
+        ];
+
+        if ($nuevoEstatus === 'ACTIVO') {
+            $updateData['fecha_activacion'] = now();
+        }
+
+        $pase->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pase actualizado',
+            'data' => $pase
+        ], 200);
+
     }
 
 

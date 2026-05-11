@@ -135,13 +135,13 @@ const buildMenuItems = (socio) => [
     action: () => { router.push(`/admin/socios/${socio.id_socio}/familiares`) },
   }] : []),
   {
-    label: 'Pases de invitados',
+    label: 'Invitados',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
              <circle cx="9" cy="7" r="4"/>
              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
            </svg>`,
-    action: () => { openGuests(socio) },
+    action: () => { router.push({ name: 'admin-socio-invitados', params: { id: socio.id_socio } }) },
   },
   {
     label: socio.estatus_cuenta === 'SUSPENDIDO' ? 'Reactivar cuenta' : 'Suspender cuenta',
@@ -155,7 +155,6 @@ const buildMenuItems = (socio) => [
 // ── MODALES ───────────────────────────────────────────────────
 const showPenaltyModal = ref(false)
 const showFamilyModal = ref(false)
-const showGuestsModal = ref(false)
 const showEstatusModal = ref(false)
 const selectedSocio = ref(null)
 const isModalLoading = ref(false)
@@ -184,22 +183,6 @@ const openFamily = async (socio) => {
   }
 }
 
-const openGuests = async (socio) => {
-  selectedSocio.value = socio
-  showGuestsModal.value = true
-
-  const cached = socioStore.getSocioById(socio.id_socio)
-  if (!cached?.invitados) {
-    isModalLoading.value = true
-  }
-
-  try {
-    await fetchSocioDetails(socio.id_socio, true, true)
-    selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
-  } finally {
-    isModalLoading.value = false
-  }
-}
 
 const openEstatus = (socio) => {
   selectedSocio.value = socio
@@ -525,90 +508,6 @@ onMounted(fetchSocios)
       </Transition>
     </Teleport>
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL: INVITADOS
-    ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showGuestsModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showGuestsModal = false">
-          <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-
-            <!-- Cabecera -->
-            <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
-              <div>
-                <h2 class="text-lg font-black text-surface-900 leading-tight">Pases de Invitados</h2>
-                <p class="text-xs text-surface-500 font-medium mt-0.5">{{ selectedSocio?.nombre_completo }}</p>
-              </div>
-              <button @click="showGuestsModal = false" class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200
-                       flex items-center justify-center text-surface-500 transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Cuerpo -->
-            <div class="overflow-y-auto p-6 bg-surface-50/30">
-
-              <!-- Cargando -->
-              <div v-if="isModalLoading" class="flex justify-center py-12">
-                <LoadingSpinner />
-              </div>
-
-              <!-- Vacío — mismo esqueleto que Miembros Familiares -->
-              <div v-else-if="!selectedSocio?.invitados?.length" class="flex flex-col items-center justify-center py-14 text-center
-                       bg-white rounded-2xl border-2 border-dashed border-surface-200">
-                <div class="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center mb-3">
-                  <svg class="w-7 h-7 text-primary-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="1.5">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
-                <p class="text-sm font-bold text-surface-700">Sin pases registrados</p>
-                <p class="text-xs text-surface-400 mt-1 max-w-[200px]">
-                  Este socio no tiene pases de invitados activos ni históricos.
-                </p>
-              </div>
-
-              <!-- Lista -->
-              <div v-else class="flex flex-col gap-2.5">
-                <div v-for="guest in selectedSocio.invitados" :key="guest.id_invitado" class="flex items-center justify-between p-4 rounded-2xl bg-white border border-surface-200
-                         hover:border-primary-200 hover:shadow-sm transition-all">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-linear-to-br from-amber-400 to-amber-600
-                                text-white flex items-center justify-center font-bold text-sm shrink-0">
-                      {{ guest.nombre_invitado?.charAt(0) ?? '?' }}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="text-sm font-bold text-surface-900 truncate">{{ guest.nombre_invitado }}</p>
-                      <p class="text-xs text-surface-500">{{ guest.correo ?? 'Sin correo' }}</p>
-                    </div>
-                  </div>
-                  <div class="flex flex-col items-end gap-1 shrink-0 ml-3">
-                    <BadgeStatus :status="guest.pase?.estatus_acceso === 'ACTIVO' ? 'ACTIVO' :
-                      guest.pase?.estatus_acceso === 'USADO' ? 'USADO' : 'EXPIRADO'" />
-                    <p v-if="guest.pase?.fecha_expiracion" class="text-[10px] font-medium text-surface-400">
-                      {{ guest.pase.fecha_expiracion }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Pie -->
-            <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
-              <CancelButton label="Cerrar" @click="showGuestsModal = false" />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
 
   </main>
 </template>

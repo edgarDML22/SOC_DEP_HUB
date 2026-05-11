@@ -361,6 +361,11 @@ const router = createRouter({
               name: 'socios-familiares',
               component: () => import('@/views/admin/socio/AdminFamilyManagement.vue'),
             },
+            {
+              path: ':id/invitados',
+              name: 'admin-socio-invitados',
+              component: () => import('@/views/admin/socio/AdminGuestManagement.vue'),
+            },
           ]
         },
         {
