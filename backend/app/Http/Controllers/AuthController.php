@@ -20,7 +20,9 @@ class AuthController extends Controller
         ]);
 
         // 2. Buscar al usuario en la tabla central SSO
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)
+            ->select('id', 'email', 'password', 'rol', 'user_id')
+            ->first();
 
         // 3. Validar existencia y contraseña (Hash Bcrypt)
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -64,15 +66,14 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $token = $request->bearerToken();
+
         if ($token) {
-            cache()->forget('sanctum_token_' . hash('sha256', $token));
+            $hash = hash('sha256', $token);
+            cache()->forget('sanctum_token_' . $hash);
+
+            \Laravel\Sanctum\PersonalAccessToken::where('token', $hash)->delete();
         }
 
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Sesión cerrada correctamente'
-        ], 200);
+        return response()->noContent();
     }
 }

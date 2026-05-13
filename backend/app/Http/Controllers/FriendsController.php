@@ -15,32 +15,30 @@ class FriendsController extends Controller
     {
         $socioId = (int) $request->user()->user_id;
 
-        // Agrupamos el orWhere para evitar conflictos con eager load
-        $amistades = Amistades::with(['solicitante', 'receptor'])
+        $amistades = Amistades::with([
+                'solicitante:id_socio,nombre_completo',
+                'receptor:id_socio,nombre_completo',
+            ])
+            ->select(['id_amistad', 'solicitante_id', 'receptor_id', 'estado', 'created_at'])
             ->where(function ($q) use ($socioId) {
                 $q->where('solicitante_id', $socioId)
                   ->orWhere('receptor_id', $socioId);
             })
+            ->whereNotIn('estado', ['RECHAZADA', 'BLOQUEADA'])
             ->get();
 
         $formateado = $amistades->map(function ($amistad) use ($socioId) {
-            // Forzamos a entero ambos lados para comparación estricta
             $esSolicitante = (int) $amistad->solicitante_id === $socioId;
             $amigo = $esSolicitante ? $amistad->receptor : $amistad->solicitante;
 
             return [
-                'id_amistad'       => $amistad->id_amistad,
-                'id_amigo'         => $amigo ? $amigo->id_socio : null,
-                'nombre_amigo'     => $amigo ? $amigo->nombre_completo : 'Desconocido',
-                'estado'           => $amistad->estado,
+                'id_amistad'        => $amistad->id_amistad,
+                'id_amigo'          => $amigo?->id_socio,
+                'nombre_amigo'      => $amigo?->nombre_completo ?? 'Desconocido',
+                'estado'            => $amistad->estado,
                 'solicitado_por_mi' => $esSolicitante,
-                'solicitante_id'   => $amistad->solicitante_id, // útil para depurar
-                'receptor_id'      => $amistad->receptor_id,   // útil para depurar
-                'mi_id'            => $socioId,                 // útil para depurar
-                'created_at'       => $amistad->created_at
+                'created_at'        => $amistad->created_at,
             ];
-        })->filter(function ($amistad) {
-            return $amistad['estado'] !== 'RECHAZADA' && $amistad['estado'] !== 'BLOQUEADA';
         })->values();
 
         return response()->json([

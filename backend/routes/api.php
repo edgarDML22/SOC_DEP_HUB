@@ -101,10 +101,10 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::class, 'updateStatus']);
 // Grupo protegido con Sanctum
-Route::middleware('auth:sanctum')->group(function () {
+// SDH-1102: Logout fuera del grupo auth — el controller maneja tokens inválidos o ausentes
+Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
 
-    // SDH-1102: Revocación de tokens (Cierre de Sesión)
-    Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
+Route::middleware('auth:sanctum')->group(function () {
 
     // Perfil del usuario
     Route::get('/v1/profile', [ProfileController::class, 'show']);

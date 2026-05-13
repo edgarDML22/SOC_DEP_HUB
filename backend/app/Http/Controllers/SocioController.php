@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\SocioTitular;
 use App\Models\User;
+use App\Jobs\SendSancionNotificationMail;
 use App\Notifications\SancionAsignadaNotification;
 use App\Notifications\SancionLevantadaNotification;
 
@@ -26,9 +27,11 @@ class SocioController extends Controller
             ], 403);
         }
 
-        // Retornar los socios titulares ordenados por estatus (por ejemplo, AL_CORRIENTE primero)
-        $socios = SocioTitular::orderByRaw("
-            CASE 
+        $socios = SocioTitular::select(
+            'id_socio', 'nombre_completo', 'numero_accion',
+            'estatus_cuenta', 'estatus_penalizacion', 'modalidad_plan', 'tipo_socio', 'genero'
+        )->orderByRaw("
+            CASE
                 WHEN estatus_cuenta = 'AL_CORRIENTE' THEN 1
                 WHEN estatus_cuenta = 'MOROSO' THEN 2
                 WHEN estatus_cuenta = 'SUSPENDIDO' THEN 3
@@ -139,17 +142,33 @@ class SocioController extends Controller
                 $nuevoPenalizacion = $socio->estatus_penalizacion;
 
                 if (in_array($nuevoPenalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_LUDOTECA', 'PENALIZADO_AMBOS'])) {
-                    $socio->notify(new SancionAsignadaNotification(
+                    // Canal database: síncrono, solo un INSERT — no bloquea
+                    $socio->notifyNow(new SancionAsignadaNotification(
                         estatus_penalizacion: $nuevoPenalizacion,
                         fecha_fin_reserva: $socio->fecha_fin_penalizacion_reserva?->toDateString(),
                         fecha_fin_ludoteca: $socio->fecha_fin_penalizacion_ludoteca?->toDateString(),
                         nombre_socio: $socio->nombre_completo,
                     ));
+                    // Canal mail: asíncrono en Job — no bloquea la respuesta HTTP
+                    SendSancionNotificationMail::dispatch(
+                        socioId: $socio->id_socio,
+                        tipo: 'asignada',
+                        nombreSocio: $socio->nombre_completo,
+                        estatusPenalizacion: $nuevoPenalizacion,
+                        fechaFinReserva: $socio->fecha_fin_penalizacion_reserva?->toDateString(),
+                        fechaFinLudoteca: $socio->fecha_fin_penalizacion_ludoteca?->toDateString(),
+                    );
                 } elseif ($nuevoPenalizacion === 'SIN_PENALIZACION') {
-                    $socio->notify(new SancionLevantadaNotification(
+                    $socio->notifyNow(new SancionLevantadaNotification(
                         nombre_socio: $socio->nombre_completo,
                         motivo: 'manual',
                     ));
+                    SendSancionNotificationMail::dispatch(
+                        socioId: $socio->id_socio,
+                        tipo: 'levantada',
+                        nombreSocio: $socio->nombre_completo,
+                        motivo: 'manual',
+                    );
                 }
             }
 
@@ -166,9 +185,17 @@ class SocioController extends Controller
 
             DB::commit();
 
+            if (!$request->has('estatus_penalizacion')) {
+                $socio->refresh();
+            }
             return response()->json([
                 'success' => true,
-                'data' => $socio->load('miembrosFamiliares')
+                'data' => $socio->only([
+                    'id_socio', 'nombre_completo', 'numero_accion',
+                    'estatus_cuenta', 'estatus_penalizacion', 'modalidad_plan', 'tipo_socio', 'genero',
+                    'contador_no_shows', 'retrasos_ludoteca',
+                    'fecha_fin_penalizacion_reserva', 'fecha_fin_penalizacion_ludoteca',
+                ])
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -203,18 +230,17 @@ class SocioController extends Controller
         }
 
         // 1. Buscar en socios titulares
-        // Se utiliza ILIKE asumiendo la conexión de PostgreSQL configurada en Neon
         $titulares = DB::table('socios_titulares')
             ->select('id_socio as id', 'nombre_completo as nombre', 'numero_accion as numero_socio')
             ->where(function ($q) use ($queryParam) {
                 $q->where('nombre_completo', 'ILIKE', "%{$queryParam}%")
                     ->orWhere('numero_accion', 'ILIKE', "%{$queryParam}%");
             })
+            ->orderBy('nombre_completo')
             ->limit(10)
             ->get()
             ->map(function ($item) {
-                // Formateamos como solicita el frontend
-                $item->foto_perfil = null; // Placeholder: Puedes llenarlo si tienes columna como foto_url
+                $item->foto_perfil = null;
                 $item->tipo_perfil = 'socio_titular';
                 return $item;
             });
@@ -224,17 +250,17 @@ class SocioController extends Controller
             ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
             ->select('mf.id_miembro as id', 'mf.nombre_completo as nombre', 'st.numero_accion as numero_socio')
             ->where('mf.nombre_completo', 'ILIKE', "%{$queryParam}%")
+            ->orderBy('mf.nombre_completo')
             ->limit(10)
             ->get()
             ->map(function ($item) {
-                $item->foto_perfil = null; // Placeholder
+                $item->foto_perfil = null;
                 $item->tipo_perfil = 'miembro_familiar';
                 return $item;
             });
 
-        // Combinamos resultados, ordenamos alfabéticamente y limitamos a 15 sugerencias
+        // Combinamos resultados ya ordenados por SQL y limitamos a 15 sugerencias
         $resultados = $titulares->merge($familiares)
-            ->sortBy('nombre')
             ->values()
             ->take(15);
 

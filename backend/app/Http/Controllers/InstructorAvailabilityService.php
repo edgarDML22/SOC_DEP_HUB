@@ -14,7 +14,8 @@ class InstructorAvailabilityService
 {
     public static function validarDisponibilidad($id_instructor, $fecha, $hora_inicio, $hora_fin)
     {
-        $diaSemana = strtoupper(Carbon::parse($fecha)->locale('es')->dayName);
+        $diasEnum = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+        $diaSemana = $diasEnum[Carbon::parse($fecha)->dayOfWeek];
         //revisa que no este empalmado con algun turno de ludoteca
         $already_avaible = TurnosLudoteca::where("id_instructor", $id_instructor)
             ->where("fecha", $fecha)

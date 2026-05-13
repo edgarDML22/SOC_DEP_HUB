@@ -78,27 +78,21 @@ export function useProfileLogic(endpointUrl = '/profile') {
         }
     };
 
-    const logout = async () => {
-        try {
-            await api.post("/auth/logout");
-        } catch (error) {
-            console.error("Error al cerrar sesión en el servidor:", error);
-        } finally {
-            // ── Limpiar datos del perfil ──
-            profileData.value = null;
-            profilePromise = null;
+    const logout = () => {
+        // Fire-and-forget: no esperamos al servidor para limpiar la sesión local
+        api.post("/auth/logout").catch(() => {});
 
-            // ── Resetear TODOS los stores con datos de usuario ──
-            // Importados localmente para evitar dependencias circulares en el módulo
-            useFriendStore().reset()
-            useFamilyStore().$reset()
-            useGuestStore().$reset()
-            useNotificacionesStore().reset()
-            useReservationStore().resetearReserva()
+        profileData.value = null;
+        profilePromise = null;
 
-            localStorage.clear();
-            router.push("/login");
-        }
+        useFriendStore().reset();
+        useFamilyStore().$reset();
+        useGuestStore().$reset();
+        useNotificacionesStore().reset();
+        useReservationStore().resetearReserva();
+
+        localStorage.clear();
+        router.push("/login");
     };
 
     const getSupportLink = async () => {

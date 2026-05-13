@@ -30,9 +30,10 @@ class LudotecaStatusController extends Controller
 
         // Si no viene id_socio, intentamos buscar por correo (para re-ingresos de inactivos)
         if (!$id_socio && $request->correo) {
-            $socio = SocioTitular::where('correo_electronico', $request->correo)->first();
-            if ($socio) {
-                $id_socio = $socio->id_socio;
+            $socioByCorreo = SocioTitular::where('correo_electronico', $request->correo)
+                ->value('id_socio');
+            if ($socioByCorreo) {
+                $id_socio = $socioByCorreo;
             }
         }
 
@@ -45,45 +46,60 @@ class LudotecaStatusController extends Controller
 
         $request->merge(['id_socio' => $id_socio]);
 
+        // Carga única: socio + sus familiares + los registros de hoy de cada familiar.
+        // Todas las validaciones siguientes operan en memoria sobre estas colecciones.
+        $socio = SocioTitular::with([
+            'miembrosFamiliares.registrosLudoteca' => function ($query) {
+                $query->whereDate('hora_ingreso', today());
+            },
+        ])->find($id_socio);
+
         // VALIDACION 1: MODALIDAD DE PLAN DEL SOCIO
-        $modalidad_plan = SocioTitular::where('id_socio', $id_socio)->first();
-        if ($modalidad_plan->modalidad_plan != 'FAMILIAR') {
+        if ($socio->modalidad_plan != 'FAMILIAR') {
             return response()->json([
                 'message' => 'Actualice a plan familiar para usar este servicio',
                 'error' => 'PLAN INCORRECTO'
             ], 403);
         }
 
-        $penalizacionLudoteca = in_array($modalidad_plan->estatus_penalizacion, ['PENALIZADO_LUDOTECA', 'PENALIZADO_AMBOS', 'SUSPENDIDO'])
-            && ($modalidad_plan->estatus_penalizacion === 'SUSPENDIDO'
-                || ($modalidad_plan->fecha_fin_penalizacion_ludoteca && $modalidad_plan->fecha_fin_penalizacion_ludoteca->isFuture()));
+        $penalizacionLudoteca = in_array($socio->estatus_penalizacion, ['PENALIZADO_LUDOTECA', 'PENALIZADO_AMBOS', 'SUSPENDIDO'])
+            && ($socio->estatus_penalizacion === 'SUSPENDIDO'
+                || ($socio->fecha_fin_penalizacion_ludoteca && $socio->fecha_fin_penalizacion_ludoteca->isFuture()));
 
         if ($penalizacionLudoteca) {
             return response()->json([
                 'message' => 'Su cuenta tiene una penalización activa en Ludoteca.',
                 'error'   => 'PENALIZACION_LUDOTECA',
-                'fecha_liberacion' => $modalidad_plan->fecha_fin_penalizacion_ludoteca?->toDateTimeString(),
+                'fecha_liberacion' => $socio->fecha_fin_penalizacion_ludoteca?->toDateTimeString(),
             ], 403);
         }
 
-        //VALIDACION 2: MENOR YA NO SE ENCUENTRA DENTRO DE LA LUDOTECA
+        // Obtenemos el id_menor desde el registro ya validado por la regla exists: de arriba.
+        // Esta es la única query adicional necesaria porque el registro no pertenece al socio.
         $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)
             ->value('id_menor');
 
-        $alreadyActiveToday = RegistrosLudoteca::where('id_menor', $id_menor)
-            ->whereDate('hora_ingreso', today())
-            ->where('estatus_ludoteca', 'ACTIVA')
-            ->exists();
+        // VALIDACION 2: verificaciones de estancia en memoria sobre la colección eager-loaded.
+        $familiar = $socio->miembrosFamiliares->firstWhere('id_miembro', $id_menor);
+
+        if ($familiar === null) {
+            return response()->json([
+                'message' => 'Familiar no encontrado',
+            ]);
+        }
+
+        $registrosHoyDelMenor = $familiar->registrosLudoteca;
+
+        $alreadyActiveToday = $registrosHoyDelMenor->contains('estatus_ludoteca', 'ACTIVA');
 
         if ($alreadyActiveToday) {
             return response()->json([
                 'message' => 'El menor ya tiene una estancia activa hoy'
             ], 409);
         }
-        // registro ya usado 
-        $alreadyUsedToday = RegistrosLudoteca::where('id_menor', $id_menor)
-            ->whereDate('hora_ingreso', today())
-            ->exists();
+
+        // Si existe cualquier registro de hoy (activo o no), el menor ya usó su entrada.
+        $alreadyUsedToday = $registrosHoyDelMenor->isNotEmpty();
 
         if ($alreadyUsedToday) {
             return response()->json([
@@ -91,17 +107,6 @@ class LudotecaStatusController extends Controller
             ], 409);
         }
 
-        $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
-            ->where('socio_id', $request->id_socio)
-            ->first();
-        /* return response()->json([
-            'familiar' => $familiar
-        ]); */
-        if ($familiar == null) {
-            return response()->json([
-                'message' => 'Familiar no encontrado',
-            ]);
-        }
         $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->update([
             'estatus_ludoteca' => 'ACTIVA',
             'hora_ingreso' => now('America/Mexico_City'),
@@ -139,7 +144,8 @@ class LudotecaStatusController extends Controller
             $id_socio = $socio ? $socio->id_socio : null;
         }
 
-        $id_menor = RegistrosLudoteca::where('id_registro', $request->id_registro)->value('id_menor');
+        $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->firstOrFail();
+        $id_menor = $registro->id_menor;
 
         // Validamos que el socio (identificado por ID o Correo) sea familiar del menor
         $familiar = MiembrosFamiliares::where('id_miembro', $id_menor)
@@ -178,17 +184,20 @@ class LudotecaStatusController extends Controller
         if ($request->estatus_ludoteca == 'ENTREGADO') {
             $estatusFinal = 'COMPLETADA_A_TIEMPO';
 
-            $registro = RegistrosLudoteca::where('id_registro', $request->id_registro)->firstOrFail();
             $limite = $registro->hora_limite;
             $time = now('America/Mexico_City');
+
+            // Carga única del socio para todas las operaciones de este bloque.
+            $socio = SocioTitular::find($request->id_socio);
 
             if ($time > $limite) {
                 $estatusFinal = 'COMPLETADA_CON_RETRASO';
 
-                $socio = SocioTitular::find($request->id_socio);
                 $socio->increment('retrasos_ludoteca', 1);
-                Sanciones::aplicarSanciones($request->id_socio);
+                // Pasamos el id; Sanciones hace su propio find() para operar de forma independiente.
+                Sanciones::aplicarSanciones($socio->id_socio);
             }
+
             $horaIngreso = \Carbon\Carbon::parse($registro->hora_ingreso);
             $horaEgreso = now('America/Mexico_City');
 
@@ -216,14 +225,10 @@ class LudotecaStatusController extends Controller
                 'id_instructor_egreso' => $request->id_instructor,
             ]);
 
-
-            // enviar encuesta automática
-            $socio = SocioTitular::find($request->id_socio);
-
+            // Reutilizamos $socio ya cargado arriba — sin segundo find().
             $socio->notify(
                 new EncuestaLudotecaNotification($historial->id_historial)
             );
-
 
             return response()->json([
                 'success' => true,

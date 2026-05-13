@@ -17,18 +17,17 @@ class MiembrosFamiliaresController extends Controller
     {
         $id_socio = $request->user()->user_id;
 
-        // 1. Usamos with('codigoQrActivo') para cargar el QR de forma eficiente
-        $miembros = MiembrosFamiliares::with('codigoQrActivo')
+        $miembros = MiembrosFamiliares::with(['codigoQrActivo:id_codigo,usuario_id,tipo_usuario,codigo,estatus'])
+            ->select(['id_miembro', 'socio_id', 'nombre_completo', 'parentesco', 'fecha_nacimiento', 'genero', 'correo', 'contador_no_shows'])
             ->where('socio_id', $id_socio)
             ->get();
 
-        // 2. Mapeamos para mantener la estructura que espera tu frontend
-        $miembrosConQR = $miembros->map(function ($miembro) {
-            $miembro->codigo_qr = $miembro->codigoQrActivo ? $miembro->codigoQrActivo->codigo : 'QR_NO_ENCONTRADO';
-            return $miembro;
+        $miembros->each(function ($miembro) {
+            $miembro->codigo_qr = $miembro->codigoQrActivo?->codigo ?? 'QR_NO_ENCONTRADO';
+            unset($miembro->codigoQrActivo);
         });
 
-        return response()->json(['success' => true, 'data' => $miembrosConQR], 200);
+        return response()->json(['success' => true, 'data' => $miembros], 200);
     }
 
     // --- MÉTODO DESTROY ---

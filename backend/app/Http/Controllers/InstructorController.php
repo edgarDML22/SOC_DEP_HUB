@@ -12,7 +12,7 @@ use App\Models\ActividadPlantilla;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use App\Models\instructorDisciplina;
+use App\Models\InstructorDisciplina;
 class InstructorController extends Controller
 {
     /**

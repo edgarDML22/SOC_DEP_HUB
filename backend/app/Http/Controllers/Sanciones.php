@@ -15,7 +15,6 @@ class Sanciones extends Controller
             return response()->json(['message' => 'Socio no encontrado'], 404);
         }
 
-        $socio->refresh();
         $retrasos = $socio->retrasos_ludoteca;
 
         if ($socio->estatus_cuenta === 'CANCELADO') {
@@ -47,9 +46,9 @@ class Sanciones extends Controller
         }
 
         return response()->json([
-            'message'             => 'Sanciones aplicadas correctamente',
-            'retrasos'            => $socio->refresh()->retrasos_ludoteca,
-            'estatus_actual'      => $socio->estatus_cuenta,
+            'message'              => 'Sanciones aplicadas correctamente',
+            'retrasos'             => $socio->retrasos_ludoteca,
+            'estatus_actual'       => $socio->estatus_cuenta,
             'estatus_penalizacion' => $socio->estatus_penalizacion,
         ]);
     }
@@ -61,7 +60,6 @@ class Sanciones extends Controller
             return;
         }
 
-        $socio->refresh();
         $noshows = $socio->contador_no_shows;
 
         if ($socio->estatus_cuenta === 'CANCELADO') {

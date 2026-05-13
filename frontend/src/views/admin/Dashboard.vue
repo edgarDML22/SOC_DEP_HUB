@@ -8,34 +8,11 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { useAdminStore } from '@/stores/profiles/adminStore';
 
-const router = useRouter();
+const profileStore = useAdminStore();
 
-const handleLogout = async () => {
-  try {
-    // 1. Recuperar el token del localStorage
-    const token = localStorage.getItem('auth_token');
-
-    // 2. Avisarle al backend que destruya el token (pasándolo en los Headers)
-    await axios.post('http://localhost:8000/api/v1/auth/logout', {}, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-  } catch (error) {
-    console.error("Error al cerrar sesión en el servidor:", error);
-  } finally {
-    // 3. Pase lo que pase con el backend, limpiamos el rastro en el navegador
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    
-    // 4. Patada de regreso al Login
-    router.push('/login');
-  }
-};
+const handleLogout = () => profileStore.logout();
 </script>
 
 <style scoped>

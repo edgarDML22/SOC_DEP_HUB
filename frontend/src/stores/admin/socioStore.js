@@ -79,22 +79,21 @@ export const useSocioStore = defineStore("socioAdmin", () => {
     };
 
     const updateSocio = async (id, data) => {
-        isLoading.value = true;
         try {
             const response = await api.put(`/socios/update/${id}`, data);
             if (response.data && response.data.success) {
-                // Actualizar localmente
                 const index = socios.value.findIndex((s) => String(s.id_socio) === String(id));
                 if (index !== -1) {
-                    socios.value[index] = { ...socios.value[index], ...response.data.data };
+                    const updated = response.data.data;
+                    Object.keys(updated).forEach((k) => {
+                        socios.value[index][k] = updated[k];
+                    });
                 }
                 return { success: true, data: response.data.data };
             }
         } catch (err) {
             console.error("Error updating socio:", err);
             return { success: false, error: err.response?.data?.message || "Error al actualizar." };
-        } finally {
-            isLoading.value = false;
         }
     };
 
@@ -106,12 +105,10 @@ export const useSocioStore = defineStore("socioAdmin", () => {
     };
 
     const updatePenalizacion = async (id, payload) => {
-        // payload puede ser { estatus_penalizacion, dias_penalizacion_reserva?, dias_penalizacion_ludoteca? }
         const body = typeof payload === 'string'
             ? { estatus_penalizacion: payload }
             : { ...payload };
 
-        // Limpiar campos undefined antes de enviar
         Object.keys(body).forEach((k) => body[k] === undefined && delete body[k]);
 
         try {
@@ -119,7 +116,12 @@ export const useSocioStore = defineStore("socioAdmin", () => {
             if (response.data && response.data.success) {
                 const index = socios.value.findIndex((s) => String(s.id_socio) === String(id));
                 if (index !== -1) {
-                    socios.value[index] = { ...socios.value[index], ...response.data.data };
+                    // Mutación quirúrgica: solo actualizamos los campos que devuelve el servidor
+                    // sin reemplazar el objeto completo para evitar re-render de toda la tabla
+                    const updated = response.data.data;
+                    Object.keys(updated).forEach((k) => {
+                        socios.value[index][k] = updated[k];
+                    });
                 }
                 return { success: true, data: response.data.data };
             }

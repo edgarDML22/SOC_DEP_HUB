@@ -397,6 +397,7 @@ onMounted(fetchSocios)
           </thead>
           <tbody class="divide-y divide-surface-100">
             <tr v-for="socio in filteredSocios" :key="socio.id_socio"
+              v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
               class="hover:bg-surface-50/70 transition-colors group">
               <!-- Nombre + avatar -->
               <td class="px-5 py-3.5">

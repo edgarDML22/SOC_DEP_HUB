@@ -12,7 +12,7 @@ import { onMounted } from 'vue';
 
 const profileStore = useInstructorStore();
 
-onMounted(() => {
-    profileStore.fetchProfile()
+onMounted(async () => {
+    await profileStore.fetchProfile();
 })
 </script>

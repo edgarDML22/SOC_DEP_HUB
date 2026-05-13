@@ -24,16 +24,24 @@ export const useGuestStore = defineStore("guest", {
     },
     async addInvitado(payload) {
       const res = await api.post("guest-create", payload);
-      await this.fetchInvitados(true);
+      const nuevo = res.data?.data;
+      if (nuevo) {
+        this.invitados.push(nuevo);
+      }
       return res;
     },
     async updateInvitado(id, payload) {
       const res = await api.put(`guests/${id}`, payload);
-      await this.fetchInvitados(true);
+      const actualizado = res.data?.data;
+      if (actualizado) {
+        const idx = this.invitados.findIndex((inv) => inv.id === id);
+        if (idx !== -1) {
+          this.invitados[idx] = { ...this.invitados[idx], ...actualizado };
+        }
+      }
       return res;
     },
     async deleteInvitado(id) {
-      // ⚠️ ADIÓS A LOS TOASTS AQUÍ. Solo retornamos la respuesta o dejamos que lance el error.
       const res = await api.delete(`guests/${id}`);
       this.invitados = this.invitados.filter((inv) => inv.id !== id);
       return res;

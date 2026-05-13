@@ -25,21 +25,29 @@ watch(() => instructorStore.idInstructor, (newId) => {
     }
 });
 
+const onVisibilityChange = () => {
+  if (!document.hidden && store.isTurnoActivo) {
+    store.fetchEstancias();
+  }
+};
+
 onMounted(() => {
   if (instructorStore.idInstructor) {
       store.fetchEstancias();
   }
 
-  // Validar el turno cada minuto
   timer = setInterval(() => {
-    if (store.isTurnoActivo) {
-        store.fetchEstancias(); 
+    if (store.isTurnoActivo && !document.hidden) {
+        store.fetchEstancias();
     }
   }, 60000);
+
+  document.addEventListener('visibilitychange', onVisibilityChange);
 });
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
 });
 
 // Helpers para la UI

@@ -1,0 +1,50 @@
+services:
+  # 1. El servidor web principal (Octane + RoadRunner)
+  - type: web
+    name: socdep-app
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: ohio # Geográficamente cerca de tu base de datos en us-east-1
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: socdep-redis
+          property: connectionString
+      - key: REDIS_SCHEME
+        value: tls
+
+  # 2. El worker para procesar colas en segundo plano
+  - type: worker
+    name: socdep-worker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: "php artisan queue:work"
+    plan: starter
+    region: ohio
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: socdep-redis
+          property: connectionString
+      - key: REDIS_SCHEME
+        value: tls
+
+  # 3. El Cron Job para tareas programadas
+  - type: cron
+    name: socdep-scheduler
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: "php artisan schedule:run"
+    schedule: "* * * * *" # Se ejecuta cada minuto
+    plan: starter
+    region: ohio
+
+  # 4. El servidor de caché en memoria
+  - type: redis
+    name: socdep-redis
+    plan: free # Render ofrece Redis gratis hasta 25MB
+    region: ohio
+    ipAllowList: [] # Máxima seguridad: solo servicios de Render pueden conectarse

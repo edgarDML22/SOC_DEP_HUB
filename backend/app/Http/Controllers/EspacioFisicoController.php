@@ -181,42 +181,37 @@ class EspacioFisicoController extends Controller
 
     /**
      * Verifica si el espacio tiene dependencias activas o futuras.
+     * Ejecuta 1 query con 4 sub-selects COUNT en lugar de 4 round-trips independientes.
      */
     private function getActiveDependencies($id_espacio): array
     {
         $today = now()->toDateString();
+        $ahora = now();
 
-        //reservaciones
-        $reservaciones = Reservacion::where('id_espacio', $id_espacio)
-            ->where('fecha_reserva', '>=', $today)
-            ->where(function ($q) {
-                $q->where('estatus_operativo', 'ACTIVA')
-                    ->orWhere(function ($sub) {
-                        $sub->where('estatus_operativo', 'PENDIENTE')
-                            ->where('fecha_expiracion', '>', now());
-                    });
-            })
-            ->count();
+        $row = DB::selectOne("
+            SELECT
+              (SELECT COUNT(*) FROM reservaciones_on_demand
+               WHERE id_espacio = ?
+                 AND fecha_reserva >= ?
+                 AND (estatus_operativo = 'ACTIVA'
+                   OR (estatus_operativo = 'PENDIENTE' AND fecha_expiracion > ?))
+              ) AS reservaciones_activas,
 
-        //torneos activos
-        $torneos = EncuentrosTorneo::where('id_espacio', $id_espacio)->count();
+              (SELECT COUNT(*) FROM sesiones_activas sa
+               JOIN actividades_plantilla ap ON ap.id_actividad_plantilla = sa.id_actividad_plantilla
+               WHERE ap.id_espacio = ? AND sa.estatus_sesion = 'EN_CURSO'
+              ) AS sesiones_activas,
 
-        //sesiones activas
-        $sesiones = SesionActiva::whereHas('actividadPlantilla', function ($query) use ($id_espacio) {
-            $query->where('id_espacio', $id_espacio);
-        })
-            ->where('estatus_sesion', 'EN_CURSO')
-            ->count();
+              (SELECT COUNT(*) FROM actividades_plantilla
+               WHERE id_espacio = ?
+              ) AS actividades_programadas,
 
-        //actividades programadas
-        $actividades = ActividadPlantilla::where('id_espacio', $id_espacio)->count();
+              (SELECT COUNT(*) FROM encuentros_torneo
+               WHERE id_espacio = ?
+              ) AS torneos_programados
+        ", [$id_espacio, $today, $ahora, $id_espacio, $id_espacio, $id_espacio]);
 
-        return [
-            'reservaciones_activas' => $reservaciones,
-            'sesiones_activas' => $sesiones,
-            'actividades_programadas' => $actividades,
-            'torneos_programados' => $torneos
-        ];
+        return (array) $row;
     }
 
     private function getDisponibilidadOnDemand($fecha): array

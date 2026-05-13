@@ -1,7 +1,6 @@
 <script setup>
-import { ref, markRaw, onMounted } from 'vue';
+import { markRaw, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 
@@ -18,76 +17,56 @@ import {
 const router = useRouter();
 const profileStore = useInstructorStore();
 
-// Datos reactivos para las estadísticas superiores
-const stats = ref([
-  { id: 1, value: '-', label: 'Sesiones hoy', icon: markRaw(IconCalendar), iconColor: 'text-green' },
-  { id: 2, value: '-', label: 'Prox. 2 horas', icon: markRaw(IconClock), iconColor: 'text-blue' },
-  { id: 3, value: '-', label: 'Pendientes', icon: markRaw(IconHourglass), iconColor: 'text-yellow' },
-  { id: 4, value: '-', label: 'Total Inscritos', icon: markRaw(IconUser), iconColor: 'text-gray' }
-]);
+const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 
-// Datos reactivos para la lista de sesiones
-const todaySessions = ref([]);
-const nextSession = ref(null);
-const isLoading = ref(true);
+const todaySessions = computed(() => {
+  const allSessions = profileStore.homeSessionsCache;
+  if (!allSessions) return [];
+
+  const todayName = dias[new Date().getDay()];
+  const sesionesMismoDia = allSessions
+    .filter(s => s.diaSemana === todayName)
+    .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+
+  return sesionesMismoDia.map(s => ({
+    id: s.id,
+    startTime: s.horaInicio,
+    endTime: s.horaFin,
+    client: s.tipo,
+    location: s.espacio,
+    status: s.status,
+    statusType: s.statusType,
+    inscritos: s.inscritos || 0,
+    originalData: s
+  }));
+});
+
+const nextSession = computed(() => {
+  const nowString = new Date().toTimeString().substring(0, 5);
+  return todaySessions.value.find(s => s.startTime >= nowString) || null;
+});
+
+const stats = computed(() => {
+  const sessions = todaySessions.value;
+  const currentHour = new Date().getHours();
+  const proximas = sessions.filter(s => {
+    const sHour = parseInt(s.startTime.substring(0, 2));
+    return sHour >= currentHour && sHour <= currentHour + 2;
+  }).length;
+
+  return [
+    { id: 1, value: sessions.length, label: 'Sesiones hoy', icon: markRaw(IconCalendar), iconColor: 'text-green' },
+    { id: 2, value: proximas, label: 'Prox. 2 horas', icon: markRaw(IconClock), iconColor: 'text-blue' },
+    { id: 3, value: sessions.filter(s => s.status === 'Programada').length, label: 'Pendientes', icon: markRaw(IconHourglass), iconColor: 'text-yellow' },
+    { id: 4, value: sessions.reduce((sum, s) => sum + s.inscritos, 0), label: 'Total Inscritos', icon: markRaw(IconUser), iconColor: 'text-gray' },
+  ];
+});
+
+const isLoading = computed(() => profileStore.homeSessionsLoading);
 
 onMounted(async () => {
-  try {
-    const response = await api.get('/instructor/sessions');
-    if (response.data && response.data.success) {
-      const allSessions = response.data.data;
-
-      // Obtener qué día es hoy
-      const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-      const todayName = dias[new Date().getDay()];
-
-      // Filtrar sesiones del día de hoy
-      const sesionesMismoDia = allSessions.filter(s => s.diaSemana === todayName);
-
-      // Ordenar por hora
-      sesionesMismoDia.sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-
-      const nowString = new Date().toTimeString().substring(0, 5); // 'HH:MM'
-      const prox = sesionesMismoDia.find(s => s.horaInicio >= nowString);
-
-      // Alimentar lista mapeada final
-      todaySessions.value = sesionesMismoDia.map(s => ({
-        id: s.id,
-        startTime: s.horaInicio,
-        endTime: s.horaFin,
-        client: s.tipo,
-        location: s.espacio,
-        status: s.status,
-        statusType: s.statusType,
-        inscritos: s.inscritos || 0, // Gente que ya pasó o está asistiendo
-        originalData: s // Guardamos el objeto original para vue-router
-      }));
-
-      // Set nextSession mapped if found
-      nextSession.value = todaySessions.value.find(s => s.startTime >= nowString) || null;
-
-      // Llenamos las estadisticas reales
-      stats.value[0].value = sesionesMismoDia.length; // Sesiones Hoy
-
-      // Lógica de próximas horas (simplificado)
-      const currentHour = new Date().getHours();
-      let proximas = 0;
-      sesionesMismoDia.forEach(s => {
-        const sHour = parseInt(s.horaInicio.substring(0, 2));
-        if (sHour >= currentHour && sHour <= currentHour + 2) proximas++;
-      });
-      stats.value[1].value = proximas;
-
-      stats.value[2].value = sesionesMismoDia.filter(s => s.status === 'Programada').length; // Pendientes
-
-      // Sumador de alumnos para la estadística (en base a la gente que asiste o ya pasó la clase)
-      stats.value[3].value = todaySessions.value.reduce((sum, current) => sum + current.inscritos, 0);
-    }
-  } catch (error) {
-    console.error("Error cargando agenda de hoy:", error);
-  } finally {
-    isLoading.value = false;
-  }
+  await profileStore.fetchProfile();
+  profileStore.fetchHomeSessions();
 });
 
 const handleGoToDetails = (sessionObj) => {

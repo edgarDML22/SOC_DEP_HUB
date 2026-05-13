@@ -38,6 +38,9 @@ export const useReservationStore = defineStore("reservation", () => {
   // Flag: ya consultamos si hay borrador activo (evita re-fetch al alternar pestañas)
   const draftVerificado = ref(false);
 
+  const espaciosTimestamp = ref(0);
+  const ESPACIOS_TTL_MS = 5 * 60 * 1000;
+
   // --- VARIABLES DEL STEP 3 (HORARIOS) ---
   const opcionesHoras = ref([
     "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
@@ -143,7 +146,8 @@ export const useReservationStore = defineStore("reservation", () => {
 
   // --- ACTIONS ---
   const fetchDisponibilidadEspacios = async (forceRefresh = false) => {
-    if (!forceRefresh && espaciosDisponibles.value.length > 0) return;
+    const isStale = Date.now() - espaciosTimestamp.value > ESPACIOS_TTL_MS;
+    if (!forceRefresh && espaciosDisponibles.value.length > 0 && !isStale) return;
 
     cargando.value = true;
     errorApi.value = null;
@@ -156,6 +160,7 @@ export const useReservationStore = defineStore("reservation", () => {
         },
       });
       espaciosDisponibles.value = res.data.data;
+      espaciosTimestamp.value = Date.now();
     } catch (error) {
       console.error("Error al cargar disponibilidad:", error);
       errorApi.value = "No se pudieron cargar las canchas.";
@@ -277,7 +282,7 @@ export const useReservationStore = defineStore("reservation", () => {
     // Resetear el flag de draft para que OnDemand consulte al abrir de nuevo
     draftVerificado.value = false;
     resetearReserva();
-    // NO llamamos fetchDisponibilidadEspacios aqui: el guard de disciplinasUnicas
+    // NO llamamos fetchDisponibilidadEspacios aqui: el guard de espaciosDisponibles.length
     // en fetchDisponibilidadEspacios ya evita re-fetch si los datos siguen en memoria
   };
 

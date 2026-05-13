@@ -23,19 +23,37 @@ export const useFamilyStore = defineStore("family", {
         this.loading = false;
       }
     },
+
     async addMiembroFamiliar(payload) {
       const res = await api.post("family-member-create", payload);
-      await this.fetchMiembrosFamiliares(true);
+      const nuevo = res.data.data;
+      if (nuevo) {
+        nuevo.codigo_qr = res.data.qr_url ? nuevo.codigo_qr : "QR_NO_ENCONTRADO";
+        this.miembrosFamiliares.push(nuevo);
+      }
       return res;
     },
+
     async updateMiembroFamiliar(id, payload) {
       const res = await api.put(`family-member/${id}`, payload);
-      await this.fetchMiembrosFamiliares(true);
+      const actualizado = res.data.data;
+      if (actualizado) {
+        const idx = this.miembrosFamiliares.findIndex((m) => m.id_miembro === id);
+        if (idx !== -1) {
+          this.miembrosFamiliares[idx] = {
+            ...this.miembrosFamiliares[idx],
+            ...actualizado,
+          };
+        }
+      }
       return res;
     },
+
     async deleteMiembroFamiliar(id) {
       const res = await api.delete(`family-member/${id}`);
-      await this.fetchMiembrosFamiliares(true);
+      this.miembrosFamiliares = this.miembrosFamiliares.filter(
+        (m) => m.id_miembro !== id
+      );
       return res;
     },
   },

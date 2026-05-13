@@ -16,6 +16,7 @@ services:
       - socdep-network
     depends_on:
       - nosql
+      - redis
 
   # SCHEDULER: CRON Jobs para Laravel
   scheduler:
@@ -33,6 +34,7 @@ services:
       - socdep-network
     depends_on:
       - nosql
+      - redis
 
   # WORKER: Procesador de colas (Notificaciones de No-Shows, etc.)
   queue-worker:
@@ -50,6 +52,7 @@ services:
       - socdep-network
     depends_on:
       - nosql
+      - redis
 
   # FRONTEND: Vue.js + Vite
   frontend:
@@ -64,6 +67,16 @@ services:
       - ./frontend:/app
       - /app/node_modules # Evita que los módulos locales sobreescriban a los del contenedor
     command: sh -c "npm install && npm run dev"
+    networks:
+      - socdep-network
+
+  # REDIS: Caché y sesiones compartidas entre workers de Octane
+  redis:
+    image: redis:alpine
+    container_name: socdep-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
       - socdep-network
 

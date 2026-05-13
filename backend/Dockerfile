@@ -1,4 +1,4 @@
-# Usamos PHP 8.4 CLI (optimizado para el artisan serve de Laravel 11)
+# PHP 8.4 CLI — base para Laravel Octane con RoadRunner (Fase 2 de rendimiento)
 FROM php:8.4-cli
 
 # Definimos el directorio de trabajo dentro del contenedor
@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y \
     curl
 
 # Configuramos e instalamos las extensiones nativas de PHP
+# pcntl y sockets son requeridas por Laravel Octane / RoadRunner
 RUN docker-php-ext-configure intl
-RUN docker-php-ext-install pdo_pgsql zip intl
+RUN docker-php-ext-install pdo_pgsql zip intl pcntl sockets
 
 # Instalamos las librerías del sistema necesarias para GD y otras extensiones
 RUN apt-get update && apt-get install -y \
@@ -48,8 +49,17 @@ RUN pecl install mongodb && docker-php-ext-enable mongodb
 # Traemos Composer desde su imagen oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Descargamos el binario RoadRunner (rr) directamente en el PATH del contenedor.
+# La versión se fija para builds reproducibles. Actualizar aquí cuando se bump de versión.
+RUN curl -sSL https://github.com/roadrunner-server/roadrunner/releases/download/v2024.3.5/roadrunner-2024.3.5-linux-amd64.tar.gz \
+    | tar -xz --strip-components=1 -C /usr/local/bin roadrunner-2024.3.5-linux-amd64/rr \
+    && chmod +x /usr/local/bin/rr
+
 # Exponemos el puerto 8000 para que tu compu pueda ver el proyecto
 EXPOSE 8000
 
-# El comando que mantendrá vivo el backend y escuchando peticiones
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Servidor HTTP: Laravel Octane con RoadRunner.
+# --max-requests=500 es obligatorio para reciclar workers y evitar conexiones PDO
+# muertas con la base de datos remota Neon (PostgreSQL serverless).
+# Los servicios scheduler y queue-worker sobreescriben este CMD con su propio command:.
+CMD ["php", "artisan", "octane:start", "--server=roadrunner", "--host=0.0.0.0", "--port=8000", "--workers=4", "--max-requests=500"]

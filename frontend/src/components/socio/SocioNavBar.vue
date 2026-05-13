@@ -129,9 +129,8 @@ const iconoNotif = (tipo) => {
   </svg>`
 }
 
-onMounted(async () => {
+onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  await notifStore.fetchNotificaciones()
 })
 
 onUnmounted(() => {

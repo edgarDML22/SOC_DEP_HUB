@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\RegistrosLudoteca;
 
 class MiembrosFamiliares extends Model
 {
@@ -55,6 +56,11 @@ class MiembrosFamiliares extends Model
         return $this->belongsTo(SocioTitular::class, 'socio_id', 'id_socio');
     }
 
+
+    public function registrosLudoteca()
+    {
+        return $this->hasMany(RegistrosLudoteca::class, 'id_menor', 'id_miembro');
+    }
 
     public function codigoQrActivo()
     {

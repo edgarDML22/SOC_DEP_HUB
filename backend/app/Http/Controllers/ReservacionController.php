@@ -50,24 +50,9 @@ class ReservacionController extends Controller
             return response()->json(['success' => false, 'message' => 'La reservación no puede exceder las 2 horas.'], 400);
         }
 
-        // VALIDAR PENALIZACIÓN DE RESERVAS
         $user = $request->user();
-        if ($user->rol === 'socio_titular') {
-            $socio = SocioTitular::find($user->user_id);
-            if ($socio) {
-                $bloqueadoPorEstatus = in_array($socio->estatus_penalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_AMBOS', 'SUSPENDIDO']);
-                $fechaActiva = $socio->estatus_penalizacion !== 'SUSPENDIDO'
-                    && $socio->fecha_fin_penalizacion_reserva
-                    && $socio->fecha_fin_penalizacion_reserva->isFuture();
-
-                if ($bloqueadoPorEstatus && ($socio->estatus_penalizacion === 'SUSPENDIDO' || $fechaActiva)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes realizar nuevas reservas hasta que expire la sanción.',
-                        'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
-                    ], 403);
-                }
-            }
+        if ($error = $this->validarPenalizacionReservas($user)) {
+            return response()->json($error, 403);
         }
 
         return DB::transaction(function () use ($request) {
@@ -107,23 +92,34 @@ class ReservacionController extends Controller
                 return response()->json(['success' => false, 'message' => 'Espacio agotado. Ya existe una actividad en este horario'], 409);
             }
 
-            // SI TODO ESTÁ LIBRE, CREAMOS LA RESERVA
-            $nuevaReserva = Reservacion::updateOrCreate(
-                [
-                    'id_socio_titular' => $id_socio,
-                    'estatus_operativo' => 'PENDIENTE'
-                ],
-                [
-                    'id_espacio' => $request->id_espacio,
-                    'id_disciplina' => $request->id_disciplina,
-                    'fecha_reserva' => $request->fecha_reserva,
-                    'hora_inicio' => $request->hora_inicio,
-                    'hora_fin' => $request->hora_fin,
-                    // BLINDAMOS LA HORA DE CREACIÓN EXACTA A MÉXICO:
+            // SI TODO ESTÁ LIBRE, CREAMOS O ACTUALIZAMOS EL BORRADOR (con lock para evitar race condition)
+            $borradorExistente = Reservacion::where('id_socio_titular', $id_socio)
+                ->where('estatus_operativo', 'PENDIENTE')
+                ->lockForUpdate()
+                ->first();
+
+            if ($borradorExistente) {
+                $borradorExistente->update([
+                    'id_espacio'       => $request->id_espacio,
+                    'id_disciplina'    => $request->id_disciplina,
+                    'fecha_reserva'    => $request->fecha_reserva,
+                    'hora_inicio'      => $request->hora_inicio,
+                    'hora_fin'         => $request->hora_fin,
                     'fecha_expiracion' => Carbon::now('America/Mexico_City')->addMinutes(15),
-                    'estatus_operativo' => 'PENDIENTE'
-                ]
-            );
+                ]);
+                $nuevaReserva = $borradorExistente;
+            } else {
+                $nuevaReserva = Reservacion::create([
+                    'id_socio_titular'  => $id_socio,
+                    'id_espacio'        => $request->id_espacio,
+                    'id_disciplina'     => $request->id_disciplina,
+                    'fecha_reserva'     => $request->fecha_reserva,
+                    'hora_inicio'       => $request->hora_inicio,
+                    'hora_fin'          => $request->hora_fin,
+                    'estatus_operativo' => 'PENDIENTE',
+                    'fecha_expiracion'  => Carbon::now('America/Mexico_City')->addMinutes(15),
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -203,23 +199,8 @@ class ReservacionController extends Controller
         }
 
         // VALIDAR PENALIZACIÓN AL CONFIRMAR
-        $user = $request->user();
-        if ($user->rol === 'socio_titular') {
-            $socio = SocioTitular::find($user->user_id);
-            if ($socio) {
-                $bloqueadoPorEstatus = in_array($socio->estatus_penalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_AMBOS', 'SUSPENDIDO']);
-                $fechaActiva = $socio->estatus_penalizacion !== 'SUSPENDIDO'
-                    && $socio->fecha_fin_penalizacion_reserva
-                    && $socio->fecha_fin_penalizacion_reserva->isFuture();
-
-                if ($bloqueadoPorEstatus && ($socio->estatus_penalizacion === 'SUSPENDIDO' || $fechaActiva)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes confirmar reservas hasta que expire la sanción.',
-                        'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
-                    ], 403);
-                }
-            }
+        if ($error = $this->validarPenalizacionReservas($request->user())) {
+            return response()->json($error, 403);
         }
 
         try {
@@ -229,18 +210,16 @@ class ReservacionController extends Controller
                 // Leer acompañantes del draft almacenado en BD (columna JSONB)
                 $draft = $reserva->acompanantes_draft;
 
-
                 if (is_string($draft)) {
                     $draft = json_decode($draft, true) ?? [];
                 }
-
 
                 if (!is_array($draft)) {
                     $draft = [];
                 }
 
-                // Validar capacidad del espacio
-                $espacio = EspacioFisico::where('id_espacio', $reserva->id_espacio)->first();
+                // Validar capacidad del espacio — reutiliza la relación ya eager-loaded
+                $espacio = $reserva->espacioFisico;
 
                 if ($espacio && $espacio->capacidad_maxima) {
                     $totalAsistentes = count($draft) + 1; // +1 por el titular
@@ -248,7 +227,7 @@ class ReservacionController extends Controller
                     if ($totalAsistentes > $espacio->capacidad_maxima) {
                         return response()->json([
                             'success' => false,
-                            'message' => "La cancha tiene capacidad para {$espacioCargado->capacidad_maxima} personas. Tienes " . count($draft) . " acompañantes + tú = {$totalAsistentes}."
+                            'message' => "La cancha tiene capacidad para {$espacio->capacidad_maxima} personas. Tienes " . count($draft) . " acompañantes + tú = {$totalAsistentes}."
                         ], 422);
                     }
                 }
@@ -258,43 +237,21 @@ class ReservacionController extends Controller
                 $reserva->fecha_expiracion  = null;
                 $reserva->save();
 
-                // Enviar correo de confirmación
-                try {
-                    $user = $reserva->id_socio_titular == $request->user()->user_id ? $request->user() : \App\Models\User::find($reserva->id_socio_titular);
-                    if ($user && $user->email) {
-                        $disciplina = $reserva->disciplina->nombre_disciplina ?? 'Deporte';
-                        $espacio = $reserva->espacioFisico->nombre_espacio ?? 'Espacio';
-                        $hora = $reserva->hora_inicio . ' - ' . $reserva->hora_fin;
-                        $fecha = $reserva->fecha_reserva;
+                // Capturar los datos para el correo DENTRO de la transacción,
+                // pero el envío ocurre FUERA para no bloquear la conexión a la BD.
+                $user = $reserva->id_socio_titular == $request->user()->user_id
+                    ? $request->user()
+                    : \App\Models\User::find($reserva->id_socio_titular);
 
-                        Mail::raw(
-                            "Estimado(a) {$user->nombre_completo},
-
-                                Nos complace informarte que tu reservación ha sido confirmada correctamente.
-                                                                
-                                Detalles de la reservación:
-
-                                • Disciplina: {$disciplina}
-                                • Espacio reservado: {$espacio}
-                                • Fecha: {$fecha}
-                                • Horario: {$hora}
-
-                                Por favor, procura llegar con anticipación para disfrutar de tu reservación
-                                sin inconvenientes.
-
-                                Agradecemos tu preferencia.
-
-                                Atentamente,
-                                SOC-DEP HUB",
-                            function ($message) use ($user) {
-
-                                $message->to($user->email)
-                                    ->subject('Confirmación de Reservación | SOC-DEP HUB');
-                            }
-                        );
-                    }
-                } catch (\Exception $mailEx) {
-                    Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
+                if ($user && $user->email) {
+                    $datosCorreo = [
+                        'email'      => $user->email,
+                        'nombre'     => $user->nombre_completo ?? $user->email,
+                        'disciplina' => $reserva->disciplina->nombre_disciplina ?? 'Deporte',
+                        'espacio'    => $reserva->espacioFisico->nombre_espacio ?? 'Espacio',
+                        'hora'       => $reserva->hora_inicio . ' - ' . $reserva->hora_fin,
+                        'fecha'      => $reserva->fecha_reserva,
+                    ];
                 }
 
                 return response()->json([
@@ -303,13 +260,31 @@ class ReservacionController extends Controller
                 ]);
             });
 
-            // Envío del correo FUERA de la transacción — no bloquea la BD
+            // Envío del correo FUERA de la transacción — la conexión a Neon ya fue liberada.
+            // Si la transacción falló, $datosCorreo sigue null y no se envía nada.
             if ($datosCorreo) {
                 try {
                     Mail::raw(
-                        "Tu reservación para {$datosCorreo['disciplina']} en {$datosCorreo['espacio']} " .
-                        "ha sido confirmada para el día {$datosCorreo['fecha']} en el horario {$datosCorreo['hora']}.",
-                        fn($m) => $m->to($datosCorreo['email'])->subject('Confirmación de Reservación - SOC-DEP HUB')
+                        "Estimado(a) {$datosCorreo['nombre']},
+
+Nos complace informarte que tu reservación ha sido confirmada correctamente.
+
+Detalles de la reservación:
+
+• Disciplina: {$datosCorreo['disciplina']}
+• Espacio reservado: {$datosCorreo['espacio']}
+• Fecha: {$datosCorreo['fecha']}
+• Horario: {$datosCorreo['hora']}
+
+Por favor, procura llegar con anticipación para disfrutar de tu reservación
+sin inconvenientes.
+
+Agradecemos tu preferencia.
+
+Atentamente,
+SOC-DEP HUB",
+                        fn($m) => $m->to($datosCorreo['email'])
+                                    ->subject('Confirmación de Reservación | SOC-DEP HUB')
                     );
                 } catch (\Exception $mailEx) {
                     Log::error("Error al enviar correo de confirmación: " . $mailEx->getMessage());
@@ -413,12 +388,17 @@ class ReservacionController extends Controller
         $id_socio = $request->user()->user_id;
         $ahoraMexico = Carbon::now('America/Mexico_City');
 
-        $reserva = Reservacion::where('id_socio_titular', $id_socio)
+        $reserva = Reservacion::select([
+                'id_reserva', 'id_socio_titular', 'id_espacio', 'id_disciplina',
+                'fecha_reserva', 'hora_inicio', 'hora_fin',
+                'estatus_operativo', 'fecha_expiracion', 'acompanantes_draft',
+            ])
+            ->where('id_socio_titular', $id_socio)
             ->where('estatus_operativo', 'PENDIENTE')
-            ->where('fecha_expiracion', '>', $ahoraMexico) // Corrección Timezone
+            ->where('fecha_expiracion', '>', $ahoraMexico)
             ->with([
-                'espacioFisico:id_espacio,nombre_espacio',
-                'disciplina:id_disciplina,nombre_disciplina'
+                'espacioFisico:id_espacio,nombre_espacio,capacidad_maxima',
+                'disciplina:id_disciplina,nombre_disciplina',
             ])
             ->first();
 
@@ -451,5 +431,28 @@ class ReservacionController extends Controller
             'success' => true,
             'data' => $reservas
         ]);
+    }
+
+    private function validarPenalizacionReservas(\App\Models\User $user): ?array
+    {
+        if ($user->rol !== 'socio_titular') return null;
+
+        $socio = SocioTitular::select(
+            'id_socio', 'estatus_penalizacion', 'fecha_fin_penalizacion_reserva'
+        )->find($user->user_id);
+
+        if (!$socio) return null;
+
+        $bloqueado = in_array($socio->estatus_penalizacion, ['PENALIZADO_RESERVA', 'PENALIZADO_AMBOS', 'SUSPENDIDO']);
+        $vigente   = $socio->estatus_penalizacion === 'SUSPENDIDO'
+            || ($socio->fecha_fin_penalizacion_reserva?->isFuture());
+
+        if (!$bloqueado || !$vigente) return null;
+
+        return [
+            'success'          => false,
+            'message'          => 'Tu cuenta tiene una penalización activa en Reservaciones. No puedes realizar nuevas reservas hasta que expire la sanción.',
+            'fecha_liberacion' => $socio->fecha_fin_penalizacion_reserva?->toDateTimeString(),
+        ];
     }
 }

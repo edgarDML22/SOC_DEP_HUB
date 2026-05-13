@@ -120,17 +120,13 @@ class ProfileController extends Controller
                         'user_id' => $usuario->user_id
                     ], 404);
                 }
-                $id = DB::table('users')
-                    ->where('user_id', $perfil->id_empleado)
-                    ->whereIn('rol', ['gerente', 'subgerente'])
-                    ->first();
 
                 $data = [
-                    'id_socio' => $id->id,
+                    'id_socio'        => $usuario->id,
                     'nombre_completo' => $perfil->nombre_completo,
-                    'num_accion' => null,
-                    'tipo_socio' => $id->rol,
-                    'estatus_cuenta' => $perfil->estatus
+                    'num_accion'      => null,
+                    'tipo_socio'      => $usuario->rol,
+                    'estatus_cuenta'  => $perfil->estatus,
                 ];
                 break;
 

@@ -20,23 +20,24 @@ class GuestStatusController extends Controller
     {
         $socioId = $request->user()->user_id;
 
-        // 2. Traemos todos sus invitados con sus respectivos pases
-        $invitados = Invitados::with('pase')->where('socio_id', $socioId)->get();
+        $invitados = Invitados::with(['pase:id_pase,invitado_id,estatus_acceso,fecha_expiracion'])
+            ->select(['id_invitado', 'socio_id', 'nombre_invitado', 'codigo_qr', 'correo', 'telefono'])
+            ->where('socio_id', $socioId)
+            ->get();
 
-        // 3. Formateamos la data para el Front
         return response()->json([
             'success' => true,
             'data' => $invitados->map(function ($inv) {
                 $pase = $inv->pase;
                 return [
-                    'id' => $inv->id_invitado,
-                    'nombre' => $inv->nombre_invitado,
-                    'codigo_qr' => $inv->codigo_qr,
-                    'correo' => $inv->correo,
-                    'telefono' => $inv->telefono,
-                    'estatus_acceso' => $pase?->estatus_acceso ?? 'SIN_PASE',
+                    'id'               => $inv->id_invitado,
+                    'nombre'           => $inv->nombre_invitado,
+                    'codigo_qr'        => $inv->codigo_qr,
+                    'correo'           => $inv->correo,
+                    'telefono'         => $inv->telefono,
+                    'estatus_acceso'   => $pase?->estatus_acceso ?? 'SIN_PASE',
                     'fecha_expiracion' => $pase?->fecha_expiracion,
-                    'id_pase' => $pase?->id_pase,
+                    'id_pase'          => $pase?->id_pase,
                 ];
             })
         ], 200);
@@ -70,8 +71,7 @@ class GuestStatusController extends Controller
         }
 
         /* 5. Validar límite */
-        $count = SocioTitular::find($socioId)
-            ->invitados()
+        $count = Invitados::where('socio_id', $socioId)
             ->whereHas('pase', function ($query) {
                 $query->where('estatus_acceso', 'ACTIVO');
             })
@@ -145,11 +145,17 @@ class GuestStatusController extends Controller
             }
 
             return response()->json([
-                'id_invitado' => $insertar->id_invitado,
-                'socio_id' => $socioId,
-                'nombre_invitado' => $request->nombre_invitado,
-                'codigo_qr' => $codigoQR,
-                'estatus_acceso' => $insertar_pase->estatus_acceso,
+                'success' => true,
+                'data' => [
+                    'id'               => $insertar->id_invitado,
+                    'nombre'           => $insertar->nombre_invitado,
+                    'codigo_qr'        => $codigoQR,
+                    'correo'           => $insertar->correo,
+                    'telefono'         => $insertar->telefono,
+                    'estatus_acceso'   => $insertar_pase->estatus_acceso,
+                    'fecha_expiracion' => $insertar_pase->fecha_expiracion,
+                    'id_pase'          => $insertar_pase->id_pase,
+                ],
             ], 201);
 
         } catch (\Exception $e) {

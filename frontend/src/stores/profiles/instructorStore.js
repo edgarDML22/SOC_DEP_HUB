@@ -1,6 +1,7 @@
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { useProfileLogic } from "./profileStore";
+import api from "@/services/api";
 
 export const useInstructorStore = defineStore("instructorProfile", () => {
     const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, logout, getSupportLink } = useProfileLogic('/instructor/profile');
@@ -18,6 +19,29 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
     const isCuidador = computed(() => {
         return profileData.value?.tieneLudoteca == true;
     });
+
+    // Caché de sesiones del home — persiste mientras el store viva (misma sesión)
+    const homeSessionsCache = ref(null);
+    const homeSessionsLoading = ref(false);
+
+    const fetchHomeSessions = async () => {
+        if (homeSessionsCache.value !== null) return homeSessionsCache.value;
+
+        homeSessionsLoading.value = true;
+        try {
+            const response = await api.get('/instructor/sessions');
+            if (response.data?.success) {
+                homeSessionsCache.value = response.data.data;
+            } else {
+                homeSessionsCache.value = [];
+            }
+        } catch {
+            homeSessionsCache.value = [];
+        } finally {
+            homeSessionsLoading.value = false;
+        }
+        return homeSessionsCache.value;
+    };
 
     return {
         profileData,
@@ -37,6 +61,9 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         fetchProfile,
         updateProfile,
         logout,
-        getSupportLink
+        getSupportLink,
+        homeSessionsCache,
+        homeSessionsLoading,
+        fetchHomeSessions,
     };
 });

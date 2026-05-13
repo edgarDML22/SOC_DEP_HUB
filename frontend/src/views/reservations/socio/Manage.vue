@@ -152,11 +152,11 @@ const confirmarDescarte = async (reserva, event) => {
     );
     
     if (result.isConfirmed) {
-        actionLoadingId.value = reserva.id_reserva; // Activa spinner
+        actionLoadingId.value = reserva.id_reserva;
         await descartarBorrador(reserva.id_reserva);
-        await reservationStore.fetchMisReservaciones(true); 
-        toastInfo('Descartado', 'El borrador ha sido eliminado.', 'success');
-        actionLoadingId.value = null; // Apaga spinner
+        await reservationStore.fetchMisReservaciones(true);
+        actionLoadingId.value = null;
+        await successModal('Borrador descartado', 'La reservación pendiente fue eliminada correctamente.');
     }
 };
 
@@ -207,6 +207,12 @@ const getStatusConfig = (status) => {
 const formatearHora = (hora) => {
     if (!hora) return "";
     return hora.substring(0, 5);
+};
+
+const formatearFecha = (fecha) => {
+    if (!fecha) return "";
+    const [anio, mes, dia] = fecha.substring(0, 10).split("-");
+    return `${dia}/${mes}/${anio}`;
 };
 
 const selectTab = (id) => {
@@ -293,6 +299,18 @@ const selectTab = (id) => {
                                     </svg>
                                 </div>
                                 <span class="truncate">{{ reserva.espacio_fisico?.nombre_espacio || 'Espacio no asignado' }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-2.5 text-sm font-semibold text-surface-600">
+                                <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                </div>
+                                <span class="truncate">{{ formatearFecha(reserva.fecha_reserva) }}</span>
                             </div>
                         </div>
 
