@@ -1,5 +1,6 @@
 <script setup>
 import GerenteSideBar from '@/components/gerente/GerenteSideBar.vue'
+import GerenteTopBar from '@/components/gerente/GerenteTopBar.vue'
 import { useAdminStore } from '@/stores/profiles/adminStore'
 import { onMounted } from 'vue'
 
@@ -14,6 +15,7 @@ onMounted(() => {
     <GerenteSideBar />
 
     <main class="flex-1 overflow-y-auto">
+      <GerenteTopBar />
       <router-view />
     </main>
   </div>

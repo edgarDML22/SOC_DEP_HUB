@@ -18,7 +18,6 @@ class Invitados extends Model
         'id_invitado',
         'socio_id',
         'nombre_invitado',
-        'socio_titulare',
         'codigo_qr',
         'correo',
         'telefono',
@@ -28,7 +27,7 @@ class Invitados extends Model
 
     public function socioTitular()
     {
-        return $this->belongsTo(SocioTitular::class, 'id_socio', 'socio_id');
+        return $this->belongsTo(SocioTitular::class, 'socio_id', 'id_socio');
     }
     public function pase()
     {

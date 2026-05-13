@@ -356,6 +356,16 @@ const router = createRouter({
               name: 'socios-details',
               component: () => import('@/views/admin/socio/SocioDetails.vue'),
             },
+            {
+              path: ':id/familiares',
+              name: 'socios-familiares',
+              component: () => import('@/views/admin/socio/AdminFamilyManagement.vue'),
+            },
+            {
+              path: ':id/invitados',
+              name: 'admin-socio-invitados',
+              component: () => import('@/views/admin/socio/AdminGuestManagement.vue'),
+            },
           ]
         },
         {
@@ -371,6 +381,17 @@ const router = createRouter({
               path: ':id',
               name: 'instructors-details',
               component: () => import('@/views/admin/instructors/InstructorsDetails.vue'),
+            },
+          ]
+        },
+        {
+          path: "managers",
+          redirect: { name: 'managers-list' },
+          children: [
+            {
+              path: 'managers-list',
+              name: 'managers-list',
+              component: () => import('@/views/admin/managers/ManagersList.vue'),
             },
           ]
         },

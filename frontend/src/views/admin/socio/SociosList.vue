@@ -18,16 +18,8 @@ import EstatusCuentaModal from '@/components/admin/socio/EstatusCuentaModal.vue'
 const router = useRouter()
 const socioStore = useSocioStore()
 
-const { socios, isLoading, error: errorMsg } = storeToRefs(socioStore)
+const { socios, isLoading, error: errorMsg, listFilters } = storeToRefs(socioStore)
 const { fetchSocios, fetchSocioDetails } = socioStore
-
-// ── FILTROS ────────────────────────────────────────────────────
-const search = ref('')
-const filterTipo = ref(null)
-const filterModalidad = ref(null)
-const filterGenero = ref(null)
-const filterEstatus = ref(null)
-const filterPenalizacion = ref(null)
 
 const OPT_TIPO = [
   { label: 'Todos los tipos', value: null },
@@ -60,33 +52,34 @@ const OPT_ESTATUS_PENALIZACION = [
 
 const filteredSocios = computed(() => {
   let r = socios.value
+  const f = listFilters.value
 
-  if (search.value) {
-    const q = search.value.toLowerCase()
+  if (f.search) {
+    const q = f.search.toLowerCase()
     r = r.filter(s =>
       s.nombre_completo?.toLowerCase().includes(q) ||
       String(s.numero_accion ?? '').includes(q)
     )
   }
-  if (filterTipo.value) r = r.filter(s => s.tipo_socio === filterTipo.value)
-  if (filterModalidad.value) r = r.filter(s => s.modalidad_plan === filterModalidad.value)
-  if (filterGenero.value) r = r.filter(s => s.genero === filterGenero.value)
-  if (filterEstatus.value) r = r.filter(s => s.estatus_cuenta === filterEstatus.value)
-  if (filterPenalizacion.value) r = r.filter(s => (s.estatus_penalizacion ?? 'SIN_PENALIZACION') === filterPenalizacion.value)
+  if (f.tipo) r = r.filter(s => s.tipo_socio === f.tipo)
+  if (f.modalidad) r = r.filter(s => s.modalidad_plan === f.modalidad)
+  if (f.genero) r = r.filter(s => s.genero === f.genero)
+  if (f.estatus) r = r.filter(s => s.estatus_cuenta === f.estatus)
+  if (f.penalizacion) r = r.filter(s => (s.estatus_penalizacion ?? 'SIN_PENALIZACION') === f.penalizacion)
 
   // Ordenar alfabéticamente por nombre
   return [...r].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
 })
 
 const hasActiveFilters = computed(() =>
-  search.value || filterTipo.value || filterModalidad.value || filterGenero.value ||
-  filterEstatus.value || filterPenalizacion.value
+  listFilters.value.search || listFilters.value.tipo || listFilters.value.modalidad || listFilters.value.genero ||
+  listFilters.value.estatus || listFilters.value.penalizacion
 )
 
 const clearFilters = () => {
-  search.value = ''
-  filterTipo.value = filterModalidad.value = filterGenero.value =
-    filterEstatus.value = filterPenalizacion.value = null
+  listFilters.value.search = ''
+  listFilters.value.tipo = listFilters.value.modalidad = listFilters.value.genero =
+    listFilters.value.estatus = listFilters.value.penalizacion = null
 }
 
 // ── AVATAR ────────────────────────────────────────────────────
@@ -133,22 +126,22 @@ const buildMenuItems = (socio) => [
            </svg>`,
     action: () => openPenalty(socio),
   },
-  {
-    label: 'Miembros familiares',
+  ...(socio.modalidad_plan === 'FAMILIAR' ? [{
+    label: 'Gestionar Miembros Familiares',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
              <path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 0-3-3.87"/>
              <circle cx="9" cy="7" r="4"/><circle cx="17" cy="7" r="4"/>
            </svg>`,
-    action: () => { openFamily(socio) },
-  },
+    action: () => { router.push(`/admin/socios/${socio.id_socio}/familiares`) },
+  }] : []),
   {
-    label: 'Pases de invitados',
+    label: 'Invitados',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
              <circle cx="9" cy="7" r="4"/>
              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
            </svg>`,
-    action: () => { openGuests(socio) },
+    action: () => { router.push({ name: 'admin-socio-invitados', params: { id: socio.id_socio } }) },
   },
   {
     label: socio.estatus_cuenta === 'SUSPENDIDO' ? 'Reactivar cuenta' : 'Suspender cuenta',
@@ -162,7 +155,6 @@ const buildMenuItems = (socio) => [
 // ── MODALES ───────────────────────────────────────────────────
 const showPenaltyModal = ref(false)
 const showFamilyModal = ref(false)
-const showGuestsModal = ref(false)
 const showEstatusModal = ref(false)
 const selectedSocio = ref(null)
 const isModalLoading = ref(false)
@@ -191,22 +183,6 @@ const openFamily = async (socio) => {
   }
 }
 
-const openGuests = async (socio) => {
-  selectedSocio.value = socio
-  showGuestsModal.value = true
-
-  const cached = socioStore.getSocioById(socio.id_socio)
-  if (!cached?.invitados) {
-    isModalLoading.value = true
-  }
-
-  try {
-    await fetchSocioDetails(socio.id_socio, true, true)
-    selectedSocio.value = socioStore.getSocioById(socio.id_socio) ?? socio
-  } finally {
-    isModalLoading.value = false
-  }
-}
 
 const openEstatus = (socio) => {
   selectedSocio.value = socio
@@ -241,14 +217,14 @@ onMounted(fetchSocios)
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="search" placeholder="Buscar por nombre o número de acción…" />
+        <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o número de acción…" />
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
             <div class="relative">
               <IconFilter
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterTipo"
+              <select v-model="listFilters.tipo"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -261,7 +237,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconFilter
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterModalidad"
+              <select v-model="listFilters.modalidad"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_MODALIDAD" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -274,7 +250,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconFilter
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterGenero"
+              <select v-model="listFilters.genero"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_GENERO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -288,7 +264,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconAlertCircle
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterEstatus"
+              <select v-model="listFilters.estatus"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS_CUENTA" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -302,7 +278,7 @@ onMounted(fetchSocios)
             <div class="relative">
               <IconWarning
                 class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterPenalizacion"
+              <select v-model="listFilters.penalizacion"
                 class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
                 <option v-for="opt in OPT_ESTATUS_PENALIZACION" :key="opt.value" :value="opt.value">{{ opt.label }}
                 </option>
@@ -329,7 +305,7 @@ onMounted(fetchSocios)
       </div>
 
       <!-- TABLA -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
 
         <!-- Estado: cargando -->
         <div v-if="isLoading" class="p-8 space-y-3">
@@ -373,7 +349,7 @@ onMounted(fetchSocios)
         <table v-else class="w-full text-sm">
           <thead>
             <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Socio</th>
+              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Socio</th>
               <th
                 class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">
                 Acción</th>
@@ -391,7 +367,7 @@ onMounted(fetchSocios)
               <th
                 class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden xl:table-cell">
                 Estatus Penalización</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700">Acciones
+              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones
               </th>
             </tr>
           </thead>
@@ -400,7 +376,7 @@ onMounted(fetchSocios)
               v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
               class="hover:bg-surface-50/70 transition-colors group">
               <!-- Nombre + avatar -->
-              <td class="px-5 py-3.5">
+              <td class="px-5 py-3.5 first:last:rounded-bl-2xl">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
                            text-white font-black text-xs shrink-0 shadow-sm"
@@ -437,7 +413,7 @@ onMounted(fetchSocios)
                 <BadgeStatus :status="socio.estatus_penalizacion ?? 'SIN_PENALIZACION'" />
               </td>
               <!-- Menú acciones -->
-              <td class="px-4 py-3.5 text-right" @click.stop>
+              <td class="px-4 py-3.5 text-right last:last:rounded-br-2xl" @click.stop>
                 <ActionMenu :items="buildMenuItems(socio)" align="right" />
               </td>
             </tr>
@@ -533,90 +509,6 @@ onMounted(fetchSocios)
       </Transition>
     </Teleport>
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL: INVITADOS
-    ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showGuestsModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showGuestsModal = false">
-          <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-
-            <!-- Cabecera -->
-            <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
-              <div>
-                <h2 class="text-lg font-black text-surface-900 leading-tight">Pases de Invitados</h2>
-                <p class="text-xs text-surface-500 font-medium mt-0.5">{{ selectedSocio?.nombre_completo }}</p>
-              </div>
-              <button @click="showGuestsModal = false" class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200
-                       flex items-center justify-center text-surface-500 transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Cuerpo -->
-            <div class="overflow-y-auto p-6 bg-surface-50/30">
-
-              <!-- Cargando -->
-              <div v-if="isModalLoading" class="flex justify-center py-12">
-                <LoadingSpinner />
-              </div>
-
-              <!-- Vacío — mismo esqueleto que Miembros Familiares -->
-              <div v-else-if="!selectedSocio?.invitados?.length" class="flex flex-col items-center justify-center py-14 text-center
-                       bg-white rounded-2xl border-2 border-dashed border-surface-200">
-                <div class="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center mb-3">
-                  <svg class="w-7 h-7 text-primary-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="1.5">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
-                <p class="text-sm font-bold text-surface-700">Sin pases registrados</p>
-                <p class="text-xs text-surface-400 mt-1 max-w-[200px]">
-                  Este socio no tiene pases de invitados activos ni históricos.
-                </p>
-              </div>
-
-              <!-- Lista -->
-              <div v-else class="flex flex-col gap-2.5">
-                <div v-for="guest in selectedSocio.invitados" :key="guest.id_invitado" class="flex items-center justify-between p-4 rounded-2xl bg-white border border-surface-200
-                         hover:border-primary-200 hover:shadow-sm transition-all">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-linear-to-br from-amber-400 to-amber-600
-                                text-white flex items-center justify-center font-bold text-sm shrink-0">
-                      {{ guest.nombre_invitado?.charAt(0) ?? '?' }}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="text-sm font-bold text-surface-900 truncate">{{ guest.nombre_invitado }}</p>
-                      <p class="text-xs text-surface-500">{{ guest.correo ?? 'Sin correo' }}</p>
-                    </div>
-                  </div>
-                  <div class="flex flex-col items-end gap-1 shrink-0 ml-3">
-                    <BadgeStatus :status="guest.pase?.estatus_acceso === 'ACTIVO' ? 'ACTIVO' :
-                      guest.pase?.estatus_acceso === 'USADO' ? 'USADO' : 'EXPIRADO'" />
-                    <p v-if="guest.pase?.fecha_expiracion" class="text-[10px] font-medium text-surface-400">
-                      {{ guest.pase.fecha_expiracion }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Pie -->
-            <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
-              <CancelButton label="Cerrar" @click="showGuestsModal = false" />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
 
   </main>
 </template>

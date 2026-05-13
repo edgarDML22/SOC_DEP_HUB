@@ -38,6 +38,8 @@ const STATUS_MAP = {
   // Socios — genero
   M:                   { label: 'Masculino',          classes: 'bg-sky-50    text-sky-700    border-sky-200'    },
   F:                   { label: 'Femenino',           classes: 'bg-rose-50   text-rose-700   border-rose-200'   },
+  O:                   { label: 'Otro',               classes: 'bg-slate-50  text-slate-700  border-slate-200'  },
+  OTRO:                { label: 'Otro',               classes: 'bg-slate-50  text-slate-700  border-slate-200'  },
 
   // Instructores / Usuarios
   ACTIVO:              { label: 'Activo',             classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -62,6 +64,10 @@ const STATUS_MAP = {
   COMPLETADA_A_TIEMPO:    { label: 'A Tiempo',             classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   COMPLETADA_CON_RETRASO: { label: 'Con Retraso',          classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
   FORZADO_POR_SISTEMA:    { label: 'Forzado por Sistema',  classes: 'bg-red-50    text-red-700    border-red-200'    },
+
+  // Roles Administrativos
+  GERENTE:                { label: 'Gerente',              classes: 'bg-indigo-50  text-indigo-700  border-indigo-200' },
+  SUBGERENTE:             { label: 'Subgerente',           classes: 'bg-violet-50  text-violet-700  border-violet-200' },
 }
 
 const resolved = (status) => {

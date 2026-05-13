@@ -54,6 +54,7 @@ const sections = [
     children: [
       { label: 'Socios', to: '/admin/socios', icon: IconGuests },
       { label: 'Instructores', to: '/admin/instructors', icon: IconBriefcase },
+      { label: 'Gerentes', to: '/admin/managers', icon: IconShield }
     ],
   },
   {
