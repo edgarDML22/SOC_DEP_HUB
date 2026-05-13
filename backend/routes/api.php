@@ -28,6 +28,7 @@ use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
 use App\Http\Controllers\MiembrosFamiliaresList;
+use App\Http\Controllers\MiembrosFamiliaresController;
 use App\Http\Controllers\RegisterEventController;
 use App\Http\Controllers\DisciplinaController;
 use App\Http\Controllers\CategoriaDisciplinaController;
@@ -219,6 +220,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/v1/guests/{id}/restore', [GuestStatusController::class, 'restore']);
     Route::put('/v1/guests/{id}/toggle-pass', [GuestStatusController::class, 'togglePass']);
 
+
+    // FAMILY MEMBERS (Socio autenticado)
+    Route::get('/v1/family-member-list', [MiembrosFamiliaresController::class, 'show']);
+    Route::post('/v1/family-member-create', [MiembrosFamiliaresController::class, 'store']);
+    Route::put('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'update']);
+    Route::delete('/v1/family-member/{id}', [MiembrosFamiliaresController::class, 'destroy']);
 
     // FAMILY MEMBERS SDH 240
     Route::prefix('v1/admin/socios/{socioId}/familiares')->group(function () {
