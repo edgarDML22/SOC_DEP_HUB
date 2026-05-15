@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class torneos extends Model
+class Torneo extends Model
 {
     protected $table = "torneos";
     protected $primaryKey = 'id_torneo';
@@ -20,6 +20,10 @@ class torneos extends Model
         'descripcion',
         'estatus_torneo',
         'id_categoria',
+        'cupo_minimo',
+        'modalidad',
+        'genero_requerido',
+        'motivo_cancelacion'
 
     ];
     public function disciplina()
@@ -30,6 +34,10 @@ class torneos extends Model
     public function categoria()
     {
         return $this->belongsTo(CategoriaTorneo::class, 'id_categoria');
+    }
+    public function encuentros()
+    {
+        return $this->hasMany(EncuentrosTorneo::class, 'id_torneo');
     }
 
 }
