@@ -17,6 +17,7 @@ services:
     depends_on:
       - nosql
       - redis
+    command: sh -c "composer install --optimize-autoloader && php artisan octane:install --server=roadrunner --no-interaction && php artisan config:clear && php artisan octane:start --server=roadrunner --host=0.0.0.0 --port=8000 --workers=4 --max-requests=500"
 
   # SCHEDULER: CRON Jobs para Laravel
   scheduler:
