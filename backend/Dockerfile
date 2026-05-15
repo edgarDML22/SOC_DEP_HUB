@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
 # pcntl y sockets son requeridas por Laravel Octane / RoadRunner
 RUN docker-php-ext-configure intl
 RUN docker-php-ext-install pdo_pgsql zip intl pcntl sockets
+RUN docker compose run --rm app composer install --optimize-autoloader
+RUN docker compose run --rm app php artisan octane:install --server=roadrunner --no-interaction
+
 
 # Instalamos las librerías del sistema necesarias para GD y otras extensiones
 RUN apt-get update && apt-get install -y \
