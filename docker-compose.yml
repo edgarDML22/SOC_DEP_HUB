@@ -12,12 +12,13 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/var/www
+      - /var/www/vendor # Preserva el vendor instalado en el build, no el del host
     networks:
       - socdep-network
     depends_on:
       - nosql
       - redis
-    command: sh -c "composer install --optimize-autoloader && php artisan octane:install --server=roadrunner --no-interaction && php artisan config:clear && php artisan octane:start --server=roadrunner --host=0.0.0.0 --port=8000 --workers=4 --max-requests=500"
+    command: sh -c "php artisan config:clear && php artisan octane:start --server=roadrunner --host=0.0.0.0 --port=8000 --workers=4 --max-requests=500"
 
   # SCHEDULER: CRON Jobs para Laravel
   scheduler:
@@ -31,6 +32,7 @@ services:
     command: php artisan schedule:work
     volumes:
       - ./backend:/var/www
+      - /var/www/vendor # Preserva el vendor instalado en el build, no el del host
     networks:
       - socdep-network
     depends_on:
@@ -49,6 +51,7 @@ services:
     command: php artisan queue:work
     volumes:
       - ./backend:/var/www
+      - /var/www/vendor # Preserva el vendor instalado en el build, no el del host
     networks:
       - socdep-network
     depends_on:
