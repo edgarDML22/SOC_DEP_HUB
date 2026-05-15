@@ -15,17 +15,33 @@ class EncuentrosTorneo extends Model
         'fecha_hora_inicio',
         'fecha_hora_fin',
         'competidor_1_id',
-        'competidor_2_id'
+        'competidor_2_id',
+        'estatus_encuentro',
+        'id_ganador',
+        'id_torneo',
+        'competidor_1_type',
+        'competidor_2_type',
+        'resultado_comp1',
+        'resultado_comp2',
+        'es_bye',
+        'numero_encuentro'
     ];
 
     public function competidor1()
     {
-        return $this->belongsTo(MiembrosFamiliares::class, 'competidor_1_id');
+        return $this->morphTo(
+            __FUNCTION__,
+            'competidor_1_type',
+            'competidor_1_id'
+        );
     }
 
     public function competidor2()
     {
-        return $this->belongsTo(MiembrosFamiliares::class, 'competidor_2_id');
+        return $this->morphTo(
+            __FUNCTION__,
+            'competidor_2_type',
+            'competidor_2_id'
+        );
     }
-
 }
