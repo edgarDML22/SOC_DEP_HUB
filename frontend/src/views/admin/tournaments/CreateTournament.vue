@@ -10,8 +10,11 @@ import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
+import { useTournamentStore } from '@/stores/tournamentStore'
+
 const router = useRouter()
 const { toastSuccess, toastError } = useAlerts()
+const store = useTournamentStore()
 
 const EMPTY_FORM = () => ({
   nombre_torneo: '',
@@ -68,21 +71,19 @@ const submit = async () => {
       fecha_fin: toDateStr(form.value.fecha_fin)
     }
 
-    const res = await api.post('torneos', payload)
+    await store.crearTorneo(payload)
 
-    if (res.data.success) {
-      toastSuccess('Torneo creado correctamente')
-      setTimeout(() => router.push('/admin/tournaments'), 1200)
-    }
+    toastSuccess('Torneo creado correctamente')
+    setTimeout(() => router.push('/admin/tournaments'), 1200)
 
   } catch (err) {
     const status = err.response?.status
     if (status === 422) {
-      formError.value = 'Error de validación: revisa los campos.'
+      formError.value = store.error || 'Error de validación: revisa los campos.'
     } else if (status === 409) {
       formError.value = 'Ya existe un torneo con ese nombre en esa fecha.'
     } else {
-      formError.value = 'Ocurrió un error al crear el torneo.'
+      formError.value = store.error || 'Ocurrió un error al crear el torneo.'
       toastError('Error al crear torneo')
     }
   } finally {

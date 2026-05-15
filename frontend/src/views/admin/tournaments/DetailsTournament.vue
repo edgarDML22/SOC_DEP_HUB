@@ -8,11 +8,15 @@ import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
+import { useTournamentStore } from '@/stores/tournamentStore'
+import { onMounted } from 'vue'
+
 const route = useRoute()
 const router = useRouter()
 const { toastSuccess, toastError } = useAlerts()
+const store = useTournamentStore()
 
-const torneo = ref({
+const torneo = computed(() => store.torneoActivo || {
   nombre_torneo: route.query.nombre_torneo ?? '',
   fecha_inicio: route.query.fecha_inicio ?? '',
   categoria: route.query.categoria ?? '',
@@ -22,6 +26,12 @@ const torneo = ref({
   formato_competencia: route.query.formato_competencia ?? '',
   cupo_maximo: route.query.cupo_maximo ?? '',
   descripcion: route.query.descripcion ?? ''
+})
+
+onMounted(async () => {
+  if (route.query.id) {
+    await store.fetchTorneoById(route.query.id)
+  }
 })
 
 const confirming = ref(false)
@@ -76,18 +86,16 @@ const confirmarTorneo = async () => {
   confirming.value = true
 
   try {
-    await api.post('torneos/update-status', {
-      nombre_torneo: torneo.value.nombre_torneo,
-      fecha_inicio: torneo.value.fecha_inicio,
-      nombre_categoria: torneo.value.categoria,
-      nombre_disciplina: torneo.value.disciplina
-    })
+    const id = route.query.id || torneo.value.id_torneo
+    if (!id) throw new Error('No se encontró el ID del torneo')
+
+    await store.transicionarEstatus(id, 'PROGRAMADO')
 
     toastSuccess('Torneo confirmado correctamente')
     setTimeout(() => router.push('/admin/tournaments'), 1200)
 
   } catch (err) {
-    formError.value = err.response?.data?.message || 'Error al confirmar el torneo.'
+    formError.value = store.error || 'Error al confirmar el torneo.'
     toastError('No se pudo confirmar el torneo')
   } finally {
     confirming.value = false
