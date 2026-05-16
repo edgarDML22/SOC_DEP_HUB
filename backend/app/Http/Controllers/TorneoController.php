@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\torneos;
+use App\Models\Torneo;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Models\Disciplina;
@@ -10,7 +10,7 @@ class TorneoController extends Controller
 {
     public function index()
     {
-        $torneos = torneos::with(['disciplina', 'categoria'])->get();
+        $torneos = Torneo::with(['disciplina', 'categoria'])->get();
 
         $data = $torneos->map(function ($torneo) {
             return [
@@ -66,7 +66,7 @@ class TorneoController extends Controller
 
         $id_disciplina = $disciplina->id_disciplina;
 
-        $existe = torneos::where('nombre_torneo', $request->nombre_torneo)
+        $existe = Torneo::where('nombre_torneo', $request->nombre_torneo)
             ->where('fecha_inicio', $request->fecha_inicio)
             ->exists();
 
@@ -78,7 +78,7 @@ class TorneoController extends Controller
         }
 
 
-        $torneo = torneos::create([
+        $torneo = Torneo::create([
             'nombre_torneo' => $request->nombre_torneo,
             'id_disciplina' => $id_disciplina,
             'tipo_acceso' => $request->tipo_acceso,
