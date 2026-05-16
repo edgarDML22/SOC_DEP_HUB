@@ -312,7 +312,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [TorneoController::class, 'index']);
 
         Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
+
+        //SDH-268:VER TORNEO
+        Route::get('/{id}', [TorneoController::class, 'show']);
+        Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
     });
+
+
 
     Route::prefix('v1/encuentros')->group(function () {
 

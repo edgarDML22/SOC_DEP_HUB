@@ -8,26 +8,69 @@ use App\Models\Disciplina;
 use App\Models\CategoriaTorneo;
 class TorneoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $torneos = Torneo::with(['disciplina', 'categoria'])->get();
+        //MODIFIED ON SDH 268
+        $torneos = Torneo::with(['disciplina', 'categoria'])
+            ->when($request->estatus, fn($q, $v) => $q->where('estatus_torneo', $v))
+            ->when($request->nombre_disciplina, fn($q, $v) => $q->whereHas('disciplina', fn($d) => $d->where('nombre_disciplina', $v)))
+            ->when($request->nombre_categoria, fn($q, $v) => $q->whereHas('categoria', fn($c) => $c->where('nombre', $v)))
+            ->when($request->tipo_acceso, fn($q, $v) => $q->where('tipo_acceso', $v))->paginate(15);
 
-        $data = $torneos->map(function ($torneo) {
-            return [
-                'nombre_torneo' => $torneo->nombre_torneo,
-                'categoria' => $torneo->categoria?->nombre_categoria,
-                'disciplina' => $torneo->disciplina?->nombre_disciplina,
-                'fecha_inicio' => $torneo->fecha_inicio,
-                'estado' => $torneo->estatus_torneo,
-            ];
-        });
+        if ($torneos->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontraron torneos'
+            ], 404);
+        }
 
         return response()->json([
-            "success" => true,
-            "data" => $data
+            'success' => true,
+            'data' => $torneos
         ], 200);
     }
 
+    //SDH 268 SHOW TORNEOS CREATIONS BY DATE
+    public function show(int $id)
+    {
+        $torneo = Torneo::with([
+            'disciplina',
+            'categoria',
+            'encuentros' => fn($q) => $q->orderBy('fase_bracket')->orderBy('numero_encuentro'),
+            'encuentros.competidor1',
+            'encuentros.competidor2',
+
+        ])
+
+            ->findOrFail($id);
+        $encuentrosAgrupados = $torneo->encuentros->groupBy('fase_bracket');
+        if ($encuentrosAgrupados->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El torneo no tiene encuentros'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id_torneo' => $torneo->id_torneo,
+                'nombre_torneo' => $torneo->nombre_torneo,
+                'categoria' => $torneo->categoria?->nombre,
+                'disciplina' => $torneo->disciplina?->nombre_disciplina,
+                'fecha_inicio' => $torneo->fecha_inicio,
+                'fecha_fin' => $torneo->fecha_fin,
+                'tipo_acceso' => $torneo->tipo_acceso,
+                'formato_competencia' => $torneo->formato_competencia,
+                'cupo_maximo' => $torneo->cupo_maximo,
+                'descripcion' => $torneo->descripcion,
+                'estado' => $torneo->estatus_torneo,
+                'bracket' => $encuentrosAgrupados,
+
+            ]
+
+        ], 200);
+    }
     public function store(Request $request)
     {
         /* SDH 47 */
