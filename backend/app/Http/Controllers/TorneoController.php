@@ -10,12 +10,28 @@ class TorneoController extends Controller
 {
     public function index(Request $request)
     {
-        //MODIFIED ON SDH 268
         $torneos = Torneo::with(['disciplina', 'categoria'])
             ->when($request->estatus, fn($q, $v) => $q->where('estatus_torneo', $v))
             ->when($request->nombre_disciplina, fn($q, $v) => $q->whereHas('disciplina', fn($d) => $d->where('nombre_disciplina', $v)))
-            ->when($request->nombre_categoria, fn($q, $v) => $q->whereHas('categoria', fn($c) => $c->where('nombre', $v)))
-            ->when($request->tipo_acceso, fn($q, $v) => $q->where('tipo_acceso', $v))->paginate(15);
+            ->when($request->nombre_categoria, fn($q, $v) => $q->whereHas('categoria', fn($c) => $c->where('nombre_categoria', $v)))
+            ->when($request->tipo_acceso, fn($q, $v) => $q->where('tipo_acceso', $v))
+            ->paginate(15);
+
+        $torneos->getCollection()->transform(function ($t) {
+            return [
+                'id' => $t->id_torneo,
+                'id_torneo' => $t->id_torneo,
+                'nombre_torneo' => $t->nombre_torneo,
+                'disciplina' => $t->disciplina?->nombre_disciplina,
+                'categoria' => $t->categoria?->nombre_categoria,
+                'tipo_acceso' => $t->tipo_acceso,
+                'estado' => $t->estatus_torneo,
+                'estatus_torneo' => $t->estatus_torneo,
+                'fecha_inicio' => $t->fecha_inicio,
+                'fecha_fin' => $t->fecha_fin,
+                'cupo_maximo' => $t->cupo_maximo,
+            ];
+        });
 
         if ($torneos->isEmpty()) {
             return response()->json([
@@ -54,9 +70,10 @@ class TorneoController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'id' => $torneo->id_torneo,
                 'id_torneo' => $torneo->id_torneo,
                 'nombre_torneo' => $torneo->nombre_torneo,
-                'categoria' => $torneo->categoria?->nombre,
+                'categoria' => $torneo->categoria?->nombre_categoria,
                 'disciplina' => $torneo->disciplina?->nombre_disciplina,
                 'fecha_inicio' => $torneo->fecha_inicio,
                 'fecha_fin' => $torneo->fecha_fin,
@@ -65,10 +82,9 @@ class TorneoController extends Controller
                 'cupo_maximo' => $torneo->cupo_maximo,
                 'descripcion' => $torneo->descripcion,
                 'estado' => $torneo->estatus_torneo,
+                'estatus_torneo' => $torneo->estatus_torneo,
                 'bracket' => $encuentrosAgrupados,
-
             ]
-
         ], 200);
     }
     public function store(Request $request)

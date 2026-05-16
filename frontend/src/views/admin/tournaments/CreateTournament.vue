@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import api from '@/services/api'
@@ -13,6 +13,7 @@ import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import { useTournamentStore } from '@/stores/tournamentStore'
 
 const router = useRouter()
+const route = useRoute()
 const { toastSuccess, toastError } = useAlerts()
 const store = useTournamentStore()
 
@@ -100,7 +101,25 @@ const submit = async () => {
         title="Crear Torneo"
         subtitle="Configura los parámetros del nuevo torneo"
         back-route="/admin/tournaments"
-      />
+      >
+        <div class="flex items-center gap-1.5 p-1 bg-surface-100 rounded-xl mr-4">
+          <button @click="router.push('/admin/tournaments')" 
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  :class="route.name === 'tournaments-list' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+            Tabla
+          </button>
+          <button @click="router.push('/admin/tournaments/cards')" 
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  :class="route.name === 'tournaments-cards' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+            Tarjetas
+          </button>
+          <button @click="router.push('/admin/tournaments/schedule')" 
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  :class="route.name === 'tournaments-schedule' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+            Calendario
+          </button>
+        </div>
+      </AdminPageHeader>
 
       <!-- Form card -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
