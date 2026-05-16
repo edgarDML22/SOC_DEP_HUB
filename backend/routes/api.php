@@ -37,6 +37,7 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\PreRegisterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -95,6 +96,9 @@ Route::middleware(['check.turno'])->group(function () {
 });
 
 Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
+
+Route::post('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'store']);
+
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
 // Ruta por defecto que incluye Laravel
@@ -300,6 +304,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
     Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
     Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
+
+    //RUTAS PRE REGISTROS
+    // Obtener preregistros
+    Route::get('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'index']);
+
+    // Aprobar preregistro
+    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
+
+    // Rechazar preregistro
+    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
 
 });
 
