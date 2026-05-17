@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useInstructorStore } from '@/stores/profiles/instructorStore'
+import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
 import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby } from '@/components/icons';
 
 const profileStore = useInstructorStore();
+const notifStore = useNotificacionesStore();
 
 const menuOpen = ref(false)
-const notifications = ref(2)
 const showNotifications = ref(false)
 
 const profileDropdown = ref(null)
@@ -90,15 +91,34 @@ onUnmounted(() => {
             <!-- Notificaciones -->
             <div class="relative" ref="notifDropdownDesktop">
                 <button class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 hover:bg-surface-100 hover:text-surface-900 active:scale-95 transition-all" @click="toggleNotifications">
-                    <IconBell class="w-5 h-5" />
-                    <span v-if="notifications > 0" class="absolute top-2 right-2.5 bg-primary-600 text-white text-[10px] font-bold h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
+                    <IconBell class="w-5 h-5" :class="notifStore.tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
+                    <span v-if="notifStore.tieneNoLeidas" class="absolute top-2 right-2.5 bg-primary-600 h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
                 </button>
 
-                <div v-if="showNotifications" class="absolute top-14 right-0 w-72 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-5 z-50 transition-all">
-                    <h4 class="font-bold text-lg text-surface-900 mb-2">Notificaciones</h4>
-                    <div class="h-px w-full bg-surface-100 mb-4"></div>
-                    <p class="text-sm font-medium text-surface-400 text-center py-6">No hay notificaciones nuevas</p>
-                </div>
+                <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
+                    <div v-if="showNotifications" class="absolute top-14 right-0 w-80 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-5 z-50 overflow-hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
+                            <button v-if="notifStore.tieneNoLeidas" @click="notifStore.marcarTodasLeidas" class="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors">Marcar todas leídas</button>
+                        </div>
+                        <div class="h-px w-full bg-surface-100 mb-4"></div>
+                        
+                        <div v-if="notifStore.isLoading" class="flex justify-center py-8">
+                            <div class="w-6 h-6 rounded-full border-2 border-surface-200 border-t-primary-500 animate-spin"/>
+                        </div>
+                        <div v-else-if="notifStore.notificaciones.length === 0" class="py-8 text-center text-sm font-medium text-surface-400">
+                            Sin notificaciones nuevas
+                        </div>
+                        <ul v-else class="max-h-72 overflow-y-auto divide-y divide-surface-50 -mx-5 px-5">
+                            <li v-for="n in notifStore.notificaciones" :key="n.id" class="flex items-start gap-3 py-3.5">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold truncate" :class="n.leida ? 'text-surface-900' : 'text-primary-600'">{{ n.data?.titulo || 'Notificación' }}</p>
+                                    <p class="text-xs text-surface-500 truncate mt-0.5">{{ n.data?.mensaje || 'Nueva actualización' }}</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </Transition>
             </div>
 
             <!-- Avatar -->
@@ -150,16 +170,35 @@ onUnmounted(() => {
         
         <div class="relative" ref="notifDropdownMobile">
             <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
-                <IconBell class="w-5 h-5" />
-                <span v-if="notifications > 0" class="absolute top-2 right-2.5 bg-primary-600 text-white text-[10px] font-bold h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
+                <IconBell class="w-5 h-5" :class="notifStore.tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
+                <span v-if="notifStore.tieneNoLeidas" class="absolute top-2 right-2.5 bg-primary-600 h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
             </button>
 
             <!-- Notificaciones Dropdown (Móvil) -->
-            <div v-if="showNotifications" class="absolute top-12 right-0 w-72 bg-white rounded-2xl border border-surface-200 shadow-2xl p-5 z-60 animate-fade-in">
-               <h4 class="font-bold text-lg text-surface-900 mb-2">Notificaciones</h4>
-               <div class="h-px w-full bg-surface-100 mb-4"></div>
-               <p class="text-sm font-medium text-surface-400 text-center py-4">No hay notificaciones</p>
-            </div>
+            <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
+                <div v-if="showNotifications" class="absolute top-12 right-0 w-80 bg-white rounded-2xl border border-surface-200 shadow-2xl p-5 z-60 overflow-hidden">
+                   <div class="flex items-center justify-between mb-2">
+                       <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
+                       <button v-if="notifStore.tieneNoLeidas" @click="notifStore.marcarTodasLeidas" class="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors">Marcar todas leídas</button>
+                   </div>
+                   <div class="h-px w-full bg-surface-100 mb-4"></div>
+                   
+                   <div v-if="notifStore.isLoading" class="flex justify-center py-8">
+                       <div class="w-6 h-6 rounded-full border-2 border-surface-200 border-t-primary-500 animate-spin"/>
+                   </div>
+                   <div v-else-if="notifStore.notificaciones.length === 0" class="py-8 text-center text-sm font-medium text-surface-400">
+                       Sin notificaciones nuevas
+                   </div>
+                   <ul v-else class="max-h-72 overflow-y-auto divide-y divide-surface-50 -mx-5 px-5">
+                       <li v-for="n in notifStore.notificaciones" :key="n.id" class="flex items-start gap-3 py-3.5">
+                           <div class="flex-1 min-w-0">
+                               <p class="text-sm font-bold truncate" :class="n.leida ? 'text-surface-900' : 'text-primary-600'">{{ n.data?.titulo || 'Notificación' }}</p>
+                               <p class="text-xs text-surface-500 truncate mt-0.5">{{ n.data?.mensaje || 'Nueva actualización' }}</p>
+                           </div>
+                       </li>
+                   </ul>
+                </div>
+            </Transition>
         </div>
     </div>
 
@@ -212,3 +251,20 @@ onUnmounted(() => {
     </nav>
   </div>
 </template>
+
+<style scoped>
+.bell-ring {
+  transform-origin: top center;
+  animation: bell-swing 5s ease-in-out infinite;
+}
+
+@keyframes bell-swing {
+  0%        { transform: rotate(0deg);   }
+  5%        { transform: rotate(18deg);  }
+  10%       { transform: rotate(-15deg); }
+  15%       { transform: rotate(12deg);  }
+  20%       { transform: rotate(-8deg);  }
+  25%       { transform: rotate(4deg);   }
+  30%, 100% { transform: rotate(0deg);   }
+}
+</style>

@@ -5,3 +5,5 @@ export { default as SearchInput } from './SearchInput.vue';
 export { default as LoadingSpinner } from './LoadingSpinner.vue';
 export { default as ConfirmButton } from './ConfirmButton.vue';
 export { default as CancelButton } from './CancelButton.vue';
+export { default as FilterContainer } from './FilterContainer.vue';
+export { default as FilterSelect } from './FilterSelect.vue';

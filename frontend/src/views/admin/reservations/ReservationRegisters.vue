@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useReservacionAdminStore } from '@/stores/admin/reservationAdminStore'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import { IconFilter, IconChevronDown, IconCalendar } from '@/components/icons'
 
 const store = useReservacionAdminStore()
@@ -258,7 +259,11 @@ const exportColumns = [
 
         <!-- Data Table -->
         <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
-            <table class="w-full text-sm text-left text-slate-600">
+            
+            <!-- SKELETON -->
+            <TableSkeleton v-if="store.loading.reservaciones" :rows="6" :columns="5" :has-avatar="false" />
+
+            <table v-else class="w-full text-sm text-left text-slate-600">
                 <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                     <tr>
                         <th scope="col" class="px-6 py-4 font-extrabold tracking-wider">Titular / Acción</th>
@@ -270,40 +275,7 @@ const exportColumns = [
                     </tr>
                 </thead>
                 <tbody>
-                    <template v-if="store.loading.reservaciones">
-                        <tr v-for="n in 6" :key="n" class="bg-white border-b border-slate-100 animate-pulse">
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-2">
-                                    <div class="h-4 bg-slate-200 rounded-lg w-40"></div>
-                                    <div class="h-3 bg-slate-100 rounded-lg w-20"></div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-2">
-                                    <div class="h-4 bg-slate-200 rounded-lg w-24"></div>
-                                    <div class="h-3 bg-slate-100 rounded-lg w-32"></div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-6 w-24 bg-slate-100 rounded-md"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-2">
-                                    <div class="h-4 bg-slate-200 rounded-lg w-24"></div>
-                                    <div class="h-3 bg-slate-100 rounded-lg w-28"></div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-6 w-20 bg-slate-100 rounded-md"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex justify-end">
-                                    <div class="h-8 w-32 bg-slate-100 rounded-lg"></div>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                    <tr v-else-if="sortedReservaciones.length === 0" class="bg-white border-b border-slate-100">
+                    <tr v-if="sortedReservaciones.length === 0" class="bg-white border-b border-slate-100">
                         <td colspan="6" class="px-6 py-12 text-center text-slate-500">
                             No se encontraron reservaciones con los filtros actuales.
                         </td>

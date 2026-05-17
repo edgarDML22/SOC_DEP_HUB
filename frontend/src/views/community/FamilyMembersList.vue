@@ -103,7 +103,7 @@ const copiarImagenAlPortapapeles = async (url) => {
           
           <router-link 
             :to="{ name: 'family-members-add' }" 
-            class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-5 py-2.5 font-bold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center gap-2"
+            class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7v14"/></svg>
             Agregar Familiar
@@ -148,7 +148,7 @@ const copiarImagenAlPortapapeles = async (url) => {
           <!-- Header de tarjeta -->
           <div class="flex justify-between items-start mb-5">
             <div class="flex items-center gap-4">
-              <div class="w-14 h-14 rounded-full flex items-center justify-center bg-primary-50 text-primary-700 font-bold text-xl uppercase shrink-0 border border-primary-100 shadow-inner">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
                 {{  m.nombre_completo ? m.nombre_completo.charAt(0) : '?' }}
               </div>
               <div class="flex flex-col min-w-0">
@@ -163,35 +163,27 @@ const copiarImagenAlPortapapeles = async (url) => {
           </div>
 
           <!-- Body de tarjeta -->
-          <div class="flex-1 flex flex-col gap-3.5 text-[13px] text-surface-600 mb-6 font-semibold">
-            <div v-if="m.fecha_nacimiento" class="flex items-center gap-3">
-              <div class="p-1.5 bg-surface-50 rounded-lg text-surface-400 group-hover:text-primary-500 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <span class="text-surface-500 font-medium">Nacimiento:</span>
-              <span class="text-surface-900 font-bold ml-auto">{{ formatearFecha(m.fecha_nacimiento) }}</span>
+          <div class="flex-1 flex flex-col gap-2 text-sm text-surface-600 mb-4 font-medium">
+            <div v-if="m.fecha_nacimiento" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+              </svg>
+              <span>{{ formatearFecha(m.fecha_nacimiento) }}</span>
             </div>
             
-            <div v-if="m.genero" class="flex items-center gap-3">
-              <div class="p-1.5 bg-surface-50 rounded-lg text-surface-400 group-hover:text-primary-500 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <span class="text-surface-500 font-medium">Género:</span>
-              <span class="text-surface-900 font-bold ml-auto">{{ formatearGenero(m.genero) }}</span>
+            <div v-if="m.genero" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+              </svg>
+              <span>{{ formatearGenero(m.genero) }}</span>
             </div>
 
-            <div v-if="m.correo" class="flex items-center gap-3">
-              <div class="p-1.5 bg-surface-50 rounded-lg text-surface-400 group-hover:text-primary-500 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
-              </div>
-              <span class="text-surface-900 font-bold truncate max-w-[150px]" :title="m.correo">{{ m.correo }}</span>
+            <div v-if="m.correo" class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+              <span class="truncate" :title="m.correo">{{ m.correo }}</span>
             </div>
           </div>
 
@@ -210,7 +202,7 @@ const copiarImagenAlPortapapeles = async (url) => {
     </div>
 
     <!-- Modal QR (Estilo Socio Titular) -->
-    <div v-if="showQrModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
+    <div v-if="showQrModal" class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
       <div class="bg-white rounded-[32px] p-8 md:p-10 w-full max-w-sm shadow-2xl flex flex-col items-center text-center relative animate-in fade-in zoom-in duration-300">
         
         <p class="text-surface-600 font-medium text-lg mb-8 leading-relaxed">
@@ -233,7 +225,7 @@ const copiarImagenAlPortapapeles = async (url) => {
         <div class="w-full flex flex-col gap-3">
           <button 
             @click="copiarImagenAlPortapapeles(generarQrUrl(selectedMember.codigo_qr))"
-            class="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-2xl px-4 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-primary-200 focus:outline-none"
+            class="w-full bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-2xl px-4 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-primary-200 focus:outline-none"
           >
             Copiar Código QR
           </button>
@@ -256,12 +248,12 @@ const copiarImagenAlPortapapeles = async (url) => {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fade-in {
+@keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-.zoom-in {
+@keyframes zoom-in {
   from { transform: scale(0.95); }
   to { transform: scale(1); }
 }

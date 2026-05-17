@@ -13,6 +13,9 @@ import SearchInput from '@/components/gerente/ui/SearchInput.vue';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue';
 import CancelButton from '@/components/gerente/ui/CancelButton.vue';
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue';
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue';
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue';
 import EliminarCategoriaModal from '@/components/admin/categories/EliminarCategoriaModal.vue';
 import { 
     IconAlertCircle, 
@@ -162,48 +165,26 @@ const buildMenuItems = (cat) => [
                 </button>
             </AdminPageHeader>
 
-            <!-- FILTRO -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-                <SearchInput v-model="search" placeholder="Buscar categoría por nombre o descripción…" />
-                <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-                        <div class="relative">
-                            <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                            <select v-model="filterEstatus" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
-                                <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                            </select>
-                            <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-                    </div>
-                </div>
-                <Transition enter-active-class="transition-all duration-200 ease-out"
-                    enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-                    leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-                    leave-to-class="opacity-0 -translate-y-1">
-                    <div v-if="hasActiveFilters" class="flex justify-end">
-                        <button @click="clearFilters"
-                            class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 transition-colors">
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                            Limpiar filtros
-                        </button>
-                    </div>
-                </Transition>
-            </div>
+            <!-- FILTROS -->
+            <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+                <template #search>
+                    <SearchInput v-model="search" placeholder="Buscar categoría por nombre o descripción…" />
+                </template>
+
+                <FilterSelect
+                    label="Estatus"
+                    v-model="filterEstatus"
+                    :options="OPT_ESTATUS"
+                >
+                    <template #icon>
+                        <IconAlertCircle />
+                    </template>
+                </FilterSelect>
+            </FilterContainer>
 
             <!-- CARGANDO -->
-            <div v-if="isLoading && categories.length === 0" class="flex flex-col gap-4">
-                <div v-for="n in 3" :key="n"
-                    class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex gap-5 animate-pulse">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-200 shrink-0"/>
-                    <div class="flex-1 space-y-3 py-1">
-                        <div class="h-4 bg-slate-200 rounded-lg w-48"/>
-                        <div class="h-3 bg-slate-100 rounded-lg w-full"/>
-                    </div>
-                    <div class="w-28 h-9 rounded-xl bg-slate-100 self-center shrink-0"/>
-                </div>
+            <div v-if="isLoading && categories.length === 0" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <TableSkeleton :rows="3" :columns="3" :has-avatar="true" />
             </div>
 
             <!-- VACÍO -->

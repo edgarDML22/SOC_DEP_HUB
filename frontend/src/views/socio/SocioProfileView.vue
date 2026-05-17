@@ -52,6 +52,15 @@ const handleSave = async () => {
 const logout = () => {
   profileStore.logout();
 };
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'N/A';
+  // Agregar T00:00:00 para evitar desfasaje de zona horaria si viene solo la fecha
+  const fechaStr = fecha.includes('T') ? fecha : `${fecha}T00:00:00`;
+  const d = new Date(fechaStr);
+  if (isNaN(d.getTime())) return fecha;
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 </script>
 
 <template>
@@ -71,7 +80,7 @@ const logout = () => {
             
             <button @click="logout" class="px-6 py-2.5 w-full md:w-auto bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Cerrar Sesión Segura
+              Cerrar Sesión
             </button>
         </div>
       </div>
@@ -89,23 +98,12 @@ const logout = () => {
           <div class="bg-white rounded-3xl border border-surface-200 p-6 sm:p-8 shadow-sm h-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-surface-100 pb-5 mb-5 md:mb-8 gap-4">
               <h3 class="text-xl font-bold text-surface-900 m-0 tracking-tight">Datos del Socio</h3>
-              <div class="flex gap-2">
-                <button v-if="!isEditing" @click="toggleEdit" class="bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 w-full sm:w-auto">
-                  <IconEdit class="w-4 h-4" /> Editar Datos
-                </button>
-                <div v-else class="flex gap-2 w-full sm:w-auto">
-                  <button @click="toggleEdit" class="bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 w-full sm:w-auto" :disabled="isSaving">Cancelar</button>
-                  <button @click="handleSave" class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto" :disabled="isSaving">
-                    {{ isSaving ? 'Guardando...' : 'Guardar' }}
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
               
               <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
                   <IconUser class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
@@ -116,7 +114,7 @@ const logout = () => {
               </div>
 
               <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
                   <IconMail class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
@@ -126,66 +124,39 @@ const logout = () => {
                 </div>
               </div>
 
-              <div class="flex items-start gap-4 p-3 rounded-2xl border transition-colors" :class="isEditing ? 'bg-primary-50/30 border-primary-200' : 'bg-surface-50/50 border-surface-100'">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-surface-100" :class="isEditing ? 'text-primary-600' : 'text-surface-500'">
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-surface-100 text-primary-600">
                   <IconCalendar class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest" :class="isEditing ? 'text-primary-600' : ''">Nacimiento</label>
-                  <input v-if="isEditing" type="date" v-model="formData.fecha_nacimiento" 
-                         class="w-full bg-transparent text-[15px] font-semibold text-primary-900 focus:outline-none focus:bg-white transition-colors py-0.5 rounded px-1 -ml-1 border border-primary-200" />
-                  <input v-else type="text" :value="profileStore.fechaNacimiento" readonly disabled 
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Nacimiento</label>
+                  <input type="text" :value="formatearFecha(profileStore.fechaNacimiento)" readonly disabled 
                          class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
                 </div>
               </div>
 
-              <div class="flex items-start gap-4 p-3 rounded-2xl border transition-colors" :class="isEditing ? 'bg-primary-50/30 border-primary-200' : 'bg-surface-50/50 border-surface-100'">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-surface-100" :class="isEditing ? 'text-primary-600' : 'text-surface-500'">
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-surface-100 text-primary-600">
                   <IconGender class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest" :class="isEditing ? 'text-primary-600' : ''">Género</label>
-                  <select v-if="isEditing" v-model="formData.genero" 
-                          class="w-full bg-transparent text-[15px] font-semibold text-primary-900 focus:outline-none py-0.5 rounded px-1 -ml-1 border border-primary-200">
-                    <option value="M">Masculino</option>
-                    <option value="F">Femenino</option>
-                    <option value="OTRO">Otro</option>
-                  </select>
-                  <input v-else type="text" :value="profileStore.genero === 'M' ? 'Masculino' : profileStore.genero === 'F' ? 'Femenino' : 'Otro'" readonly disabled 
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Género</label>
+                  <input type="text" :value="profileStore.genero === 'M' ? 'Masculino' : profileStore.genero === 'F' ? 'Femenino' : 'Otro'" readonly disabled 
                          class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none" />
                 </div>
               </div>
+              
+              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
+                  <IconIdCard class="w-5 h-5" />
+                </div>
+                <div class="grow min-w-0 flex flex-col justify-center h-12">
+                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Número de Acción</label>
+                  <input type="text" :value="profileStore.actionNumber || 'N/A'" readonly disabled 
+                         class="w-full bg-transparent text-sm md:text-base font-bold text-surface-900 focus:outline-none truncate" />
+                </div>
+              </div>
 
-            </div>
-
-            <div class="mt-8 pt-8 border-t border-surface-100 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-surface-50 rounded-full flex items-center justify-center text-surface-400">
-                  <IconIdCard class="w-4 h-4" />
-                </div>
-                <div>
-                  <label class="block font-medium text-[10px] text-surface-500 uppercase">Acción</label>
-                  <span class="font-bold text-surface-900 text-sm">{{ profileStore.actionNumber || 'N/A' }}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-surface-50 rounded-full flex items-center justify-center text-surface-400">
-                  <IconCreditCard class="w-4 h-4" />
-                </div>
-                <div>
-                  <label class="block font-medium text-[10px] text-surface-500 uppercase">Tipo</label>
-                  <span class="font-bold text-surface-900 text-sm">{{ profileStore.typeSocio }}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-surface-50 rounded-full flex items-center justify-center text-surface-400">
-                  <IconShield class="w-4 h-4" />
-                </div>
-                <div>
-                  <label class="block font-medium text-[10px] text-surface-500 uppercase">Estatus</label>
-                  <span class="font-bold text-surface-900 text-sm">{{ profileStore.statusAccount }}</span>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -230,7 +201,7 @@ const logout = () => {
           
           <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-surface-100 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-600 group-hover:text-primary-600 transition-colors">
+              <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100 group-hover:bg-primary-50 group-hover:border-primary-200 transition-all">
                   <IconLock class="w-5 h-5" />
               </div>
               <div>
