@@ -18,7 +18,12 @@ class ParticipantesTorneo extends Model
         'id_equipo',
         'estatus_inscripcion',
         'qr_codigo',
-        'qr_estatus'
+        'qr_estatus',
+        'id_categoria',
+        'tipo_entidad',
+        'referencia_id',
+        'fecha_inscripcion',
+        'estatus_participacion'
     ];
     public function participante()
     {
