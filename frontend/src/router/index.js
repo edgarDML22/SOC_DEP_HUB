@@ -306,6 +306,11 @@ const router = createRouter({
               name: "details-tournament",
               component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
             },
+            {
+              path: "pre-registros",
+              name: "pre-registros-bandeja",
+              component: () => import("@/views/admin/tournaments/PreRegistrosBandeja.vue"),
+            },
           ]
         },
         {

@@ -346,6 +346,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rechazar preregistro
     Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
 
+    // Descargar/visualizar documento del preregistro
+    Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+
 });
 
 

@@ -358,4 +358,15 @@ class PreRegisterController extends Controller
             'message' => 'Pre-registro rechazado.'
         ], 202);
     }
+
+    public function descargarDocumento(Request $request)
+    {
+        $path = $request->query('path');
+
+        if (!$path || !Storage::disk('torneos_storage')->exists($path)) {
+            abort(404, 'Documento no encontrado.');
+        }
+
+        return Storage::disk('torneos_storage')->response($path);
+    }
 }
