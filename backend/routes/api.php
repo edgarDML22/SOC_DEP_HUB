@@ -37,6 +37,7 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 
@@ -48,6 +49,7 @@ use App\Http\Controllers\SocioTournamentController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+
 
 
 // ==========================================
@@ -63,13 +65,8 @@ Route::post('/v1/auth/forgot-password', [ForgotPasswordController::class, 'sendR
 // SDH-77: Endpoint para restablecimiento de contraseña
 Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
-// SDH-47: Endpoint para crear torneos
-Route::post('/v1/torneos', [TorneoController::class, 'store']);
 
-// Endpoint para listar torneos 
-Route::get('/v1/torneos', [TorneoController::class, 'index']);
-//SDH-51: Endpoint para actualizar el estado de un torneo
-Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
+
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 
 // Rutas de sistema
@@ -108,12 +105,21 @@ Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::clas
 // SDH-1102: Logout fuera del grupo auth — el controller maneja tokens inválidos o ausentes
 Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
 
+//SDH-267: Pre-registro de torneos
+Route::post(
+    '/v1/torneos/{id}/pre-registros',
+    [TorneoController::class, 'preRegistro']
+);
+
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Perfil del usuario
+    // Perfil del usuario (incluye qr_payload y qr_image_url para socios)
     Route::get('/v1/profile', [ProfileController::class, 'show']);
 
-    // Obtener QR del usuario
+    // Carga inicial secundaria: notificaciones + familiares + invitados en un solo request
+    Route::get('/v1/bootstrap/socio-data', [BootstrapController::class, 'socioData']);
+
+    // Obtener QR del usuario (mantenido por compatibilidad con otros consumidores)
     Route::get('/v1/profile/qr-data', [QrController::class, 'generateQrPayload']);
 
     // Ruta de prueba para verificar al usuario autenticado (Opcional)
@@ -302,6 +308,33 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
     Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
     Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
+
+    //TORNEOS ACTUALIZACION, SDH 267
+
+    Route::prefix('v1/torneos')->group(function () {
+
+        Route::post('/', [TorneoController::class, 'store']);
+
+        Route::get('/', [TorneoController::class, 'index']);
+
+        Route::get('/categorias', [\App\Http\Controllers\CategoriaTorneoController::class, 'index']);
+
+        Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
+
+        //SDH-268:VER TORNEO
+        Route::get('/{id}', [TorneoController::class, 'show']);
+        Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
+    });
+
+
+
+    Route::prefix('v1/encuentros')->group(function () {
+
+        //
+    });
+
+
+
 
     // TORNEOS: Inscripción interna directa (bypassing MongoDB)
     Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
