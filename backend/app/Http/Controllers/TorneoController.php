@@ -30,6 +30,9 @@ class TorneoController extends Controller
                 'fecha_inicio' => $t->fecha_inicio,
                 'fecha_fin' => $t->fecha_fin,
                 'cupo_maximo' => $t->cupo_maximo,
+                'cupo_minimo' => $t->cupo_minimo,
+                'modalidad' => $t->modalidad,
+                'genero' => $t->genero_requerido,
             ];
         });
 
@@ -60,12 +63,6 @@ class TorneoController extends Controller
 
             ->findOrFail($id);
         $encuentrosAgrupados = $torneo->encuentros->groupBy('fase_bracket');
-        if ($encuentrosAgrupados->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El torneo no tiene encuentros'
-            ], 404);
-        }
 
         return response()->json([
             'success' => true,
@@ -80,7 +77,11 @@ class TorneoController extends Controller
                 'tipo_acceso' => $torneo->tipo_acceso,
                 'formato_competencia' => $torneo->formato_competencia,
                 'cupo_maximo' => $torneo->cupo_maximo,
+                'cupo_minimo' => $torneo->cupo_minimo,
+                'modalidad' => $torneo->modalidad,
+                'genero' => $torneo->genero_requerido,
                 'descripcion' => $torneo->descripcion,
+                'motivo_cancelacion' => $torneo->motivo_cancelacion,
                 'estado' => $torneo->estatus_torneo,
                 'estatus_torneo' => $torneo->estatus_torneo,
                 'bracket' => $encuentrosAgrupados,
@@ -137,6 +138,22 @@ class TorneoController extends Controller
         }
 
 
+        $genero_requerido = $request->genero_requerido ?: $categoria->genero_requerido;
+        if ($genero_requerido) {
+            $upper = strtoupper(trim($genero_requerido));
+            if ($upper === 'M' || $upper === 'VARONIL' || $upper === 'MASCULINO') {
+                $genero_requerido = 'VARONIL';
+            } elseif ($upper === 'F' || $upper === 'FEMENIL' || $upper === 'FEMENINO') {
+                $genero_requerido = 'FEMENIL';
+            } elseif ($upper === 'MIXTO') {
+                $genero_requerido = 'MIXTO';
+            } else {
+                $genero_requerido = 'MIXTO';
+            }
+        } else {
+            $genero_requerido = 'MIXTO';
+        }
+
         $torneo = Torneo::create([
             'nombre_torneo' => $request->nombre_torneo,
             'id_disciplina' => $id_disciplina,
@@ -145,9 +162,12 @@ class TorneoController extends Controller
             'fecha_fin' => $request->fecha_fin,
             'estatus_torneo' => 'EN_PLANIFICACION',
             'formato_competencia' => $request->formato_competencia,
+            'cupo_minimo' => $request->cupo_minimo,
             'cupo_maximo' => $request->cupo_maximo,
+            'genero_requerido' => $genero_requerido,
             'descripcion' => $request->descripcion,
             'id_categoria' => $categoria->id_categoria,
+            'modalidad' => $request->modalidad,
         ]);
         return response()->json([
             "success" => true,

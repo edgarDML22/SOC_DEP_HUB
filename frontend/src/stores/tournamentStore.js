@@ -11,13 +11,27 @@ export const useTournamentStore = defineStore("tournament", () => {
     const error = ref(null);
     const pagination = ref({ page: 1, total: 0, perPage: 15 });
     const filtros = ref({
-        estatus: "",
-        disciplina: "",
-        categoria: "",
-        tipo_acceso: "",
+        estatus: null,
+        disciplina: null,
+        categoria: null,
+        tipo_acceso: null,
     });
+    
+    const categoriasTorneo = ref([]);
 
     // ── ACTIONS ─────────────────────────────────────────────────────
+
+    const fetchCategoriasTorneo = async () => {
+        if (categoriasTorneo.value.length > 0) return;
+        try {
+            const res = await api.get("/torneos/categorias");
+            if (res.data.success) {
+                categoriasTorneo.value = res.data.data;
+            }
+        } catch (err) {
+            console.error("Error fetching categorias torneo:", err);
+        }
+    };
 
     /**
      * Obtiene la lista de torneos con filtros
@@ -169,8 +183,8 @@ export const useTournamentStore = defineStore("tournament", () => {
 
         try {
             const response = await api.patch(`/torneos/${id}/status`, {
-                estatus: nuevoEstatus,
-                motivo
+                nuevo_estatus: nuevoEstatus,
+                motivo_cancelacion: motivo
             });
 
             // Actualizar con la respuesta real del servidor si es necesario
@@ -207,9 +221,11 @@ export const useTournamentStore = defineStore("tournament", () => {
         error,
         pagination,
         filtros,
+        categoriasTorneo,
         fetchTorneos,
         fetchTorneoById,
         fetchBracket,
+        fetchCategoriasTorneo,
         crearTorneo,
         transicionarEstatus,
     };

@@ -14,6 +14,8 @@ import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import { IconFilter, IconChevronDown } from '@/components/icons'
+import CreateTournamentModal from '@/components/tournaments/CreateTournamentModal.vue'
+import TournamentStatusModal from '@/components/tournaments/TournamentStatusModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,58 +69,27 @@ const clearFilters = () => {
   filtros.value.tipo_acceso = null
 }
 
-// ── ACCIONES ───────────────────────────────────────────────────
-const showCancelModal = ref(false)
-const selectedTorneo = ref(null)
-const motivoCancelacion = ref('')
-const isActionLoading = ref(false)
+// ── MODALES Y ACCIONES ──────────────────────────────────────────
+const showCreateModal = ref(false)
+const showStatusModal = ref(false)
+const statusModalTorneo = ref(null)
 
-const openCancelModal = (torneo) => {
-  selectedTorneo.value = torneo
-  motivoCancelacion.value = ''
-  showCancelModal.value = true
+const openStatusModal = (torneo) => {
+  statusModalTorneo.value = torneo
+  showStatusModal.value = true
 }
 
-const handleTransition = async (torneo, nuevoEstatus, label) => {
-  if (nuevoEstatus === 'CANCELADO') {
-    openCancelModal(torneo)
-    return
-  }
-
-  const confirmMessage = `¿Estás seguro de que deseas ${label.toLowerCase()} el torneo "${torneo.nombre_torneo}"?`
-  if (!confirm(confirmMessage)) return
-
-  isActionLoading.value = true
-  try {
-    await store.transicionarEstatus(torneo.id_torneo, nuevoEstatus)
-    toastSuccess(`Torneo actualizado: ${label}`)
-  } catch (err) {
-    toastError(store.error || 'No se pudo actualizar el estado del torneo.')
-  } finally {
-    isActionLoading.value = false
-  }
+const handleTorneoCreated = () => {
+  store.fetchTorneos()
 }
 
-const confirmCancel = async () => {
-  if (motivoCancelacion.value.length < 20) return
-
-  isActionLoading.value = true
-  try {
-    await store.transicionarEstatus(selectedTorneo.value.id_torneo, 'CANCELADO', motivoCancelacion.value)
-    showCancelModal.value = false
-    toastInfo('Torneo cancelado', selectedTorneo.value.nombre_torneo, 'success')
-  } catch (err) {
-    toastError(store.error || 'No se pudo cancelar el torneo.')
-  } finally {
-    isActionLoading.value = false
-  }
+const handleStatusUpdated = () => {
+  store.fetchTorneos()
 }
 
 const buildActions = (torneo) => {
   const actions = []
-  const status = torneo.estado || torneo.estatus_torneo
 
-  // Acción básica siempre presente (SocioList pattern)
   actions.push({
     label: 'Ver detalle',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
@@ -131,50 +102,14 @@ const buildActions = (torneo) => {
     }
   })
 
-  // Transiciones válidas
-  if (status === 'EN_PLANIFICACION') {
-    actions.push({
-      label: 'Abrir Inscripción',
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`,
-      action: () => handleTransition(torneo, 'EN_INSCRIPCION', 'Abrir Inscripción')
-    })
-  } else if (status === 'EN_INSCRIPCION') {
-    actions.push({
-      label: 'Confirmar y Generar Bracket',
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-      action: () => handleTransition(torneo, 'PROGRAMADO', 'Confirmar y Generar Bracket')
-    })
-    actions.push({
-      label: 'Cancelar',
-      destructive: true,
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-      action: () => handleTransition(torneo, 'CANCELADO', 'Cancelar')
-    })
-  } else if (status === 'PROGRAMADO') {
-    actions.push({
-      label: 'Iniciar Torneo',
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-      action: () => handleTransition(torneo, 'EN_CURSO', 'Iniciar Torneo')
-    })
-    actions.push({
-      label: 'Cancelar',
-      destructive: true,
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-      action: () => handleTransition(torneo, 'CANCELADO', 'Cancelar')
-    })
-  } else if (status === 'EN_CURSO') {
-    actions.push({
-      label: 'Finalizar',
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`,
-      action: () => handleTransition(torneo, 'FINALIZADO', 'Finalizar')
-    })
-    actions.push({
-      label: 'Cancelar',
-      destructive: true,
-      icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-      action: () => handleTransition(torneo, 'CANCELADO', 'Cancelar')
-    })
-  }
+  actions.push({
+    label: 'Gestionar Estado',
+    icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+           </svg>`,
+    action: () => openStatusModal(torneo)
+  })
 
   return actions
 }
@@ -209,7 +144,7 @@ onMounted(() => {
           </button>
         </div>
         
-        <button @click="router.push('/admin/tournaments/create')" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+        <button @click="showCreateModal = true" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
                  text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10" />
@@ -350,50 +285,19 @@ onMounted(() => {
 
     </div>
 
-    <!-- MODAL CANCELACIÓN -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showCancelModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showCancelModal = false">
-          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 space-y-6">
-            <div class="text-center space-y-2">
-              <div class="w-16 h-16 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 class="text-xl font-black text-surface-900">¿Cancelar Torneo?</h3>
-              <p class="text-sm text-surface-500">Esta acción es irreversible. Debes proporcionar un motivo detallado.</p>
-            </div>
+    <!-- MODALES DE TORNEO -->
+    <CreateTournamentModal
+      v-if="showCreateModal"
+      @close="showCreateModal = false"
+      @created="handleTorneoCreated"
+    />
 
-            <div class="space-y-1.5">
-              <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Motivo de Cancelación
-                (Mín. 20 caracteres)</label>
-              <textarea v-model="motivoCancelacion" rows="4"
-                class="w-full p-4 bg-surface-50 border border-surface-200 rounded-2xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all resize-none font-semibold text-surface-700"
-                placeholder="Ej: El torneo no alcanzó el cupo mínimo de participantes requeridos para la competencia..."></textarea>
-              <div class="flex justify-end">
-                <span class="text-[10px] font-bold"
-                  :class="motivoCancelacion.length < 20 ? 'text-red-400' : 'text-emerald-500'">
-                  {{ motivoCancelacion.length }} / 20 caracteres
-                </span>
-              </div>
-            </div>
-
-            <div class="flex gap-3 pt-2">
-              <CancelButton label="Cerrar" @click="showCancelModal = false" class="flex-1" />
-              <ConfirmButton label="Confirmar Cancelación" :loading="isActionLoading"
-                :disabled="motivoCancelacion.length < 20" @click="confirmCancel"
-                class="flex-1 bg-red-600! hover:bg-red-700!" />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <TournamentStatusModal
+      v-if="showStatusModal"
+      :torneo="statusModalTorneo"
+      @close="showStatusModal = false"
+      @updated="handleStatusUpdated"
+    />
 
   </main>
 </template>

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTournamentStore } from '@/stores/tournamentStore'
 import { useAlerts } from '@/composables/useAlerts'
+import TournamentStatusModal from '@/components/tournaments/TournamentStatusModal.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
@@ -31,8 +32,22 @@ onMounted(async () => {
   }
 })
 
-const confirming = ref(false)
-const showConfirmModal = ref(false)
+const showStatusModal = ref(false)
+
+const isFinalState = computed(() => {
+  const status = torneo.value.estado || torneo.value.estatus_torneo
+  return ['FINALIZADO', 'CANCELADO'].includes(status)
+})
+
+const handleStatusUpdated = async () => {
+  if (torneoId) {
+    try {
+      await store.fetchTorneoById(torneoId)
+    } catch (err) {
+      console.error("Error al recargar torneo:", err)
+    }
+  }
+}
 
 const estadoLabel = computed(() => {
   const map = {
@@ -67,24 +82,6 @@ const formatFecha = (f) => {
   })
 }
 
-const canConfirm = computed(() =>
-  (torneo.value.estado || torneo.value.estatus_torneo) === 'EN_PLANIFICACION'
-)
-
-const confirmarTorneo = async () => {
-  confirming.value = true
-  try {
-    await store.transicionarEstatus(torneoId, 'EN_INSCRIPCION')
-    toastSuccess('Torneo confirmado correctamente')
-    setTimeout(() => router.push('/admin/tournaments'), 1200)
-  } catch (err) {
-    toastError(store.error || 'No se pudo confirmar el torneo')
-  } finally {
-    confirming.value = false
-    showConfirmModal.value = false
-  }
-}
-
 const goBack = () => {
   router.push('/admin/tournaments')
 }
@@ -107,8 +104,8 @@ const goBack = () => {
           <h1 class="text-2xl font-black text-surface-900 tracking-tight">Detalles del Torneo</h1>
         </div>
 
-        <ConfirmButton v-if="canConfirm" label="Confirmar Torneo" @click="showConfirmModal = true"
-          class="bg-emerald-600! hover:bg-emerald-700!" />
+        <ConfirmButton v-if="!isFinalState" label="Gestionar Estado" @click="showStatusModal = true"
+          class="bg-primary-600! hover:bg-primary-700!" />
       </header>
 
       <!-- Errores -->
@@ -174,46 +171,76 @@ const goBack = () => {
 
                 <!-- Columna Izquierda: Detalles -->
                 <div class="space-y-6">
-                  <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">Configuración del Torneo
-                  </p>
+                  <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">Configuración General</p>
 
                   <div class="grid grid-cols-2 gap-4">
                     <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
-                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Fecha
-                        Inicio</span>
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Fecha Inicio</span>
                       <span class="text-sm font-bold text-surface-900">{{ formatFecha(torneo.fecha_inicio) }}</span>
                     </div>
                     <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
-                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Tipo
-                        Acceso</span>
-                      <span class="text-sm font-bold text-surface-900">{{ torneo.tipo_acceso === 'INTERNO' ? 'Interno' :
-                        'Abierto' }}</span>
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Fecha Fin</span>
+                      <span class="text-sm font-bold text-surface-900">{{ formatFecha(torneo.fecha_fin) }}</span>
                     </div>
                     <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
-                      <span
-                        class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Formato</span>
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Modalidad</span>
+                      <span class="text-sm font-bold text-surface-900">{{ torneo.modalidad || '—' }}</span>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Formato</span>
                       <span class="text-sm font-bold text-surface-900">
-                        {{ torneo.formato_competencia === 'ELIMINACION_DIRECTA' ? 'Eliminación directa' :
-                          'Fase de grupos' }}
+                        {{ torneo.formato_competencia === 'ELIMINACION_DIRECTA' ? 'Eliminación directa' : 'Fase de grupos' }}
                       </span>
-                    </div>
-                    <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
-                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Cupo
-                        Máximo</span>
-                      <span class="text-sm font-bold text-surface-900">{{ torneo.cupo_maximo || 'Sin límite' }}</span>
                     </div>
                   </div>
 
                   <div v-if="torneo.descripcion" class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
-                    <span
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Descripción</span>
+                    <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Descripción</span>
                     <p class="text-sm text-surface-600 leading-relaxed font-medium">{{ torneo.descripcion }}</p>
                   </div>
                 </div>
 
                 <!-- Columna Derecha: Estado y Próximos Pasos -->
                 <div class="space-y-6">
-                  <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">Estado y Seguimiento</p>
+                  <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">Restricciones y Cupos</p>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Tipo Acceso</span>
+                      <span class="text-sm font-bold text-surface-900">{{ torneo.tipo_acceso === 'INTERNO' ? 'Interno' : 'Abierto' }}</span>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Género Requerido</span>
+                      <span class="text-sm font-bold text-surface-900">
+                        {{
+                          torneo.genero === 'M' || torneo.genero === 'Masculino' || torneo.genero === 'Varonil' || torneo.genero === 'VARONIL'
+                            ? 'Varonil'
+                            : (torneo.genero === 'F' || torneo.genero === 'Femenino' || torneo.genero === 'Femenil' || torneo.genero === 'FEMENIL'
+                              ? 'Femenil'
+                              : (torneo.genero === 'MIXTO' || torneo.genero === 'Mixto'
+                                ? 'Mixto'
+                                : torneo.genero || 'Cualquiera'))
+                        }}
+                      </span>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Cupo Mínimo</span>
+                      <span class="text-sm font-bold text-surface-900">{{ torneo.cupo_minimo || 'Sin mínimo' }}</span>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1.5">Cupo Máximo</span>
+                      <span class="text-sm font-bold text-surface-900">{{ torneo.cupo_maximo || 'Sin límite' }}</span>
+                    </div>
+
+                    <!-- Motivo de Cancelación (Solo si aplica) -->
+                    <div v-if="(torneo.estado || torneo.estatus_torneo) === 'CANCELADO' && torneo.motivo_cancelacion" 
+                         class="bg-red-50 rounded-2xl p-5 border border-red-200 shadow-sm col-span-2">
+                      <span class="block text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Motivo de Cancelación</span>
+                      <p class="text-sm font-bold text-red-900">{{ torneo.motivo_cancelacion }}</p>
+                    </div>
+                  </div>
+
+                  <p class="text-[10px] font-black uppercase tracking-widest text-surface-500 pt-2">Estado y Seguimiento</p>
 
                   <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
                     <div class="p-6">
@@ -256,35 +283,12 @@ const goBack = () => {
 
     </div>
 
-    <!-- MODAL DE CONFIRMACIÓN -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showConfirmModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showConfirmModal = false">
-          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 space-y-6">
-            <div class="text-center space-y-2">
-              <div
-                class="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 class="text-xl font-black text-surface-900">¿Confirmar Torneo?</h3>
-              <p class="text-sm text-surface-500">Esto habilitará el proceso de inscripción para los participantes.</p>
-            </div>
-
-            <div class="flex gap-3 pt-2">
-              <CancelButton label="No, revisar" @click="showConfirmModal = false" class="flex-1" />
-              <ConfirmButton label="Sí, confirmar" :loading="confirming" @click="confirmarTorneo"
-                class="flex-1 bg-emerald-600! hover:bg-emerald-700!" />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <TournamentStatusModal 
+      v-if="showStatusModal" 
+      :torneo="torneo"
+      @close="showStatusModal = false" 
+      @updated="handleStatusUpdated" 
+    />
 
   </main>
 </template>

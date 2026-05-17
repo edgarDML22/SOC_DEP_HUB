@@ -310,6 +310,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [TorneoController::class, 'store']);
 
         Route::get('/', [TorneoController::class, 'index']);
+        
+        Route::get('/categorias', [\App\Http\Controllers\CategoriaTorneoController::class, 'index']);
 
         Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
 

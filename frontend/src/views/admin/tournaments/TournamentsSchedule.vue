@@ -1,9 +1,18 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import CreateTournamentModal from '@/components/tournaments/CreateTournamentModal.vue'
+import { useTournamentStore } from '@/stores/tournamentStore'
 
 const router = useRouter()
 const route = useRoute()
+const store = useTournamentStore()
+
+const showCreateModal = ref(false)
+const handleTorneoCreated = () => {
+  store.fetchTorneos()
+}
 </script>
 
 <template>
@@ -30,7 +39,7 @@ const route = useRoute()
           </button>
         </div>
         
-        <button @click="router.push('/admin/tournaments/create')" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+        <button @click="showCreateModal = true" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
                  text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10" />
@@ -48,9 +57,14 @@ const route = useRoute()
           </svg>
         </div>
         <h3 class="text-xl font-black text-surface-900">Calendario en desarrollo</h3>
-        <p class="text-sm text-surface-500 mt-2 max-w-sm">Estamos trabajando en una vista de calendario interactiva para que puedas visualizar mejor la carga de eventos.</p>
+        <p class="text-sm text-surface-500 mt-2 max-w-sm mx-auto">La vista de calendario y programación de llaves estará disponible próximamente.</p>
       </div>
-
     </div>
+
+    <CreateTournamentModal 
+      v-if="showCreateModal" 
+      @close="showCreateModal = false" 
+      @created="handleTorneoCreated" 
+    />
   </main>
 </template>

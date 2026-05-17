@@ -146,5 +146,13 @@ export const useAlerts = () => {
         Swal.close();
     }
 
-    return { toastInfo, actionToast, confirmDelete, confirmWarning, successModal, errorModal, showLoading, closeLoading }
+    const toastSuccess = (title) => {
+        actionToast(title, 'success')
+    }
+
+    const toastError = (title) => {
+        actionToast(title, 'error')
+    }
+
+    return { toastInfo, actionToast, toastSuccess, toastError, confirmDelete, confirmWarning, successModal, errorModal, showLoading, closeLoading }
 }

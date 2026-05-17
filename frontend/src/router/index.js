@@ -290,11 +290,6 @@ const router = createRouter({
               component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
             },
             {
-              path: "create",
-              name: "create-tournament",
-              component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
-            },
-            {
               path: ":id",
               name: "details-tournament",
               component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
