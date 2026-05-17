@@ -37,6 +37,8 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\InternalRegistrationController;
+use App\Http\Controllers\SocioTournamentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -300,6 +302,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
     Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
     Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
+
+    // TORNEOS: Inscripción interna directa (bypassing MongoDB)
+    Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
+
+    // TORNEOS: Hub del Socio (disponibles e historial)
+    Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
+    Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
 });
 
