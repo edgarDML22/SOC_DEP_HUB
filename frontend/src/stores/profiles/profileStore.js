@@ -82,7 +82,7 @@ export function useProfileLogic(endpointUrl = '/profile') {
 
     const logout = () => {
         // Fire-and-forget: no esperamos al servidor para limpiar la sesión local
-        api.post("/auth/logout").catch(() => {});
+        api.post("/auth/logout").catch(() => { });
 
         profileData.value = null;
         profilePromise = null;
@@ -92,7 +92,7 @@ export function useProfileLogic(endpointUrl = '/profile') {
         useGuestStore().$reset();
         useNotificacionesStore().reset();
         useReservationStore().resetearReserva();
-        useQrStore().$reset();
+        useQrStore().reset();
         useBootstrapStore().reset();
 
         localStorage.clear();

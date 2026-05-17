@@ -9,7 +9,7 @@ const router = createRouter({
     {
       path: "/",
       name: "default",
-      component: () => import("@/views/auth/Login.vue"),
+      component: () => import("@/components/public/LandingPage.vue"),
     },
     // Auth Routes
     {
@@ -26,6 +26,18 @@ const router = createRouter({
       path: "/reset-password",
       name: "reset-password",
       component: () => import("@/views/auth/ResetPassword.vue"),
+    },
+    {
+      path: "/torneos",
+      name: "public-torneos-list",
+      component: () => import("@/views/public/TorneosPublicListView.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: "/torneos/:id/pre-registro",
+      name: "torneo-pre-registro",
+      component: () => import("@/views/public/TorneoPreRegistroView.vue"),
+      meta: { requiresAuth: false },
     },
     {
       path: "/ludoteca/encuesta/:idHistorial",
@@ -293,6 +305,11 @@ const router = createRouter({
               path: ":id",
               name: "details-tournament",
               component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
+            },
+            {
+              path: "pre-registros",
+              name: "pre-registros-bandeja",
+              component: () => import("@/views/admin/tournaments/PreRegistrosBandeja.vue"),
             },
           ]
         },

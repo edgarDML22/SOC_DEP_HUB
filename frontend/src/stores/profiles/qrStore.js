@@ -25,5 +25,12 @@ export const useQrStore = defineStore('qr', () => {
     error.value = ''
   }
 
-  return { qrPayload, qrImageUrl, loading, error, setFromProfile, setError, setLoading }
+  const reset = () => {
+    qrPayload.value = ''
+    qrImageUrl.value = ''
+    loading.value = false
+    error.value = ''
+  }
+
+  return { qrPayload, qrImageUrl, loading, error, setFromProfile, setError, setLoading, reset }
 })
