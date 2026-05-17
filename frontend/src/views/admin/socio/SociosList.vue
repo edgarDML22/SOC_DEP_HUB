@@ -7,6 +7,7 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
@@ -308,20 +309,7 @@ onMounted(fetchSocios)
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
 
         <!-- Estado: cargando -->
-        <div v-if="isLoading" class="p-8 space-y-3">
-          <div v-for="n in 6" :key="n" class="flex items-center gap-4 animate-pulse py-3 border-b border-surface-100">
-            <div class="w-10 h-10 rounded-xl bg-surface-200 shrink-0" />
-            <div class="flex-1 space-y-2">
-              <div class="h-3.5 bg-surface-200 rounded-lg w-48" />
-              <div class="h-3 bg-surface-100 rounded-lg w-28" />
-            </div>
-            <div class="h-5 w-20 bg-surface-100 rounded-full" />
-            <div class="h-5 w-24 bg-surface-100 rounded-full hidden xl:block" />
-            <div class="h-3 w-16 bg-surface-100 rounded-lg hidden sm:block" />
-            <div class="h-3 w-16 bg-surface-100 rounded-lg hidden lg:block" />
-            <div class="h-3 w-16 bg-surface-100 rounded-lg hidden lg:block" />
-          </div>
-        </div>
+        <TableSkeleton v-if="isLoading" :rows="6" :columns="6" :has-avatar="true" />
 
         <!-- Estado: error -->
         <div v-else-if="errorMsg" class="p-8 text-center text-red-700 font-semibold text-sm">

@@ -1,10 +1,12 @@
 <script setup>
 import { ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { QrcodeStream } from 'vue-qrcode-reader';
 import api from '@/services/api';
+import { IconArrowLeft } from '@/components/icons';
 
 const route = useRoute();
+const router = useRouter();
 const id_sesion = route.params.id || route.query.sesion || ''; // Verifica tanto parámetros como query params
 const fase = ref('ingreso');
 const id_instructor = route.params.id_instructor || route.query.instructor || '';
@@ -119,32 +121,37 @@ const onError = (err) => {
 
 <template>
   <main class="home-instructor flex items-center justify-center pt-8">
-    <div class="w-full max-w-md bg-white border border-surface-200 rounded-3xl p-8 flex flex-col items-center text-center shadow-xl shadow-surface-900/5 relative">
+    <div class="w-full max-w-md bg-white border border-surface-200 rounded-3xl p-8 flex flex-col items-center text-center shadow-xl shadow-surface-900/5 relative mt-12 md:mt-0">
       
-      <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mb-6">
+      <!-- Botón Volver -->
+      <button @click="router.back()" class="absolute top-6 left-6 flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors focus:outline-none w-fit group">
+          <IconArrowLeft class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" /> Volver
+      </button>
+
+      <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mb-6 mt-4">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
         </svg>
       </div>
 
-      <h2 class="text-xl font-black text-surface-900 mb-2">Escáner de Accesos</h2>
+      <h2 class="text-2xl md:text-3xl font-bold text-surface-900 tracking-tight mb-2">Escáner de Accesos</h2>
       <p class="text-sm text-surface-500 font-medium mb-8 leading-relaxed px-4">
         Apunta el código QR del socio en el recuadro para registrar su entrada o salida.
       </p>
 
       <!-- Selector de Fase -->
       <div class="flex bg-surface-100 p-1.5 rounded-2xl gap-1 mb-8 w-full max-w-[280px]">
-        <label class="flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2"
+        <label class="flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
           :class="fase === 'ingreso' ? 'bg-white text-primary-600 shadow-sm' : 'text-surface-400 hover:text-surface-600'">
           <input type="radio" value="ingreso" v-model="fase" class="hidden" /> 
           <span class="w-2 h-2 rounded-full" :class="fase === 'ingreso' ? 'bg-primary-600' : 'bg-surface-300'"></span>
-          INGRESO
+          Ingreso
         </label>
-        <label class="flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2"
+        <label class="flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
           :class="fase === 'cierre' ? 'bg-white text-primary-600 shadow-sm' : 'text-surface-400 hover:text-surface-600'">
           <input type="radio" value="cierre" v-model="fase" class="hidden" /> 
           <span class="w-2 h-2 rounded-full" :class="fase === 'cierre' ? 'bg-primary-600' : 'bg-surface-300'"></span>
-          CIERRE
+          Cierre
         </label>
       </div>
 
@@ -199,7 +206,7 @@ const onError = (err) => {
         </div>
       </div>
 
-      <p class="text-[10px] font-bold text-surface-400 uppercase tracking-[0.1em] px-8">
+      <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest px-8">
         Asegúrate de dar permisos de cámara y tener buena iluminación.
       </p>
     </div>

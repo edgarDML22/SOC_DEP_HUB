@@ -92,121 +92,116 @@ const goBack = () => {
                 enter-from-class="opacity-0 translate-y-4 scale-[0.98]"
                 enter-to-class="opacity-100 translate-y-0 scale-100">
                 <section v-if="socio && !isLoading">
-                    <article
-                        class="bg-white rounded-2xl shadow-xl shadow-surface-200/40 border border-surface-200 overflow-hidden relative">
-                        <!-- Accent Bar -->
-                        <div class="absolute top-0 left-0 right-0 h-1" :class="{
-                            'bg-green-500': socio.estatus_cuenta === 'AL_CORRIENTE',
-                            'bg-amber-500': socio.estatus_cuenta === 'MOROSO',
-                            'bg-red-500': socio.estatus_cuenta === 'SUSPENDIDO',
-                            'bg-primary-500': socio.estatus_cuenta && socio.estatus_cuenta.startsWith('PENALIZADO')
+                    <!-- Tarjeta Principal Visual (Estilo Premium Instructor) -->
+                    <article class="bg-white rounded-[2.5rem] shadow-xl shadow-surface-200/40 border border-surface-200 overflow-hidden relative">
+                        <!-- Accent Bar Dinámica -->
+                        <div class="absolute top-0 left-0 right-0 h-2" :class="{
+                            'bg-linear-to-r from-green-500 to-green-400': socio.estatus_cuenta === 'AL_CORRIENTE',
+                            'bg-linear-to-r from-amber-500 to-amber-400': socio.estatus_cuenta === 'MOROSO',
+                            'bg-linear-to-r from-red-500 to-red-400': socio.estatus_cuenta === 'SUSPENDIDO',
+                            'bg-linear-to-r from-primary-600 to-primary-400': socio.estatus_cuenta && socio.estatus_cuenta.startsWith('PENALIZADO')
                         }"></div>
 
-                        <!-- Cabecera — misma estructura que PenalizacionModal -->
-                        <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center
-                                         text-white font-black text-sm shadow-sm shrink-0"
-                                    :class="avatarGradient(socio.nombre_completo)">
-                                    {{ initials(socio.nombre_completo) }}
-                                </div>
-                                <div>
-                                    <h2 class="text-lg font-black text-surface-900 leading-tight">{{
-                                        socio.nombre_completo }}</h2>
-                                    <p class="text-xs font-extrabold text-surface-500 mt-0.5 uppercase tracking-widest">
-                                        {{ socio.correo_electronico || 'Sin correo registrado' }}
-                                        <span class="text-surface-300 font-bold normal-case tracking-normal"> · </span>
-                                        <span class="font-mono text-surface-400 normal-case tracking-normal">#{{
-                                            socio.numero_accion }}</span>
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                                    :class="{
-                                        'bg-green-50 text-green-700 border border-green-200': socio.estatus_cuenta === 'AL_CORRIENTE',
-                                        'bg-amber-50 text-amber-700 border border-amber-200': socio.estatus_cuenta === 'MOROSO',
-                                        'bg-red-50 text-red-700 border border-red-200': socio.estatus_cuenta === 'SUSPENDIDO',
-                                        'bg-primary-50 text-primary-700 border border-primary-200': socio.estatus_cuenta && socio.estatus_cuenta.startsWith('PENALIZADO')
-                                    }">
-                                    {{ socio.estatus_cuenta ? socio.estatus_cuenta.replace('_', ' ') : 'S/E' }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Cuerpo — misma estructura base que PenalizacionModal -->
-                        <div class="bg-surface-50/40">
-                            <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                                <!-- COLUMNA IZQUIERDA: Datos generales -->
-                                <div class="flex flex-col gap-5">
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">
-                                        Información General</p>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
-                                            <span
-                                                class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Tipo
-                                                Socio</span>
-                                            <span class="text-sm font-bold text-surface-900">{{ socio.tipo_socio
-                                            }}</span>
-                                        </div>
-                                        <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
-                                            <span
-                                                class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Modalidad</span>
-                                            <span class="text-sm font-bold text-surface-900">{{ socio.modalidad_plan
-                                            }}</span>
-                                        </div>
-                                        <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
-                                            <span
-                                                class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">Género</span>
-                                            <span
-                                                class="inline-flex px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider"
-                                                :class="{
-                                                    'bg-blue-50 text-blue-700 border border-blue-200': socio.genero === 'M',
-                                                    'bg-pink-50 text-pink-700 border border-pink-200': socio.genero === 'F',
-                                                    'bg-surface-100 text-surface-600 border border-surface-200': socio.genero !== 'M' && socio.genero !== 'F'
-                                                }">{{ socio.genero === 'M' ? 'Masculino' : socio.genero === 'F' ?
-                                                'Femenino' : 'Otro' }}</span>
-                                        </div>
-                                        <div class="bg-white rounded-2xl p-4 border border-surface-200 shadow-sm">
-                                            <span
-                                                class="block text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">F.
-                                                Nacimiento</span>
-                                            <span class="text-sm font-bold text-surface-900">{{
-                                                dateFormat(socio.fecha_nacimiento) || 'N/A' }}</span>
+                        <div class="p-8 lg:p-10">
+                            <!-- Cabecera -->
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                                <div class="flex items-center gap-5">
+                                    <!-- Avatar Grande -->
+                                    <div class="w-16 h-16 rounded-2xl bg-linear-to-br flex items-center justify-center
+                                             text-white font-black text-2xl shadow-md shrink-0"
+                                        :class="avatarGradient(socio.nombre_completo)">
+                                        {{ initials(socio.nombre_completo) }}
+                                    </div>
+                                    <div>
+                                        <h2 class="text-3xl font-black text-surface-900 leading-tight mb-2">{{ socio.nombre_completo }}</h2>
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-surface-500 font-medium">
+                                            <p class="flex items-center gap-2">
+                                                <svg class="w-4 h-4 text-primary-500" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2.5">
+                                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                                    <polyline points="22,6 12,13 2,6" />
+                                                </svg>
+                                                {{ socio.correo_electronico || 'Sin correo registrado' }}
+                                            </p>
+                                            <p class="flex items-center gap-2 text-surface-600 font-bold bg-surface-100 px-3 py-1 rounded-lg">
+                                                <svg class="w-4 h-4 text-surface-400" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2.5">
+                                                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                                                    <line x1="6" y1="8" x2="6" y2="8"/>
+                                                    <line x1="10" y1="8" x2="18" y2="8"/>
+                                                    <line x1="6" y1="12" x2="6" y2="12"/>
+                                                    <line x1="10" y1="12" x2="18" y2="12"/>
+                                                    <line x1="6" y1="16" x2="6" y2="16"/>
+                                                    <line x1="10" y1="16" x2="18" y2="16"/>
+                                                </svg>
+                                                #{{ socio.numero_accion }}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <!-- Estatus Premium -->
+                                    <span class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm border"
+                                        :class="{
+                                            'bg-green-50 text-green-700 border-green-200': socio.estatus_cuenta === 'AL_CORRIENTE',
+                                            'bg-amber-50 text-amber-700 border-amber-200': socio.estatus_cuenta === 'MOROSO',
+                                            'bg-red-50 text-red-700 border-red-200': socio.estatus_cuenta === 'SUSPENDIDO',
+                                            'bg-primary-50 text-primary-700 border-primary-200': socio.estatus_cuenta && socio.estatus_cuenta.startsWith('PENALIZADO')
+                                        }">
+                                        {{ socio.estatus_cuenta ? socio.estatus_cuenta.replace('_', ' ') : 'S/E' }}
+                                    </span>
+                                </div>
+                            </div>
 
-                                <!-- COLUMNA DERECHA: KPIs de penalizaciones -->
-                                <div class="flex flex-col gap-5">
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-surface-500">Cuenta
-                                        y Penalizaciones</p>
+                            <!-- Información General -->
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                                <div class="bg-surface-50/50 rounded-2xl p-4 border border-surface-100 flex flex-col gap-1.5">
+                                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">Tipo Socio</span>
+                                    <span class="text-base font-bold text-surface-900">{{ socio.tipo_socio }}</span>
+                                </div>
+                                <div class="bg-surface-50/50 rounded-2xl p-4 border border-surface-100 flex flex-col gap-1.5">
+                                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">Modalidad</span>
+                                    <span class="text-base font-bold text-surface-900">{{ socio.modalidad_plan }}</span>
+                                </div>
+                                <div class="bg-surface-50/50 rounded-2xl p-4 border border-surface-100 flex flex-col gap-1.5">
+                                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">Género</span>
+                                    <div>
+                                        <span class="inline-flex px-2 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider"
+                                            :class="{
+                                                'bg-blue-50 text-blue-700 border border-blue-200': socio.genero === 'M',
+                                                'bg-pink-50 text-pink-700 border border-pink-200': socio.genero === 'F',
+                                                'bg-surface-100 text-surface-600 border border-surface-200': socio.genero !== 'M' && socio.genero !== 'F'
+                                            }">
+                                            {{ socio.genero === 'M' ? 'Masculino' : socio.genero === 'F' ? 'Femenino' : 'Otro' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="bg-surface-50/50 rounded-2xl p-4 border border-surface-100 flex flex-col gap-1.5">
+                                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">F. Nacimiento</span>
+                                    <span class="text-base font-bold text-surface-900">{{ dateFormat(socio.fecha_nacimiento) || 'N/A' }}</span>
+                                </div>
+                            </div>
 
-                                    <!-- KPI: No Shows — misma proporción que PenalizacionModal -->
-                                    <div
-                                        class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
-                                        <div class="h-1 transition-all duration-500"
-                                            :class="socio.contador_no_shows > 0 ? 'bg-red-500' : 'bg-surface-100'" />
-                                        <div class="p-5 flex items-center justify-between">
+                            <!-- KPIs Incidencias -->
+                            <div class="mt-8 pt-8 border-t border-surface-100">
+                                <h3 class="text-sm font-black uppercase tracking-widest text-surface-400 mb-6">Métricas y Penalizaciones</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- KPI: No Shows -->
+                                    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
+                                        <div class="h-1.5 w-full transition-all duration-500" :class="socio.contador_no_shows > 0 ? 'bg-red-500' : 'bg-surface-200'" />
+                                        <div class="p-6 flex items-center justify-between flex-1 bg-surface-50/30">
                                             <div>
-                                                <p
-                                                    class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">
-                                                    No Shows</p>
-                                                <p class="text-3xl font-black leading-none transition-colors"
-                                                    :class="socio.contador_no_shows > 0 ? 'text-red-600' : 'text-surface-300'">
+                                                <p class="text-xs font-black uppercase tracking-widest text-surface-500 mb-1">No Shows</p>
+                                                <p class="text-4xl font-black leading-none transition-colors" :class="socio.contador_no_shows > 0 ? 'text-red-600' : 'text-surface-900'">
                                                     {{ socio.contador_no_shows }}
                                                 </p>
-                                                <p class="text-xs font-semibold mt-1.5"
-                                                    :class="socio.contador_no_shows > 0 ? 'text-red-500 font-bold' : 'text-surface-400'">
-                                                    {{ socio.contador_no_shows > 0 ? 'Reservas canceladas sin aviso' :
-                                                        'Sin incidencias' }}
+                                                <p class="text-xs font-semibold mt-2" :class="socio.contador_no_shows > 0 ? 'text-red-500 font-bold' : 'text-surface-400'">
+                                                    {{ socio.contador_no_shows > 0 ? 'Reservas canceladas sin aviso' : 'Sin incidencias' }}
                                                 </p>
                                             </div>
-                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-                                                :class="socio.contador_no_shows > 0 ? 'bg-red-50 text-red-500' : 'bg-surface-100 text-surface-300'">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" class="w-6 h-6">
+                                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors shadow-inner"
+                                                :class="socio.contador_no_shows > 0 ? 'bg-red-50 text-red-500' : 'bg-white text-surface-300 border border-surface-200'">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-7 h-7">
                                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                                     <line x1="16" y1="2" x2="16" y2="6" />
                                                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -217,30 +212,22 @@ const goBack = () => {
                                         </div>
                                     </div>
 
-                                    <!-- KPI: Retrasos Ludoteca — misma proporción que PenalizacionModal -->
-                                    <div
-                                        class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
-                                        <div class="h-1 transition-all duration-500"
-                                            :class="socio.retrasos_ludoteca > 0 ? 'bg-amber-500' : 'bg-surface-100'" />
-                                        <div class="p-5 flex items-center justify-between">
+                                    <!-- KPI: Retrasos Ludoteca -->
+                                    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
+                                        <div class="h-1.5 w-full transition-all duration-500" :class="socio.retrasos_ludoteca > 0 ? 'bg-amber-500' : 'bg-surface-200'" />
+                                        <div class="p-6 flex items-center justify-between flex-1 bg-surface-50/30">
                                             <div>
-                                                <p
-                                                    class="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">
-                                                    Retrasos Ludoteca</p>
-                                                <p class="text-3xl font-black leading-none transition-colors"
-                                                    :class="socio.retrasos_ludoteca > 0 ? 'text-amber-600' : 'text-surface-300'">
+                                                <p class="text-xs font-black uppercase tracking-widest text-surface-500 mb-1">Retrasos Ludoteca</p>
+                                                <p class="text-4xl font-black leading-none transition-colors" :class="socio.retrasos_ludoteca > 0 ? 'text-amber-600' : 'text-surface-900'">
                                                     {{ socio.retrasos_ludoteca }}
                                                 </p>
-                                                <p class="text-xs font-semibold mt-1.5"
-                                                    :class="socio.retrasos_ludoteca > 0 ? 'text-amber-500 font-bold' : 'text-surface-400'">
-                                                    {{ socio.retrasos_ludoteca > 0 ? 'Incidencias de puntualidad' :
-                                                        'Sin incidencias' }}
+                                                <p class="text-xs font-semibold mt-2" :class="socio.retrasos_ludoteca > 0 ? 'text-amber-500 font-bold' : 'text-surface-400'">
+                                                    {{ socio.retrasos_ludoteca > 0 ? 'Incidencias de puntualidad' : 'Sin incidencias' }}
                                                 </p>
                                             </div>
-                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-                                                :class="socio.retrasos_ludoteca > 0 ? 'bg-amber-50 text-amber-500' : 'bg-surface-100 text-surface-300'">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" class="w-6 h-6">
+                                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors shadow-inner"
+                                                :class="socio.retrasos_ludoteca > 0 ? 'bg-amber-50 text-amber-500' : 'bg-white text-surface-300 border border-surface-200'">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-7 h-7">
                                                     <circle cx="12" cy="12" r="10" />
                                                     <polyline points="12 6 12 12 16 14" />
                                                 </svg>
@@ -248,16 +235,15 @@ const goBack = () => {
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
-                        </div>
 
-                        <!-- Pie — misma estructura que PenalizacionModal -->
-                        <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
-                            <button @click="goBack" class="px-5 py-2.5 rounded-xl border border-surface-200 bg-white
-                                     text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
-                                Volver al listado
-                            </button>
+                            <!-- Pie de tarjeta -->
+                            <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end">
+                                <button @click="goBack" class="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-surface-200 bg-white
+                                         text-sm font-bold text-surface-700 hover:bg-surface-50 hover:border-surface-300 transition-colors shadow-sm">
+                                    Volver al listado
+                                </button>
+                            </div>
                         </div>
                     </article>
                 </section>

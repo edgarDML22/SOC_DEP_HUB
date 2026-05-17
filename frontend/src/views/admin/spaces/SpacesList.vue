@@ -12,10 +12,13 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus     from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu      from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput     from '@/components/gerente/ui/SearchInput.vue'
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
-import { IconLayers, IconAlertCircle, IconChevronDown } from '@/components/icons'
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
+import { IconLayers, IconAlertCircle, IconChevronDown, IconUser } from '@/components/icons'
 import ModificarEstatusModal from '@/components/admin/ModificarEstatusModal.vue'
 import ManageDisciplinesModal from '@/views/admin/Disciplines/ManageDisciplinesModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
@@ -70,7 +73,7 @@ const statusAccentLeft = (estatus) => ({
   ACTIVO:        'bg-emerald-500',
   MANTENIMIENTO: 'bg-amber-500',
   DESHABILITADO: 'bg-red-500',
-}[estatus] ?? 'bg-slate-300')
+}[estatus] ?? 'bg-surface-300')
 
 // ── BADGES DE TIPO ─────────────────────────────────────────────
 const tipoBadges = (space) => {
@@ -221,7 +224,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-slate-50 p-6 lg:p-8 pb-16 font-sans">
+  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
     <div class="max-w-7xl mx-auto space-y-8">
 
       <!-- CABECERA -->
@@ -229,9 +232,9 @@ onMounted(() => {
         title="Espacios Físicos"
         subtitle="Gestiona las canchas, salones e instalaciones del club."
       >
-        <span class="text-sm font-bold text-slate-500">
+        <span class="text-sm font-bold text-surface-500">
           {{ filteredSpaces.length }}
-          <span class="font-medium text-slate-400">de {{ spaces.length }}</span>
+          <span class="font-medium text-surface-400">de {{ spaces.length }}</span>
         </span>
         <button
           @click="openNewModal"
@@ -246,80 +249,49 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- BARRA DE FILTROS -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="search" placeholder="Buscar espacio por nombre…" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo de uso</label>
-            <div class="relative">
-              <IconLayers class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <select v-model="filterTipo" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-            <div class="relative">
-              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-        <Transition
-          enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1"
-          enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in"
-          leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1"
+      <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+        <template #search>
+          <SearchInput v-model="search" placeholder="Buscar espacio por nombre…" />
+        </template>
+
+        <FilterSelect
+          label="Tipo de uso"
+          v-model="filterTipo"
+          :options="OPT_TIPO"
         >
-          <div v-if="hasActiveFilters" class="flex justify-end">
-            <button @click="clearFilters"
-              class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-              Limpiar filtros
-            </button>
-          </div>
-        </Transition>
-      </div>
+          <template #icon>
+            <IconLayers />
+          </template>
+        </FilterSelect>
+
+        <FilterSelect
+          label="Estatus"
+          v-model="filterStatus"
+          :options="OPT_STATUS"
+        >
+          <template #icon>
+            <IconAlertCircle />
+          </template>
+        </FilterSelect>
+      </FilterContainer>
 
       <!-- SKELETON -->
-      <div v-if="isLoading" class="flex flex-col gap-4">
-        <div v-for="n in 4" :key="n"
-          class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex gap-5 animate-pulse">
-          <div class="w-14 h-14 rounded-2xl bg-slate-200 shrink-0"/>
-          <div class="flex-1 space-y-3 py-1">
-            <div class="h-4 bg-slate-200 rounded-lg w-48"/>
-            <div class="flex gap-2">
-              <div class="h-5 w-20 bg-slate-100 rounded-lg"/>
-              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
-            </div>
-            <div class="flex gap-1.5">
-              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
-              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
-              <div class="h-5 w-16 bg-slate-100 rounded-lg"/>
-            </div>
-          </div>
-          <div class="w-28 h-9 rounded-xl bg-slate-100 self-center shrink-0"/>
-        </div>
+      <div v-if="isLoading" class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <TableSkeleton :rows="4" :columns="3" :has-avatar="true" />
       </div>
 
       <!-- VACÍO -->
       <div v-else-if="filteredSpaces.length === 0"
-        class="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16
+        class="bg-white rounded-2xl border-2 border-dashed border-surface-200 p-16
                flex flex-col items-center justify-center text-center">
-        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-          <svg class="w-7 h-7 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <div class="w-16 h-16 rounded-2xl bg-surface-100 flex items-center justify-center mb-4">
+          <svg class="w-7 h-7 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         </div>
-        <h3 class="text-base font-black text-slate-900">Sin resultados</h3>
-        <p class="text-sm text-slate-500 mt-1 max-w-xs">No se encontraron espacios con los filtros actuales.</p>
+        <h3 class="text-base font-black text-surface-900">Sin resultados</h3>
+        <p class="text-sm text-surface-500 mt-1 max-w-xs">No se encontraron espacios con los filtros actuales.</p>
         <button @click="clearFilters" class="mt-4 text-sm font-bold text-blue-600 hover:underline">Limpiar filtros</button>
       </div>
 
@@ -338,8 +310,8 @@ onMounted(() => {
         <div
           v-for="space in filteredSpaces"
           :key="space.id_espacio"
-          class="bg-white rounded-2xl border border-slate-200 shadow-sm
-                 hover:shadow-md hover:border-slate-300
+          class="bg-white rounded-2xl border border-surface-200 shadow-sm
+                 hover:shadow-md hover:border-surface-300
                  transition-all duration-200 group flex"
         >
           <!-- Franja color estatus (izquierda) -->
@@ -360,10 +332,10 @@ onMounted(() => {
 
                 <!-- Nombre + capacidad -->
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-sm font-black text-slate-900 truncate leading-tight">
+                  <h3 class="text-sm font-black text-surface-900 truncate leading-tight">
                     {{ space.nombre_espacio }}
                   </h3>
-                  <span class="text-[10px] font-bold text-slate-400 shrink-0">
+                  <span class="text-[10px] font-bold text-surface-400 shrink-0">
                     · {{ space.capacidad_maxima ?? '—' }} pers.
                   </span>
                 </div>
@@ -383,24 +355,24 @@ onMounted(() => {
 
                 <!-- Disciplinas -->
                 <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1 mt-2">
-                  <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">
+                  <span class="text-[10px] font-black uppercase tracking-wider text-surface-400 mr-1">
                     Disciplinas:
                   </span>
                   <span
                     v-for="d in space.disciplinas.slice(0, 5)"
                     :key="d.id_disciplina"
-                    class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200
-                           text-[10px] font-bold text-slate-600"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-50 border border-surface-200
+                           text-[10px] font-bold text-surface-600"
                   >
                     <DisciplineIcon :name="d.nombre_disciplina" class="w-3 h-3 shrink-0" />
                     {{ d.nombre_disciplina }}
                   </span>
                   <span v-if="space.disciplinas.length > 5"
-                    class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-bold">
+                    class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
                     +{{ space.disciplinas.length - 5 }}
                   </span>
                 </div>
-                <p v-else class="text-[11px] text-slate-400 italic mt-2">Sin disciplinas asignadas</p>
+                <p v-else class="text-[11px] text-surface-400 italic mt-2">Sin disciplinas asignadas</p>
 
               </div>
 
@@ -424,7 +396,7 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showNewModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showNewModal = false"
         >
           <Transition
@@ -436,13 +408,13 @@ onMounted(() => {
               class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
 
               <!-- Cabecera -->
-              <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
+              <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
                 <div>
-                  <h2 class="text-lg font-black text-slate-900 leading-tight">Nuevo Espacio</h2>
-                  <p class="text-xs text-slate-500 font-medium mt-0.5">Registra una cancha, salón o instalación.</p>
+                  <h2 class="text-lg font-black text-surface-900 leading-tight">Nuevo Espacio</h2>
+                  <p class="text-xs text-surface-500 font-medium mt-0.5">Registra una cancha, salón o instalación.</p>
                 </div>
                 <button @click="showNewModal = false"
-                  class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                  class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M18 6L6 18M6 6l12 12"/>
                   </svg>
@@ -450,7 +422,7 @@ onMounted(() => {
               </div>
 
               <!-- Cuerpo -->
-              <div class="overflow-y-auto p-7 space-y-6 bg-slate-50/30">
+              <div class="overflow-y-auto p-7 space-y-6 bg-surface-50/30">
 
                 <!-- Error banner -->
                 <Transition enter-active-class="transition-all duration-200"
@@ -471,25 +443,32 @@ onMounted(() => {
                   <div class="space-y-5">
 
                     <div class="space-y-1.5">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                         Nombre del Espacio <span class="text-red-400">*</span>
                       </label>
-                      <input v-model="newSpace.nombre_espacio" placeholder="Ej. Cancha de Tenis 1"
-                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                               text-slate-900 placeholder:text-slate-400
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                      <div class="relative">
+                        <IconLayers class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model="newSpace.nombre_espacio" placeholder="Ej. Cancha de Tenis 1"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                      </div>
                     </div>
 
                     <div class="space-y-1.5">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Capacidad Máxima</label>
-                      <input v-model.number="newSpace.capacidad_maxima" type="number" min="1"
-                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Capacidad Máxima</label>
+                      <div class="relative">
+                        <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model.number="newSpace.capacidad_maxima" type="number" min="1" placeholder="Ej. 10"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                      </div>
                     </div>
 
                     <!-- Tipo de uso -->
                     <div class="space-y-2">
-                      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo de Uso</label>
+                      <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo de Uso</label>
                       <div class="flex flex-col gap-2">
                         <button
                           v-for="uso in [
@@ -503,14 +482,14 @@ onMounted(() => {
                           class="flex items-center justify-between px-4 py-3 rounded-xl border text-xs font-bold transition-all"
                           :class="uso.active
                             ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-200 hover:text-blue-600'"
+                            : 'bg-white text-surface-500 border-surface-200 hover:border-blue-200 hover:text-blue-600'"
                         >
                           <span>{{ uso.label }}</span>
                           <svg v-if="uso.active" class="w-4 h-4 shrink-0"
                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                             <path d="M20 6L9 17l-5-5"/>
                           </svg>
-                          <div v-else class="w-4 h-4 rounded-full border-2 border-slate-300 shrink-0"/>
+                          <div v-else class="w-4 h-4 rounded-full border-2 border-surface-300 shrink-0"/>
                         </button>
                       </div>
                     </div>
@@ -518,8 +497,8 @@ onMounted(() => {
 
                   <!-- Columna derecha: disciplinas — selector azul institucional -->
                   <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Disciplinas Permitidas</label>
-                    <div class="h-72 overflow-y-auto bg-white rounded-2xl p-2 border border-slate-200 space-y-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplinas Permitidas</label>
+                    <div class="h-72 overflow-y-auto bg-white rounded-2xl p-2 border border-surface-200 space-y-1.5">
                       <button
                         v-for="d in disciplines"
                         :key="d.id_disciplina"
@@ -528,20 +507,20 @@ onMounted(() => {
                         class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all text-left group relative overflow-hidden"
                         :class="newSpace.disciplinas.includes(d.id_disciplina)
                           ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 hover:shadow-sm'"
+                          : 'bg-surface-50 text-surface-600 border-surface-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 hover:shadow-sm'"
                       >
                         <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all"
                           :class="newSpace.disciplinas.includes(d.id_disciplina)
                             ? 'bg-white/20 text-white'
-                            : 'bg-slate-200 text-slate-500 group-hover:bg-white group-hover:text-blue-600'">
-                          <component :is="getIcon(d.nombre_disciplina)" class="w-4 h-4" />
+                            : 'bg-surface-200 text-surface-500 group-hover:bg-white group-hover:text-blue-600'">
+                          <DisciplineIcon :name="d.nombre_disciplina" class="w-4 h-4" />
                         </div>
                         <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
                         
                         <!-- Icono de Check con la misma lógica que Instructors -->
                         <div
                           class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
-                          :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'border-white text-white' : 'border-slate-300 bg-slate-50 text-transparent group-hover:border-blue-400 group-hover:text-blue-300'">
+                          :class="newSpace.disciplinas.includes(d.id_disciplina) ? 'border-white text-white' : 'border-surface-300 bg-surface-50 text-transparent group-hover:border-blue-400 group-hover:text-blue-300'">
                           <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
                             stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
@@ -555,7 +534,7 @@ onMounted(() => {
               </div>
 
               <!-- Pie del modal -->
-              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
+              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100">
                 <CancelButton @click="showNewModal = false" />
                 <ConfirmButton
                   label="Crear Espacio"
@@ -579,7 +558,7 @@ onMounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="showDisableModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showDisableModal = false"
         >
           <div class="bg-white w-full max-w-md rounded-4xl shadow-2xl p-8 text-center">
@@ -589,9 +568,9 @@ onMounted(() => {
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               </svg>
             </div>
-            <h3 class="text-xl font-black text-slate-900 mb-2">¿Deshabilitar espacio?</h3>
-            <p class="text-sm text-slate-500 mb-8">
-              ¿Confirmas deshabilitar <span class="font-bold text-slate-800">{{ selectedSpace?.nombre_espacio }}</span>?
+            <h3 class="text-xl font-black text-surface-900 mb-2">¿Deshabilitar espacio?</h3>
+            <p class="text-sm text-surface-500 mb-8">
+              ¿Confirmas deshabilitar <span class="font-bold text-surface-800">{{ selectedSpace?.nombre_espacio }}</span>?
               El sistema validará que no haya actividades pendientes.
             </p>
             <div class="flex gap-3">

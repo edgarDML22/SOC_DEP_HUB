@@ -15,7 +15,9 @@ import {
   IconLayers,
   IconGrid
 } from '@/components/icons'
+import { useAdminLudotecaStore } from '@/stores/ludoteca/adminLudotecaStore'
 
+const ludotecaStore = useAdminLudotecaStore()
 const route = useRoute()
 const isOpen = ref(true)
 const openSection = ref(null)
@@ -28,6 +30,16 @@ const toggleSidebar = () => {
 
 const toggleSection = (key) => {
   openSection.value = openSection.value === key ? null : key
+}
+
+const setLudotecaView = (view, forceStats = true) => {
+  console.log('Cambiando vista ludoteca a:', view)
+  if (forceStats) {
+    ludotecaStore.mainTab = 'stats'
+  } else {
+    ludotecaStore.mainTab = 'register'
+  }
+  ludotecaStore.viewActive = view
 }
 
 // Detección de sección activa para resaltar el botón padre aunque esté colapsado
@@ -158,14 +170,46 @@ const sections = [
             <div class="relative">
               <div class="absolute left-2 top-1 bottom-1 w-px bg-slate-700/60 rounded-full" />
 
-              <router-link v-for="child in section.children" :key="child.to" :to="child.to" class="flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm
-                       transition-all duration-150 ml-0" :class="route.path.startsWith(child.to)
-                        ? 'text-white font-bold bg-blue-600 shadow-md shadow-blue-600/20'
-                        : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 font-medium'">
-                <component :is="child.icon" class="w-4 h-4 shrink-0 transition-all duration-200"
-                  :class="route.path.startsWith(child.to) ? 'text-white scale-110' : 'text-slate-500 group-hover:text-slate-300'" />
-                {{ child.label }}
-              </router-link>
+              <template v-for="child in section.children" :key="child.to">
+                <router-link 
+                  :to="child.to" 
+                  class="flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm transition-all duration-150 ml-0" 
+                  :class="route.path.startsWith(child.to)
+                    ? 'text-white font-bold bg-blue-600 shadow-md shadow-blue-600/20'
+                    : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 font-medium'"
+                  @click="child.label === 'Ludoteca' ? setLudotecaView('dashboard', false) : null"
+
+                >
+                  <component :is="child.icon" class="w-4 h-4 shrink-0 transition-all duration-200"
+                    :class="route.path.startsWith(child.to) ? 'text-white scale-110' : 'text-slate-500 group-hover:text-slate-300'" />
+                  {{ child.label }}
+                </router-link>
+
+                <!-- BOTÓN ESPECIAL: ASIGNAR TURNOS (Solo Ludoteca) -->
+                <Transition
+                  enter-active-class="transition-all duration-300 ease-out"
+                  enter-from-class="opacity-0 -translate-y-2 max-h-0"
+                  enter-to-class="opacity-100 translate-y-0 max-h-12"
+                  leave-active-class="transition-all duration-200 ease-in"
+                  leave-from-class="opacity-100 translate-y-0 max-h-12"
+                  leave-to-class="opacity-0 -translate-y-2 max-h-0"
+                >
+                  <div v-if="child.label === 'Ludoteca' && route.path.startsWith('/admin/ludoteca')" 
+                       class="pl-12 pr-3 mt-2 mb-1 overflow-hidden flex flex-col gap-1">
+                    <button 
+                      @click.stop="setLudotecaView('turnos')" 
+                      type="button"
+                      class="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none outline-none"
+                      :class="ludotecaStore.viewActive === 'turnos' 
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40' 
+                        : 'text-slate-500 hover:text-slate-100 hover:bg-slate-800/60'"
+                    >
+                      <IconCalendar class="w-3.5 h-3.5" />
+                      <span>Asignar turnos</span>
+                    </button>
+                  </div>
+                </Transition>
+              </template>
             </div>
           </div>
         </div>
