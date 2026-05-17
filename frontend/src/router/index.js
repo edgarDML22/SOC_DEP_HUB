@@ -9,7 +9,7 @@ const router = createRouter({
     {
       path: "/",
       name: "default",
-      component: () => import("@/views/auth/Login.vue"),
+      component: () => import("@/components/public/LandingPage.vue"),
     },
     // Auth Routes
     {
