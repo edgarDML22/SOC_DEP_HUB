@@ -37,6 +37,8 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\RefereeAvailabilityController;
+use App\Http\Controllers\MatchAssignmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,7 +49,14 @@ use App\Http\Controllers\UserAdminController;
 |
 */
 
-
+Route::get(
+    '/v1/torneos/{id_torneo}/available-referees',
+    [RefereeAvailabilityController::class, 'available']
+);
+Route::patch(
+    '/v1/encuentros/{id_encuentro}/assign',
+    [MatchAssignmentController::class, 'assign']
+);
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -310,7 +319,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [TorneoController::class, 'store']);
 
         Route::get('/', [TorneoController::class, 'index']);
-        
+
         Route::get('/categorias', [\App\Http\Controllers\CategoriaTorneoController::class, 'index']);
 
         Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
