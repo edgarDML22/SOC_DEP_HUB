@@ -38,6 +38,8 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\BootstrapController;
+use App\Http\Controllers\InternalRegistrationController;
+use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\PreRegisterController;
 
 /*
@@ -335,6 +337,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+
+    // TORNEOS: Inscripción interna directa (bypassing MongoDB)
+    Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
+
+    // TORNEOS: Hub del Socio (disponibles e historial)
+    Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
+    Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
     //RUTAS PRE REGISTROS
     // Obtener preregistros
