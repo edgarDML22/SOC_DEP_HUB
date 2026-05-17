@@ -48,6 +48,7 @@ use App\Http\Controllers\UserAdminController;
 */
 
 
+
 // ==========================================
 // RUTAS PÚBLICAS
 // ==========================================
@@ -61,13 +62,8 @@ Route::post('/v1/auth/forgot-password', [ForgotPasswordController::class, 'sendR
 // SDH-77: Endpoint para restablecimiento de contraseña
 Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
-// SDH-47: Endpoint para crear torneos
-Route::post('/v1/torneos', [TorneoController::class, 'store']);
 
-// Endpoint para listar torneos 
-Route::get('/v1/torneos', [TorneoController::class, 'index']);
-//SDH-51: Endpoint para actualizar el estado de un torneo
-Route::post('/v1/torneos/update-status', [UpdateStatusTorneo::class, 'update']);
+
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 
 // Rutas de sistema
@@ -105,6 +101,12 @@ Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::clas
 // Grupo protegido con Sanctum
 // SDH-1102: Logout fuera del grupo auth — el controller maneja tokens inválidos o ausentes
 Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
+
+//SDH-267: Pre-registro de torneos
+Route::post(
+    '/v1/torneos/{id}/pre-registros',
+    [TorneoController::class, 'preRegistro']
+);
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -300,6 +302,33 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
     Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
     Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
+
+    //TORNEOS ACTUALIZACION, SDH 267
+
+    Route::prefix('v1/torneos')->group(function () {
+
+        Route::post('/', [TorneoController::class, 'store']);
+
+        Route::get('/', [TorneoController::class, 'index']);
+        
+        Route::get('/categorias', [\App\Http\Controllers\CategoriaTorneoController::class, 'index']);
+
+        Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
+
+        //SDH-268:VER TORNEO
+        Route::get('/{id}', [TorneoController::class, 'show']);
+        Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
+    });
+
+
+
+    Route::prefix('v1/encuentros')->group(function () {
+
+        //
+    });
+
+
+
 
 });
 
