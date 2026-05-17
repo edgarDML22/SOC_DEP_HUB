@@ -109,7 +109,7 @@ class ProfileController extends Controller
             case 'subgerente':
 
                 $perfil = DB::table('gerentes')
-                    ->select('id_empleado', 'nombre_completo', 'estatus')
+                    ->select('id_empleado', 'nombre_completo', 'estatus', 'correo_electronico', 'cargo')
                     ->where('id_empleado', $usuario->user_id)
                     ->first();
 
@@ -122,11 +122,16 @@ class ProfileController extends Controller
                 }
 
                 $data = [
-                    'id_socio'        => $usuario->id,
-                    'nombre_completo' => $perfil->nombre_completo,
-                    'num_accion'      => null,
-                    'tipo_socio'      => $usuario->rol,
-                    'estatus_cuenta'  => $perfil->estatus,
+                    'id_socio'           => $usuario->id,
+                    'id_empleado'        => $perfil->id_empleado,
+                    'nombre_completo'    => $perfil->nombre_completo,
+                    'num_accion'         => null,
+                    'tipo_socio'         => $usuario->rol,
+                    'rol'                => strtoupper($usuario->rol),
+                    'estatus'            => $perfil->estatus,
+                    'estatus_cuenta'     => $perfil->estatus,
+                    'correo_electronico' => $perfil->correo_electronico ?? $usuario->email,
+                    'cargo'              => $perfil->cargo ?? ($usuario->rol === 'subgerente' ? 'Subgerente' : 'Gerente'),
                 ];
                 break;
 

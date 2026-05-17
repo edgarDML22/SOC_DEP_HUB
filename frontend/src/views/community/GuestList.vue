@@ -132,7 +132,7 @@ const copiarImagenAlPortapapeles = async (url) => {
               ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200'
               : 'bg-white text-surface-600 border-surface-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50'"
           >
-            <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 flex-shrink-0"></span>
+            <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 shrink-0"></span>
             {{ filter.label }}
           </button>
         </div>
@@ -144,10 +144,13 @@ const copiarImagenAlPortapapeles = async (url) => {
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="invitadosFiltrados.length === 0" class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200">
-        <p v-if="filtro === 'TODOS'" class="text-lg font-medium">No hay invitados registrados en este momento</p>
-        <p v-else-if="filtro === 'ACTIVO'" class="text-lg font-medium">No hay invitados con su pase activo en este momento</p>
-        <p v-else-if="filtro === 'EXPIRADO'" class="text-lg font-medium">No hay invitados con pase expirado en este momento</p>
+      <div v-else-if="invitadosFiltrados.length === 0" class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200 flex flex-col items-center justify-center min-h-[250px]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <p v-if="filtro === 'TODOS'" class="text-base font-medium">No hay invitados registrados en este momento.</p>
+        <p v-else-if="filtro === 'ACTIVO'" class="text-base font-medium">No hay invitados con pase activo en este momento.</p>
+        <p v-else-if="filtro === 'EXPIRADO'" class="text-base font-medium">No hay invitados con pase expirado en este momento.</p>
       </div>
 
       <!-- Lista de Tarjetas (Grid) -->
@@ -205,7 +208,7 @@ const copiarImagenAlPortapapeles = async (url) => {
           <div class="mt-auto" v-if="inv.estatus_acceso === 'ACTIVO'">
             <button 
               @click="abrirModalQR(inv)" 
-              class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md focus:outline-none"
+              class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md focus:outline-none"
             >
               <IconQR class="w-4 h-4 text-white" />
               Ver código QR
@@ -216,7 +219,7 @@ const copiarImagenAlPortapapeles = async (url) => {
     </div>
 
     <!-- Modal QR -->
-    <div v-if="showQrModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
+    <div v-if="showQrModal" class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
       <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
         <h3 class="text-xl font-bold text-surface-900 mb-2">Código QR de Acceso</h3>
         <p class="text-surface-600 font-medium text-sm mb-6">Este es el código QR de <strong class="text-surface-900 font-medium">{{ selectedGuest.nombre }}</strong></p>

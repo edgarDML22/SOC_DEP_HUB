@@ -497,38 +497,38 @@ const handleDeleteGuest = async () => {
         @click.self="showGuestModal = false">
         <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
 
-          <!-- Header -->
-          <div class="px-8 py-6 border-b border-surface-100 flex items-center justify-between">
+          <!-- Cabecera -->
+          <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
             <div>
               <h2 class="text-xl font-black text-surface-900 leading-tight">
                 {{ modalStep === 2 ? 'Pase de Invitado' :
                   (modalMode === 'create' ? 'Registrar Invitado' : 'Editar Invitado') }}
               </h2>
-              <p class="text-sm text-surface-500 font-medium mt-1">
+              <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
                 {{ modalStep === 2 ? 'Registro exitoso' : 'Completa la información del invitado' }}
               </p>
             </div>
             <button @click="showGuestModal = false"
-              class="w-10 h-10 rounded-2xl bg-surface-50 hover:bg-surface-100 flex items-center justify-center text-surface-400 transition-colors">
+              class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          <!-- Body -->
-          <div class="p-8">
+          <!-- Cuerpo -->
+          <div class="overflow-y-auto p-7 bg-surface-50/30">
             <!-- STEP 1: FORM -->
             <div v-if="modalStep === 1" class="space-y-5">
               <!-- Nombre -->
               <div class="space-y-1.5">
-                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
+                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
                   Completo</label>
                 <div class="relative">
                   <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="guestForm.nombre_invitado" type="text" maxlength="255" placeholder="Ej. Juan Pérez"
-                    class="w-full pl-11 pr-4 py-3 bg-surface-50 border rounded-2xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-                    :class="formErrors.nombre_invitado ? 'border-red-300' : 'border-surface-100'" />
+                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all shadow-sm"
+                    :class="formErrors.nombre_invitado ? 'border-red-300' : 'border-surface-200'" />
                 </div>
                 <p v-if="formErrors.nombre_invitado" class="text-[10px] font-bold text-red-500 px-1">{{
                   formErrors.nombre_invitado }}</p>
@@ -536,26 +536,26 @@ const handleDeleteGuest = async () => {
 
               <!-- Correo -->
               <div class="space-y-1.5">
-                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Correo
+                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Correo
                   (Opcional)</label>
                 <div class="relative">
                   <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="guestForm.correo" type="email" placeholder="ejemplo@correo.com"
-                    class="w-full pl-11 pr-4 py-3 bg-surface-50 border rounded-2xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-                    :class="formErrors.correo ? 'border-red-300' : 'border-surface-100'" />
+                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all shadow-sm"
+                    :class="formErrors.correo ? 'border-red-300' : 'border-surface-200'" />
                 </div>
                 <p v-if="formErrors.correo" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.correo }}</p>
               </div>
 
               <!-- Teléfono -->
               <div class="space-y-1.5">
-                <label class="text-[11px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono
+                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono
                   (Opcional)</label>
                 <div class="relative">
                   <IconPhone class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="guestForm.telefono" type="tel" placeholder="10 dígitos"
-                    class="w-full pl-11 pr-4 py-3 bg-surface-50 border rounded-2xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-                    :class="formErrors.telefono ? 'border-red-300' : 'border-surface-100'" />
+                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all shadow-sm"
+                    :class="formErrors.telefono ? 'border-red-300' : 'border-surface-200'" />
                 </div>
                 <p v-if="formErrors.telefono" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.telefono }}
                 </p>
@@ -582,8 +582,8 @@ const handleDeleteGuest = async () => {
             </div>
           </div>
 
-          <!-- Footer -->
-          <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
+          <!-- Pie del modal -->
+          <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
             <template v-if="modalStep === 1">
               <CancelButton label="Cancelar" @click="showGuestModal = false" />
               <ConfirmButton :label="modalMode === 'create' ? 'Registrar' : 'Guardar Cambios'"

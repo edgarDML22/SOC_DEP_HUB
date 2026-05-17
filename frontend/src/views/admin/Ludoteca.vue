@@ -5,14 +5,14 @@ import {
     IconLayers
 } from '@/components/icons'
 import { useAdminLudotecaStore } from '@/stores/ludoteca/adminLudotecaStore'
+import { storeToRefs } from 'pinia'
 
 // Sub-componentes
 import LudotecaRegister from '@/views/ludoteca/LudotecaRegister.vue'
 import LudotecaAdmin from '@/views/ludoteca/LudotecaAdmin.vue'
 
 const store = useAdminLudotecaStore()
-
-const activeTab = ref('register')
+const { mainTab: activeTab } = storeToRefs(store)
 
 // Prefetch silent para tener los datos listos al cambiar de tab o de filtro
 onMounted(() => {
