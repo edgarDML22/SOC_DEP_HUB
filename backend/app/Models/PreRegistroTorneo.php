@@ -18,6 +18,7 @@ class PreRegistroTorneo extends Model
         'datos_participante',
         'urls_documentos',
         'motivo_rechazo'
+
     ];
 
     protected $casts = [

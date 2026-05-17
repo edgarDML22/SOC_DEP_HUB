@@ -81,20 +81,51 @@ class PreRegisterController extends Controller
         |
         */
 
+        // Validar preregistro duplicado por correo EN EL MISMO TORNEO                                                                                                                                      
+        $registroExistente = PreRegistroTorneo::where('id_torneo', $id)
+            ->get()
+            ->first(function ($registro) use ($request) {
 
-        // Guardar PDFs localmente
-        $inePath = $request->file('ine_pdf')->store(
+                return isset($registro->datos_participante['correo']) &&
+                    strtolower($registro->datos_participante['correo']) === strtolower($request->correo);
+            });
+
+        if ($registroExistente) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya existe un preregistro con ese correo para este torneo.'
+            ], 409);
+        }
+        $preRegistroId = substr(Str::uuid(), 0, 8);
+
+        // Normalizar nombres
+        $nombreJugador = Str::slug($request->nombre_completo);
+        $nombreTorneo = Str::slug($torneo->nombre_torneo);
+
+        // INE
+        $ineName = 'ine_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+        $inePath = $request->file('ine_pdf')->storeAs(
             'ines',
+            $ineName,
             'torneos_storage'
         );
 
-        $curpPath = $request->file('curp_pdf')->store(
+        // CURP
+        $curpName = 'curp_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+        $curpPath = $request->file('curp_pdf')->storeAs(
             'curps',
+            $curpName,
             'torneos_storage'
         );
 
-        $responsivaPath = $request->file('carta_responsiva_pdf')->store(
+        // Responsiva
+        $responsivaName = 'responsiva_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+        $responsivaPath = $request->file('carta_responsiva_pdf')->storeAs(
             'responsivas',
+            $responsivaName,
             'torneos_storage'
         );
 
