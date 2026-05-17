@@ -5,6 +5,7 @@ namespace App\Actions\Torneo;
 use App\Models\Torneo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Actions\Torneo\GenerarBracketAction;
 
 class TransitionTorneoStatusAction
 {
@@ -72,9 +73,7 @@ class TransitionTorneoStatusAction
             }
 
             if ($nuevoEstatus === 'PROGRAMADO') {
-
-                // Task-16
-                // app(GenerarBracketAction::class)->execute($torneo);
+                app(GenerarBracketAction::class)->execute($torneo);
             }
 
             $torneo->save();

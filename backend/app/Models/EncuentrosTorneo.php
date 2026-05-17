@@ -11,6 +11,7 @@ class EncuentrosTorneo extends Model
     public $timestamps = false;
     protected $fillable = [
         'id_encuentro',
+        'fase_bracket',
         'id_arbitro_asignado',
         'fecha_hora_inicio',
         'fecha_hora_fin',
