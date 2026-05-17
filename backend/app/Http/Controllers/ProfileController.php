@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\SocioTitular;
+use App\Models\MiembrosFamiliares;
+use App\Models\CodigoQr;
 use App\Models\Instructor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProfileController extends Controller
 {
@@ -36,6 +39,24 @@ class ProfileController extends Controller
                     ], 404);
                 }
 
+                $qrPayload = null;
+                $qrImageUrl = null;
+                if ($perfil->estatus_cuenta === 'AL_CORRIENTE') {
+                    $qr = $perfil->codigoQrActivo;
+                    if (!$qr) {
+                        do {
+                            $codigoNuevo = 'QS' . strtoupper(Str::random(6));
+                        } while (CodigoQr::where('codigo', $codigoNuevo)->exists());
+                        $qr = $perfil->codigosQr()->create([
+                            'codigo' => $codigoNuevo,
+                            'estatus' => 'ACTIVO',
+                            'fecha_activacion' => now()
+                        ]);
+                    }
+                    $qrPayload = $qr->codigo;
+                    $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($qrPayload);
+                }
+
                 return response()->json([
                     'success' => true,
                     'data' => [
@@ -53,12 +74,14 @@ class ProfileController extends Controller
                         'estatus_penalizacion' => $perfil->estatus_penalizacion,
                         'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
                         'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
+                        'qr_payload' => $qrPayload,
+                        'qr_image_url' => $qrImageUrl,
                     ]
                 ]);
                 break;
 
             case 'miembro_familiar':
-                $perfil = DB::table('miembros_familiares as mf')
+                $perfilMf = DB::table('miembros_familiares as mf')
                     ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
                     ->select(
                         'mf.id_miembro',
@@ -74,17 +97,30 @@ class ProfileController extends Controller
                     ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
 
-                if ($perfil) {
+                if ($perfilMf) {
+                    $mfModel = MiembrosFamiliares::find($usuario->user_id);
+                    $mfQrPayload = null;
+                    $mfQrImageUrl = null;
+                    if ($mfModel) {
+                        $qr = $mfModel->codigoQrActivo;
+                        if ($qr) {
+                            $mfQrPayload = $qr->codigo;
+                            $mfQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($mfQrPayload);
+                        }
+                    }
+
                     $data = [
-                        'id_miembro' => $perfil->id_miembro,
-                        'id_socio' => $perfil->socio_id,
-                        'nombre_completo' => $perfil->nombre_completo,
-                        'numero_accion' => $perfil->numero_accion,
-                        'tipo_socio' => $perfil->tipo_socio,
-                        'modalidad_plan' => $perfil->modalidad_plan,
-                        'estatus_cuenta' => $perfil->estatus_cuenta,
-                        'estatus_penalizacion' => $perfil->estatus_penalizacion ?? null,
-                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion ?? null,
+                        'id_miembro' => $perfilMf->id_miembro,
+                        'id_socio' => $perfilMf->socio_id,
+                        'nombre_completo' => $perfilMf->nombre_completo,
+                        'numero_accion' => $perfilMf->numero_accion,
+                        'tipo_socio' => $perfilMf->tipo_socio,
+                        'modalidad_plan' => $perfilMf->modalidad_plan,
+                        'estatus_cuenta' => $perfilMf->estatus_cuenta,
+                        'estatus_penalizacion' => $perfilMf->estatus_penalizacion ?? null,
+                        'fecha_fin_penalizacion' => $perfilMf->fecha_fin_penalizacion ?? null,
+                        'qr_payload' => $mfQrPayload,
+                        'qr_image_url' => $mfQrImageUrl,
                     ];
                 }
                 break;

@@ -16,20 +16,22 @@ class SendSancionNotificationMail implements ShouldQueue
     public int $backoff = 60;
 
     public function __construct(
-        public readonly int     $socioId,
-        public readonly string  $tipo,
-        public readonly string  $nombreSocio,
+        public readonly int $socioId,
+        public readonly string $tipo,
+        public readonly string $nombreSocio,
         public readonly ?string $estatusPenalizacion = null,
         public readonly ?string $fechaFinReserva = null,
         public readonly ?string $fechaFinLudoteca = null,
-        public readonly string  $motivo = 'manual',
-    ) {}
+        public readonly string $motivo = 'manual',
+    ) {
+    }
 
     public function handle(): void
     {
-        /** @var SocioTitular|null $socio */
+
         $socio = SocioTitular::find($this->socioId);
-        if (!$socio || !$socio->correo_electronico) return;
+        if (!$socio || !$socio->correo_electronico)
+            return;
 
         if ($this->tipo === 'asignada') {
             $notification = new SancionAsignadaMailNotification(
@@ -52,10 +54,16 @@ class SendSancionNotificationMail implements ShouldQueue
 // Subclases que solo envían mail — evitan duplicar el canal database
 class SancionAsignadaMailNotification extends SancionAsignadaNotification
 {
-    public function via(object $notifiable): array { return ['mail']; }
+    public function via(object $notifiable): array
+    {
+        return ['mail'];
+    }
 }
 
 class SancionLevantadaMailNotification extends SancionLevantadaNotification
 {
-    public function via(object $notifiable): array { return ['mail']; }
+    public function via(object $notifiable): array
+    {
+        return ['mail'];
+    }
 }

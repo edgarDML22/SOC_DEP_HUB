@@ -9,7 +9,7 @@ const router = createRouter({
     {
       path: "/",
       name: "default",
-      component: () => import("@/views/auth/Login.vue"),
+      component: () => import("@/components/public/LandingPage.vue"),
     },
     // Auth Routes
     {
@@ -26,6 +26,18 @@ const router = createRouter({
       path: "/reset-password",
       name: "reset-password",
       component: () => import("@/views/auth/ResetPassword.vue"),
+    },
+    {
+      path: "/torneos",
+      name: "public-torneos-list",
+      component: () => import("@/views/public/TorneosPublicListView.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: "/torneos/:id/pre-registro",
+      name: "torneo-pre-registro",
+      component: () => import("@/views/public/TorneoPreRegistroView.vue"),
+      meta: { requiresAuth: false },
     },
     {
       path: "/ludoteca/encuesta/:idHistorial",
@@ -272,28 +284,32 @@ const router = createRouter({
         },
         {
           path: "tournaments",
-          component: () => import("@/views/admin/tournaments/Tournaments.vue"),
-          redirect: "/admin/tournaments",
+          redirect: { name: 'tournaments-list' },
           children: [
             {
               path: "",
-              name: "tournaments",
+              name: "tournaments-list",
               component: () => import("@/views/admin/tournaments/Tournaments.vue"),
             },
             {
+              path: "cards",
+              name: "tournaments-cards",
+              component: () => import("@/views/admin/tournaments/TournamentForm.vue"),
+            },
+            {
               path: "schedule",
-              name: "schedule",
+              name: "tournaments-schedule",
               component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
             },
             {
-              path: "create",
-              name: "create-tournament",
-              component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
-            },
-            {
-              path: "details",
+              path: ":id",
               name: "details-tournament",
               component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
+            },
+            {
+              path: "pre-registros",
+              name: "pre-registros-bandeja",
+              component: () => import("@/views/admin/tournaments/PreRegistrosBandeja.vue"),
             },
           ]
         },
@@ -431,18 +447,6 @@ const router = createRouter({
               component: () => import("@/views/admin/reports/AcademicPerformance.vue"),
             },
           ]
-        },
-        {
-          path: "tournaments/create",
-          component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
-        },
-        {
-          path: "/tournaments/details",
-          component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
-        },
-        {
-          path: "categories/create",
-          component: () => import("@/views/admin/categories/CreateCategories.vue"),
         },
       ],
     },

@@ -1,42 +1,19 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useQrStore } from '@/stores/profiles/qrStore'
 import { useAlerts } from '@/composables/useAlerts'
-import api from '@/services/api'
 
 const router = useRouter()
 const profileStore = useProfileStore()
+const qrStore = useQrStore()
 const { toastInfo } = useAlerts()
 
-const qrPayload = ref('')
-const loading = ref(true)
-const error = ref('')
-
-// Función con el algoritmo y API solicitada
-const generarQrUrl = (codigo) => {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(codigo)}`
-}
-
-const fetchQrData = async () => {
-  try {
-    loading.value = true
-    error.value = ''
-    const response = await api.get('/profile/qr-data')
-    if (response.data.success) {
-      qrPayload.value = response.data.data.qr_payload
-    }
-  } catch (err) {
-    if (err.response?.status === 403) {
-      error.value = err.response.data?.message ?? 'Cuenta bloqueada.'
-    } else {
-      error.error = 'No se pudo cargar el código.'
-    }
-    console.error('Error QR:', err)
-  } finally {
-    loading.value = false
-  }
-}
+const qrPayload = computed(() => qrStore.qrPayload)
+const qrImageUrl = computed(() => qrStore.qrImageUrl)
+const loading = computed(() => qrStore.loading)
+const error = computed(() => qrStore.error)
 
 const copiarImagenAlPortapapeles = async (url) => {
   try {
@@ -51,8 +28,6 @@ const copiarImagenAlPortapapeles = async (url) => {
     toastInfo('Error', 'Usa clic derecho para copiar la imagen.', 'error')
   }
 }
-
-onMounted(fetchQrData)
 </script>
 
 <template>
@@ -104,7 +79,7 @@ onMounted(fetchQrData)
 
           <div
             class="bg-surface-50 p-6 border-2 border-dashed border-surface-300 rounded-3xl mb-8 flex justify-center w-fit">
-            <img :src="generarQrUrl(qrPayload)" alt="Mi Código QR"
+            <img :src="qrImageUrl" alt="Mi Código QR"
               class="w-56 h-56 md:w-64 md:h-64 rounded-xl bg-white shadow-inner object-contain" />
           </div>
 
@@ -121,7 +96,7 @@ onMounted(fetchQrData)
             </div>
 
             <div class="flex flex-col gap-3">
-              <button @click="copiarImagenAlPortapapeles(generarQrUrl(qrPayload))"
+              <button @click="copiarImagenAlPortapapeles(qrImageUrl)"
                 class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
