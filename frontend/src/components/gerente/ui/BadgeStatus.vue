@@ -50,8 +50,10 @@ const STATUS_MAP = {
   DESHABILITADO:       { label: 'Deshabilitado',      classes: 'bg-red-50    text-red-700    border-red-200'    },
 
   // Torneos
-  PROGRAMADO:          { label: 'Programado',         classes: 'bg-blue-50   text-blue-700   border-blue-200'   },
-  EN_CURSO:            { label: 'En Curso',           classes: 'bg-purple-50 text-purple-700 border-purple-200' },
+  EN_PLANIFICACION:    { label: 'En Planificación',   classes: 'bg-slate-100  text-slate-500  border-slate-200'  },
+  EN_INSCRIPCION:      { label: 'En Inscripción',     classes: 'bg-blue-50   text-blue-700   border-blue-200'   },
+  PROGRAMADO:          { label: 'Programado',         classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
+  EN_CURSO:            { label: 'En Curso',           classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   FINALIZADO:          { label: 'Finalizado',         classes: 'bg-slate-100 text-slate-500  border-slate-200'  },
   CANCELADO:           { label: 'Cancelado',          classes: 'bg-red-50    text-red-700    border-red-200'    },
 

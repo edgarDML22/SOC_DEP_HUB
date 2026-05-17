@@ -23,7 +23,9 @@ import esLocale from "@fullcalendar/core/locales/es";
 const store = useAdminLudotecaStore();
 
 // Navegación entre vistas
-const viewActive = ref("dashboard"); // 'dashboard' o 'turnos'
+import { storeToRefs } from "pinia";
+const { viewActive } = storeToRefs(store);
+
 
 // Filtro de Estadísticas
 const filtroStats = ref("hoy");
@@ -189,6 +191,21 @@ const totalEncuestas = computed(() => {
     return data.reduce((a, b) => a + Number(b), 0);
 });
 
+const hasAfluenciaData = computed(() => {
+    const raw = currentStats.value.graficas?.afluencia_temporal?.data || [];
+    return raw.length > 0 && raw.some(val => Number(val) > 0);
+});
+
+const hasCalificacionesData = computed(() => {
+    const raw = currentStats.value.graficas?.calificaciones?.data || [];
+    return raw.length > 0 && raw.some(val => Number(val) > 0);
+});
+
+const hasTiempoUsoData = computed(() => {
+    const raw = currentStats.value.graficas?.tiempo_uso?.data || [];
+    return raw.length > 0 && raw.some(val => Number(val) > 0);
+});
+
 // Configuración del Calendario Semanal
 const calendarView = ref('timeGridWeek');
 const calendarOptions = computed(() => ({
@@ -323,7 +340,7 @@ onMounted(async () => {
                   {{ r }}
                 </button>
               </div>
-              <button @click="store.fetchStats(filtroStats, true)" 
+              <button @click="store.fetchStats(filtroStats, false, true)" 
                 :disabled="store.loading.stats"
                 class="p-2.5 rounded-xl bg-white border border-surface-200 shadow-sm hover:bg-surface-50 transition-all active:rotate-180 disabled:opacity-50">
                 <svg class="w-4 h-4 text-surface-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -402,12 +419,22 @@ onMounted(async () => {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm">
               <h3 class="text-xl font-black text-surface-900 mb-6">Afluencia Temporal</h3>
-              <div class="h-[350px]"><Chart type="bar" :data="afluenciaData" :options="chartOptionsBar" class="h-full" /></div>
+              <div class="h-[350px]" v-if="hasAfluenciaData">
+                <Chart type="bar" :data="afluenciaData" :options="chartOptionsBar" class="h-full" />
+              </div>
+              <div v-else class="h-[350px] flex items-center justify-center text-surface-400 font-medium bg-surface-50 rounded-3xl border border-surface-200 border-dashed text-sm">
+                No hay registros de afluencia para este periodo
+              </div>
             </div>
             <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm flex flex-col justify-between">
               <div>
                 <h3 class="text-xl font-black text-surface-900 mb-6">Distribución de Calificaciones</h3>
-                <div class="h-[350px] flex items-center justify-center"><Chart type="doughnut" :data="calificacionesData" :options="chartOptionsPie" class="w-full max-w-[300px]" /></div>
+                <div class="h-[350px] flex items-center justify-center" v-if="hasCalificacionesData">
+                  <Chart type="doughnut" :data="calificacionesData" :options="chartOptionsPie" class="w-full max-w-[300px]" />
+                </div>
+                <div v-else class="h-[350px] flex items-center justify-center text-surface-400 font-medium bg-surface-50 rounded-3xl border border-surface-200 border-dashed text-sm">
+                  No hay calificaciones registradas para este periodo
+                </div>
               </div>
               <div class="mt-4 text-center">
                 <p class="text-sm font-bold text-surface-500 m-0 bg-surface-50 inline-block px-4 py-2 rounded-full border border-surface-100 shadow-sm">Total de encuestas hechas: <span class="text-surface-900">{{ totalEncuestas }}</span></p>
@@ -417,19 +444,19 @@ onMounted(async () => {
           <div class="flex justify-center mt-8">
             <div class="bg-white p-8 rounded-[2.5rem] border border-surface-200 shadow-sm w-full lg:w-2/3">
               <h3 class="text-xl font-black text-surface-900 mb-6 text-center">Tiempo de Uso Promedio</h3>
-              <div class="h-[350px]"><Chart type="bar" :data="tiempoUsoData" :options="chartOptionsLine" class="h-full" /></div>
+              <div class="h-[350px]" v-if="hasTiempoUsoData">
+                <Chart type="bar" :data="tiempoUsoData" :options="chartOptionsLine" class="h-full" />
+              </div>
+              <div v-else class="h-[350px] flex items-center justify-center text-surface-400 font-medium bg-surface-50 rounded-3xl border border-surface-200 border-dashed text-sm">
+                No hay registros de tiempo de uso para este periodo
+              </div>
             </div>
           </div>
 
             </div>
           </div>
 
-          <div class="flex justify-center pt-8 pb-4">
-            <button @click="viewActive = 'turnos'" class="group flex items-center gap-3 px-10 py-5 rounded-2xl bg-surface-900 text-white font-bold hover:bg-black transition-all hover:scale-105 shadow-2xl shadow-surface-900/30 w-full md:w-auto justify-center">
-              <i class="pi pi-calendar-plus text-xl"></i>
-              <span>Gestionar Turnos de Instructores</span>
-              <i class="pi pi-arrow-right group-hover:translate-x-1 transition-transform hidden md:inline"></i>
-            </button>
+          <div class="pt-8 pb-4">
           </div>
         </div>
 
@@ -458,11 +485,11 @@ onMounted(async () => {
               </div>
             </div>
 
-            <div class="p-10 [&_.p-select]:rounded-2xl! [&_.p-datepicker-input]:rounded-2xl! [&_.p-inputtext]:rounded-2xl! [&_.p-select]:w-full [&_.p-datepicker]:w-full">
+            <div class="p-10">
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-end">
                 <div class="space-y-2">
                   <label class="text-[10px] uppercase font-black text-surface-400 tracking-widest px-1">Instructor</label>
-                  <Select v-model="form.instructor" :options="store.instructoresHabilitados" optionLabel="nombre_completo" placeholder="Seleccionar instructor..." class="w-full" panelClass="rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border-surface-100 p-2">
+                  <Select v-model="form.instructor" :options="store.instructoresHabilitados" optionLabel="nombre_completo" placeholder="Seleccionar instructor..." class="w-full" panelClass="custom-instructor-select-panel rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border-surface-100 p-2">
                     <template #value="slotProps">
                       <div v-if="slotProps.value" class="flex items-center gap-2">
                         <div class="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-[10px]">
@@ -473,7 +500,7 @@ onMounted(async () => {
                       <span v-else class="text-surface-400 font-medium">{{ slotProps.placeholder }}</span>
                     </template>
                     <template #option="slotProps">
-                      <div class="flex items-center gap-3 py-0.5 px-1 group w-full">
+                      <div class="flex items-center gap-3 py-2 px-2 group w-full">
                         <div class="w-8 h-8 rounded-full bg-surface-100 text-surface-500 flex items-center justify-center font-bold text-xs transition-colors group-hover:bg-primary-100 group-hover:text-primary-600">
                           {{ slotProps.option.nombre_completo.charAt(0) }}
                         </div>
@@ -620,3 +647,106 @@ onMounted(async () => {
     </div>
   </main>
 </template>
+
+<style scoped>
+/* Estilos premium para Select y DatePicker de PrimeVue */
+:deep(.p-select) {
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+  background-color: var(--p-surface-50, #f8fafc) !important;
+  border: 1px solid var(--p-surface-200, #e2e8f0) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+  box-shadow: none !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  width: 100% !important;
+}
+
+:deep(.p-select:hover) {
+  border-color: var(--p-surface-300, #cbd5e1) !important;
+}
+
+:deep(.p-select.p-focus),
+:deep(.p-select:focus-within) {
+  border-color: var(--p-primary-500, #3b82f6) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  outline: none !important;
+}
+
+/* Eliminar outlines y shadows de foco internos de PrimeVue */
+:deep(.p-select *),
+:deep(.p-select *:focus),
+:deep(.p-select *:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.p-select-label) {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+  font-size: 0.875rem !important; /* text-sm */
+  font-weight: 500 !important;
+  color: var(--p-surface-800, #1e293b) !important;
+}
+
+/* Contenedor del DatePicker de PrimeVue (solo ancho) */
+:deep(.p-datepicker) {
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* DatePicker e Inputs de Texto */
+:deep(.p-datepicker-input),
+:deep(.p-inputtext) {
+  height: 52px !important;
+  background-color: var(--p-surface-50, #f8fafc) !important;
+  border: 1px solid var(--p-surface-200, #e2e8f0) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+  box-shadow: none !important;
+  outline: none !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  font-size: 0.875rem !important; /* text-sm */
+  font-weight: 500 !important;
+  color: var(--p-surface-800, #1e293b) !important;
+  transition: all 0.2s ease !important;
+  width: 100% !important;
+}
+
+:deep(.p-datepicker-input:hover),
+:deep(.p-inputtext:hover) {
+  border-color: var(--p-surface-300, #cbd5e1) !important;
+}
+
+:deep(.p-datepicker-input:focus),
+:deep(.p-inputtext:focus) {
+  border-color: var(--p-primary-500, #3b82f6) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  outline: none !important;
+}
+</style>
+
+<style>
+/* Estilos globales seguros para el panel flotante de selección de instructores */
+.custom-instructor-select-panel .p-select-option {
+  padding: 0.65rem 1rem !important;
+  margin: 0.25rem 0.4rem !important;
+  border-radius: 0.75rem !important; /* rounded-xl */
+  font-size: 0.875rem !important; /* text-sm */
+  font-weight: 500 !important;
+  color: var(--p-surface-700, #334155) !important;
+  transition: all 0.15s ease !important;
+}
+
+.custom-instructor-select-panel .p-select-option:hover,
+.custom-instructor-select-panel .p-select-option.p-focus {
+  background-color: var(--p-primary-50, #eff6ff) !important;
+  color: var(--p-primary-700, #1d4ed8) !important;
+}
+</style>

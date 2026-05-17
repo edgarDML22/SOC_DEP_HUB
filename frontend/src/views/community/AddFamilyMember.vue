@@ -64,113 +64,76 @@ const volver = () => {
 </script>
 
 <template>
-  <div class="wrapper">
-    <div class="card">
-      <h2>Agregar Miembro Familiar</h2>
-      <div class="form">
-
-        <div class="form-group">
-          <label>Nombre Completo</label>
-          <input v-model="form.nombre" placeholder="Ej. Juan Pérez" />
+  <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
+    <div class="max-w-3xl mx-auto flex flex-col gap-6">
+      
+      <!-- Encabezado -->
+      <div>
+        <div class="flex flex-col gap-1">
+          <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Agregar Miembro Familiar</h2>
+          <p class="text-surface-500 font-medium text-sm md:text-base m-0">Registra un nuevo integrante de tu familia.</p>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>Parentesco</label>
-          <Select v-model="form.parentesco" :options="opcionesParentesco" placeholder="Selecciona el parentesco"
-            class="custom-select" appendTo="self" />
-        </div>
+      <!-- Tarjeta Formulario -->
+      <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-surface-200">
+        <div class="flex flex-col gap-5">
+          
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-bold text-surface-900">Nombre Completo</label>
+            <input v-model="form.nombre" placeholder="Ej. Juan Pérez" 
+              class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" />
+          </div>
 
-        <div class="form-group">
-          <label>Fecha de Nacimiento</label>
-          <input type="date" v-model="form.fecha_nacimiento" />
-        </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-bold text-surface-900">Parentesco</label>
+            <Select v-model="form.parentesco" :options="opcionesParentesco" placeholder="Selecciona el parentesco"
+              class="w-full border-surface-200! rounded-xl! shadow-sm hover:border-primary-600! focus:border-primary-600! font-medium!" appendTo="self" />
+          </div>
 
-        <div class="form-group">
-          <label>Correo Electrónico (Opcional)</label>
-          <input type="email" v-model="form.correo" placeholder="ejemplo@correo.com" />
-        </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-bold text-surface-900">Fecha de Nacimiento</label>
+            <input type="date" v-model="form.fecha_nacimiento" 
+              class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" />
+          </div>
 
-        <div class="form-group">
-          <label>Género</label>
-          <Select v-model="form.genero" :options="opcionesGenero" optionLabel="label" optionValue="value"
-            placeholder="Selecciona el género" class="custom-select" appendTo="self" />
-        </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-bold text-surface-900">Correo Electrónico (Opcional)</label>
+            <input type="email" v-model="form.correo" placeholder="ejemplo@correo.com" 
+              class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" />
+          </div>
 
-        <div class="button-group">
-          <button class="btn-secondary" @click="volver" :disabled="loadingBtn">
-            Volver
-          </button>
-          <button class="btn-primary" @click="guardarMiembroFamiliar" :disabled="loadingBtn">
-            {{ loadingBtn ? 'Guardando...' : 'Guardar Miembro Familiar' }}
-          </button>
-        </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-bold text-surface-900">Género</label>
+            <Select v-model="form.genero" :options="opcionesGenero" optionLabel="label" optionValue="value"
+              placeholder="Selecciona el género" class="w-full border-surface-200! rounded-xl! shadow-sm hover:border-primary-600! focus:border-primary-600! font-medium!" appendTo="self" />
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3 mt-4">
+            <button class="w-full sm:w-1/2 bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-3 font-bold transition-all active:scale-95 focus:outline-none" @click="volver" :disabled="loadingBtn">
+              Volver
+            </button>
+            <button class="w-full sm:w-1/2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-3 font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 flex justify-center focus:outline-none" @click="guardarMiembroFamiliar" :disabled="loadingBtn">
+              {{ loadingBtn ? 'Guardando...' : 'Guardar Familiar' }}
+            </button>
+          </div>
 
         </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* CENTRADO TOTAL */
-.wrapper {
-  min-height: 80vh;
+/* ESTILOS PARA EL SELECT - Sobreescrituras ligeras a PrimeVue para que empate con Tailwind */
+:deep(.p-select) {
+  height: 48px;
   display: flex;
-  justify-content: center;
   align-items: center;
 }
-
-/* TARJETA */
-.card {
-  background: white;
-  padding: 30px;
-  border-radius: var(--p-border-radius-medium, 16px);
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-}
-
-/* FORM & GROUPS */
-.form { display: flex; flex-direction: column; gap: 16px; margin-top: 15px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 13px; font-weight: 600; color: var(--p-surface-900, #374151); }
-
-/* INPUTS */
-input {
-  padding: 10px;
-  border: 1px solid var(--p-surface-200, #ddd);
-  border-radius: 8px;
-  outline: none;
-  transition: 0.2s;
+:deep(.p-select-label) {
   font-family: inherit;
-  font-size: 14px;
 }
-
-input:focus { border-color: var(--p-primary-700); }
-
-/* BOTONES */
-.button-group { display: flex; gap: 12px; margin-top: 10px; }
-.btn-primary { flex: 1; background: var(--p-primary-700); color: white; border: none; padding: 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; transition: 0.2s; font-weight: 500; font-size: 14px;}
-.btn-primary:hover { background: var(--p-primary-800); }
-.btn-secondary { flex: 1; background: white; color: var(--p-surface-900); border: 1px solid var(--p-surface-300, #d1d5db); padding: 10px; border-radius: var(--p-border-radius-medium); cursor: pointer; transition: 0.2s; font-weight: 500; font-size: 14px;}
-.btn-secondary:hover { background: var(--p-surface-100, #f3f4f6); }
-
-/* ESTILOS PARA EL SELECT */
-:deep(.custom-select) {
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 8px !important;
-  border: 1px solid var(--p-surface-200, #ddd) !important;
-  font-family: inherit !important;
-  display: flex;
-  align-items: center;
-  height: 42px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  background-color: white;
-  transition: 0.2s;
-}
-
-:deep(.custom-select:hover),
-:deep(.custom-select.p-focus) { border-color: var(--p-primary-700) !important; }
 :deep(.p-select-list-container) { padding: 0.5rem !important; }
-:deep(.p-select-option) { padding: 0.75rem 1.25rem !important; font-size: 1rem !important; border-radius: 0.5rem !important; }
+:deep(.p-select-option) { padding: 0.75rem 1.25rem !important; font-size: 0.875rem !important; border-radius: 0.5rem !important; font-weight: 500;}
 </style>

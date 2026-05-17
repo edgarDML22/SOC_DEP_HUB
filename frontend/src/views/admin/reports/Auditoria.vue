@@ -1,9 +1,15 @@
 <script setup>
-
+import { IconHistory } from '@/components/icons'
 </script>
 
 <template>
-    <div class="">
-        <h1>Auditoria</h1>
+  <div class="flex flex-col items-center justify-center py-20 text-center">
+    <div class="w-24 h-24 bg-surface-50 rounded-full flex items-center justify-center mb-6 shadow-sm border border-surface-100">
+      <IconHistory class="w-10 h-10 text-surface-300" />
     </div>
+    <h2 class="text-2xl font-black text-surface-900 tracking-tight mb-2">Auditoría del Sistema</h2>
+    <p class="text-surface-500 text-sm max-w-md mx-auto">
+      Este módulo se encuentra en construcción. Próximamente podrás visualizar el registro de actividad y cambios realizados en el sistema.
+    </p>
+  </div>
 </template>

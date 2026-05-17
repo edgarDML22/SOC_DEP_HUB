@@ -36,7 +36,8 @@ const handleAction = async (item, idx) => {
     if (result instanceof Promise) {
       loadingIdx.value = idx
       try {
-        await result
+        // Aseguramos que el spinner sea visible al menos 400ms para mejor UX
+        await Promise.all([result, new Promise(resolve => setTimeout(resolve, 400))])
       } finally {
         loadingIdx.value = -1
         close()
@@ -64,9 +65,9 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
     <button
       @click.stop="toggle"
       class="w-9 h-9 rounded-xl flex items-center justify-center transition-all
-             bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700
-             focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-      :class="{ 'bg-slate-200 text-slate-700': isOpen }"
+             bg-surface-100 hover:bg-surface-200 text-surface-500 hover:text-surface-700
+             focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+      :class="{ 'bg-surface-200 text-surface-700': isOpen }"
       aria-label="Más acciones"
       type="button"
     >
@@ -88,13 +89,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
     >
       <div
         v-if="isOpen"
-        class="absolute z-50 top-full mt-2 w-52 bg-white rounded-2xl shadow-2xl shadow-slate-900/15
-               border border-slate-100 overflow-hidden py-1"
+        class="absolute z-50 top-full mt-2 w-52 bg-white rounded-2xl shadow-2xl shadow-surface-900/15
+               border border-surface-100 overflow-hidden py-1"
         :class="align === 'left' ? 'left-0' : 'right-0'"
       >
         <template v-for="(item, idx) in items">
           <!-- Separador -->
-          <div v-if="item.separator" :key="'sep-' + idx" class="my-1 border-t border-slate-100" />
+          <div v-if="item.separator" :key="'sep-' + idx" class="my-1 border-t border-surface-100" />
 
           <!-- Ítem de acción -->
           <button
@@ -107,15 +108,15 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
                    disabled:opacity-40 disabled:cursor-not-allowed"
             :class="item.destructive
               ? 'text-red-600 hover:bg-red-50'
-              : 'text-slate-700 hover:bg-slate-50'"
+              : 'text-surface-700 hover:bg-surface-50'"
             type="button"
           >
             <!-- Icono opcional (HTML/SVG raw o slot) -->
             <span v-if="loadingIdx === idx" class="w-4 h-4 shrink-0 flex items-center justify-center">
-              <LoadingSpinner size="sm" :color="item.destructive ? 'danger' : 'slate'" />
+              <LoadingSpinner size="sm" :color="item.destructive ? 'danger' : 'surface'" />
             </span>
             <span v-else-if="item.icon" class="w-4 h-4 shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full" v-html="item.icon" />
-            <span v-else class="w-4 h-4 shrink-0 rounded bg-slate-100" />
+            <span v-else class="w-4 h-4 shrink-0 rounded bg-surface-100" />
             <span class="whitespace-nowrap pr-2">{{ item.label }}</span>
           </button>
         </template>

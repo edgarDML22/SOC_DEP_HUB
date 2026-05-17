@@ -284,26 +284,25 @@ const router = createRouter({
         },
         {
           path: "tournaments",
-          component: () => import("@/views/admin/tournaments/Tournaments.vue"),
-          redirect: "/admin/tournaments",
+          redirect: { name: 'tournaments-list' },
           children: [
             {
               path: "",
-              name: "tournaments",
+              name: "tournaments-list",
               component: () => import("@/views/admin/tournaments/Tournaments.vue"),
             },
             {
+              path: "cards",
+              name: "tournaments-cards",
+              component: () => import("@/views/admin/tournaments/TournamentForm.vue"),
+            },
+            {
               path: "schedule",
-              name: "schedule",
+              name: "tournaments-schedule",
               component: () => import("@/views/admin/tournaments/TournamentsSchedule.vue"),
             },
             {
-              path: "create",
-              name: "create-tournament",
-              component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
-            },
-            {
-              path: "details",
+              path: ":id",
               name: "details-tournament",
               component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
             },
@@ -443,18 +442,6 @@ const router = createRouter({
               component: () => import("@/views/admin/reports/AcademicPerformance.vue"),
             },
           ]
-        },
-        {
-          path: "tournaments/create",
-          component: () => import("@/views/admin/tournaments/CreateTournament.vue"),
-        },
-        {
-          path: "/tournaments/details",
-          component: () => import("@/views/admin/tournaments/DetailsTournament.vue"),
-        },
-        {
-          path: "categories/create",
-          component: () => import("@/views/admin/categories/CreateCategories.vue"),
         },
       ],
     },
