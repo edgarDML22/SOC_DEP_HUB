@@ -37,6 +37,7 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\PreRegisterController;
 
 /*
@@ -110,10 +111,13 @@ Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Perfil del usuario
+    // Perfil del usuario (incluye qr_payload y qr_image_url para socios)
     Route::get('/v1/profile', [ProfileController::class, 'show']);
 
-    // Obtener QR del usuario
+    // Carga inicial secundaria: notificaciones + familiares + invitados en un solo request
+    Route::get('/v1/bootstrap/socio-data', [BootstrapController::class, 'socioData']);
+
+    // Obtener QR del usuario (mantenido por compatibilidad con otros consumidores)
     Route::get('/v1/profile/qr-data', [QrController::class, 'generateQrPayload']);
 
     // Ruta de prueba para verificar al usuario autenticado (Opcional)

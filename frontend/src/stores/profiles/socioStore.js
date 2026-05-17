@@ -1,13 +1,27 @@
 import { computed } from "vue";
 import { defineStore } from "pinia";
 import { useProfileLogic } from "./profileStore";
+import { useQrStore } from "./qrStore";
 
 export const useProfileStore = defineStore("profile", () => {
   // 1. Extraemos todo el comportamiento base del composable
   const {
     profileData, isLoading, error, fullName, userInitials, formatText,
-    fetchProfile, updateProfile, logout, getSupportLink
+    fetchProfile: fetchProfileBase, updateProfile, logout, getSupportLink
   } = useProfileLogic();
+
+  // Wrapper: después de cargar el perfil, propaga qr_payload y qr_image_url al qrStore
+  const fetchProfile = async () => {
+    const result = await fetchProfileBase();
+    const qrStore = useQrStore();
+    if (profileData.value?.qr_payload) {
+      qrStore.setFromProfile(profileData.value.qr_payload, profileData.value.qr_image_url)
+    } else {
+      // Cuenta inactiva o sin QR — marca como cargado sin payload
+      qrStore.setFromProfile(null, null)
+    }
+    return result;
+  };
 
   // 2. GETTERS ESPECÍFICOS DEL SOCIO TITULAR
   const typeSocio = computed(() => {
