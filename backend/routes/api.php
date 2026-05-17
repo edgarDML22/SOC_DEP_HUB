@@ -48,7 +48,8 @@ use App\Http\Controllers\PreRegisterController;
 |
 */
 
-
+Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
+Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
 // ==========================================
 // RUTAS PÚBLICAS
 // ==========================================
@@ -255,7 +256,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
     Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
-
+    //SDH 273 PReregistros
+    Route::post('/v1/pre-registros/{id}/aprobar', [PreRegisterController::class, 'aprobar']);
+    Route::post('/v1/pre-registros/{id}/rechazar', [PreRegisterController::class, 'rechazar']);
     // ==========================================
     // LUDOTECA (RUTAS PROTEGIDAS)
     // ==========================================
@@ -310,10 +313,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'index']);
 
     // Aprobar preregistro
-    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
+    //Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
 
     // Rechazar preregistro
-    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
+    //Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
 
 });
 

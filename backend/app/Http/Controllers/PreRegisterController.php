@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Torneo;
 use Illuminate\Support\Str;
+
+use App\Actions\Torneo\AprobarPreRegistroAction;
+use App\Actions\Torneo\RechazarPreRegistroAction;
 class PreRegisterController extends Controller
 {
     public function index(Request $request, $id)
@@ -29,26 +32,10 @@ class PreRegisterController extends Controller
 
     public function store(Request $request, $id)
     {
-        // Validar que el torneo existe
+        // Validar torneo
         $torneo = Torneo::findOrFail($id);
 
-        // Validar campos
-        $request->validate([
-            'tipo' => 'required|in:INDIVIDUAL,EQUIPO',
-
-            'nombre_completo' => 'required|string|max:255',
-            'correo' => 'required|email|max:255',
-            'fecha_nacimiento' => 'required|date',
-            'genero' => 'required|in:M,F,X',
-
-            'ranking_declarado' => 'required|integer|min:0|max:500',
-
-            'ine_pdf' => 'required|mimes:pdf|max:2048',
-            'curp_pdf' => 'required|mimes:pdf|max:2048',
-            'carta_responsiva_pdf' => 'required|mimes:pdf|max:2048',
-        ]);
-
-        // Validar que el torneo esté en inscripción
+        // Validar torneo abierto
         if ($torneo->estatus_torneo !== 'EN_INSCRIPCION') {
             return response()->json([
                 'success' => false,
@@ -58,142 +45,317 @@ class PreRegisterController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | RUTAS DE ALMACENAMIENTO LOCAL
+        | VALIDACIÓN INDIVIDUAL
         |--------------------------------------------------------------------------
-        |
-        | Los PDFs se guardan localmente en:
-        |
-        | C:\torneos-storage\
-        |
-        | Subcarpetas:
-        |
-        | C:\torneos-storage\ines
-        | C:\torneos-storage\curps
-        | C:\torneos-storage\responsivas
-        |
-        | IMPORTANTE:
-        | Todos los integrantes del equipo deben crear manualmente
-        | la carpeta:
-        |
-        | C:\torneos-storage
-        |
-        | y configurar esa ruta en config/filesystems.php
-        |
         */
 
-        // Validar preregistro duplicado por correo EN EL MISMO TORNEO                                                                                                                                      
-        $registroExistente = PreRegistroTorneo::where('id_torneo', $id)
-            ->get()
-            ->first(function ($registro) use ($request) {
+        if ($request->tipo == 'INDIVIDUAL') {
 
-                return isset($registro->datos_participante['correo']) &&
-                    strtolower($registro->datos_participante['correo']) === strtolower($request->correo);
-            });
+            $request->validate([
 
-        if ($registroExistente) {
+                'tipo' => 'required|in:INDIVIDUAL,EQUIPO',
+
+                'nombre_completo' => 'required|string|max:255',
+                'correo' => 'required|email|max:255',
+                'fecha_nacimiento' => 'required|date',
+                'genero' => 'required|in:M,F,X',
+
+                'ranking_declarado' => 'required|integer|min:0|max:500',
+
+                'ine_pdf' => 'required|mimes:pdf|max:2048',
+                'curp_pdf' => 'required|mimes:pdf|max:2048',
+                'carta_responsiva_pdf' => 'required|mimes:pdf|max:2048',
+            ]);
+
+            // Validar duplicado mismo torneo
+            $registroExistente = PreRegistroTorneo::where('id_torneo', $id)
+                ->get()
+                ->first(function ($registro) use ($request) {
+
+                    return isset($registro->datos_participante['correo']) &&
+                        strtolower($registro->datos_participante['correo']) === strtolower($request->correo);
+                });
+
+            if ($registroExistente) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya existe un preregistro con ese correo para este torneo.'
+                ], 409);
+            }
+
+            // IDs
+            $preRegistroId = substr(Str::uuid(), 0, 8);
+
+            // Normalizar
+            $nombreJugador = Str::slug($request->nombre_completo);
+            $nombreTorneo = Str::slug($torneo->nombre_torneo);
+
+            // INE
+            $ineName = 'ine_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+            $inePath = $request->file('ine_pdf')->storeAs(
+                'ines',
+                $ineName,
+                'torneos_storage'
+            );
+
+            // CURP
+            $curpName = 'curp_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+            $curpPath = $request->file('curp_pdf')->storeAs(
+                'curps',
+                $curpName,
+                'torneos_storage'
+            );
+
+            // RESPONSIVA
+            $responsivaName = 'responsiva_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+            $responsivaPath = $request->file('carta_responsiva_pdf')->storeAs(
+                'responsivas',
+                $responsivaName,
+                'torneos_storage'
+            );
+
+            // Crear preregistro
+            $preRegistro = PreRegistroTorneo::create([
+
+                'id_torneo' => $id,
+
+                'tipo' => 'INDIVIDUAL',
+
+                'estatus' => 'PENDIENTE',
+
+                'datos_participante' => [
+
+                    'nombre_completo' => $request->nombre_completo,
+                    'correo' => $request->correo,
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                    'genero' => $request->genero,
+                    'ranking_declarado' => $request->ranking_declarado,
+                ],
+
+                'urls_documentos' => [
+
+                    'ine_pdf' => $inePath,
+                    'curp_pdf' => $curpPath,
+                    'responsiva_pdf' => $responsivaPath,
+                ]
+            ]);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Ya existe un preregistro con ese correo para este torneo.'
-            ], 409);
+                'success' => true,
+                'message' => 'Pre-registro individual creado.',
+                'preRegistro' => $preRegistro
+            ], 201);
         }
-        $preRegistroId = substr(Str::uuid(), 0, 8);
 
-        // Normalizar nombres
-        $nombreJugador = Str::slug($request->nombre_completo);
-        $nombreTorneo = Str::slug($torneo->nombre_torneo);
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDACIÓN EQUIPO
+        |--------------------------------------------------------------------------
+        */
 
-        // INE
-        $ineName = 'ine_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+        if ($request->tipo == 'EQUIPO') {
 
-        $inePath = $request->file('ine_pdf')->storeAs(
-            'ines',
-            $ineName,
-            'torneos_storage'
-        );
+            $request->validate([
 
-        // CURP
-        $curpName = 'curp_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+                'tipo' => 'required|in:INDIVIDUAL,EQUIPO',
 
-        $curpPath = $request->file('curp_pdf')->storeAs(
-            'curps',
-            $curpName,
-            'torneos_storage'
-        );
+                'nombre_equipo' => 'required|string|max:150',
 
-        // Responsiva
-        $responsivaName = 'responsiva_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+                'integrantes' => 'required|array|min:1',
 
-        $responsivaPath = $request->file('carta_responsiva_pdf')->storeAs(
-            'responsivas',
-            $responsivaName,
-            'torneos_storage'
-        );
+                'integrantes.*.nombre_completo' => 'required|string|max:255',
+                'integrantes.*.correo' => 'required|email|max:255',
+                'integrantes.*.fecha_nacimiento' => 'required|date',
+                'integrantes.*.genero' => 'required|in:M,F,X',
+                'integrantes.*.ranking_declarado' => 'required|integer|min:0|max:500',
 
-        // Crear preregistro
-        $preRegistro = PreRegistroTorneo::create([
-            'id_torneo' => $id,
+                'integrantes.*.ine_pdf' => 'required|file|mimes:pdf|max:2048',
+                'integrantes.*.curp_pdf' => 'required|file|mimes:pdf|max:2048',
+                'integrantes.*.carta_responsiva_pdf' => 'required|file|mimes:pdf|max:2048',
+            ]);
 
-            'tipo' => $request->tipo,
+            $datosIntegrantes = [];
+            $documentosIntegrantes = [];
 
-            'estatus' => 'PENDIENTE',
+            foreach ($request->integrantes as $integrante) {
 
-            'datos_participante' => [
-                'nombre_completo' => $request->nombre_completo,
-                'correo' => $request->correo,
-                'fecha_nacimiento' => $request->fecha_nacimiento,
-                'genero' => $request->genero,
-                'ranking_declarado' => $request->ranking_declarado,
-            ],
+                // Validar correo duplicado mismo torneo
+                $registroExistente = PreRegistroTorneo::where('id_torneo', $id)
+                    ->get()
+                    ->first(function ($registro) use ($integrante) {
 
-            'urls_documentos' => [
-                'ine_pdf' => $inePath,
-                'curp_pdf' => $curpPath,
-                'responsiva_pdf' => $responsivaPath,
-            ],
-        ]);
+                        if (!isset($registro->datos_participante['integrantes'])) {
+                            return false;
+                        }
+
+                        foreach ($registro->datos_participante['integrantes'] as $existente) {
+
+                            if (
+                                strtolower($existente['correo']) ===
+                                strtolower($integrante['correo'])
+                            ) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    });
+
+                if ($registroExistente) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Uno de los correos ya está registrado en este torneo.'
+                    ], 409);
+                }
+
+                $preRegistroId = substr(Str::uuid(), 0, 8);
+
+                $nombreJugador = Str::slug($integrante['nombre_completo']);
+                $nombreTorneo = Str::slug($torneo->nombre_torneo);
+
+                // INE
+                $ineName = 'ine_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+                $inePath = $integrante['ine_pdf']->storeAs(
+                    'ines',
+                    $ineName,
+                    'torneos_storage'
+                );
+
+                // CURP
+                $curpName = 'curp_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+                $curpPath = $integrante['curp_pdf']->storeAs(
+                    'curps',
+                    $curpName,
+                    'torneos_storage'
+                );
+
+                // RESPONSIVA
+                $responsivaName = 'responsiva_' . $preRegistroId . '_' . $nombreJugador . '_' . $nombreTorneo . '.pdf';
+
+                $responsivaPath = $integrante['carta_responsiva_pdf']->storeAs(
+                    'responsivas',
+                    $responsivaName,
+                    'torneos_storage'
+                );
+
+                // Datos integrante
+                $datosIntegrantes[] = [
+
+                    'nombre_completo' => $integrante['nombre_completo'],
+                    'correo' => $integrante['correo'],
+                    'fecha_nacimiento' => $integrante['fecha_nacimiento'],
+                    'genero' => $integrante['genero'],
+                    'ranking_declarado' => $integrante['ranking_declarado'],
+                ];
+
+                // PDFs integrante
+                $documentosIntegrantes[$integrante['correo']] = [
+
+                    'ine_pdf' => $inePath,
+                    'curp_pdf' => $curpPath,
+                    'responsiva_pdf' => $responsivaPath,
+                ];
+            }
+
+            // Crear preregistro equipo
+            $preRegistro = PreRegistroTorneo::create([
+
+                'id_torneo' => $id,
+
+                'tipo' => 'EQUIPO',
+
+                'estatus' => 'PENDIENTE',
+
+                'datos_participante' => [
+
+                    'nombre_equipo' => $request->nombre_equipo,
+
+                    'integrantes' => $datosIntegrantes
+                ],
+
+                'urls_documentos' => $documentosIntegrantes
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pre-registro de equipo creado.',
+                'preRegistro' => $preRegistro
+            ], 201);
+        }
 
         return response()->json([
-            'success' => true,
-            'message' => 'Pre-registro creado exitosamente',
-            'preRegistro' => $preRegistro
-        ], 201);
+            'success' => false,
+            'message' => 'Tipo inválido.'
+        ], 422);
     }
 
-    public function aprobar(Request $request, $id, $registroId)
+    public function aprobar($id, $registroId)
     {
-        $registro = PreRegistroTorneo::findOrFail($registroId);
+        $preRegistro = PreRegistroTorneo::find($registroId);
 
-        // Validar idempotencia
-        if ($registro->estatus !== 'PENDIENTE') {
+        if (!$preRegistro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pre-registro no encontrado.'
+            ], 404);
+        }
+
+        if ($preRegistro->id_torneo != $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El preregistro no pertenece al torneo.'
+            ], 404);
+        }
+
+        if ($preRegistro->estatus != 'PENDIENTE') {
             return response()->json([
                 'success' => false,
                 'message' => 'El preregistro ya fue procesado.'
             ], 409);
         }
 
+        AprobarPreRegistroAction::execute($preRegistro);
+
         return response()->json([
             'success' => true,
-            'message' => 'Pendiente implementación Task 14.2'
+            'message' => 'Pre-registro enviado a aprobación.'
         ], 202);
     }
-
     public function rechazar(Request $request, $id, $registroId)
     {
         $request->validate([
-            'motivo' => 'required|string|min:10'
+            'motivo_rechazo' => 'required|string|max:255'
         ]);
-        $registro = PreRegistroTorneo::findOrFail($registroId);
-        // Validar idempotencia
-        if ($registro->estatus !== 'PENDIENTE') {
+
+        $preRegistro = PreRegistroTorneo::find($registroId);
+
+        if (!$preRegistro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pre-registro no encontrado.'
+            ], 404);
+        }
+
+        if ($preRegistro->estatus != 'PENDIENTE') {
             return response()->json([
                 'success' => false,
                 'message' => 'El preregistro ya fue procesado.'
             ], 409);
         }
 
+        RechazarPreRegistroAction::execute(
+            $preRegistro,
+            $request->motivo_rechazo
+        );
+
         return response()->json([
             'success' => true,
-            'message' => 'Pendiente implementación Task 14.2'
+            'message' => 'Pre-registro rechazado.'
         ], 202);
     }
 }
