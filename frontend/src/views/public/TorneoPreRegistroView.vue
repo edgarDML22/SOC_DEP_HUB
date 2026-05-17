@@ -1,52 +1,64 @@
 <template>
-  <div class="pre-registro-page">
-    <div class="background-elements">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
+  <div class="min-h-screen w-full bg-slate-900 text-white relative overflow-x-hidden py-8 flex items-center">
+    <!-- Blobs de Fondo -->
+    <div class="fixed inset-0 pointer-events-none z-0">
+      <div class="absolute w-[400px] h-[400px] bg-primary-600 top-[-100px] right-[-100px] blur-[80px] opacity-20 rounded-full"></div>
+      <div class="absolute w-[300px] h-[300px] bg-indigo-500 bottom-[-50px] left-[-50px] blur-[80px] opacity-20 rounded-full"></div>
     </div>
 
-    <div class="container">
-      <header class="page-header">
-        <h1 class="logo">SOC_DEP_HUB</h1>
-        <div class="tournament-badge">
-          <i class="fas fa-trophy"></i>
-          <span>Pre-registro al Torneo</span>
+    <div class="max-w-4xl mx-auto px-6 w-full relative z-10">
+      <!-- Encabezado (Logo a la derecha) -->
+      <header class="flex justify-between items-center mb-10">
+        <div class="bg-white/5 backdrop-blur-md px-5 py-2 rounded-full flex items-center gap-3 border border-white/10 shadow-sm">
+          <i class="fas fa-trophy text-amber-500"></i>
+          <span class="text-xs font-semibold uppercase tracking-wider">
+            Pre-registro: {{ tournament ? formatText(tournament.nombre_torneo) : 'Cargando Torneo...' }}
+          </span>
         </div>
+        <h1 class="text-xl md:text-2xl font-black tracking-widest text-primary-600">SOC_DEP_HUB</h1>
       </header>
 
-      <main class="wizard-container">
+      <main class="bg-white/[0.02] backdrop-blur-2xl border border-white/5 rounded-3xl p-6 md:p-12 shadow-2xl shadow-black/50">
         <!-- Progress Bar -->
-        <div v-if="!store.exito" class="progress-wrapper">
-          <div class="progress-steps">
+        <div v-if="!store.exito" class="mb-12 relative">
+          <div class="flex justify-between relative z-10">
             <div 
               v-for="n in totalSteps" 
               :key="n" 
-              class="step-indicator"
-              :class="{ 
-                active: store.paso === n, 
-                completed: store.paso > n,
-                skipped: isStepSkipped(n)
-              }"
+              class="flex flex-col items-center gap-2 flex-1"
+              :class="{ 'opacity-30 pointer-events-none': isStepSkipped(n) }"
             >
-              <div class="step-number">
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border"
+                :class="{ 
+                  'border-primary-600 bg-primary-600/10 text-primary-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]': store.paso === n, 
+                  'bg-primary-600 border-primary-600 text-white': store.paso > n,
+                  'bg-slate-800 border-white/10 text-slate-400': store.paso < n
+                }"
+              >
                 <i v-if="store.paso > n" class="fas fa-check"></i>
                 <span v-else>{{ n }}</span>
               </div>
-              <span class="step-label">{{ stepLabels[n-1] }}</span>
+              <span 
+                class="text-[10px] font-extrabold tracking-wider uppercase text-center"
+                :class="store.paso === n ? 'text-primary-500' : 'text-slate-400'"
+              >
+                {{ stepLabels[n-1] }}
+              </span>
             </div>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
+          <div class="absolute top-5 left-[5%] right-[5%] h-[2px] bg-white/10 z-0">
+            <div class="h-full bg-primary-600 transition-all duration-500 shadow-[0_0_10px_rgba(37,99,235,0.5)]" :style="{ width: progressPercentage + '%' }"></div>
           </div>
         </div>
 
         <!-- Wizard Content -->
-        <div class="wizard-content">
+        <div class="min-h-[400px]">
           <component :is="currentStepComponent" />
         </div>
       </main>
 
-      <footer class="page-footer">
+      <footer class="mt-12 text-center text-slate-500 text-xs">
         <p>&copy; 2024 SOC_DEP_HUB. Todos los derechos reservados.</p>
       </footer>
     </div>
@@ -54,15 +66,20 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { usePreRegisterStore } from "@/stores/preRegisterStore";
+import api from "@/services/api";
 import WizardStep1Tipo from "@/components/public/wizard/WizardStep1Tipo.vue";
 import WizardStep2DatosCapitan from "@/components/public/wizard/WizardStep2DatosCapitan.vue";
 import WizardStep3DatosCompanero from "@/components/public/wizard/WizardStep3DatosCompanero.vue";
 import WizardStep4Documentos from "@/components/public/wizard/WizardStep4Documentos.vue";
 import WizardStep5Confirmacion from "@/components/public/wizard/WizardStep5Confirmacion.vue";
 
+const route = useRoute();
 const store = usePreRegisterStore();
+const tournament = ref(null);
+const loadingTournament = ref(true);
 
 const totalSteps = 5;
 const stepLabels = [
@@ -92,197 +109,32 @@ const isStepSkipped = (n) => {
   return n === 3 && store.tipo === "INDIVIDUAL";
 };
 
+// Cargar información del torneo
+const fetchTournamentDetails = async () => {
+  try {
+    const id = route.params.id;
+    if (id) {
+      const response = await api.get(`/torneos/${id}`);
+      tournament.value = response.data.data;
+    }
+  } catch (err) {
+    console.error("Error fetching tournament details in wizard:", err);
+  } finally {
+    loadingTournament.value = false;
+  }
+};
+
+// Formateador de texto
+const formatText = (text) => {
+  if (!text) return "";
+  return text.trim()
+             .split(/\s+/)
+             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+             .join(' ');
+};
+
 onMounted(() => {
   store.resetStore();
+  fetchTournamentDetails();
 });
 </script>
-
-<style scoped>
-.pre-registro-page {
-  min-height: 100vh;
-  background: #0f172a;
-  color: white;
-  position: relative;
-  overflow-x: hidden;
-  padding: 2rem 0;
-  display: flex;
-  align-items: center;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  width: 100%;
-  position: relative;
-  z-index: 10;
-}
-
-.background-elements {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-}
-
-.blob {
-  position: absolute;
-  filter: blur(80px);
-  opacity: 0.2;
-  border-radius: 50%;
-}
-
-.blob-1 {
-  width: 400px;
-  height: 400px;
-  background: var(--primary-color);
-  top: -100px;
-  right: -100px;
-}
-
-.blob-2 {
-  width: 300px;
-  height: 300px;
-  background: #6366f1;
-  bottom: -50px;
-  left: -50px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 3rem;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: var(--primary-color);
-}
-
-.tournament-badge {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(5px);
-  padding: 0.5rem 1.2rem;
-  border-radius: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.tournament-badge i {
-  color: #fbbf24;
-}
-
-.wizard-container {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 2rem;
-  padding: 3rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-@media (max-width: 768px) {
-  .wizard-container {
-    padding: 1.5rem;
-  }
-}
-
-.progress-wrapper {
-  margin-bottom: 4rem;
-  position: relative;
-}
-
-.progress-steps {
-  display: flex;
-  justify-content: space-between;
-  position: relative;
-  z-index: 2;
-}
-
-.step-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.8rem;
-  flex: 1;
-}
-
-.step-indicator.skipped {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-.step-number {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: #1e293b;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  transition: all 0.3s ease;
-  color: var(--text-secondary);
-}
-
-.step-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.step-indicator.active .step-number {
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.1);
-  color: var(--primary-color);
-  box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3);
-}
-
-.step-indicator.active .step-label {
-  color: var(--primary-color);
-}
-
-.step-indicator.completed .step-number {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
-  color: white;
-}
-
-.progress-bar {
-  position: absolute;
-  top: 1.25rem;
-  left: 5%;
-  right: 5%;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.1);
-  z-index: 1;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--primary-color);
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px var(--primary-color);
-}
-
-.wizard-content {
-  min-height: 400px;
-}
-
-.page-footer {
-  margin-top: 3rem;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-</style>

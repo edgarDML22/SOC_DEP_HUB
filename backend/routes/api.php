@@ -106,11 +106,7 @@ Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::clas
 // SDH-1102: Logout fuera del grupo auth — el controller maneja tokens inválidos o ausentes
 Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
 
-//SDH-267: Pre-registro de torneos
-Route::post(
-    '/v1/torneos/{id}/pre-registros',
-    [TorneoController::class, 'preRegistro']
-);
+//SDH-267: Pre-registro de torneos (Mapeado correctamente a PreRegisterController en la línea 96)
 
 Route::middleware('auth:sanctum')->group(function () {
 

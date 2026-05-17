@@ -67,7 +67,7 @@ export const usePreRegisterStore = defineStore("preRegister", {
       try {
         const formData = new FormData();
         formData.append("tipo", this.tipo);
-        
+
         if (this.tipo === "INDIVIDUAL") {
           // Individual Fields
           const nombreCompleto = `${this.datosCapitan.nombre} ${this.datosCapitan.apellido}`.trim();
@@ -76,7 +76,7 @@ export const usePreRegisterStore = defineStore("preRegister", {
           formData.append("fecha_nacimiento", this.datosCapitan.fecha_nacimiento);
           formData.append("genero", this.datosCapitan.genero);
           formData.append("ranking_declarado", this.datosCapitan.ranking_declarado);
-          
+
           // Files
           if (this.archivos.ine) formData.append("ine_pdf", this.archivos.ine);
           if (this.archivos.curp) formData.append("curp_pdf", this.archivos.curp);
@@ -84,7 +84,7 @@ export const usePreRegisterStore = defineStore("preRegister", {
         } else if (this.tipo === "EQUIPO") {
           // Team Fields
           formData.append("nombre_equipo", this.nombre_equipo);
-          
+
           // Capitán (Integrante 0)
           const capitanNombre = `${this.datosCapitan.nombre} ${this.datosCapitan.apellido}`.trim();
           formData.append("integrantes[0][nombre_completo]", capitanNombre);
@@ -92,7 +92,7 @@ export const usePreRegisterStore = defineStore("preRegister", {
           formData.append("integrantes[0][fecha_nacimiento]", this.datosCapitan.fecha_nacimiento);
           formData.append("integrantes[0][genero]", this.datosCapitan.genero);
           formData.append("integrantes[0][ranking_declarado]", this.datosCapitan.ranking_declarado);
-          
+
           if (this.archivos.ine) formData.append("integrantes[0][ine_pdf]", this.archivos.ine);
           if (this.archivos.curp) formData.append("integrantes[0][curp_pdf]", this.archivos.curp);
           if (this.archivos.carta) formData.append("integrantes[0][carta_responsiva_pdf]", this.archivos.carta);
@@ -104,13 +104,13 @@ export const usePreRegisterStore = defineStore("preRegister", {
           formData.append("integrantes[1][fecha_nacimiento]", this.datosCompanero.fecha_nacimiento);
           formData.append("integrantes[1][genero]", this.datosCompanero.genero);
           formData.append("integrantes[1][ranking_declarado]", this.datosCompanero.ranking_declarado);
-          
+
           if (this.archivos.companero_ine) formData.append("integrantes[1][ine_pdf]", this.archivos.companero_ine);
           if (this.archivos.companero_curp) formData.append("integrantes[1][curp_pdf]", this.archivos.companero_curp);
           if (this.archivos.companero_carta) formData.append("integrantes[1][carta_responsiva_pdf]", this.archivos.companero_carta);
         }
 
-        const response = await api.post(`/v1/torneos/${id_torneo}/pre-registros`, formData, {
+        const response = await api.post(`/torneos/${id_torneo}/pre-registros`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -131,4 +131,4 @@ export const usePreRegisterStore = defineStore("preRegister", {
       this.$reset();
     }
   },
-});
+});

@@ -1,92 +1,123 @@
 <template>
-  <div class="wizard-step">
-    <h2 class="step-title">Datos del Compañero</h2>
-    <p class="step-description">Ingresa la información de tu pareja de equipo.</p>
+  <div class="animate-fade-in">
+    <h2 class="text-xl md:text-2xl font-bold text-white mb-2 text-center">Datos del Compañero</h2>
+    <p class="text-slate-400 text-center mb-8 text-sm md:text-base">Ingresa la información de tu pareja de equipo.</p>
 
-    <form @submit.prevent="nextStep" class="wizard-form">
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="nombre">Nombre(s)</label>
+    <form @submit.prevent="nextStep" class="max-w-[600px] mx-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <!-- Nombre -->
+        <div class="flex flex-col gap-2 text-left">
+          <label for="nombre" class="font-bold text-slate-300 text-sm">Nombre(s)</label>
           <input 
             type="text" 
             id="nombre" 
             v-model="formData.nombre" 
             placeholder="Ej. María" 
             required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full"
           />
         </div>
-        <div class="form-group">
-          <label for="apellido">Apellido(s)</label>
+
+        <!-- Apellido -->
+        <div class="flex flex-col gap-2 text-left">
+          <label for="apellido" class="font-bold text-slate-300 text-sm">Apellido(s)</label>
           <input 
             type="text" 
             id="apellido" 
             v-model="formData.apellido" 
             placeholder="Ej. García" 
             required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full"
           />
         </div>
-        <div class="form-group">
-          <label for="email">Correo Electrónico</label>
+
+        <!-- Correo -->
+        <div class="flex flex-col gap-2 text-left">
+          <label for="email" class="font-bold text-slate-300 text-sm">Correo Electrónico</label>
           <input 
             type="email" 
             id="email" 
             v-model="formData.email" 
             placeholder="maria.garcia@ejemplo.com" 
             required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full"
           />
         </div>
-        <div class="form-group">
-          <label for="telefono">Teléfono de Contacto</label>
+
+        <!-- Teléfono -->
+        <div class="flex flex-col gap-2 text-left">
+          <label for="telefono" class="font-bold text-slate-300 text-sm">Teléfono de Contacto</label>
           <input 
             type="tel" 
             id="telefono" 
             v-model="formData.telefono" 
             placeholder="10 dígitos" 
             required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full"
           />
         </div>
-        <div class="form-group">
-          <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+
+        <!-- Fecha de Nacimiento -->
+        <div class="flex flex-col gap-2 text-left">
+          <label for="fecha_nacimiento" class="font-bold text-slate-300 text-sm">Fecha de Nacimiento</label>
           <input 
             type="date" 
             id="fecha_nacimiento" 
             v-model="formData.fecha_nacimiento" 
             required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full"
           />
         </div>
-        <div class="form-group">
-          <label for="genero">Género</label>
-          <select id="genero" v-model="formData.genero" required>
-            <option value="" disabled>Selecciona una opción</option>
-            <option value="M">Masculino</option>
-            <option value="F">Femenino</option>
-            <option value="X">No Binario / Otro</option>
+
+        <!-- Género -->
+        <div class="flex flex-col gap-2 text-left">
+          <label for="genero" class="font-bold text-slate-300 text-sm">Género</label>
+          <select 
+            id="genero" 
+            v-model="formData.genero" 
+            required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full cursor-pointer"
+          >
+            <option value="" disabled class="bg-slate-800 text-white">Selecciona una opción</option>
+            <option value="M" class="bg-slate-800 text-white">Masculino</option>
+            <option value="F" class="bg-slate-800 text-white">Femenino</option>
+            <option value="X" class="bg-slate-800 text-white">No Binario / Otro</option>
           </select>
         </div>
-        <div class="form-group full-width">
-          <label for="ranking">Ranking Declarado (0 - 500)</label>
-          <div class="ranking-input-wrapper">
-            <input 
-              type="number" 
-              id="ranking" 
-              v-model.number="formData.ranking_declarado" 
-              min="0" 
-              max="500" 
-              placeholder="Ej. 210" 
-              required
-            />
-            <span class="input-info">Ingresa el nivel estimado de tu compañero.</span>
-          </div>
-          <p v-if="rankingError" class="error-msg">{{ rankingError }}</p>
+
+        <!-- Ranking Declarado (Full Width) -->
+        <div class="flex flex-col gap-2 text-left sm:col-span-2">
+          <label for="ranking" class="font-bold text-slate-300 text-sm">Ranking Declarado (0 - 500)</label>
+          <input 
+            type="number" 
+            id="ranking" 
+            v-model.number="formData.ranking_declarado" 
+            min="0" 
+            max="500" 
+            placeholder="Ej. 210" 
+            required
+            class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium w-full"
+          />
+          <span class="text-xs text-slate-500 mt-1 block">Ingresa el nivel estimado de tu compañero.</span>
+          <p v-if="rankingError" class="text-xs text-red-500 mt-1 block font-semibold">{{ rankingError }}</p>
         </div>
       </div>
 
-      <div class="step-actions">
-        <button type="button" class="btn-secondary" @click="prevStep">
+      <!-- Acciones -->
+      <div class="flex justify-between border-t border-white/5 pt-6 mt-6">
+        <button 
+          type="button" 
+          class="border border-white/10 hover:border-primary-600 hover:bg-primary-600/5 text-white rounded-xl py-3 px-8 font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer" 
+          @click="prevStep"
+        >
           <i class="fas fa-arrow-left"></i>
           Atrás
         </button>
-        <button type="submit" class="btn-primary" :disabled="!isFormValid">
+        <button 
+          type="submit" 
+          class="bg-primary-600 text-white rounded-xl py-3 px-8 font-bold shadow-lg shadow-primary-600/25 transition-all duration-300 hover:scale-[1.02] hover:bg-primary-700 hover:shadow-primary-700/40 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+          :disabled="!isFormValid"
+        >
           Siguiente
           <i class="fas fa-arrow-right"></i>
         </button>
@@ -96,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from "vue";
+import { computed, reactive } from "vue";
 import { usePreRegisterStore } from "@/stores/preRegisterStore";
 
 const store = usePreRegisterStore();
@@ -145,126 +176,3 @@ const nextStep = () => {
   }
 };
 </script>
-
-<style scoped>
-.wizard-step {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.step-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.step-description {
-  color: var(--text-secondary);
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.wizard-form {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-@media (max-width: 600px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-label {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-input, select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.8rem;
-  padding: 0.8rem 1rem;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-}
-
-select option {
-  background: #1e293b;
-  color: white;
-}
-
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.input-info {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-top: 0.3rem;
-  display: block;
-}
-
-.error-msg {
-  color: #ff4d4d;
-  font-size: 0.85rem;
-  margin-top: 0.3rem;
-}
-
-.step-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 0.8rem 2rem;
-  border-radius: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--text-primary);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

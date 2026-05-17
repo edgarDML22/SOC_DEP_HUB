@@ -1,40 +1,62 @@
 <template>
-  <div class="wizard-step">
-    <h2 class="step-title">Documentación</h2>
-    <p class="step-description">Sube tus documentos en formato PDF para validar tu registro.</p>
+  <div class="animate-fade-in">
+    <h2 class="text-xl md:text-2xl font-bold text-white mb-2 text-center">Documentación</h2>
+    <p class="text-slate-400 text-center mb-8 text-sm md:text-base">Sube tus documentos en formato PDF para validar tu registro.</p>
 
-    <div class="documents-container">
+    <div class="flex flex-col gap-6">
       <!-- Documentos Capitán -->
-      <div class="doc-section">
-        <h3>{{ store.tipo === 'EQUIPO' ? 'Documentos del Capitán' : 'Tus Documentos' }}</h3>
-        <div class="doc-grid">
-          <div class="file-input-group">
-            <label>INE (PDF)</label>
-            <div class="file-drop-zone" :class="{ has_file: store.archivos.ine }">
-              <input type="file" @change="handleFile($event, 'ine')" accept=".pdf" />
-              <div class="drop-zone-content">
-                <i class="fas" :class="store.archivos.ine ? 'fa-file-pdf' : 'fa-cloud-upload-alt'"></i>
-                <span>{{ store.archivos.ine ? store.archivos.ine.name : 'Seleccionar archivo' }}</span>
+      <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+        <h3 class="text-base font-semibold text-primary-500 mb-4">
+          {{ store.tipo === 'EQUIPO' ? 'Documentos del Capitán' : 'Tus Documentos' }}
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <!-- INE -->
+          <div class="flex flex-col gap-2 text-left">
+            <label class="font-bold text-slate-400 text-xs uppercase tracking-wider">INE (PDF)</label>
+            <div 
+              class="relative h-[110px] border-2 border-dashed rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden p-4"
+              :class="store.archivos.ine ? 'border-green-500 bg-green-500/5 hover:bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-primary-600 hover:bg-primary-600/5'"
+            >
+              <input type="file" @change="handleFile($event, 'ine')" accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" />
+              <div class="flex flex-col items-center gap-2 text-center pointer-events-none z-10">
+                <i class="fas text-2xl" :class="[store.archivos.ine ? 'fa-file-pdf text-green-400' : 'fa-cloud-upload-alt text-slate-400']"></i>
+                <span class="text-[11px] font-medium leading-tight max-w-[140px] truncate" :class="store.archivos.ine ? 'text-green-400 font-semibold' : 'text-slate-500'">
+                  {{ store.archivos.ine ? store.archivos.ine.name : 'Seleccionar archivo' }}
+                </span>
               </div>
             </div>
           </div>
-          <div class="file-input-group">
-            <label>CURP (PDF)</label>
-            <div class="file-drop-zone" :class="{ has_file: store.archivos.curp }">
-              <input type="file" @change="handleFile($event, 'curp')" accept=".pdf" />
-              <div class="drop-zone-content">
-                <i class="fas" :class="store.archivos.curp ? 'fa-file-pdf' : 'fa-cloud-upload-alt'"></i>
-                <span>{{ store.archivos.curp ? store.archivos.curp.name : 'Seleccionar archivo' }}</span>
+
+          <!-- CURP -->
+          <div class="flex flex-col gap-2 text-left">
+            <label class="font-bold text-slate-400 text-xs uppercase tracking-wider">CURP (PDF)</label>
+            <div 
+              class="relative h-[110px] border-2 border-dashed rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden p-4"
+              :class="store.archivos.curp ? 'border-green-500 bg-green-500/5 hover:bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-primary-600 hover:bg-primary-600/5'"
+            >
+              <input type="file" @change="handleFile($event, 'curp')" accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" />
+              <div class="flex flex-col items-center gap-2 text-center pointer-events-none z-10">
+                <i class="fas text-2xl" :class="[store.archivos.curp ? 'fa-file-pdf text-green-400' : 'fa-cloud-upload-alt text-slate-400']"></i>
+                <span class="text-[11px] font-medium leading-tight max-w-[140px] truncate" :class="store.archivos.curp ? 'text-green-400 font-semibold' : 'text-slate-500'">
+                  {{ store.archivos.curp ? store.archivos.curp.name : 'Seleccionar archivo' }}
+                </span>
               </div>
             </div>
           </div>
-          <div class="file-input-group">
-            <label>Carta Responsiva (PDF)</label>
-            <div class="file-drop-zone" :class="{ has_file: store.archivos.carta }">
-              <input type="file" @change="handleFile($event, 'carta')" accept=".pdf" />
-              <div class="drop-zone-content">
-                <i class="fas" :class="store.archivos.carta ? 'fa-file-pdf' : 'fa-cloud-upload-alt'"></i>
-                <span>{{ store.archivos.carta ? store.archivos.carta.name : 'Seleccionar archivo' }}</span>
+
+          <!-- Carta Responsiva -->
+          <div class="flex flex-col gap-2 text-left">
+            <label class="font-bold text-slate-400 text-xs uppercase tracking-wider">Carta Responsiva (PDF)</label>
+            <div 
+              class="relative h-[110px] border-2 border-dashed rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden p-4"
+              :class="store.archivos.carta ? 'border-green-500 bg-green-500/5 hover:bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-primary-600 hover:bg-primary-600/5'"
+            >
+              <input type="file" @change="handleFile($event, 'carta')" accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" />
+              <div class="flex flex-col items-center gap-2 text-center pointer-events-none z-10">
+                <i class="fas text-2xl" :class="[store.archivos.carta ? 'fa-file-pdf text-green-400' : 'fa-cloud-upload-alt text-slate-400']"></i>
+                <span class="text-[11px] font-medium leading-tight max-w-[140px] truncate" :class="store.archivos.carta ? 'text-green-400 font-semibold' : 'text-slate-500'">
+                  {{ store.archivos.carta ? store.archivos.carta.name : 'Seleccionar archivo' }}
+                </span>
               </div>
             </div>
           </div>
@@ -42,36 +64,56 @@
       </div>
 
       <!-- Documentos Compañero (si aplica) -->
-      <div v-if="store.tipo === 'EQUIPO'" class="doc-section mt-4">
-        <h3>Documentos del Compañero</h3>
-        <div class="doc-grid">
-          <div class="file-input-group">
-            <label>INE (PDF)</label>
-            <div class="file-drop-zone" :class="{ has_file: store.archivos.companero_ine }">
-              <input type="file" @change="handleFile($event, 'companero_ine')" accept=".pdf" />
-              <div class="drop-zone-content">
-                <i class="fas" :class="store.archivos.companero_ine ? 'fa-file-pdf' : 'fa-cloud-upload-alt'"></i>
-                <span>{{ store.archivos.companero_ine ? store.archivos.companero_ine.name : 'Seleccionar archivo' }}</span>
+      <div v-if="store.tipo === 'EQUIPO'" class="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+        <h3 class="text-base font-semibold text-primary-500 mb-4">Documentos del Compañero</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <!-- Compañero INE -->
+          <div class="flex flex-col gap-2 text-left">
+            <label class="font-bold text-slate-400 text-xs uppercase tracking-wider">INE (PDF)</label>
+            <div 
+              class="relative h-[110px] border-2 border-dashed rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden p-4"
+              :class="store.archivos.companero_ine ? 'border-green-500 bg-green-500/5 hover:bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-primary-600 hover:bg-primary-600/5'"
+            >
+              <input type="file" @change="handleFile($event, 'companero_ine')" accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" />
+              <div class="flex flex-col items-center gap-2 text-center pointer-events-none z-10">
+                <i class="fas text-2xl" :class="[store.archivos.companero_ine ? 'fa-file-pdf text-green-400' : 'fa-cloud-upload-alt text-slate-400']"></i>
+                <span class="text-[11px] font-medium leading-tight max-w-[140px] truncate" :class="store.archivos.companero_ine ? 'text-green-400 font-semibold' : 'text-slate-500'">
+                  {{ store.archivos.companero_ine ? store.archivos.companero_ine.name : 'Seleccionar archivo' }}
+                </span>
               </div>
             </div>
           </div>
-          <div class="file-input-group">
-            <label>CURP (PDF)</label>
-            <div class="file-drop-zone" :class="{ has_file: store.archivos.companero_curp }">
-              <input type="file" @change="handleFile($event, 'companero_curp')" accept=".pdf" />
-              <div class="drop-zone-content">
-                <i class="fas" :class="store.archivos.companero_curp ? 'fa-file-pdf' : 'fa-cloud-upload-alt'"></i>
-                <span>{{ store.archivos.companero_curp ? store.archivos.companero_curp.name : 'Seleccionar archivo' }}</span>
+
+          <!-- Compañero CURP -->
+          <div class="flex flex-col gap-2 text-left">
+            <label class="font-bold text-slate-400 text-xs uppercase tracking-wider">CURP (PDF)</label>
+            <div 
+              class="relative h-[110px] border-2 border-dashed rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden p-4"
+              :class="store.archivos.companero_curp ? 'border-green-500 bg-green-500/5 hover:bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-primary-600 hover:bg-primary-600/5'"
+            >
+              <input type="file" @change="handleFile($event, 'companero_curp')" accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" />
+              <div class="flex flex-col items-center gap-2 text-center pointer-events-none z-10">
+                <i class="fas text-2xl" :class="[store.archivos.companero_curp ? 'fa-file-pdf text-green-400' : 'fa-cloud-upload-alt text-slate-400']"></i>
+                <span class="text-[11px] font-medium leading-tight max-w-[140px] truncate" :class="store.archivos.companero_curp ? 'text-green-400 font-semibold' : 'text-slate-500'">
+                  {{ store.archivos.companero_curp ? store.archivos.companero_curp.name : 'Seleccionar archivo' }}
+                </span>
               </div>
             </div>
           </div>
-          <div class="file-input-group">
-            <label>Carta Responsiva (PDF)</label>
-            <div class="file-drop-zone" :class="{ has_file: store.archivos.companero_carta }">
-              <input type="file" @change="handleFile($event, 'companero_carta')" accept=".pdf" />
-              <div class="drop-zone-content">
-                <i class="fas" :class="store.archivos.companero_carta ? 'fa-file-pdf' : 'fa-cloud-upload-alt'"></i>
-                <span>{{ store.archivos.companero_carta ? store.archivos.companero_carta.name : 'Seleccionar archivo' }}</span>
+
+          <!-- Compañero Carta Responsiva -->
+          <div class="flex flex-col gap-2 text-left">
+            <label class="font-bold text-slate-400 text-xs uppercase tracking-wider">Carta Responsiva (PDF)</label>
+            <div 
+              class="relative h-[110px] border-2 border-dashed rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden p-4"
+              :class="store.archivos.companero_carta ? 'border-green-500 bg-green-500/5 hover:bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-primary-600 hover:bg-primary-600/5'"
+            >
+              <input type="file" @change="handleFile($event, 'companero_carta')" accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" />
+              <div class="flex flex-col items-center gap-2 text-center pointer-events-none z-10">
+                <i class="fas text-2xl" :class="[store.archivos.companero_carta ? 'fa-file-pdf text-green-400' : 'fa-cloud-upload-alt text-slate-400']"></i>
+                <span class="text-[11px] font-medium leading-tight max-w-[140px] truncate" :class="store.archivos.companero_carta ? 'text-green-400 font-semibold' : 'text-slate-500'">
+                  {{ store.archivos.companero_carta ? store.archivos.companero_carta.name : 'Seleccionar archivo' }}
+                </span>
               </div>
             </div>
           </div>
@@ -79,12 +121,22 @@
       </div>
     </div>
 
-    <div class="step-actions">
-      <button type="button" class="btn-secondary" @click="prevStep">
+    <!-- Acciones -->
+    <div class="flex justify-between border-t border-white/5 pt-6 mt-6">
+      <button 
+        type="button" 
+        class="border border-white/10 hover:border-primary-600 hover:bg-primary-600/5 text-white rounded-xl py-3 px-8 font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer" 
+        @click="prevStep"
+      >
         <i class="fas fa-arrow-left"></i>
         Atrás
       </button>
-      <button type="button" class="btn-primary" :disabled="!allFilesSelected" @click="nextStep">
+      <button 
+        type="button" 
+        class="bg-primary-600 text-white rounded-xl py-3 px-8 font-bold shadow-lg shadow-primary-600/25 transition-all duration-300 hover:scale-[1.02] hover:bg-primary-700 hover:shadow-primary-700/40 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+        :disabled="!allFilesSelected" 
+        @click="nextStep"
+      >
         Siguiente
         <i class="fas fa-arrow-right"></i>
       </button>
@@ -126,150 +178,3 @@ const nextStep = () => {
   }
 };
 </script>
-
-<style scoped>
-.wizard-step {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.step-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.step-description {
-  color: var(--text-secondary);
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.doc-section {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 1.2rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.doc-section h3 {
-  font-size: 1.1rem;
-  margin-bottom: 1.2rem;
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.doc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-}
-
-.file-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.file-input-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.file-drop-zone {
-  position: relative;
-  height: 100px;
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.file-drop-zone:hover {
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.05);
-}
-
-.file-drop-zone.has_file {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.05);
-}
-
-.file-drop-zone input[type="file"] {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.drop-zone-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.drop-zone-content i {
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-}
-
-.has_file .drop-zone-content i {
-  color: #4caf50;
-}
-
-.drop-zone-content span {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  word-break: break-all;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.mt-4 {
-  margin-top: 1.5rem;
-}
-
-.step-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2rem;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 0.8rem 2rem;
-  border-radius: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--text-primary);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>

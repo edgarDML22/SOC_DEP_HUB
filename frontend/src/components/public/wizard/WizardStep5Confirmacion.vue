@@ -1,73 +1,112 @@
 <template>
-  <div class="wizard-step">
-    <div v-if="!store.exito" class="confirmation-view">
-      <h2 class="step-title">Resumen de Registro</h2>
-      <p class="step-description">Verifica que tus datos sean correctos antes de finalizar.</p>
+  <div class="animate-fade-in">
+    <div v-if="!store.exito">
+      <h2 class="text-xl md:text-2xl font-bold text-white mb-2 text-center">Resumen de Registro</h2>
+      <p class="text-slate-400 text-center mb-8 text-sm md:text-base">Verifica que tus datos sean correctos antes de finalizar.</p>
 
       <!-- Banner de Equipo (si aplica) -->
-      <div v-if="store.tipo === 'EQUIPO'" class="team-banner-summary">
-        <i class="fas fa-users"></i>
-        <span><strong>Equipo:</strong> {{ store.nombre_equipo }}</span>
+      <div v-if="store.tipo === 'EQUIPO'" class="bg-primary-600/10 border border-primary-600/20 rounded-2xl p-4 mb-6 flex items-center gap-3 text-base text-white animate-fade-in">
+        <i class="fas fa-users text-primary-500 text-lg"></i>
+        <span><strong>Equipo:</strong> {{ formatText(store.nombre_equipo) }}</span>
       </div>
 
-      <div class="summary-container">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <!-- Resumen Capitán -->
-        <div class="summary-section">
-          <h3><i class="fas fa-user-tag"></i> {{ store.tipo === 'EQUIPO' ? 'Capitán' : 'Participante' }}</h3>
-          <div class="summary-details">
-            <p><strong>Nombre:</strong> {{ store.datosCapitan.nombre }} {{ store.datosCapitan.apellido }}</p>
-            <p><strong>Email:</strong> {{ store.datosCapitan.email }}</p>
-            <p><strong>Teléfono:</strong> {{ store.datosCapitan.telefono }}</p>
-            <p><strong>F. Nacimiento:</strong> {{ store.datosCapitan.fecha_nacimiento }}</p>
-            <p><strong>Género:</strong> {{ getGeneroLabel(store.datosCapitan.genero) }}</p>
-            <p><strong>Ranking:</strong> {{ store.datosCapitan.ranking_declarado }}</p>
+        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-primary-500 mb-4 flex items-center gap-2 border-b border-white/5 pb-2">
+              <i class="fas fa-user-tag"></i> 
+              {{ store.tipo === 'EQUIPO' ? 'Capitán' : 'Participante' }}
+            </h3>
+            <div class="flex flex-col gap-2.5 text-left text-sm text-slate-400">
+              <p><strong class="text-slate-300 font-medium">Nombre:</strong> {{ formatText(store.datosCapitan.nombre) }} {{ formatText(store.datosCapitan.apellido) }}</p>
+              <p><strong class="text-slate-300 font-medium">Email:</strong> <span class="break-all">{{ store.datosCapitan.email }}</span></p>
+              <p><strong class="text-slate-300 font-medium">Teléfono:</strong> {{ store.datosCapitan.telefono }}</p>
+              <p><strong class="text-slate-300 font-medium">F. Nacimiento:</strong> {{ formatDate(store.datosCapitan.fecha_nacimiento) }}</p>
+              <p><strong class="text-slate-300 font-medium">Género:</strong> {{ getGeneroLabel(store.datosCapitan.genero) }}</p>
+              <p><strong class="text-slate-300 font-medium">Ranking:</strong> {{ store.datosCapitan.ranking_declarado }}</p>
+            </div>
           </div>
         </div>
 
         <!-- Resumen Compañero -->
-        <div v-if="store.tipo === 'EQUIPO'" class="summary-section">
-          <h3><i class="fas fa-user-friends"></i> Compañero</h3>
-          <div class="summary-details">
-            <p><strong>Nombre:</strong> {{ store.datosCompanero.nombre }} {{ store.datosCompanero.apellido }}</p>
-            <p><strong>Email:</strong> {{ store.datosCompanero.email }}</p>
-            <p><strong>Teléfono:</strong> {{ store.datosCompanero.telefono }}</p>
-            <p><strong>F. Nacimiento:</strong> {{ store.datosCompanero.fecha_nacimiento }}</p>
-            <p><strong>Género:</strong> {{ getGeneroLabel(store.datosCompanero.genero) }}</p>
-            <p><strong>Ranking:</strong> {{ store.datosCompanero.ranking_declarado }}</p>
+        <div v-if="store.tipo === 'EQUIPO'" class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-primary-500 mb-4 flex items-center gap-2 border-b border-white/5 pb-2">
+              <i class="fas fa-user-friends"></i> 
+              Compañero
+            </h3>
+            <div class="flex flex-col gap-2.5 text-left text-sm text-slate-400">
+              <p><strong class="text-slate-300 font-medium">Nombre:</strong> {{ formatText(store.datosCompanero.nombre) }} {{ formatText(store.datosCompanero.apellido) }}</p>
+              <p><strong class="text-slate-300 font-medium">Email:</strong> <span class="break-all">{{ store.datosCompanero.email }}</span></p>
+              <p><strong class="text-slate-300 font-medium">Teléfono:</strong> {{ store.datosCompanero.telefono }}</p>
+              <p><strong class="text-slate-300 font-medium">F. Nacimiento:</strong> {{ formatDate(store.datosCompanero.fecha_nacimiento) }}</p>
+              <p><strong class="text-slate-300 font-medium">Género:</strong> {{ getGeneroLabel(store.datosCompanero.genero) }}</p>
+              <p><strong class="text-slate-300 font-medium">Ranking:</strong> {{ store.datosCompanero.ranking_declarado }}</p>
+            </div>
           </div>
         </div>
 
         <!-- Resumen Documentos -->
-        <div class="summary-section">
-          <h3><i class="fas fa-file-alt"></i> Documentación</h3>
-          <div class="summary-details">
-            <ul class="file-list">
-              <li><i class="fas fa-check"></i> INE (Capitán)</li>
-              <li><i class="fas fa-check"></i> CURP (Capitán)</li>
-              <li><i class="fas fa-check"></i> Carta Responsiva (Capitán)</li>
-              <template v-if="store.tipo === 'EQUIPO'">
-                <li><i class="fas fa-check"></i> INE (Compañero)</li>
-                <li><i class="fas fa-check"></i> CURP (Compañero)</li>
-                <li><i class="fas fa-check"></i> Carta Responsiva (Compañero)</li>
-              </template>
-            </ul>
+        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col justify-between" :class="{ 'md:col-span-1': store.tipo === 'EQUIPO', 'md:col-span-2': store.tipo !== 'EQUIPO' }">
+          <div>
+            <h3 class="text-sm font-semibold text-primary-500 mb-4 flex items-center gap-2 border-b border-white/5 pb-2">
+              <i class="fas fa-file-alt"></i> 
+              Documentación
+            </h3>
+            <div class="flex flex-col gap-2 text-left">
+              <ul class="flex flex-col gap-2">
+                <li class="text-xs text-slate-400 flex items-center gap-2">
+                  <i class="fas fa-check text-green-500"></i> INE (Capitán)
+                </li>
+                <li class="text-xs text-slate-400 flex items-center gap-2">
+                  <i class="fas fa-check text-green-500"></i> CURP (Capitán)
+                </li>
+                <li class="text-xs text-slate-400 flex items-center gap-2">
+                  <i class="fas fa-check text-green-500"></i> Carta Responsiva (Capitán)
+                </li>
+                <template v-if="store.tipo === 'EQUIPO'">
+                  <li class="text-xs text-slate-400 flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> INE (Compañero)
+                  </li>
+                  <li class="text-xs text-slate-400 flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> CURP (Compañero)
+                  </li>
+                  <li class="text-xs text-slate-400 flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> Carta Responsiva (Compañero)
+                  </li>
+                </template>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
-      <p v-if="store.error" class="error-banner">
-        <i class="fas fa-exclamation-circle"></i>
+      <!-- Banner de Error -->
+      <p v-if="store.error" class="bg-red-500/10 border-l-4 border-red-500 text-red-500 p-4 rounded-xl mb-6 flex items-center gap-3 text-sm font-semibold">
+        <i class="fas fa-exclamation-circle text-lg"></i>
         {{ store.error }}
       </p>
 
-      <div class="step-actions">
-        <button type="button" class="btn-secondary" :disabled="store.loading" @click="prevStep">
+      <!-- Acciones -->
+      <div class="flex justify-between border-t border-white/5 pt-6 mt-6">
+        <button 
+          type="button" 
+          class="border border-white/10 hover:border-primary-600 hover:bg-primary-600/5 text-white rounded-xl py-3 px-8 font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer" 
+          :disabled="store.loading" 
+          @click="prevStep"
+        >
           <i class="fas fa-arrow-left"></i>
           Atrás
         </button>
-        <button type="button" class="btn-primary btn-submit" :disabled="store.loading" @click="handleSubmit">
+        <button 
+          type="button" 
+          class="bg-primary-600 text-white rounded-xl py-3 px-8 font-bold shadow-lg shadow-primary-600/25 transition-all duration-300 hover:scale-[1.02] hover:bg-primary-700 hover:shadow-primary-700/40 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+          :disabled="store.loading" 
+          @click="handleSubmit"
+        >
           <template v-if="store.loading">
-            <i class="fas fa-spinner fa-spin"></i>
+            <i class="fas fa-spinner fa-spin mr-1"></i>
             Procesando...
           </template>
           <template v-else>
@@ -79,20 +118,23 @@
     </div>
 
     <!-- Éxito -->
-    <div v-else class="success-view">
-      <div class="success-icon">
+    <div v-else class="text-center py-8 max-w-[500px] mx-auto animate-fade-in">
+      <div class="text-6xl text-green-500 mb-6 animate-scale-in flex justify-center">
         <i class="fas fa-check-circle"></i>
       </div>
-      <h2 class="step-title">¡Registro Recibido!</h2>
-      <p class="success-msg">
+      <h2 class="text-2xl font-bold text-white mb-2">¡Registro Recibido!</h2>
+      <p class="text-slate-400 mb-6 text-sm">
         Tu solicitud de pre-registro se ha procesado correctamente.
       </p>
-      <div class="success-info">
+      <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 mb-8 flex flex-col gap-3 text-slate-400 text-sm">
         <p>Hemos enviado los detalles a:</p>
-        <p class="email-highlight">{{ store.datosCapitan.email }}</p>
-        <p class="instruction">Recibirás confirmación y tu código QR en este correo una vez que sea validado.</p>
+        <p class="text-lg font-extrabold text-primary-500 tracking-wider truncate">{{ store.datosCapitan.email }}</p>
+        <p class="text-xs text-slate-500 mt-2 leading-relaxed">Recibirás confirmación y tu código QR en este correo una vez que sea validado.</p>
       </div>
-      <button class="btn-primary" @click="finish">
+      <button 
+        class="bg-primary-600 text-white rounded-xl py-3 px-8 font-bold shadow-lg shadow-primary-600/25 transition-all duration-300 hover:scale-[1.02] hover:bg-primary-700 hover:shadow-primary-700/40 flex items-center justify-center gap-2 cursor-pointer mx-auto" 
+        @click="finish"
+      >
         Volver al Inicio
       </button>
     </div>
@@ -114,6 +156,24 @@ const getGeneroLabel = (g) => {
   return "No especificado";
 };
 
+const formatText = (text) => {
+  if (!text) return "";
+  return text.trim()
+             .split(/\s+/)
+             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+             .join(' ');
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "Por definir";
+  try {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateStr).toLocaleDateString('es-MX', options);
+  } catch (e) {
+    return dateStr;
+  }
+};
+
 const prevStep = () => {
   store.setPaso(4);
 };
@@ -132,175 +192,3 @@ const finish = () => {
   router.push("/");
 };
 </script>
-
-<style scoped>
-.wizard-step {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.step-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.step-description {
-  color: var(--text-secondary);
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.summary-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.summary-section {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 1.2rem;
-  padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.summary-section h3 {
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  color: var(--primary-color);
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.summary-details p {
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-  color: var(--text-secondary);
-}
-
-.summary-details strong {
-  color: var(--text-primary);
-}
-
-.file-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.file-list li {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
-}
-
-.file-list li i {
-  color: #4caf50;
-  font-size: 0.8rem;
-}
-
-.error-banner {
-  background: rgba(244, 67, 54, 0.1);
-  border-left: 4px solid #f44336;
-  color: #f44336;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  font-size: 0.9rem;
-}
-
-.success-view {
-  text-align: center;
-  padding: 2rem 0;
-}
-
-.success-icon {
-  font-size: 5rem;
-  color: #4caf50;
-  margin-bottom: 1.5rem;
-  animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.success-msg {
-  font-size: 1.2rem;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
-}
-
-.success-info {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 1.2rem;
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.email-highlight {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin: 0.5rem 0;
-}
-
-.instruction {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 1rem;
-}
-
-.step-actions {
-  display: flex;
-  justify-content: space-between;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 0.8rem 2rem;
-  border-radius: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-submit {
-  background: var(--primary-color);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.team-banner-summary {
-  background: rgba(var(--primary-rgb), 0.1);
-  border: 1px solid rgba(var(--primary-color), 0.2);
-  border-radius: 1rem;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-  animation: fadeIn 0.4s ease-out;
-}
-
-.team-banner-summary i {
-  color: var(--primary-color);
-  font-size: 1.3rem;
-}
-</style>

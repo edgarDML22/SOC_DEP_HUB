@@ -1,57 +1,68 @@
 <template>
-  <div class="wizard-step">
-    <h2 class="step-title">Selecciona el tipo de registro</h2>
-    <p class="step-description">¿Participarás de forma individual o con un compañero?</p>
+  <div class="animate-fade-in">
+    <h2 class="text-xl md:text-2xl font-bold text-white mb-2 text-center">Selecciona el tipo de registro</h2>
+    <p class="text-slate-400 text-center mb-8 text-sm md:text-base">¿Participarás de forma individual o con un compañero?</p>
 
-    <div class="cards-container">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+      <!-- Individual Card -->
       <div 
-        class="type-card" 
-        :class="{ active: store.tipo === 'INDIVIDUAL' }"
+        class="group relative bg-white/5 backdrop-blur-md border rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 hover:-translate-y-1"
+        :class="store.tipo === 'INDIVIDUAL' ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/20' : 'border-white/10 hover:border-primary-600/40 hover:bg-primary-600/5'"
         @click="selectTipo('INDIVIDUAL')"
       >
-        <div class="card-icon">
+        <div class="text-4xl text-primary-600 mb-4">
           <i class="fas fa-user"></i>
         </div>
-        <h3>Individual</h3>
-        <p>Registro para un solo jugador.</p>
-        <div class="selection-indicator">
+        <h3 class="text-lg font-bold text-white mb-1">Individual</h3>
+        <p class="text-slate-400 text-sm">Registro para un solo jugador.</p>
+        <div 
+          class="absolute top-4 right-4 text-primary-600 text-lg transition-opacity duration-300"
+          :class="store.tipo === 'INDIVIDUAL' ? 'opacity-100' : 'opacity-0'"
+        >
           <i class="fas fa-check-circle"></i>
         </div>
       </div>
 
+      <!-- Equipo Card -->
       <div 
-        class="type-card" 
-        :class="{ active: store.tipo === 'EQUIPO' }"
+        class="group relative bg-white/5 backdrop-blur-md border rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 hover:-translate-y-1"
+        :class="store.tipo === 'EQUIPO' ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/20' : 'border-white/10 hover:border-primary-600/40 hover:bg-primary-600/5'"
         @click="selectTipo('EQUIPO')"
       >
-        <div class="card-icon">
+        <div class="text-4xl text-primary-600 mb-4">
           <i class="fas fa-users"></i>
         </div>
-        <h3>En Pareja</h3>
-        <p>Registro para un equipo de dos jugadores.</p>
-        <div class="selection-indicator">
+        <h3 class="text-lg font-bold text-white mb-1">En Pareja</h3>
+        <p class="text-slate-400 text-sm">Registro para un equipo de dos jugadores.</p>
+        <div 
+          class="absolute top-4 right-4 text-primary-600 text-lg transition-opacity duration-300"
+          :class="store.tipo === 'EQUIPO' ? 'opacity-100' : 'opacity-0'"
+        >
           <i class="fas fa-check-circle"></i>
         </div>
       </div>
     </div>
 
-    <div v-if="store.tipo === 'EQUIPO'" class="team-name-container">
-      <div class="form-group">
-        <label for="nombre_equipo">Nombre del Equipo</label>
+    <!-- Nombre de Equipo -->
+    <div v-if="store.tipo === 'EQUIPO'" class="max-w-[480px] mx-auto mb-8 bg-white/[0.02] border border-white/5 rounded-2xl p-6 animate-fade-in">
+      <div class="flex flex-col gap-2 text-left">
+        <label for="nombre_equipo" class="font-bold text-slate-300 text-sm">Nombre del Equipo</label>
         <input 
           type="text" 
           id="nombre_equipo" 
           v-model="store.nombre_equipo" 
           placeholder="Ej. Los Guerreros del Padel" 
           required
+          class="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:border-primary-600 focus:bg-white/[0.08] transition-all duration-300 text-sm font-medium"
         />
-        <span class="input-info">Ingresa el nombre con el que se identificará a tu pareja en el torneo.</span>
+        <span class="text-xs text-slate-500 mt-1 block">Ingresa el nombre con el que se identificará a tu pareja en el torneo.</span>
       </div>
     </div>
 
-    <div class="step-actions">
+    <!-- Acciones -->
+    <div class="flex justify-end border-t border-white/5 pt-6">
       <button 
-        class="btn-primary" 
+        class="bg-primary-600 text-white rounded-xl py-3 px-8 font-bold shadow-lg shadow-primary-600/25 transition-all duration-300 hover:scale-[1.02] hover:bg-primary-700 hover:shadow-primary-700/40 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         :disabled="!isTipoValido"
         @click="nextStep"
       >
@@ -86,156 +97,3 @@ const nextStep = () => {
   }
 };
 </script>
-
-<style scoped>
-.wizard-step {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.step-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.step-description {
-  color: var(--text-secondary);
-  text-align: center;
-  margin-bottom: 2.5rem;
-}
-
-.cards-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
-}
-
-.type-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.5rem;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.type-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.05);
-}
-
-.type-card.active {
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.1);
-  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.2);
-}
-
-.card-icon {
-  font-size: 3rem;
-  color: var(--primary-color);
-  margin-bottom: 1.5rem;
-}
-
-.type-card h3 {
-  font-size: 1.4rem;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
-}
-
-.type-card p {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
-.selection-indicator {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-size: 1.2rem;
-  color: var(--primary-color);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.type-card.active .selection-indicator {
-  opacity: 1;
-}
-
-.step-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-primary {
-  padding: 0.8rem 2rem;
-  border-radius: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.team-name-container {
-  max-width: 500px;
-  margin: 0 auto 2.5rem auto;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1.2rem;
-  padding: 1.5rem;
-  animation: fadeIn 0.4s ease-out;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-align: left;
-}
-
-.form-group label {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.form-group input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.8rem;
-  padding: 0.8rem 1rem;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.input-info {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-top: 0.3rem;
-  display: block;
-}
-</style>
