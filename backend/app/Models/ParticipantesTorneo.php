@@ -10,15 +10,19 @@ class ParticipantesTorneo extends Model
     protected $primaryKey = 'id_participante_torneo';
     public $timestamps = false;
     protected $fillable = [
+        'id_categoria',
+        'tipo_entidad',
+        'referencia_id',
+        'siembra_ranking',
+        'fecha_inscripcion',
+        'estatus_participacion',
         'id_torneo',
         'participante_type',
         'participante_id',
         'id_interno',
         'ranking_declarado',
         'id_equipo',
-        'estatus_inscripcion',
-        'qr_codigo',
-        'qr_estatus'
+        'estatus_inscripcion'
     ];
     public function participante()
     {

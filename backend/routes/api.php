@@ -37,7 +37,7 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
-
+use App\Http\Controllers\EquipoTorneoController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -46,7 +46,20 @@ use App\Http\Controllers\UserAdminController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+Route::post(
+    '/v1/torneos/{id_torneo}/equipos',
+    [EquipoTorneoController::class, 'crearEquipo']
+);
 
+Route::patch(
+    '/v1/torneos/{id_torneo}/equipos/{id_equipo}/responder',
+    [EquipoTorneoController::class, 'responderInvitacion']
+);
+
+Route::patch(
+    '/v1/equipos/reasignar',
+    [EquipoTorneoController::class, 'reasignarCompanero']
+);
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -300,6 +313,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
     Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
     Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
+
+    //Torneos y equipos
+    /* Route::post(
+        '/v1/torneos/{id_torneo}/equipos',
+        [EquipoTorneoController::class, 'crearEquipo']
+    );
+
+    Route::patch(
+        '/v1/torneos/{id_torneo}/equipos/{id_equipo}/responder',
+        [EquipoTorneoController::class, 'responderInvitacion']
+    );
+
+    Route::patch(
+        '/v1/equipos/reasignar',
+        [EquipoTorneoController::class, 'reasignarCompanero']
+    ); */
 
 });
 
