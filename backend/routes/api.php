@@ -17,6 +17,7 @@ use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
 use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\ResultadoController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
@@ -323,8 +324,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::prefix('v1/encuentros')->group(function () {
-
-        //
+        Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
+        Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
     });
 
 
