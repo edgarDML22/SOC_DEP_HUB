@@ -7,6 +7,8 @@ import { useFamilyStore } from "@/stores/community/familyStore";
 import { useGuestStore } from "@/stores/community/guestStore";
 import { useNotificacionesStore } from "@/stores/profiles/notificacionesStore";
 import { useReservationStore } from "@/stores/reservationStore";
+import { useQrStore } from "@/stores/profiles/qrStore";
+import { useBootstrapStore } from "@/stores/profiles/bootstrapStore";
 import { useformat } from '@/utils/formatters';
 
 const { formatText } = useformat();
@@ -90,6 +92,8 @@ export function useProfileLogic(endpointUrl = '/profile') {
         useGuestStore().$reset();
         useNotificacionesStore().reset();
         useReservationStore().resetearReserva();
+        useQrStore().$reset();
+        useBootstrapStore().reset();
 
         localStorage.clear();
         router.push("/login");
