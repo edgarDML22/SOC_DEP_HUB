@@ -131,9 +131,9 @@ const handleEmpezarSesion = () => {
                 <article class="bg-white rounded-3xl border border-surface-200 p-6 md:p-8 shadow-sm flex flex-col gap-4">
                     <h3 class="text-xs font-bold text-surface-400 uppercase tracking-widest mb-2 m-0 border-b border-surface-100 pb-3">Acciones Operativas</h3>
 
-                    <button @click="handleRegistrarAsistencia" class="w-full bg-surface-100 hover:bg-surface-200 text-primary-700 border border-surface-200 rounded-xl px-4 py-3.5 font-bold transition-all active:scale-95 flex items-center justify-center gap-3">
-                        <IconQr class="w-5 h-5 shrink-0" />
-                        Escanear Pases (QR)
+                    <button @click="handleRegistrarAsistencia" class="w-full bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 rounded-xl px-4 py-3.5 font-bold transition-all active:scale-95 flex items-center justify-center gap-3">
+                        <IconQr class="w-5 h-5 shrink-0 text-primary-600" />
+                        Escanear Pases QR
                     </button>
 
                     <button @click="handleEmpezarSesion" class="w-full text-white rounded-xl px-4 py-3.5 font-bold transition-all flex items-center justify-center gap-3 shadow-sm border"

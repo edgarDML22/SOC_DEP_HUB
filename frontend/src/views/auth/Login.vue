@@ -80,13 +80,13 @@ const handleLogin = async () => {
   <div class="min-h-screen w-full flex bg-surface-50 font-sans relative overflow-hidden">
     
     <!-- Lado izquierdo (Oculto en móvil, visible en lg) -->
-    <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-800 to-primary-600 flex-col items-center justify-center p-12 relative overflow-hidden shadow-[inset_-10px_0_30px_rgba(0,0,0,0.1)]">
+    <div class="hidden lg:flex lg:w-1/2 bg-linear-to-br from-primary-800 to-primary-600 flex-col items-center justify-center p-12 relative overflow-hidden shadow-[inset_-10px_0_30px_rgba(0,0,0,0.1)]">
       <!-- Patrón sutil (svg pattern en el fondo) -->
       <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#fff 1.5px, transparent 1.5px); background-size: 24px 24px;"></div>
       
       <div class="relative z-10 flex flex-col items-center text-center text-white max-w-lg">
-        <div class="p-2 bg-white/10 backdrop-blur-sm rounded-[2rem] shadow-2xl mb-8 border border-white/20">
-            <img src="@/assets/LogoSocDep.jpg" alt="SOCDEP HUB Logo" class="w-32 h-32 md:w-40 md:h-40 rounded-[1.5rem] object-cover" />
+        <div class="p-2 bg-white/10 backdrop-blur-sm rounded-4xl shadow-2xl mb-8 border border-white/20">
+            <img src="@/assets/LogoSocDep.jpg" alt="SOCDEP HUB Logo" class="w-32 h-32 md:w-40 md:h-40 rounded-3xl object-cover" />
         </div>
         <h1 class="text-4xl lg:text-5xl font-bold tracking-tight mb-5 drop-shadow-md">SOC-DEP HUB</h1>
         <div class="w-16 h-1.5 bg-white/30 rounded-full mb-6"></div>
@@ -99,14 +99,14 @@ const handleLogin = async () => {
     <!-- Lado derecho (Cubre todo en móvil, mitad en lg) -->
     <div class="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative z-10">
       <!-- Decoración de fondo en móvil (parte superior azul) -->
-      <div class="lg:hidden absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-primary-800 to-primary-600 rounded-b-[3rem] shadow-md z-0"></div>
+      <div class="lg:hidden absolute top-0 left-0 w-full h-64 bg-linear-to-b from-primary-800 to-primary-600 rounded-b-[3rem] shadow-md z-0"></div>
 
       <!-- Tarjeta del formulario (Flotante) -->
       <div class="w-full max-w-md bg-white rounded-2xl md:rounded-3xl shadow-xl lg:shadow-none lg:bg-transparent lg:border-none border border-surface-100 p-6 sm:p-10 z-10 relative mt-16 sm:mt-24 lg:mt-0 transition-all duration-300">
         
         <!-- Logo solo para móvil -->
         <div class="lg:hidden flex justify-center mb-6 -mt-16 sm:-mt-20">
-          <div class="p-1.5 bg-white rounded-[1.5rem] shadow-lg border border-surface-100">
+          <div class="p-1.5 bg-white rounded-3xl shadow-lg border border-surface-100">
             <img src="@/assets/LogoSocDep.jpg" alt="SOCDEP HUB" class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover" />
           </div>
         </div>

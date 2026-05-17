@@ -11,6 +11,13 @@ const filtro = ref('AMIGO')
 const actionLoadingId = ref(null)
 const actionTypeLoading = ref('')
 
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'N/A'
+  const d = new Date(fecha)
+  if (isNaN(d.getTime())) return fecha
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 const filters = [
   {
     id: 'AMIGO',
@@ -159,20 +166,23 @@ const eliminarAmigo = async (amigo) => {
         </div>
         <router-link
           :to="{ name: 'friends-add' }"
-          class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center"
+          class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center gap-2"
         >
-          + Agregar Amigo
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7v14"/></svg>
+          Agregar Amigo
         </router-link>
       </div>
 
       <!-- Buscador + Filtros -->
       <div class="flex flex-col gap-4">
-        <input
-          v-if="filtro === 'AMIGO'"
-          v-model="search"
-          placeholder="Buscar amigo por nombre..."
-          class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm"
-        />
+        <div v-if="filtro === 'AMIGO'" class="relative w-full md:max-w-md">
+          <input
+            v-model="search"
+            placeholder="Buscar amigo por nombre..."
+            class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm"
+          />
+          <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
 
         <div class="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
           <button
@@ -233,7 +243,7 @@ const eliminarAmigo = async (amigo) => {
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
               </svg>
-              <span>{{ new Date(amigo.created_at).toLocaleDateString() }}</span>
+              <span>{{ formatearFecha(amigo.created_at) }}</span>
             </div>
           </div>
 

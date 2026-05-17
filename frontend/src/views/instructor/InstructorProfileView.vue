@@ -57,7 +57,7 @@ const handleLogout = () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
               
               <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
                   <IconEnvelope class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
@@ -68,7 +68,7 @@ const handleLogout = () => {
               </div>
 
               <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
                   <IconPhone class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
@@ -79,18 +79,7 @@ const handleLogout = () => {
               </div>
 
               <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
-                  <IconBriefcase class="w-5 h-5" />
-                </div>
-                <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Rol Profesional</label>
-                  <input type="text" :value="profileStore.role" readonly disabled 
-                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
-                </div>
-              </div>
-
-              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-surface-500 shrink-0 shadow-sm border border-surface-100">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
                   <IconClock class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
@@ -115,8 +104,7 @@ const handleLogout = () => {
             <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             
             <div class="w-24 h-24 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center text-3xl font-bold shadow-sm border-2 border-white/30 mb-4 z-10">
-              <span v-if="profileStore.isLoading">...</span>
-              <span v-else>{{ profileStore.userInitials }}</span>
+              {{ profileStore.userInitials }}
             </div>
             
             <h2 class="text-xl font-bold text-white mb-2 z-10">{{ profileStore.fullName || 'Cargando...' }}</h2>
@@ -136,7 +124,7 @@ const handleLogout = () => {
           <!-- TARJETA: SEGURIDAD (WIDGET) -->
           <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-surface-100 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-600 group-hover:text-primary-600 transition-colors">
+              <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100 group-hover:bg-primary-50 group-hover:border-primary-200 transition-all">
                   <IconLock class="w-5 h-5" />
               </div>
               <div>
@@ -154,7 +142,7 @@ const handleLogout = () => {
           <div class="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
             <button class="w-full flex items-center justify-between p-5 bg-white hover:bg-surface-50 transition-colors border-b border-surface-100 group">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-surface-50 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-500 group-hover:text-primary-600 transition-colors">
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100 group-hover:bg-primary-50 group-hover:border-primary-200 transition-all">
                   <IconHistory class="w-5 h-5" />
                 </div>
                 <span class="font-semibold text-surface-900">Historial de sesiones</span>
@@ -164,7 +152,7 @@ const handleLogout = () => {
             
             <button @click="profileStore.getSupportLink()" class="w-full flex items-center justify-between p-5 bg-white hover:bg-surface-50 transition-colors group">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-surface-50 group-hover:bg-primary-50 rounded-xl flex items-center justify-center text-surface-500 group-hover:text-primary-600 transition-colors">
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100 group-hover:bg-primary-50 group-hover:border-primary-200 transition-all">
                   <IconSupport class="w-5 h-5" />
                 </div>
                 <span class="font-semibold text-surface-900">Soporte y Ayuda</span>

@@ -12,7 +12,7 @@ import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
-import { IconChevronDown } from '@/components/icons'
+import { IconChevronDown, IconUser, IconMail, IconCalendar, IconGuests } from '@/components/icons'
 
 const route = useRoute()
 const router = useRouter()
@@ -306,9 +306,12 @@ const buildMenuItems = (miembro) => [
                 <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                   Nombre Completo <span class="text-red-400">*</span>
                 </label>
-                <input v-model="formData.nombre" type="text"
-                  class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"
-                  placeholder="Ej. Juan Pérez">
+                <div class="relative">
+                  <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
+                  <input v-model="formData.nombre" type="text"
+                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
+                    placeholder="Ej. Juan Pérez">
+                </div>
               </div>
 
               <div class="grid grid-cols-2 gap-4">
@@ -317,8 +320,9 @@ const buildMenuItems = (miembro) => [
                     Parentesco <span class="text-red-400">*</span>
                   </label>
                   <div class="relative">
+                    <IconGuests class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                     <select v-model="formData.parentesco"
-                      class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
+                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
                       <option value="" disabled>Seleccionar</option>
                       <option value="CONYUGE">Cónyuge</option>
                       <option value="HIJO/A">Hijo/a</option>
@@ -332,8 +336,9 @@ const buildMenuItems = (miembro) => [
                     Género <span class="text-red-400">*</span>
                   </label>
                   <div class="relative">
+                    <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                     <select v-model="formData.genero"
-                      class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
+                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
                       <option value="" disabled>Seleccionar</option>
                       <option value="M">Masculino</option>
                       <option value="F">Femenino</option>
@@ -349,8 +354,11 @@ const buildMenuItems = (miembro) => [
                   <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                     Fecha de Nacimiento <span class="text-red-400">*</span>
                   </label>
-                  <input v-model="formData.fecha_nacimiento" type="date"
-                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
+                  <div class="relative">
+                    <IconCalendar class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
+                    <input v-model="formData.fecha_nacimiento" type="date"
+                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm">
+                  </div>
                 </div>
                 <div class="space-y-1.5">
                   <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
@@ -365,9 +373,12 @@ const buildMenuItems = (miembro) => [
                 <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                   Correo (Opcional)
                 </label>
-                <input v-model="formData.correo" type="email"
-                  class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"
-                  placeholder="correo@ejemplo.com">
+                <div class="relative">
+                  <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
+                  <input v-model="formData.correo" type="email"
+                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
+                    placeholder="correo@ejemplo.com">
+                </div>
               </div>
 
               <div class="pt-4 flex justify-end gap-3 border-t border-surface-100 mt-4">

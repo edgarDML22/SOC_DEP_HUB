@@ -8,6 +8,7 @@ import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import { IconFilter, IconChevronDown, IconCalendar, IconStar, IconUser, IconHourglass, IconAlertCircle } from '@/components/icons'
 import { useformat } from '@/utils/formatters'
@@ -304,15 +305,8 @@ const buildMenuItems = (item) => [
         <!-- TABLA -->
         <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-[400px] relative">
 
-            <!-- Loading Overlay (Solo en carga inicial) -->
-            <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0"
-                enter-to-class="opacity-100" leave-active-class="transition-all duration-300"
-                leave-from-class="opacity-100" leave-to-class="opacity-0">
-                <div v-if="loading.record && !isFiltering"
-                    class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
-                    <LoadingSpinner />
-                </div>
-            </Transition>
+            <!-- SKELETON -->
+            <TableSkeleton v-if="loading.record && !isFiltering" :rows="8" :columns="6" :has-avatar="true" />
 
             <!-- Empty State -->
             <div v-if="!loading.record && filteredRecord.length === 0"

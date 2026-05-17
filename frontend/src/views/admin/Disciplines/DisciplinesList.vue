@@ -8,11 +8,14 @@ import { useAlerts } from '@/composables/useAlerts'
 import { useformat } from '@/utils/formatters'
 import { 
   AdminPageHeader, BadgeStatus, ActionMenu, SearchInput, 
-  LoadingSpinner, ConfirmButton, CancelButton 
+  LoadingSpinner, ConfirmButton, CancelButton,
+  FilterContainer, FilterSelect
 } from '@/components/gerente/ui'
 
 import CambiarEstatusModal from '@/components/admin/disciplines/CambiarEstatusModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
+import { IconLayers, IconChevronDown, IconGrid, IconAlertCircle } from '@/components/icons'
 
 const router = useRouter()
 const disciplinesStore = useDisciplinesStore()
@@ -205,59 +208,35 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- FILTROS -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="search" placeholder="Buscar por nombre o categoría…" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Categoría</label>
-            <div class="relative">
-              <IconGrid class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterCategory" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
-                <option v-for="opt in categoryOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-            <div class="relative">
-              <IconAlertCircle class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterStatus" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_STATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-        <Transition enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-1">
-          <div v-if="hasActiveFilters" class="flex justify-end">
-            <button @click="clearFilters"
-              class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-              Limpiar filtros
-            </button>
-          </div>
-        </Transition>
-      </div>
+      <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+        <template #search>
+          <SearchInput v-model="search" placeholder="Buscar por nombre o categoría…" />
+        </template>
+
+        <FilterSelect
+          label="Categoría"
+          v-model="filterCategory"
+          :options="categoryOpts"
+        >
+          <template #icon>
+            <IconGrid />
+          </template>
+        </FilterSelect>
+
+        <FilterSelect
+          label="Estatus"
+          v-model="filterStatus"
+          :options="OPT_STATUS"
+        >
+          <template #icon>
+            <IconAlertCircle />
+          </template>
+        </FilterSelect>
+      </FilterContainer>
 
       <!-- SKELETON -->
-      <div v-if="isLoading" class="flex flex-col gap-4">
-        <div v-for="n in 4" :key="n"
-          class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 flex gap-5 animate-pulse">
-          <div class="w-14 h-14 rounded-2xl bg-surface-200 shrink-0" />
-          <div class="flex-1 space-y-3 py-1">
-            <div class="h-4 bg-surface-200 rounded-lg w-40" />
-            <div class="h-3 bg-indigo-100 rounded-lg w-24" />
-            <div class="h-3 bg-surface-100 rounded-lg w-full" />
-            <div class="h-3 bg-surface-100 rounded-lg w-3/4" />
-          </div>
-          <div class="w-24 h-9 rounded-xl bg-surface-100 self-center shrink-0" />
-        </div>
+      <div v-if="isLoading" class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <TableSkeleton :rows="4" :columns="4" :has-avatar="true" />
       </div>
 
       <!-- VACÍO -->
@@ -348,14 +327,16 @@ onMounted(() => {
               class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden font-sans">
 
               <!-- Cabecera -->
-              <div class="flex items-center justify-between px-7 py-5 border-b border-surface-100">
+              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
                 <div>
-                  <h2 class="text-lg font-black text-surface-900 leading-tight">Nueva Disciplina</h2>
-                  <p class="text-xs text-surface-500 font-medium mt-0.5">Registra un deporte o actividad del club.</p>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nueva Disciplina</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
+                    Registra un deporte o actividad del club.
+                  </p>
                 </div>
                 <button @click="showNewModal = false"
-                  class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </button>
@@ -382,10 +363,13 @@ onMounted(() => {
                   <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
                     Nombre <span class="text-red-400">*</span>
                   </label>
-                  <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
-                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
-                           text-surface-900 placeholder:text-surface-400
-                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                  <div class="relative">
+                    <IconLayers class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                    <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
+                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                             text-surface-900 placeholder:text-surface-400 shadow-sm
+                             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">

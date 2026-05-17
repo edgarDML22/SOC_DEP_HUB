@@ -13,10 +13,13 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
+import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
-import { IconAlertCircle, IconTarget, IconChevronDown } from '@/components/icons'
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
+import { IconAlertCircle, IconTarget, IconChevronDown, IconUser, IconPhone, IconMail } from '@/components/icons'
 import InstructorStatusModal from './InstructorStatusModal.vue'
 import ManageDisciplinesModal from '@/views/admin/Disciplines/ManageDisciplinesModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
@@ -277,71 +280,37 @@ onMounted(async () => {
       </AdminPageHeader>
 
       <!-- BARRA DE FILTROS -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="search" placeholder="Buscar instructor por nombre…" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-            <div class="relative">
-              <IconAlertCircle
-                class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterEstatus"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown
-                class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
-            <div class="relative">
-              <IconTarget
-                class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filterDisciplina"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
-                <option v-for="opt in disciplinasOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown
-                class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-        <Transition enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-1">
-          <div v-if="hasActiveFilters" class="flex justify-end">
-            <button @click="clearFilters"
-              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-              Limpiar filtros
-            </button>
-          </div>
-        </Transition>
-      </div>
+      <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+        <template #search>
+          <SearchInput v-model="search" placeholder="Buscar instructor por nombre…" />
+        </template>
+
+        <FilterSelect
+          label="Estatus"
+          v-model="filterEstatus"
+          :options="OPT_ESTATUS"
+        >
+          <template #icon>
+            <IconAlertCircle />
+          </template>
+        </FilterSelect>
+
+        <FilterSelect
+          label="Disciplina"
+          v-model="filterDisciplina"
+          :options="disciplinasOpts"
+        >
+          <template #icon>
+            <IconTarget />
+          </template>
+        </FilterSelect>
+      </FilterContainer>
 
       <!-- TABLA -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
 
         <!-- Estado: cargando -->
-        <div v-if="isLoading" class="p-8 space-y-3">
-          <div v-for="n in 6" :key="n" class="flex items-center gap-4 animate-pulse py-3 border-b border-surface-100">
-            <div class="w-10 h-10 rounded-xl bg-surface-200 shrink-0" />
-            <div class="flex-1 space-y-2">
-              <div class="h-3.5 bg-surface-200 rounded-lg w-44" />
-              <div class="h-3 bg-surface-100 rounded-lg w-32" />
-            </div>
-            <div class="h-5 w-16 bg-surface-100 rounded-full hidden sm:block" />
-            <div class="hidden md:flex gap-1.5">
-              <div class="h-5 w-14 bg-primary-50 rounded-lg" />
-              <div class="h-5 w-14 bg-primary-50 rounded-lg" />
-            </div>
-            <div class="h-3 w-20 bg-surface-100 rounded-lg hidden lg:block" />
-          </div>
-        </div>
+        <TableSkeleton v-if="isLoading" :rows="6" :columns="4" :has-avatar="true" />
 
         <!-- Estado: error -->
         <div v-else-if="errorMsg" class="p-8 text-center text-red-700 font-semibold text-sm">
@@ -462,8 +431,8 @@ onMounted(async () => {
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showNewModal = false">
           <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 transurface-y-4"
-            enter-to-class="opacity-100 scale-100 transurface-y-0">
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0">
             <div v-if="showNewModal" class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl shadow-surface-900/20
                      flex flex-col max-h-[92vh] overflow-hidden">
               <!-- Cabecera -->
@@ -487,7 +456,7 @@ onMounted(async () => {
 
                 <!-- Error banner -->
                 <Transition enter-active-class="transition-all duration-200 ease-out"
-                  enter-from-class="opacity-0 -transurface-y-1" enter-to-class="opacity-100 transurface-y-0">
+                  enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
                   <div v-if="formError" class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl
                            text-red-700 text-sm font-semibold">
                     <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -505,10 +474,13 @@ onMounted(async () => {
                   <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
                     Nombre Completo <span class="text-red-400">*</span>
                   </label>
-                  <input v-model="newInstructor.nombre_completo" placeholder="Ej. Juan Pérez García"
-                    class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
-                           text-surface-900 placeholder:text-surface-400
-                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                  <div class="relative">
+                    <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                    <input v-model="newInstructor.nombre_completo" placeholder="Ej. Juan Pérez García"
+                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                             text-surface-900 placeholder:text-surface-400 shadow-sm
+                             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                  </div>
                 </div>
 
                 <!-- Teléfono + Estatus -->
@@ -517,10 +489,13 @@ onMounted(async () => {
                     <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
                       Teléfono <span class="text-red-400">*</span>
                     </label>
-                    <input v-model="newInstructor.telefono" placeholder="Ej. 5512345678"
-                      class="w-full px-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium
-                             text-surface-900 placeholder:text-surface-400
-                             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                    <div class="relative">
+                      <IconPhone class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                      <input v-model="newInstructor.telefono" placeholder="Ej. 5512345678"
+                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                               text-surface-900 placeholder:text-surface-400 shadow-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                    </div>
                   </div>
                   <div class="space-y-1.5">
                     <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">

@@ -4,6 +4,9 @@ import api from "@/services/api";
 
 export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
+    const viewActive = ref("dashboard"); // 'dashboard' o 'turnos'
+    const mainTab = ref("register"); // 'register' o 'stats'
+
     const statsCache = ref({
         hoy: null,
         semana: null,
@@ -189,6 +192,8 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     return {
         // State
+        viewActive,
+        mainTab,
         statsCache,
         instructoresHabilitados,
         turnosAsignados,
