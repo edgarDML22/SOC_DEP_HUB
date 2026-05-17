@@ -48,8 +48,7 @@ use App\Http\Controllers\PreRegisterController;
 |
 */
 
-Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
-Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
+
 // ==========================================
 // RUTAS PÚBLICAS
 // ==========================================
@@ -313,10 +312,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'index']);
 
     // Aprobar preregistro
-    //Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
+    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
 
     // Rechazar preregistro
-    //Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
+    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
 
 });
 
