@@ -28,6 +28,18 @@ const router = createRouter({
       component: () => import("@/views/auth/ResetPassword.vue"),
     },
     {
+      path: "/torneos",
+      name: "public-torneos-list",
+      component: () => import("@/views/public/TorneosPublicListView.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: "/torneos/:id/pre-registro",
+      name: "torneo-pre-registro",
+      component: () => import("@/views/public/TorneoPreRegistroView.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
       path: "/ludoteca/encuesta/:idHistorial",
       name: "ludoteca-encuesta",
       component: () => import("@/views/ludoteca/Survey/SurveyLudoteca.vue"),
