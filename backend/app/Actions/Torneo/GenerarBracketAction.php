@@ -19,9 +19,10 @@ class GenerarBracketAction
      */
     public function execute(Torneo $torneo): void
     {
+
         // 1. Obtener participantes inscritos y confirmados ordenados por ranking_declarado DESC
         $participantes = ParticipantesTorneo::where('id_torneo', $torneo->id_torneo)
-            ->where('estatus_inscripcion', 'CONFIRMADO')
+            ->where('estatus_participacion', 'ACTIVO')
             ->orderBy('ranking_declarado', 'desc')
             ->get();
 
@@ -74,7 +75,7 @@ class GenerarBracketAction
                         'id_torneo' => $torneo->id_torneo,
                         'fase_bracket' => $currentFase,
                         'competidor_1_id' => $comp1->id_participante_torneo,
-                        'competidor_1_type' => 'PARTICIPANTE',
+                        'competidor_1_type' => $comp1->participante_type,
                         'competidor_2_id' => null,
                         'competidor_2_type' => null,
                         'es_bye' => true,
@@ -88,9 +89,9 @@ class GenerarBracketAction
                         'id_torneo' => $torneo->id_torneo,
                         'fase_bracket' => $currentFase,
                         'competidor_1_id' => $comp1->id_participante_torneo,
-                        'competidor_1_type' => 'PARTICIPANTE',
+                        'competidor_1_type' => $comp1->participante_type,
                         'competidor_2_id' => $comp2->id_participante_torneo,
-                        'competidor_2_type' => 'PARTICIPANTE',
+                        'competidor_2_type' => $comp2->participante_type,
                         'es_bye' => false,
                         'estatus_encuentro' => 'PENDIENTE',
                         'numero_encuentro' => $numeroEncuentro++
@@ -130,10 +131,10 @@ class GenerarBracketAction
     {
         return match ($matchesCount) {
             16 => '16VOS',
-            8  => '8VOS',
-            4  => 'CUARTOS',
-            2  => 'SEMIFINALES',
-            1  => 'FINAL',
+            8 => '8VOS',
+            4 => 'CUARTOS',
+            2 => 'SEMIFINALES',
+            1 => 'FINAL',
             default => 'FINAL'
         };
     }

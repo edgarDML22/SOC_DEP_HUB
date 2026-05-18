@@ -38,6 +38,8 @@ use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
+use App\Actions\Torneo\GenerarBracketAction;
+use App\Models\Torneo;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,7 +49,6 @@ use App\Http\Controllers\UserAdminController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
-
 
 
 // ==========================================
@@ -311,13 +312,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [TorneoController::class, 'store']);
 
         Route::get('/', [TorneoController::class, 'index']);
-        
+
         Route::get('/categorias', [\App\Http\Controllers\CategoriaTorneoController::class, 'index']);
 
         Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
 
         //SDH-268:VER TORNEO
         Route::get('/{id}', [TorneoController::class, 'show']);
+        //SDH-284 GENERAR EL BRACKET
         Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
     });
 
