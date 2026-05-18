@@ -50,7 +50,18 @@ use App\Http\Controllers\PreRegisterController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+Route::patch('/test-cancelar-torneo/{id}', function ($id) {
 
+    $torneo = \App\Models\Torneo::findOrFail($id);
+
+    app(\App\Actions\Torneo\CancelarTorneoAction::class)
+        ->execute($torneo, 'Prueba de cancelación');
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Torneo cancelado'
+    ]);
+});
 
 
 // ==========================================
