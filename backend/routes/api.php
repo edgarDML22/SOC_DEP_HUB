@@ -50,20 +50,7 @@ use App\Http\Controllers\EquipoTorneoController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
-Route::post(
-    '/v1/torneos/{id_torneo}/equipos',
-    [EquipoTorneoController::class, 'crearEquipo']
-);
 
-Route::patch(
-    '/v1/torneos/{id_torneo}/equipos/{id_equipo}/responder',
-    [EquipoTorneoController::class, 'responderInvitacion']
-);
-
-Route::patch(
-    '/v1/equipos/reasignar',
-    [EquipoTorneoController::class, 'reasignarCompanero']
-);
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -371,7 +358,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
 
     //Torneos y equipos
-    /* Route::post(
+    Route::get(
+        '/v1/equipos/{id_equipo}',
+        [EquipoTorneoController::class, 'show']
+    );
+
+    Route::post(
         '/v1/torneos/{id_torneo}/equipos',
         [EquipoTorneoController::class, 'crearEquipo']
     );
@@ -384,7 +376,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch(
         '/v1/equipos/reasignar',
         [EquipoTorneoController::class, 'reasignarCompanero']
-    ); */
+    );
 
 });
 

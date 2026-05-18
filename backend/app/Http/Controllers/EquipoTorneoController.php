@@ -16,6 +16,46 @@ use Illuminate\Validation\ValidationException;
 
 class EquipoTorneoController extends Controller
 {
+    public function show($id_equipo)
+    {
+        $equipo = \App\Models\EquiposTorneo::with([
+            'torneo.categoria',
+            'torneo.disciplina',
+            'participantes'
+        ])->find($id_equipo);
+
+        if (!$equipo) {
+            return response()->json(['message' => 'Equipo no encontrado'], 404);
+        }
+
+        $capitanPart = $equipo->participantes->where('estatus_inscripcion', 'CONFIRMADA')->first();
+        $companeroPart = $equipo->participantes->where('estatus_inscripcion', '!=', 'CONFIRMADA')->first();
+
+        $capitanModel = null;
+        if ($capitanPart && $capitanPart->participante_type === 'SOCIO') {
+            $capitanModel = \App\Models\SocioTitular::find($capitanPart->participante_id);
+        }
+
+        $companeroModel = null;
+        if ($companeroPart && $companeroPart->participante_type === 'SOCIO') {
+            $companeroModel = \App\Models\SocioTitular::find($companeroPart->participante_id);
+        }
+
+        $data = [
+            'id_equipo' => $equipo->id_equipo_torneo,
+            'nombre_equipo' => $equipo->nombre_equipo,
+            'estatus_equipo' => $equipo->estatus_equipo,
+            'capitan' => $capitanModel,
+            'companero' => $companeroModel,
+            'torneo' => $equipo->torneo
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
     public function crearEquipo(Request $request, $id_torneo)
     {
         $request->validate([
@@ -33,9 +73,14 @@ class EquipoTorneoController extends Controller
             ], 404);
         }
 
-        /* $usuario = auth()->user(); */
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'No autenticado.'
+            ], 419);
+        }
 
-        $usuarioId = 1;
+        $usuarioId = $user->user_id;
 
         $companeroId = $request->id_socio_companero;
 
@@ -59,7 +104,7 @@ class EquipoTorneoController extends Controller
 
         if (!$amistad) {
             return response()->json([
-                'message' => 'No existe amistad ACEPTADA con este socio.'
+                'message' => "No existe amistad ACEPTADA con este socio. (Tú: $usuarioId, Amigo: $companeroId)"
             ], 422);
         }
 
@@ -138,7 +183,7 @@ class EquipoTorneoController extends Controller
                 'fecha_inscripcion'     => now(),
                 'estatus_participacion' => 'ACTIVO',
                 'id_torneo'             => $id_torneo,
-                'participante_type'     => 'App\\Models\\SocioTitular',
+                'participante_type'     => 'SOCIO',
                 'participante_id'       => $usuarioId,
                 'ranking_declarado'     => $request->ranking_capitan,
                 'estatus_inscripcion'   => 'CONFIRMADA',
@@ -194,7 +239,7 @@ class EquipoTorneoController extends Controller
                 'fecha_inscripcion'     => now(),
                 'estatus_participacion' => 'ACTIVO',
                 'id_torneo'             => $id_torneo,
-                'participante_type'     => 'App\\Models\\SocioTitular',
+                'participante_type'     => 'SOCIO',
                 'participante_id'       => $companeroId,
                 'ranking_declarado'     => $request->ranking_companero,
                 'id_equipo'             => $equipo->id_equipo_torneo,
@@ -355,7 +400,7 @@ class EquipoTorneoController extends Controller
             'fecha_inscripcion'     => now(),
             'estatus_participacion' => 'ACTIVO',
             'id_torneo'             => $rechazado->id_torneo,
-            'participante_type'     => 'App\\Models\\SocioTitular',
+            'participante_type'     => 'SOCIO',
             'participante_id'       => $request->id_nuevo_companero,
             'id_equipo'             => $request->id_equipo,
             'estatus_inscripcion'   => 'LISTA_ESPERA',
