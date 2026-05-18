@@ -21,7 +21,8 @@ class ActividadPlantilla extends Model
         'hora_inicio',
         'hora_fin',
         'cupo_maximo',
-        'estatus'
+        'requiere_inscripcion',
+        'estatus',
     ];
 
     public function espacioFisico()
@@ -32,5 +33,10 @@ class ActividadPlantilla extends Model
     public function disciplina()
     {
         return $this->belongsTo(Disciplina::class, 'id_disciplina', 'id_disciplina');
+    }
+
+    public function instructor()
+    {
+        return $this->belongsTo(Instructor::class, 'id_instructor', 'id_instructor');
     }
 }

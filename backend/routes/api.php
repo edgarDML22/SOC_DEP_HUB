@@ -41,6 +41,7 @@ use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\PreRegisterController;
+use App\Http\Controllers\PlantillaProgramacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -357,6 +358,32 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Descargar/visualizar documento del preregistro
     Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+
+    // ==========================================
+    // MÓDULO DE PROGRAMACIÓN DE ACTIVIDADES (Sprint 5)
+    // ==========================================
+
+    // DRAFTS y PLANTILLAS (Wizard del Subgerente)
+    Route::prefix('v1/programacion')->group(function () {
+        Route::post('drafts', [PlantillaProgramacionController::class, 'store']);
+        Route::patch('drafts/{id}', [PlantillaProgramacionController::class, 'update']);
+        Route::get('drafts/{id}', [PlantillaProgramacionController::class, 'showDraft']);
+        Route::delete('drafts/{id}', [PlantillaProgramacionController::class, 'destroyDraft']);
+        Route::post('drafts/{id}/publicar', [PlantillaProgramacionController::class, 'publicar']);
+        Route::get('plantillas', [PlantillaProgramacionController::class, 'index']);
+        Route::get('plantillas/{id}', [PlantillaProgramacionController::class, 'show']);
+        // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
+
+        // Task 25.5: Route::post('sesiones/generar', [\App\Http\Controllers\SesionActivaController::class, 'generarManual']);
+    });
+
+    // Task 30.1 y 31.5 — descomentar cuando existan los controllers:
+    // Route::prefix('v1/actividades')->group(function () {
+    //     Route::get('sesiones', [\App\Http\Controllers\InscripcionClaseController::class, 'indexSesiones']);
+    //     Route::get('sesiones/{id_sesion}/estado-inscripcion', [\App\Http\Controllers\InscripcionClaseController::class, 'estadoInscripcion']);
+    //     Route::post('sesiones/{id_sesion}/inscribir', [\App\Http\Controllers\InscripcionClaseController::class, 'inscribir']);
+    //     Route::delete('inscripciones/{id_inscripcion}', [\App\Http\Controllers\InscripcionClaseController::class, 'cancelar']);
+    // });
 
 });
 
