@@ -41,6 +41,7 @@ use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\PreRegisterController;
+use App\Http\Controllers\ResultadoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -357,6 +358,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Descargar/visualizar documento del preregistro
     Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+    //RESULTADOS TORNEOS
+    Route::get('/v1/instructor/encuentros-torneo', [ResultadoController::class, 'misEncuentros']);
+
+    Route::get('/v1/subgerente/resultados-pendientes', [ResultadoController::class, 'resultadosPendientes']);
 
 });
 

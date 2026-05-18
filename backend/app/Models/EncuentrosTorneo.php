@@ -26,6 +26,14 @@ class EncuentrosTorneo extends Model
         'es_bye',
         'numero_encuentro'
     ];
+    public function torneo()
+    {
+        return $this->belongsTo(
+            Torneo::class,
+            'id_torneo',
+            'id_torneo'
+        );
+    }
 
     public function competidor1()
     {
