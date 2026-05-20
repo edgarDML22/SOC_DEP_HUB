@@ -360,9 +360,10 @@ onMounted(fetchSocios)
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100">
-            <tr v-for="socio in filteredSocios" :key="socio.id_socio"
+            <tr v-for="(socio, idx) in filteredSocios" :key="socio.id_socio"
               v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
-              class="hover:bg-surface-50/70 transition-colors group">
+              class="hover:bg-surface-50/70 transition-colors group animate-row-in"
+              :style="{ animationDelay: `${idx * 30}ms` }">
               <!-- Nombre + avatar -->
               <td class="px-5 py-3.5 first:last:rounded-bl-2xl">
                 <div class="flex items-center gap-3">
@@ -500,3 +501,13 @@ onMounted(fetchSocios)
 
   </main>
 </template>
+
+<style scoped>
+.animate-row-in {
+  animation: rowIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+</style>

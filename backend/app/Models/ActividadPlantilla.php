@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ActividadPlantilla extends Model
 {
+    use SoftDeletes;
     protected $table = "actividades_plantilla";
     protected $primaryKey = 'id_actividad_plantilla';
     public $timestamps = false;

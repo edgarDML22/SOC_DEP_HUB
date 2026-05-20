@@ -1,0 +1,51 @@
+[90m= [39m[
+    {#5707
+      +"[1mcolumn_name[22m": "[32mid_actividad_plantilla[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5709
+      +"[1mcolumn_name[22m": "[32mid_disciplina[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5710
+      +"[1mcolumn_name[22m": "[32mid_espacio[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5711
+      +"[1mcolumn_name[22m": "[32mid_instructor[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5712
+      +"[1mcolumn_name[22m": "[32mdia_semana[39m",
+      +"[1mdata_type[22m": "[32mUSER-DEFINED[39m",
+    },
+    {#5713
+      +"[1mcolumn_name[22m": "[32mhora_inicio[39m",
+      +"[1mdata_type[22m": "[32mtime without time zone[39m",
+    },
+    {#5714
+      +"[1mcolumn_name[22m": "[32mhora_fin[39m",
+      +"[1mdata_type[22m": "[32mtime without time zone[39m",
+    },
+    {#5715
+      +"[1mcolumn_name[22m": "[32mcupo_maximo[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5716
+      +"[1mcolumn_name[22m": "[32mestatus[39m",
+      +"[1mdata_type[22m": "[32mUSER-DEFINED[39m",
+    },
+    {#5717
+      +"[1mcolumn_name[22m": "[32mid_plantilla[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5718
+      +"[1mcolumn_name[22m": "[32mid_instructor_original[39m",
+      +"[1mdata_type[22m": "[32minteger[39m",
+    },
+    {#5719
+      +"[1mcolumn_name[22m": "[32mrequiere_inscripcion[39m",
+      +"[1mdata_type[22m": "[32mboolean[39m",
+    },
+  ]
+
