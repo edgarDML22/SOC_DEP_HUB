@@ -61,7 +61,7 @@ const statusClasses = computed(() => {
   const map = {
     PENDIENTE: "bg-surface-100 text-surface-600 border-surface-200",
     EN_CURSO: "bg-blue-50 text-blue-700 border-blue-200",
-    BYE: "bg-purple-50 text-purple-700 border-purple-200",
+    BYE: "bg-violet-200 text-violet-900 border-violet-400",
     RESULTADO_PENDIENTE_VALIDACION: "bg-amber-50 text-amber-700 border-amber-200",
     FINALIZADO: "bg-emerald-50 text-emerald-700 border-emerald-200",
   };
@@ -86,18 +86,18 @@ const canReport = computed(() => {
   >
     <!-- Encabezado de la Card -->
    <!-- Encabezado de la Card -->
-      <div
-        class="flex items-center justify-between gap-2 pb-2 px-3 py-2 rounded-xl border"
-        :class="statusClasses"
-      >
-        <span class="text-[9px] font-black uppercase tracking-widest">
-          Encuentro #{{ match.numero_encuentro }}
-        </span>
+<div
+  class="flex items-center justify-between gap-2 pb-2 px-3 py-2 rounded-xl border"
+  :class="statusClasses"
+>
+  <span class="text-[9px] font-black uppercase tracking-widest">
+    Encuentro #{{ match.numero_encuentro }}
+  </span>
 
-        <span class="px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider">
-          {{ statusLabel }}
-        </span>
-      </div>
+  <span class="px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider">
+    {{ statusLabel }}
+  </span>
+</div>
 
     <!-- Competidores y Marcadores -->
     <div class="space-y-2">
