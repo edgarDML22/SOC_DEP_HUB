@@ -263,6 +263,23 @@ const router = createRouter({
           path: 'ludoteca',
           name: 'ludoteca-operativa',
           component: () => import('@/views/ludoteca/LudotecaOperativaView.vue'),
+          beforeEnter: async (to, from, next) => {
+            const { useInstructorStore } = await import('@/stores/profiles/instructorStore');
+            const store = useInstructorStore();
+
+            if (!store.profileData) {
+              try {
+                await store.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el perfil del instructor en el router guard", error);
+              }
+            }
+
+            if (!store.tieneTurnoLudotecaHoy) {
+              return next('/instructor/home');
+            }
+            next();
+          },
         },
       ]
     },

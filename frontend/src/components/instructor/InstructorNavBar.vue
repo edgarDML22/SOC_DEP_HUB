@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useInstructorStore } from '@/stores/profiles/instructorStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
-import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby } from '@/components/icons';
+import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby, IconQr } from '@/components/icons';
 
 const profileStore = useInstructorStore();
 const notifStore = useNotificacionesStore();
@@ -76,14 +76,21 @@ onUnmounted(() => {
                 <IconCalendar class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Agenda
             </router-link>
 
-            <router-link to="/instructor/sessions" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
-                <IconClock class="w-[18px] h-[18px] group-[.router-link-active]:text-white" /> Sesiones
+            <router-link to="/instructor/qr" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
+                <IconQr class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Escanear QR
             </router-link>
 
-            <!-- Pestaña Reactiva de Ludoteca -->
-            <router-link v-if="profileStore.isCuidador" to="/instructor/ludoteca" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
-                <IconBaby class="w-[18px] h-[18px] group-[.router-link-active]:text-white" /> Ludoteca
-            </router-link>
+            <!-- Pestaña de Ludoteca Protegida -->
+            <component
+                :is="profileStore.tieneTurnoLudotecaHoy ? 'router-link' : 'span'"
+                to="/instructor/ludoteca"
+                class="group flex items-center gap-2 font-medium px-4 py-2 rounded-xl transition-all [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold"
+                :class="profileStore.tieneTurnoLudotecaHoy 
+                    ? 'text-surface-500 hover:bg-surface-100 hover:text-surface-900 active:scale-95 cursor-pointer' 
+                    : 'text-gray-300 cursor-not-allowed select-none opacity-40'"
+            >
+                <IconBaby class="w-[18px] h-[18px]" :class="profileStore.tieneTurnoLudotecaHoy ? 'group-[.router-link-active]:text-white' : ''" /> Ludoteca
+            </component>
         </div>
 
         <!-- Derecha: Perfil & Notificaciones -->
@@ -223,21 +230,26 @@ onUnmounted(() => {
                 <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Agenda</span>
             </router-link>
 
-            <!-- Botón Central Flotante de Ludoteca -->
-            <router-link v-if="profileStore.isCuidador" to="/instructor/ludoteca" class="flex flex-col items-center justify-center group w-[20%] relative active:scale-90 transition-all -mt-6">
+            <router-link to="/instructor/qr" class="flex flex-col items-center justify-center group w-[20%] relative active:scale-90 transition-all -mt-6">
                 <div class="w-14 h-14 rounded-full bg-linear-to-br from-primary-800 to-primary-600 shadow-[0_6px_24px_rgba(37,99,235,0.45)] flex items-center justify-center ring-4 ring-white">
-                    <IconBaby class="w-7 h-7 text-white drop-shadow-sm" />
+                    <IconQr class="w-7 h-7 text-white drop-shadow-sm" />
                 </div>
-                <span class="text-[9px] font-bold text-primary-700 mt-1 uppercase tracking-wide">Ludoteca</span>
+                <span class="text-[11px] font-bold text-primary-700 mt-1 tracking-wide">Escanear</span>
             </router-link>
 
-            <router-link to="/instructor/sessions" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
+            <!-- Pestaña de Ludoteca Protegida Móvil -->
+            <component
+                :is="profileStore.tieneTurnoLudotecaHoy ? 'router-link' : 'span'"
+                to="/instructor/ludoteca"
+                class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative transition-all"
+                :class="profileStore.tieneTurnoLudotecaHoy ? 'active:scale-95 cursor-pointer' : 'cursor-not-allowed select-none opacity-40'"
+            >
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"></div>
                 <div class="absolute top-[3px] left-1/2 -translate-x-1/2 w-12 h-[35px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary-600/20 to-transparent opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300 pointer-events-none"></div>
 
-                <IconClock class="w-[22px] h-[22px] text-surface-400 group-hover:text-primary-500 group-[.router-link-active]:text-primary-600 transition-colors relative z-10" />
-                <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Sesiones</span>
-            </router-link>
+                <IconBaby class="w-[22px] h-[22px] text-surface-400 group-hover:text-primary-500 group-[.router-link-active]:text-primary-600 transition-colors relative z-10" />
+                <span class="text-[10px] font-medium text-surface-500 group-hover:text-primary-600 group-[.router-link-active]:text-primary-700 group-[.router-link-active]:font-bold transition-colors relative z-10">Ludoteca</span>
+            </component>
 
             <router-link to="/instructor/profile" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"></div>
