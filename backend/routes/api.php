@@ -38,6 +38,9 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\BootstrapController;
+use App\Http\Controllers\InternalRegistrationController;
+use App\Http\Controllers\SocioTournamentController;
+use App\Http\Controllers\PreRegisterController;
 use App\Http\Controllers\RefereeAvailabilityController;
 use App\Http\Controllers\MatchAssignmentController;
 
@@ -101,6 +104,9 @@ Route::middleware(['check.turno'])->group(function () {
 });
 
 Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
+
+Route::post('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'store']);
+
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
 // Ruta por defecto que incluye Laravel
@@ -112,11 +118,7 @@ Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::clas
 // SDH-1102: Logout fuera del grupo auth — el controller maneja tokens inválidos o ausentes
 Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
 
-//SDH-267: Pre-registro de torneos
-Route::post(
-    '/v1/torneos/{id}/pre-registros',
-    [TorneoController::class, 'preRegistro']
-);
+//SDH-267: Pre-registro de torneos (Mapeado correctamente a PreRegisterController en la línea 96)
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -266,7 +268,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
     Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
-
+    //SDH 273 PReregistros
+    Route::post('/v1/pre-registros/{id}/aprobar', [PreRegisterController::class, 'aprobar']);
+    Route::post('/v1/pre-registros/{id}/rechazar', [PreRegisterController::class, 'rechazar']);
     // ==========================================
     // LUDOTECA (RUTAS PROTEGIDAS)
     // ==========================================
@@ -342,6 +346,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+
+    // TORNEOS: Inscripción interna directa (bypassing MongoDB)
+    Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
+
+    // TORNEOS: Hub del Socio (disponibles e historial)
+    Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
+    Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
+
+    //RUTAS PRE REGISTROS
+    // Obtener preregistros
+    Route::get('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'index']);
+
+    // Aprobar preregistro
+    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
+
+    // Rechazar preregistro
+    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
+
+    // Descargar/visualizar documento del preregistro
+    Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
 
 });
 

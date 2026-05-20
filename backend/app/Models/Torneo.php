@@ -44,4 +44,9 @@ class Torneo extends Model
         return $this->hasMany(EncuentrosTorneo::class, 'id_torneo');
     }
 
+    public function participantes()
+    {
+        return $this->hasMany(ParticipantesTorneo::class, 'id_torneo');
+    }
+
 }

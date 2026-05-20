@@ -257,9 +257,10 @@ const goBack = () => {
                         </div>
                       </div>
 
-                      <div v-if="canConfirm" class="mt-4 p-4 rounded-xl bg-purple-50 border border-purple-100">
+                      <div v-if="canConfirm" class="mt-4 p-4 rounded-xl bg-purple-50 border border-purple-100 flex items-start gap-2">
+                        <i class="fas fa-exclamation-triangle text-purple-600 mt-0.5 shrink-0"></i>
                         <p class="text-xs text-purple-700 font-bold leading-relaxed">
-                          ⚠️ Este torneo se encuentra en fase de planificación. Al confirmarlo, se habilitarán las
+                          Este torneo se encuentra en fase de planificación. Al confirmarlo, se habilitarán las
                           inscripciones públicas o internas según la configuración.
                         </p>
                       </div>
@@ -272,6 +273,12 @@ const goBack = () => {
 
             <!-- Pie de Acciones -->
             <div class="flex items-center justify-end gap-3 px-7 py-5 border-t border-surface-100 bg-white">
+              <button v-if="(torneo.estado || torneo.estatus_torneo) === 'EN_INSCRIPCION'"
+                      @click="router.push({ path: '/admin/tournaments/pre-registros', query: { torneo_id: torneo.id_torneo || torneo.id } })"
+                      class="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-sm font-bold text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md shadow-primary-600/10 mr-auto">
+                <i class="fas fa-inbox"></i> Ver Pre-registros
+              </button>
+
               <button @click="goBack" class="px-6 py-2.5 rounded-xl border border-surface-200 bg-white
                        text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
                 Volver al listado
