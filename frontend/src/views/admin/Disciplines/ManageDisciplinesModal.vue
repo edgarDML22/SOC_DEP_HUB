@@ -27,6 +27,11 @@ const isLoading = ref(true);
 const isSaving = ref(false);
 const selectedDisciplines = ref([]);
 const allDisciplines = ref([]);
+const sortedDisciplines = computed(() => {
+    return [...allDisciplines.value].sort((a, b) => 
+        (a.nombre_disciplina || '').localeCompare(b.nombre_disciplina || '', 'es', { sensitivity: 'base' })
+    );
+});
 const initialDisciplines = ref([]);
 const processingDisciplines = ref([]); // Almacena IDs de disciplinas en proceso
 
@@ -177,7 +182,7 @@ const saveChanges = async () => {
                                 </div>
 
                                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    <div v-for="d in allDisciplines" :key="d.id_disciplina"
+                                    <div v-for="d in sortedDisciplines" :key="d.id_disciplina"
                                         @click="!processingDisciplines.includes(d.id_disciplina) && toggleSelection(d.id_disciplina)"
                                         class="cursor-pointer group relative transform transition-all"
                                         :class="[processingDisciplines.includes(d.id_disciplina) ? 'opacity-50 pointer-events-none' : 'hover:-translate-y-1']">
