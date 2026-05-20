@@ -19,10 +19,7 @@ class UserAdminController extends Controller
                 '=',
                 'gerentes.id_empleado'
             )
-            ->whereIn('users.rol', [
-                'gerente',
-                'subgerente'
-            ])
+            ->where('users.rol', 'subgerente')
             ->select(
                 'users.id',
                 'gerentes.id_empleado',
@@ -93,11 +90,9 @@ class UserAdminController extends Controller
             'message' => 'Estado actualizado correctamente',
             'data' => [
                 'id' => $user->id,
-                'activo' => $user->activo
+                'activo' => $request->activo
             ]
         ]);
-
-
     }
 
     public function update(Request $request, $id)
@@ -106,13 +101,25 @@ class UserAdminController extends Controller
             'nombre_empleado' => 'required|string',
             'email' => 'required|email|unique:users,email,' . $id,
             'cargo' => 'required|string',
+            'password' => 'nullable|min:8|string',
+            'rol' => 'nullable|string|in:gerente,subgerente',
         ]);
 
         $user = User::findOrFail($id);
 
-        $user->update([
+        $userData = [
             'email' => $request->email,
-        ]);
+        ];
+
+        if ($request->filled('password')) {
+            $userData['password'] = Hash::make($request->password);
+        }
+
+        if ($request->filled('rol')) {
+            $userData['rol'] = $request->rol;
+        }
+
+        $user->update($userData);
 
         $gerente = Gerentes::findOrFail($user->user_id);
 

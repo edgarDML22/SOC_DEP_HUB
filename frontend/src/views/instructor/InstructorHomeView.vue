@@ -234,6 +234,21 @@ const handleGoToDetails = (sessionObj) => {
               </router-link>
             </div>
         </template>
+            <!-- SECCIÓN 5: ACCESO AL MÓDULO AVANZADO DE SESIONES (TRABAJO DEL COMPAÑERO) -->
+            <div class="bg-surface-100 rounded-3xl border border-surface-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-inner animate-fade-in mt-6">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-primary-600 shadow-sm shrink-0">
+                  <IconClock class="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 class="font-bold text-surface-900 text-lg leading-tight mb-1">Módulo de Gestión de Sesiones</h4>
+                  <p class="text-surface-600 text-sm leading-snug">Accede a las sesiones detalladas, asistencias y escaneo de QR.</p>
+                </div>
+              </div>
+              <router-link to="/instructor/sessions" class="w-full md:w-auto bg-white border border-surface-300 hover:border-primary-400 text-surface-800 hover:text-primary-700 rounded-xl px-6 py-3 font-bold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 shrink-0">
+                Entrar al Módulo &rarr;
+              </router-link>
+            </div>
       </template>
     </div>
   </main>

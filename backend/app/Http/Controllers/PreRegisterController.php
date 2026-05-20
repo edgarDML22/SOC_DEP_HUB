@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PreRegistroTorneo;
+use App\Models\ParticipantesTorneo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Torneo;
@@ -10,6 +11,7 @@ use Illuminate\Support\Str;
 
 use App\Actions\Torneo\AprobarPreRegistroAction;
 use App\Actions\Torneo\RechazarPreRegistroAction;
+use App\Exceptions\TournamentFullException;
 class PreRegisterController extends Controller
 {
     public function index(Request $request, $id)
@@ -41,6 +43,20 @@ class PreRegisterController extends Controller
                 'success' => false,
                 'message' => 'El torneo no está recibiendo inscripciones.'
             ], 422);
+        }
+
+        // Validar cupo máximo (confirmados + pendientes de aprobación)
+        $confirmados = ParticipantesTorneo::where('id_torneo', $id)
+            ->where('estatus_inscripcion', 'CONFIRMADO')
+            ->count();
+        $pendientes = PreRegistroTorneo::where('id_torneo', $id)
+            ->where('estatus', 'PENDIENTE')
+            ->count();
+        if (($confirmados + $pendientes) >= $torneo->cupo_maximo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El torneo ha alcanzado su cupo máximo. No se aceptan más registros.'
+            ], 409);
         }
 
         /*
@@ -319,13 +335,21 @@ class PreRegisterController extends Controller
             ], 409);
         }
 
-        AprobarPreRegistroAction::execute($preRegistro);
+        try {
+            AprobarPreRegistroAction::execute($preRegistro);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pre-registro enviado a aprobación.'
-        ], 202);
+            return response()->json([
+                'success' => true,
+                'message' => 'Pre-registro enviado a aprobación.'
+            ], 202);
+        } catch (TournamentFullException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El torneo ha alcanzado su cupo máximo. El preregistro fue rechazado automáticamente.'
+            ], 409);
+        }
     }
+
     public function rechazar(Request $request, $id, $registroId)
     {
         $request->validate([

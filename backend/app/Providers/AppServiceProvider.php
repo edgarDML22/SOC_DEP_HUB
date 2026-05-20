@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
             'USER'     => 'App\Models\User',
             'SOCIO'    => 'App\Models\SocioTitular',
             'FAMILIAR' => 'App\Models\MiembrosFamiliares',
+            'PARTICIPANTE' => 'App\Models\ParticipantesTorneo',
             // Agrega el de invitados cuando implementes ese modelo:
             // 'EXTERNO'  => 'App\Models\Invitados', 
         ]);
