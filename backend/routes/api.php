@@ -43,6 +43,7 @@ use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\PreRegisterController;
 use App\Http\Controllers\PlantillaProgramacionController;
+use App\Http\Controllers\ProgramacionDependenciasController;
 use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
 
@@ -368,13 +369,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // DRAFTS y PLANTILLAS (Wizard del Subgerente)
     Route::prefix('v1/programacion')->group(function () {
-        Route::post('drafts', [PlantillaProgramacionController::class, 'store']);
-        Route::patch('drafts/{id}', [PlantillaProgramacionController::class, 'update']);
-        Route::get('drafts/{id}', [PlantillaProgramacionController::class, 'showDraft']);
-        Route::delete('drafts/{id}', [PlantillaProgramacionController::class, 'destroyDraft']);
-        Route::post('drafts/{id}/publicar', [PlantillaProgramacionController::class, 'publicar']);
-        Route::get('plantillas', [PlantillaProgramacionController::class, 'index']);
-        Route::get('plantillas/{id}', [PlantillaProgramacionController::class, 'show']);
+        Route::get('dependencias', [ProgramacionDependenciasController::class, 'index']);
+
+        Route::prefix('drafts')->group(function () {
+            Route::post('/', [PlantillaProgramacionController::class, 'store']);
+            Route::get('/{draftId}', [PlantillaProgramacionController::class, 'showDraft']);
+            Route::patch('/{draftId}', [PlantillaProgramacionController::class, 'update']);
+            Route::delete('/{draftId}', [PlantillaProgramacionController::class, 'destroyDraft']);
+            Route::post('/{draftId}/publicar', [PlantillaProgramacionController::class, 'publicar']);
+        });
+
+        Route::prefix('plantillas')->group(function () {
+            Route::get('/', [PlantillaProgramacionController::class, 'index']);
+            Route::post('/', [PlantillaProgramacionController::class, 'storePlantilla']);
+            Route::get('/{plantillaId}', [PlantillaProgramacionController::class, 'show']);
+            Route::patch('/{plantillaId}', [PlantillaProgramacionController::class, 'updatePlantilla']);
+            Route::delete('/{plantillaId}', [PlantillaProgramacionController::class, 'destroyPlantilla']);
+        });
         // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
 
         // Task 25.5: Route::post('sesiones/generar', [\App\Http\Controllers\SesionActivaController::class, 'generarManual']);

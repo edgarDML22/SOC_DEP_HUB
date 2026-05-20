@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PlantillaProgramacion extends Model
 {
+    use SoftDeletes;
     protected $table = "plantillas_programacion";
     protected $primaryKey = 'id_plantilla';
 
