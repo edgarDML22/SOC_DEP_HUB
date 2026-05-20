@@ -6,6 +6,9 @@ use App\Models\Torneo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Actions\Torneo\GenerarBracketAction;
+use App\Actions\Torneo\AsignarHorariosAction;
+use App\Actions\Torneo\BloquearClasesTorneoAction;
+use App\Actions\Torneo\DesbloquearClasesTorneoAction;
 
 class TransitionTorneoStatusAction
 {
@@ -74,6 +77,12 @@ class TransitionTorneoStatusAction
 
             if ($nuevoEstatus === 'PROGRAMADO') {
                 app(GenerarBracketAction::class)->execute($torneo);
+                app(AsignarHorariosAction::class)->execute($torneo);
+                app(BloquearClasesTorneoAction::class)->execute($torneo);
+            }
+
+            if (in_array($nuevoEstatus, ['FINALIZADO', 'CANCELADO'])) {
+                app(DesbloquearClasesTorneoAction::class)->execute($torneo);
             }
 
             $torneo->save();
