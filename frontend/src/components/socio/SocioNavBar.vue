@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
@@ -8,6 +8,33 @@ import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, Ic
 const profileStore       = useProfileStore()
 const notifStore         = useNotificacionesStore()
 const router             = useRouter()
+
+const virtualMorosoLeido = ref(false)
+
+const notificacionesList = computed(() => {
+  const list = [...notifStore.notificaciones];
+  if (profileStore.profileData?.estatus_cuenta === 'MOROSO') {
+    list.unshift({
+      id: 'virtual-moroso',
+      leida: virtualMorosoLeido.value,
+      creada_en: new Date().toISOString(),
+      data: {
+        tipo: 'CUENTA_MOROSA'
+      }
+    });
+  }
+  return list;
+});
+
+const tieneNoLeidas = computed(() => {
+  const morosoNoLeido = (profileStore.profileData?.estatus_cuenta === 'MOROSO' && !virtualMorosoLeido.value);
+  return notifStore.tieneNoLeidas || morosoNoLeido;
+});
+
+const marcarTodasLeidas = async () => {
+  virtualMorosoLeido.value = true;
+  await notifStore.marcarTodasLeidas();
+};
 
 const menuOpen           = ref(false)
 const showNotifications  = ref(false)
@@ -44,7 +71,9 @@ const handleClickOutside = (event) => {
 const abrirDetalle = async (notif) => {
   notifSeleccionada.value  = notif
   showNotifications.value = false
-  if (!notif.leida) {
+  if (notif.id === 'virtual-moroso') {
+    virtualMorosoLeido.value = true
+  } else if (!notif.leida) {
     await notifStore.marcarLeida(notif.id)
   }
 }
@@ -71,6 +100,7 @@ const formatFecha = (iso) => {
 }
 
 const tituloNotif = (notif) => {
+  if (notif.data?.tipo === 'CUENTA_MOROSA')        return 'Adeudo Pendiente'
   if (notif.data?.tipo === 'SANCION_ASIGNADA')     return 'Penalización asignada'
   if (notif.data?.tipo === 'SANCION_LEVANTADA')    return 'Penalización levantada'
   if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return '¡Solicitud aceptada!'
@@ -80,6 +110,7 @@ const tituloNotif = (notif) => {
 }
 
 const subtituloNotif = (notif) => {
+  if (notif.data?.tipo === 'CUENTA_MOROSA')        return 'Tu cuenta tiene estatus de MOROSO'
   const nombre = notif.data?.nombre_remitente ?? 'Un socio'
   if (notif.data?.tipo === 'SANCION_ASIGNADA')     return labelServicio(notif.data?.estatus_penalizacion)
   if (notif.data?.tipo === 'SANCION_LEVANTADA')    return 'Todos tus servicios están activos'
@@ -94,6 +125,12 @@ const esTipoAmistad = (tipo) =>
   ['SOLICITUD_ENVIADA', 'SOLICITUD_ACEPTADA', 'SOLICITUD_RECHAZADA'].includes(tipo)
 
 const iconoNotif = (tipo) => {
+  if (tipo === 'CUENTA_MOROSA') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-red-500">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>`
+  }
   if (tipo === 'SANCION_ASIGNADA') {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -181,8 +218,8 @@ onUnmounted(() => {
               class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 hover:bg-surface-100 hover:text-surface-900 active:scale-95 transition-all"
               @click="toggleNotifications"
             >
-              <IconBell class="w-5 h-5" :class="notifStore.tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
-              <span v-if="notifStore.tieneNoLeidas"
+              <IconBell class="w-5 h-5" :class="tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
+              <span v-if="tieneNoLeidas"
                 class="absolute top-2 right-2.5 bg-primary-600 h-2 w-2 rounded-full border border-white ring-[1.5px] ring-white"/>
             </button>
 
@@ -191,8 +228,8 @@ onUnmounted(() => {
                 class="absolute top-14 right-0 w-80 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
                 <div class="flex items-center justify-between px-5 pt-5 pb-3">
                   <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
-                  <button v-if="notifStore.tieneNoLeidas"
-                    @click="notifStore.marcarTodasLeidas"
+                  <button v-if="tieneNoLeidas"
+                    @click="marcarTodasLeidas"
                     class="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors">
                     Marcar todas leídas
                   </button>
@@ -202,28 +239,45 @@ onUnmounted(() => {
                 <div v-if="notifStore.isLoading" class="flex justify-center py-8">
                   <div class="w-6 h-6 rounded-full border-2 border-surface-200 border-t-primary-500 animate-spin"/>
                 </div>
-                <div v-else-if="notifStore.notificaciones.length === 0"
+                <div v-else-if="notificacionesList.length === 0"
                   class="py-8 text-center text-sm font-medium text-surface-400">
                   Sin notificaciones nuevas
                 </div>
                 <ul v-else class="max-h-72 overflow-y-auto divide-y divide-surface-50">
-                  <li v-for="n in notifStore.notificaciones" :key="n.id"
+                  <li v-for="n in notificacionesList" :key="n.id"
                     @click="abrirDetalle(n)"
                     class="flex items-start gap-3 px-5 py-3.5 cursor-pointer transition-colors"
-                    :class="n.leida ? 'hover:bg-surface-50' : 'bg-primary-50/60 hover:bg-primary-50'"
+                    :class="n.id === 'virtual-moroso' && !n.leida
+                      ? 'bg-red-50/60 hover:bg-red-50'
+                      : n.leida
+                        ? 'hover:bg-surface-50'
+                        : 'bg-primary-50/60 hover:bg-primary-50'"
                   >
                     <div class="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                      :class="n.leida ? 'bg-surface-100 text-surface-400' : 'bg-primary-100 text-primary-600'">
+                      :class="n.id === 'virtual-moroso' && !n.leida
+                        ? 'bg-red-100 text-red-600'
+                        : n.leida
+                          ? 'bg-surface-100 text-surface-400'
+                          : 'bg-primary-100 text-primary-600'">
                       <span v-html="iconoNotif(n.data?.tipo)"/>
                     </div>
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-bold truncate"
-                        :class="n.leida ? 'text-surface-900' : 'text-primary-600'">{{ tituloNotif(n) }}</p>
+                        :class="n.id === 'virtual-moroso' && !n.leida
+                          ? 'text-red-600'
+                          : n.leida
+                            ? 'text-surface-900'
+                            : 'text-primary-600'">{{ tituloNotif(n) }}</p>
                       <p class="text-xs truncate mt-0.5"
-                        :class="n.leida ? 'text-surface-500' : 'text-primary-500'">{{ subtituloNotif(n) }}</p>
+                        :class="n.id === 'virtual-moroso' && !n.leida
+                          ? 'text-red-500'
+                          : n.leida
+                            ? 'text-surface-500'
+                            : 'text-primary-500'">{{ subtituloNotif(n) }}</p>
                       <p class="text-[10px] text-surface-400 mt-1">{{ new Date(n.creada_en).toLocaleDateString('es-MX') }}</p>
                     </div>
-                    <span v-if="!n.leida" class="mt-2 w-2 h-2 rounded-full bg-primary-500 shrink-0"/>
+                    <span v-if="!n.leida" class="mt-2 w-2 h-2 rounded-full bg-primary-500 shrink-0"
+                      :class="n.id === 'virtual-moroso' ? 'bg-red-500' : 'bg-primary-500'"/>
                   </li>
                 </ul>
               </div>
@@ -271,8 +325,8 @@ onUnmounted(() => {
       <!-- ── Campanita Mobile ── -->
       <div class="relative" ref="notifDropdownMobile">
         <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
-          <IconBell class="w-5 h-5" :class="notifStore.tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
-          <span v-if="notifStore.tieneNoLeidas"
+          <IconBell class="w-5 h-5" :class="tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
+          <span v-if="tieneNoLeidas"
             class="absolute top-2 right-2.5 bg-primary-600 h-2 w-2 rounded-full border border-white ring-[1.5px] ring-white"/>
         </button>
 
@@ -281,8 +335,8 @@ onUnmounted(() => {
             class="absolute top-12 right-0 w-80 bg-white rounded-2xl border border-surface-200 shadow-2xl z-60 overflow-hidden">
             <div class="flex items-center justify-between px-5 pt-5 pb-3">
               <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
-              <button v-if="notifStore.tieneNoLeidas"
-                @click="notifStore.marcarTodasLeidas"
+              <button v-if="tieneNoLeidas"
+                @click="marcarTodasLeidas"
                 class="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors">
                 Marcar todas leídas
               </button>
@@ -292,28 +346,45 @@ onUnmounted(() => {
             <div v-if="notifStore.isLoading" class="flex justify-center py-8">
               <div class="w-6 h-6 rounded-full border-2 border-surface-200 border-t-primary-500 animate-spin"/>
             </div>
-            <div v-else-if="notifStore.notificaciones.length === 0"
+            <div v-else-if="notificacionesList.length === 0"
               class="py-8 text-center text-sm font-medium text-surface-400">
               Sin notificaciones nuevas
             </div>
             <ul v-else class="max-h-72 overflow-y-auto divide-y divide-surface-50">
-              <li v-for="n in notifStore.notificaciones" :key="n.id"
+              <li v-for="n in notificacionesList" :key="n.id"
                 @click="abrirDetalle(n)"
                 class="flex items-start gap-3 px-5 py-3.5 cursor-pointer transition-colors"
-                :class="n.leida ? 'hover:bg-surface-50' : 'bg-primary-50/60 hover:bg-primary-50'"
+                :class="n.id === 'virtual-moroso' && !n.leida
+                  ? 'bg-red-50/60 hover:bg-red-50'
+                  : n.leida
+                    ? 'hover:bg-surface-50'
+                    : 'bg-primary-50/60 hover:bg-primary-50'"
               >
                 <div class="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  :class="n.leida ? 'bg-surface-100 text-surface-400' : 'bg-primary-100 text-primary-600'">
+                  :class="n.id === 'virtual-moroso' && !n.leida
+                    ? 'bg-red-100 text-red-600'
+                    : n.leida
+                      ? 'bg-surface-100 text-surface-400'
+                      : 'bg-primary-100 text-primary-600'">
                   <span v-html="iconoNotif(n.data?.tipo)"/>
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-bold truncate"
-                    :class="n.leida ? 'text-surface-900' : 'text-primary-600'">{{ tituloNotif(n) }}</p>
+                    :class="n.id === 'virtual-moroso' && !n.leida
+                      ? 'text-red-600'
+                      : n.leida
+                        ? 'text-surface-900'
+                        : 'text-primary-600'">{{ tituloNotif(n) }}</p>
                   <p class="text-xs truncate mt-0.5"
-                    :class="n.leida ? 'text-surface-500' : 'text-primary-500'">{{ subtituloNotif(n) }}</p>
+                    :class="n.id === 'virtual-moroso' && !n.leida
+                      ? 'text-red-500'
+                      : n.leida
+                        ? 'text-surface-500'
+                        : 'text-primary-500'">{{ subtituloNotif(n) }}</p>
                   <p class="text-[10px] text-surface-400 mt-1">{{ new Date(n.creada_en).toLocaleDateString('es-MX') }}</p>
                 </div>
-                <span v-if="!n.leida" class="mt-2 w-2 h-2 rounded-full bg-primary-500 shrink-0"/>
+                <span v-if="!n.leida" class="mt-2 w-2 h-2 rounded-full bg-primary-500 shrink-0"
+                  :class="n.id === 'virtual-moroso' ? 'bg-red-500' : 'bg-primary-500'"/>
               </li>
             </ul>
           </div>
@@ -416,14 +487,18 @@ onUnmounted(() => {
                         ? 'Comunidad · Amigos'
                         : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
                           ? 'Penalización Levantada'
-                          : 'Penalización Asignada' }}
+                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                            ? 'Estado de Cuenta'
+                            : 'Penalización Asignada' }}
                     </p>
                     <h3 class="text-lg font-black leading-tight">
                       {{ esTipoAmistad(notifSeleccionada.data?.tipo)
                         ? tituloNotif(notifSeleccionada)
                         : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
                           ? 'Cuenta sin restricciones'
-                          : labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}
+                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                            ? 'Adeudo Pendiente'
+                            : labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}
                     </h3>
                   </div>
                 </div>
@@ -445,8 +520,23 @@ onUnmounted(() => {
                 </div>
               </div>
 
+              <!-- Cuerpo — variante morosidad -->
+              <div v-else-if="notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'" class="px-7 py-6 space-y-4">
+                <p class="text-sm font-semibold text-surface-700 leading-relaxed">
+                  Tu cuenta presenta adeudos pendientes. Para regularizar tu estatus y evitar limitaciones en tus servicios, por favor acude a las oficinas de Administración del club.
+                </p>
+                <div class="flex items-start gap-3 bg-red-50 rounded-2xl border border-red-100 p-4">
+                  <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                  </svg>
+                  <p class="text-xs font-semibold text-red-800 leading-relaxed">
+                    Atención: Los socios con estatus MOROSO no pueden reservar nuevos espacios o clases.
+                  </p>
+                </div>
+              </div>
+
               <!-- Cuerpo — variante sanción -->
-              <div v-else-if="notifSeleccionada.data?.tipo !== 'SANCION_LEVANTADA'" class="px-7 py-6 space-y-4">
+              <div v-else-if="notifSeleccionada.data?.tipo !== 'SANCION_LEVANTADA' && notifSeleccionada.data?.tipo !== 'CUENTA_MOROSA'" class="px-7 py-6 space-y-4">
                 <p class="text-sm font-semibold text-surface-700 leading-relaxed">
                   La administración del club ha registrado una penalización en tu cuenta para el/los siguiente(s) servicio(s):
                   <span class="font-black text-surface-900"> {{ labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}</span>.
