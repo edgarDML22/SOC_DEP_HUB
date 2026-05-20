@@ -4,6 +4,14 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
+const props = defineProps({
+  modo: {
+    type: String,
+    default: 'socio',
+    validator: (v) => ['socio', 'instructor'].includes(v)
+  }
+});
+
 const activeView = ref('hoy');
 
 const tabs = [
@@ -28,7 +36,7 @@ const tabs = [
 
       <!-- Botón Volver -->
       <button
-        @click="router.push('/socio/home')"
+        @click="router.push(props.modo === 'instructor' ? '/instructor/home' : '/socio/home')"
         class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit group"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

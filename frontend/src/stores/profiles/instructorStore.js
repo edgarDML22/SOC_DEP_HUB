@@ -20,6 +20,14 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         return profileData.value?.tieneLudoteca == true;
     });
 
+    const tieneTurnoLudotecaHoy = computed(() => {
+        return profileData.value?.turno_ludoteca_hoy === true;
+    });
+
+    const homeSessions = computed(() => {
+        return homeSessionsCache.value;
+    });
+
     // Caché de sesiones del home — persiste mientras el store viva (misma sesión)
     const homeSessionsCache = ref(null);
     const homeSessionsLoading = ref(false);
@@ -58,6 +66,8 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         idInstructor,
         disciplinas,
         isCuidador,
+        tieneTurnoLudotecaHoy,
+        homeSessions,
         fetchProfile,
         updateProfile,
         logout,

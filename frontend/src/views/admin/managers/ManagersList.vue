@@ -8,6 +8,7 @@ import {
   SearchInput,
   LoadingSpinner,
   CancelButton,
+  ConfirmButton,
   FilterContainer,
   FilterSelect
 } from '@/components/gerente/ui'
@@ -320,94 +321,118 @@ onMounted(() => {
     <!-- Modals -->
     <Teleport to="body">
       <!-- Create Modal -->
-      <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100"
-        leave-to-class="opacity-0">
+      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0">
         <div v-if="isCreateModalOpen"
           class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="isCreateModalOpen = false">
-          <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl overflow-hidden animate-scale-in">
-            <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-              <div>
-                <h3 class="text-xl font-black text-surface-900 leading-tight">Nuevo Gerente</h3>
-                <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                  Registra un nuevo usuario administrativo.
-                </p>
+          <Transition enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0">
+            <div v-if="isCreateModalOpen" class="bg-white w-full max-w-lg rounded-4xl shadow-2xl shadow-surface-900/20
+                     flex flex-col max-h-[92vh] overflow-hidden">
+              <!-- Cabecera -->
+              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
+                <div>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nuevo Gerente</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
+                    Registra un nuevo usuario administrativo.
+                  </p>
+                </div>
+                <button @click="isCreateModalOpen = false" class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200
+                         flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button @click="isCreateModalOpen = false"
-                class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+
+              <form @submit.prevent="handleCreate" class="flex flex-col flex-1 overflow-hidden">
+                <!-- Cuerpo -->
+                <div class="flex-1 overflow-y-auto p-7 space-y-6 bg-surface-50/30">
+                  <!-- Nombre -->
+                  <div class="space-y-1.5">
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                      Nombre Completo <span class="text-red-400">*</span>
+                    </label>
+                    <div class="relative">
+                      <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                      <input v-model="createForm.nombre_completo" type="text" required placeholder="Ej. Juan Pérez García"
+                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                               text-surface-900 placeholder:text-surface-400 shadow-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                    </div>
+                  </div>
+
+                  <!-- Correo + Cargo -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                        Correo Electrónico <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model="createForm.correo_electronico" type="email" required placeholder="juan@ejemplo.com"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                      </div>
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                        Cargo <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <IconBriefcase class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model="createForm.cargo" type="text" required placeholder="Ej. Dir. Comercial"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Contraseña + Rol -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                        Contraseña <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <IconLock class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model="createForm.password" type="password" required minlength="8" placeholder="••••••••"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                      </div>
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                        Rol de Acceso <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <select v-model="createForm.rol"
+                          class="w-full pl-4 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
+                          <option value="gerente">Gerente</option>
+                          <option value="subgerente">Subgerente</option>
+                        </select>
+                        <IconChevronDown
+                          class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pie -->
+                <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
+                  <CancelButton label="Cancelar" @click="isCreateModalOpen = false" />
+                  <ConfirmButton label="Crear Gerente" :loading="isLoading.create" type="submit" />
+                </div>
+              </form>
             </div>
-
-            <form @submit.prevent="handleCreate" class="p-7 space-y-6 bg-surface-50/30">
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Nombre
-                  Completo</label>
-                <div class="relative">
-                  <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                  <input v-model="createForm.nombre_completo" type="text" required
-                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
-                    placeholder="Ej. Juan Pérez" />
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Correo
-                    Electrónico</label>
-                  <div class="relative">
-                    <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="createForm.correo_electronico" type="email" required
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
-                      placeholder="juan@ejemplo.com" />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Cargo</label>
-                  <div class="relative">
-                    <IconBriefcase class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="createForm.cargo" type="text" required
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
-                      placeholder="Ej. Dir. Comercial" />
-                  </div>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Contraseña</label>
-                  <div class="relative">
-                    <IconLock class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="createForm.password" type="password" required minlength="8"
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
-                      placeholder="••••••••" />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Rol de
-                    Acceso</label>
-                  <div class="relative">
-                    <select v-model="createForm.rol"
-                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
-                      <option value="gerente">Gerente</option>
-                      <option value="subgerente">Subgerente</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pie del modal -->
-              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
-                <CancelButton label="Cancelar" @click="isCreateModalOpen = false" />
-                <ConfirmButton label="Crear Gerente" :loading="isLoading.create" type="submit" />
-              </div>
-            </form>
-          </div>
+          </Transition>
         </div>
       </Transition>
 
@@ -418,86 +443,96 @@ onMounted(() => {
         <div v-if="isEditModalOpen"
           class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="isEditModalOpen = false">
-          <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl overflow-hidden animate-scale-in">
-            <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-              <div>
-                <h3 class="text-xl font-black text-surface-900 leading-tight">Editar Gerente</h3>
-                <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                  Modifica los datos del usuario.
-                </p>
+          <Transition enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0">
+            <div v-if="isEditModalOpen" class="bg-white w-full max-w-lg rounded-4xl shadow-2xl shadow-surface-900/20
+                     flex flex-col max-h-[92vh] overflow-hidden">
+              <!-- Cabecera -->
+              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
+                <div>
+                  <h2 class="text-xl font-black text-surface-900 leading-tight">Editar Gerente</h2>
+                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
+                    Modifica los datos del usuario.
+                  </p>
+                </div>
+                <button @click="isEditModalOpen = false" class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200
+                         flex items-center justify-center text-surface-500 transition-colors">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button @click="isEditModalOpen = false"
-                class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+
+              <form @submit.prevent="handleUpdate" class="flex flex-col flex-1 overflow-hidden">
+                <!-- Cuerpo -->
+                <div class="flex-1 overflow-y-auto p-7 space-y-6 bg-surface-50/30">
+                  <!-- Nombre -->
+                  <div class="space-y-1.5">
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                      Nombre Completo <span class="text-red-400">*</span>
+                    </label>
+                    <div class="relative">
+                      <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                      <input v-model="editForm.nombre_empleado" type="text" required placeholder="Ej. Juan Pérez García"
+                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                               text-surface-900 placeholder:text-surface-400 shadow-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                    </div>
+                  </div>
+
+                  <!-- Correo + Cargo -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                        Correo Electrónico <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model="editForm.email" type="email" required placeholder="juan@ejemplo.com"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                      </div>
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                        Cargo <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <IconBriefcase class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input v-model="editForm.cargo" type="text" required placeholder="Ej. Dir. Comercial"
+                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                                 text-surface-900 placeholder:text-surface-400 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Contraseña (opcional) -->
+                  <div class="space-y-1.5">
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
+                      Contraseña (opcional)
+                    </label>
+                    <div class="relative">
+                      <IconLock class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                      <input v-model="editForm.password" type="password" minlength="8"
+                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
+                               text-surface-900 placeholder:text-surface-400 shadow-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"
+                        placeholder="Dejar en blanco para no cambiar" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pie -->
+                <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
+                  <CancelButton label="Cancelar" @click="isEditModalOpen = false" />
+                  <ConfirmButton label="Guardar Cambios" :loading="isLoading.update" type="submit" />
+                </div>
+              </form>
             </div>
-
-            <form @submit.prevent="handleUpdate" class="p-7 space-y-6 bg-surface-50/30">
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Nombre
-                  Completo</label>
-                <div class="relative">
-                  <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                  <input v-model="editForm.nombre_completo" type="text" required
-                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm" />
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Correo
-                    Electrónico</label>
-                  <div class="relative">
-                    <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="editForm.correo_electronico" type="email" required
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm" />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Cargo</label>
-                  <div class="relative">
-                    <IconBriefcase class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="editForm.cargo" type="text" required
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm" />
-                  </div>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Contraseña
-                    (opcional)</label>
-                  <div class="relative">
-                    <IconLock class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="editForm.password" type="password" minlength="8"
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
-                      placeholder="Dejar en blanco para no cambiar" />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 ml-1">Rol de
-                    Acceso</label>
-                  <div class="relative">
-                    <select v-model="editForm.rol"
-                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
-                      <option value="gerente">Gerente</option>
-                      <option value="subgerente">Subgerente</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pie del modal -->
-              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
-                <CancelButton label="Cancelar" @click="isEditModalOpen = false" />
-                <ConfirmButton label="Guardar Cambios" :loading="isLoading.update" type="submit" />
-              </div>
-            </form>
-          </div>
+          </Transition>
         </div>
       </Transition>
     </Teleport>
