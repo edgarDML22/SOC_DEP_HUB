@@ -35,15 +35,15 @@ class AgendaEspacioController extends Controller
               AND  ap.id_espacio   = ?
               AND  sa.estatus_sesion NOT IN ('CANCELADA', 'FINALIZADA')
 
-            -- PASO 3: Encuentros de torneo en este espacio (pendiente backend de torneos)
-            -- UNION ALL
-            -- SELECT CAST(fecha_hora_inicio AS TIME), CAST(fecha_hora_fin AS TIME), 'torneo' AS tipo
-            -- FROM   encuentros_torneo
-            -- WHERE  id_espacio = ?
-            --   AND  DATE(fecha_hora_inicio) = ?
-            --   AND  fecha_hora_inicio IS NOT NULL
-            --   AND  fecha_hora_fin IS NOT NULL
-            --   AND  estatus_encuentro NOT IN ('CANCELADO', 'FINALIZADO')
+            -- PASO 3: Encuentros de torneo en este espacio
+            UNION ALL
+            SELECT CAST(fecha_hora_inicio AS TIME), CAST(fecha_hora_fin AS TIME), 'torneo' AS tipo
+            FROM   encuentros_torneo
+            WHERE  id_espacio = ?
+              AND  DATE(fecha_hora_inicio) = ?
+              AND  fecha_hora_inicio IS NOT NULL
+              AND  fecha_hora_fin IS NOT NULL
+              AND  estatus_encuentro NOT IN ('CANCELADO', 'FINALIZADO')
 
             UNION ALL
 
@@ -66,30 +66,13 @@ class AgendaEspacioController extends Controller
               AND  ic.estatus_inscripcion != 'CANCELADA'
               AND  sa.estatus_sesion NOT IN ('CANCELADA', 'FINALIZADA')
 
-            -- PASO 4c: Torneos donde el socio participa (pendiente backend de torneos)
-            -- UNION ALL
-            -- SELECT
-            --     CAST(et.fecha_hora_inicio AS TIME),
-            --     CAST(et.fecha_hora_fin AS TIME),
-            --     'conflicto_personal' AS tipo
-            -- FROM   equipos_torneo eqt
-            -- JOIN   encuentros_torneo et ON
-            --        eqt.id_interno = et.id_competidor_1 OR eqt.id_interno = et.id_competidor_2
-            -- WHERE  eqt.referencia_id   = ?
-            --   AND  eqt.tipo_entidad    = 'SOCIO_TITULAR'
-            --   AND  DATE(et.fecha_hora_inicio) = ?
-            --   AND  et.fecha_hora_inicio IS NOT NULL
-            --   AND  et.fecha_hora_fin IS NOT NULL
-            --   AND  et.estatus_encuentro NOT IN ('CANCELADO', 'FINALIZADO')
-
             ORDER BY inicio
         ", [
             $id_espacio, $fecha, $ahora, $id_socio,  // PASO 1: 4 params
             $fecha, $id_espacio,                       // PASO 2: 2 params
-            // $id_espacio, $fecha,                    // PASO 3: 2 params (torneos)
+            $id_espacio, $fecha,                       // PASO 3: 2 params (torneos)
             $id_socio, $fecha, $id_espacio,            // PASO 4a: 3 params
             $id_socio, $fecha,                         // PASO 4b: 2 params
-            // $id_socio, $fecha,                      // PASO 4c: 2 params (torneos)
         ]);
 
         return response()->json(['success' => true, 'data' => $bloques]);
