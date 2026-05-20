@@ -12,6 +12,8 @@ class ResultadoController extends Controller
      * Reporta los marcadores preliminares de un encuentro.
      * [PATCH /v1/encuentros/{id}/resultado]
      *
+     * Pueden reportar: el árbitro asignado al encuentro O un subgerente.
+     *
      * @param Request $request
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
@@ -20,10 +22,17 @@ class ResultadoController extends Controller
     {
         $encuentro = EncuentrosTorneo::findOrFail($id);
 
-        // 1. Autorización: sólo el árbitro asignado al encuentro
-        if (auth()->id() !== $encuentro->id_arbitro_asignado) {
+        $user = auth()->user();
+
+        // 1. Autorización: árbitro asignado O subgerente
+        $esArbitroAsignado = $encuentro->id_arbitro_asignado !== null
+            && $user->id === (int) $encuentro->id_arbitro_asignado;
+
+        $esSubgerente = $user->rol === 'subgerente';
+
+        if (!$esArbitroAsignado && !$esSubgerente) {
             return response()->json([
-                'message' => 'No eres el árbitro asignado a este encuentro.'
+                'message' => 'No tienes permiso para reportar el resultado de este encuentro. Solo el árbitro asignado o un subgerente pueden hacerlo.'
             ], 403);
         }
 
@@ -70,13 +79,15 @@ class ResultadoController extends Controller
      * Valida el resultado reportado y avanza al ganador en el bracket.
      * [PATCH /v1/encuentros/{id}/validar]
      *
+     * Solo puede validar el subgerente.
+     *
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function validar($id)
     {
         // 1. Autorización: sólo el Subgerente
-        if (auth()->user()->rol !== 'subgerente') {
+        if (!auth()->check() || auth()->user()->rol !== 'subgerente') {
             return response()->json([
                 'message' => 'No tienes permisos para validar resultados de encuentros.'
             ], 403);
@@ -95,9 +106,13 @@ class ResultadoController extends Controller
         $resultado = app(AvanzarBracketAction::class)->execute($encuentro);
 
         return response()->json([
-            'estatus_encuentro' => 'FINALIZADO',
-            'ganador_id' => $resultado['ganador_id'],
-            'ganador_type' => $resultado['ganador_type']
+            'estatus_encuentro'  => 'FINALIZADO',
+            'ganador_id'         => $resultado['ganador_id'],
+            'ganador_type'       => $resultado['ganador_type'],
+            'id_encuentro'       => $encuentro->id_encuentro,
+            'id_torneo'          => $encuentro->id_torneo,
+            'fase_bracket'       => $encuentro->fase_bracket,
+            'torneo_finalizado'  => $resultado['torneo_finalizado'],
         ], 200);
     }
 }
