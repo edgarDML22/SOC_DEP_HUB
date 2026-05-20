@@ -74,6 +74,10 @@ class ProfileController extends Controller
                         'estatus_penalizacion' => $perfil->estatus_penalizacion,
                         'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
                         'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
+                        'fecha_fin_penalizacion_ludoteca' => $perfil->fecha_fin_penalizacion_ludoteca ?? null,
+                        'fecha_fin_penalizacion_reservas' => $perfil->fecha_fin_penalizacion_reserva ?? null,
+                        'fecha_fin_penalizacion_reserva' => $perfil->fecha_fin_penalizacion_reserva ?? null,
+                        'retrasos_acumulados_ludoteca' => $perfil->retrasos_ludoteca ?? 0,
                         'qr_payload' => $qrPayload,
                         'qr_image_url' => $qrImageUrl,
                     ]
@@ -92,7 +96,10 @@ class ProfileController extends Controller
                         'st.modalidad_plan',
                         'st.estatus_cuenta',
                         'st.estatus_penalizacion',
-                        'st.fecha_fin_penalizacion'
+                        'st.fecha_fin_penalizacion',
+                        'st.fecha_fin_penalizacion_ludoteca',
+                        'st.fecha_fin_penalizacion_reserva',
+                        'st.retrasos_ludoteca'
                     )
                     ->where('mf.id_miembro', $usuario->user_id)
                     ->first();
@@ -119,6 +126,10 @@ class ProfileController extends Controller
                         'estatus_cuenta' => $perfilMf->estatus_cuenta,
                         'estatus_penalizacion' => $perfilMf->estatus_penalizacion ?? null,
                         'fecha_fin_penalizacion' => $perfilMf->fecha_fin_penalizacion ?? null,
+                        'fecha_fin_penalizacion_ludoteca' => $perfilMf->fecha_fin_penalizacion_ludoteca ?? null,
+                        'fecha_fin_penalizacion_reservas' => $perfilMf->fecha_fin_penalizacion_reserva ?? null,
+                        'fecha_fin_penalizacion_reserva' => $perfilMf->fecha_fin_penalizacion_reserva ?? null,
+                        'retrasos_acumulados_ludoteca' => $perfilMf->retrasos_ludoteca ?? 0,
                         'qr_payload' => $mfQrPayload,
                         'qr_image_url' => $mfQrImageUrl,
                     ];
