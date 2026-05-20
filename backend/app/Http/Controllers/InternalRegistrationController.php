@@ -153,7 +153,11 @@ class InternalRegistrationController extends Controller
         try {
             $inscripcion = ParticipantesTorneo::create([
                 'id_torneo' => $torneo->id_torneo,
-                'participante_type' => $request->participante_type,
+                // Pasar el FQCN del modelo para que enforceMorphMap resuelva al alias correcto
+                // ('SOCIO' o 'FAMILIAR'), igual que lo hace AprobarPreRegistroAction.
+                'participante_type' => $request->participante_type === 'SOCIO'
+                    ? SocioTitular::class
+                    : MiembrosFamiliares::class,
                 'participante_id' => $request->participante_id,
                 'estatus_inscripcion' => 'CONFIRMADO',
                 'ranking_declarado' => $request->ranking_declarado,

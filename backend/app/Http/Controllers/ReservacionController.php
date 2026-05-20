@@ -11,6 +11,7 @@ use App\Models\EspacioFisico;
 use App\Models\Reservacion;
 use Illuminate\Support\Facades\Validator;
 use App\Models\SesionActiva;
+use App\Models\EncuentrosTorneo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\SocioTitular;
@@ -88,7 +89,17 @@ class ReservacionController extends Controller
                 })
                 ->exists();
 
-            if ($conflictoReserva || $conflictoSesion) {
+            // 3. VALIDAR EMPALMES CON ENCUENTROS DE TORNEO
+            $conflictoTorneo = EncuentrosTorneo::where('id_espacio', $request->id_espacio)
+                ->whereDate('fecha_hora_inicio', $request->fecha_reserva)
+                ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
+                ->whereNotNull('fecha_hora_inicio')
+                ->whereNotNull('fecha_hora_fin')
+                ->where('fecha_hora_inicio', '<', $request->fecha_reserva . ' ' . $request->hora_fin)
+                ->where('fecha_hora_fin', '>', $request->fecha_reserva . ' ' . $request->hora_inicio)
+                ->exists();
+
+            if ($conflictoReserva || $conflictoSesion || $conflictoTorneo) {
                 return response()->json(['success' => false, 'message' => 'Espacio agotado. Ya existe una actividad en este horario'], 409);
             }
 

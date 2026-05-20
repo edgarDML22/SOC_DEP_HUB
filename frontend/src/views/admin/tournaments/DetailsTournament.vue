@@ -7,6 +7,9 @@ import TournamentStatusModal from '@/components/tournaments/TournamentStatusModa
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import BracketView from '@/components/tournaments/BracketView.vue'
+
+const activeTab = ref('detalles')
 
 const route = useRoute()
 const router = useRouter()
@@ -165,8 +168,26 @@ const goBack = () => {
               </span>
             </div>
 
+            <!-- Tabs de Navegación -->
+            <div class="flex border-b border-surface-200 bg-surface-50/50">
+              <button 
+                @click="activeTab = 'detalles'"
+                :class="activeTab === 'detalles' ? 'border-primary-600 text-primary-600 font-black' : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 font-bold'"
+                class="py-3 px-6 border-b-2 text-sm transition-all focus:outline-none"
+              >
+                Detalles
+              </button>
+              <button 
+                @click="activeTab = 'bracket'"
+                :class="activeTab === 'bracket' ? 'border-primary-600 text-primary-600 font-black' : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 font-bold'"
+                class="py-3 px-6 border-b-2 text-sm transition-all focus:outline-none"
+              >
+                Bracket
+              </button>
+            </div>
+
             <!-- Cuerpo de Información -->
-            <div class="bg-surface-50/40 p-7">
+            <div v-if="activeTab === 'detalles'" class="bg-surface-50/40 p-7">
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                 <!-- Columna Izquierda: Detalles -->
@@ -269,6 +290,11 @@ const goBack = () => {
                 </div>
 
               </div>
+            </div>
+
+            <!-- Cuerpo del Bracket -->
+            <div v-else-if="activeTab === 'bracket'" class="p-7">
+              <BracketView :idTorneo="Number(torneoId)" />
             </div>
 
             <!-- Pie de Acciones -->
