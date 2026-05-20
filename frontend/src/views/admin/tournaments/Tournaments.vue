@@ -111,6 +111,18 @@ const buildActions = (torneo) => {
     action: () => openStatusModal(torneo)
   })
 
+  if ((torneo.estado || torneo.estatus_torneo) === 'EN_INSCRIPCION') {
+    actions.push({
+      label: 'Ver pre-registros',
+      icon: `<svg class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m9-4h.01M12 17h.01" />
+             </svg>`,
+      action: () => {
+        router.push({ path: '/admin/tournaments/pre-registros', query: { torneo_id: torneo.id_torneo } })
+      }
+    })
+  }
+
   return actions
 }
 
@@ -143,6 +155,13 @@ onMounted(() => {
             Calendario
           </button>
         </div>
+        
+        <button @click="router.push('/admin/tournaments/pre-registros')" 
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-surface-200 bg-white text-surface-700
+                 text-sm font-bold hover:bg-surface-50 transition-colors shadow-sm mr-3 cursor-pointer">
+          <i class="fas fa-inbox text-surface-500"></i>
+          Ver Pre-registros
+        </button>
         
         <button @click="showCreateModal = true" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
                  text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm">

@@ -52,6 +52,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Instalamos dependencias de PHP en tiempo de build para no depender del host
 COPY composer.json composer.lock ./
 RUN composer install --optimize-autoloader --no-scripts --no-interaction
+COPY . .
 
 # Descargamos el binario RoadRunner (rr) directamente en el PATH del contenedor.
 # La versión se fija para builds reproducibles. Actualizar aquí cuando se bump de versión.
