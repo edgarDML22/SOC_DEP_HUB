@@ -10,6 +10,7 @@ use App\Models\SesionActiva;
 use App\Exceptions\InsufficientSlotsException;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Facades\DB;
 
 class AsignarHorariosAction
 {
@@ -23,6 +24,10 @@ class AsignarHorariosAction
      */
     const HORA_APERTURA = '07:00';
     const HORA_CIERRE   = '23:00';
+
+    const FASES_ORDEN = [
+        '64VOS', '32VOS', '16VOS', '8VOS', 'CUARTOS', 'SEMIFINALES', 'FINAL'
+    ];
 
     /**
      * Asigna fecha_hora_inicio, fecha_hora_fin e id_espacio a cada
@@ -48,16 +53,8 @@ class AsignarHorariosAction
 
         $espacioIds = $espacios->pluck('id_espacio')->toArray();
 
-        // 2. Generar el pool de slots libres en el rango del torneo
-        $slotsLibres = $this->generarSlotsLibres(
-            $torneo->fecha_inicio,
-            $torneo->fecha_fin,
-            $espacioIds,
-            self::DURACION_ENCUENTRO_MINUTOS
-        );
-
-        // 3. Obtener encuentros que necesitan horario (no-BYE, sin fecha asignada)
-        $encuentros = EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)
+        // 2. Obtener todos los encuentros del torneo que requieren horario
+        $todosEncuentros = EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)
             ->where(function ($q) {
                 $q->where('es_bye', false)->orWhereNull('es_bye');
             })
@@ -65,24 +62,99 @@ class AsignarHorariosAction
             ->orderBy('numero_encuentro', 'asc')
             ->get();
 
-        // 4. Verificar que hay suficientes slots
-        if (count($slotsLibres) < count($encuentros)) {
-            throw new InsufficientSlotsException(
-                'Se necesitan ' . count($encuentros) . ' slots pero solo hay '
-                . count($slotsLibres) . ' disponibles.'
+        if ($todosEncuentros->isEmpty()) {
+            return; // nada que programar
+        }
+
+        // 3. Agrupar encuentros por fase respetando el orden lógico
+        $encuentrosPorFase = [];
+        foreach (self::FASES_ORDEN as $fase) {
+            $encs = $todosEncuentros->where('fase_bracket', $fase)->values();
+            if ($encs->isNotEmpty()) {
+                $encuentrosPorFase[$fase] = $encs;
+            }
+        }
+        $fases = array_keys($encuentrosPorFase);
+
+        // 4. Distribuir los días disponibles entre las fases
+        $fechaInicio = Carbon::parse($torneo->fecha_inicio);
+        $fechaFin    = Carbon::parse($torneo->fecha_fin);
+        $totalDias   = $fechaInicio->diffInDays($fechaFin) + 1;
+        $diasPorFase = $this->distribuirDias($fases, $totalDias, $fechaInicio, $fechaFin);
+
+        // 5. Para cada fase, generar slots sólo en sus días asignados y asignarlos
+        foreach ($fases as $fase) {
+            $encuentrosFase = $encuentrosPorFase[$fase];
+            [$diaDesde, $diaHasta] = $diasPorFase[$fase];
+
+            $slotsLibres = $this->generarSlotsLibres(
+                $diaDesde->toDateString(),
+                $diaHasta->toDateString(),
+                $espacioIds,
+                self::DURACION_ENCUENTRO_MINUTOS
             );
+
+            if (count($slotsLibres) < $encuentrosFase->count()) {
+                throw new InsufficientSlotsException(
+                    "No hay suficientes slots para la fase {$fase}: se necesitan "
+                    . $encuentrosFase->count() . ' pero solo hay ' . count($slotsLibres)
+                );
+            }
+
+            foreach ($encuentrosFase as $index => $encuentro) {
+                $slot = $slotsLibres[$index];
+                $encuentro->update([
+                    'id_espacio'        => $slot['id_espacio'],
+                    'fecha_hora_inicio' => $slot['inicio'],
+                    'fecha_hora_fin'    => $slot['fin'],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Distribuye el rango de fechas disponibles (fechaInicio a fechaFin) entre las fases.
+     * La final siempre ocupa el último día disponible (o los últimos si hay muy pocas fases).
+     * Las demás fases se reparten los días anteriores de forma equitativa.
+     */
+    private function distribuirDias(array $fases, int $totalDias, Carbon $fechaInicio, Carbon $fechaFin): array
+    {
+        $numFases = count($fases);
+        $diasParaFinal = 1;
+
+        if ($numFases === 1) {
+            return [$fases[0] => [$fechaInicio->copy(), $fechaFin->copy()]];
         }
 
-        // 5. Asignar slot a cada encuentro (round-robin)
-        foreach ($encuentros as $index => $encuentro) {
-            $slot = $slotsLibres[$index];
+        $fasesAntes = array_slice($fases, 0, $numFases - 1);
+        $faseUltima = $fases[$numFases - 1];
 
-            $encuentro->update([
-                'id_espacio'       => $slot['id_espacio'],
-                'fecha_hora_inicio' => $slot['inicio'],
-                'fecha_hora_fin'    => $slot['fin'],
-            ]);
+        $diasDisponibles = max($numFases - 1, $totalDias - $diasParaFinal);
+        $diasBase  = (int) floor($diasDisponibles / count($fasesAntes));
+        $diasExtra = $diasDisponibles % count($fasesAntes);
+
+        $resultado = [];
+        $cursor = $fechaInicio->copy();
+
+        foreach ($fasesAntes as $i => $fase) {
+            $dias = $diasBase + ($i < $diasExtra ? 1 : 0);
+            $dias = max(1, $dias);
+
+            $desde  = $cursor->copy();
+            $hasta  = $cursor->copy()->addDays($dias - 1);
+
+            $limiteMax = $fechaFin->copy()->subDay();
+            if ($hasta->gt($limiteMax)) {
+                $hasta = $limiteMax->copy();
+            }
+
+            $resultado[$fase] = [$desde, $hasta];
+            $cursor = $hasta->copy()->addDay();
         }
+
+        $resultado[$faseUltima] = [$fechaFin->copy(), $fechaFin->copy()];
+
+        return $resultado;
     }
 
     /**
@@ -104,6 +176,9 @@ class AsignarHorariosAction
     ): array {
         $periodo = CarbonPeriod::create($fechaInicio, $fechaFin);
 
+        // Pre-cargar todos los bloques ocupados del rango para evitar queries N+1
+        $ocupadosPrecargados = $this->preCargarOcupados($espacioIds, $fechaInicio, $fechaFin);
+
         // Agrupar slots por espacio para hacer round-robin después
         $slotsPorEspacio = [];
         foreach ($espacioIds as $idEspacio) {
@@ -114,7 +189,7 @@ class AsignarHorariosAction
             $fechaStr = $fecha->toDateString();
 
             foreach ($espacioIds as $idEspacio) {
-                $ocupados = $this->obtenerBloquesOcupados($idEspacio, $fechaStr);
+                $ocupados = $this->obtenerBloquesOcupados($ocupadosPrecargados, $idEspacio, $fechaStr);
                 $libres   = $this->calcularSlotsLibres($fechaStr, $ocupados, $duracionMin);
 
                 foreach ($libres as $slot) {
@@ -139,14 +214,14 @@ class AsignarHorariosAction
      * @param string $fecha
      * @return array [['inicio' => 'HH:MM', 'fin' => 'HH:MM'], ...]
      */
-    private function obtenerBloquesOcupados(int $idEspacio, string $fecha): array
+    private function preCargarOcupados(array $espacioIds, string $fechaInicio, string $fechaFin): array
     {
         $ocupados = [];
         $ahora = Carbon::now('America/Mexico_City');
 
-        // A. Reservaciones activas o pendientes vigentes
-        $reservaciones = Reservacion::where('id_espacio', $idEspacio)
-            ->where('fecha_reserva', $fecha)
+        // A. Reservaciones activas
+        $reservaciones = Reservacion::whereIn('id_espacio', $espacioIds)
+            ->whereBetween('fecha_reserva', [$fechaInicio, $fechaFin])
             ->where(function ($q) use ($ahora) {
                 $q->where('estatus_operativo', 'ACTIVA')
                   ->orWhere(function ($sub) use ($ahora) {
@@ -154,51 +229,63 @@ class AsignarHorariosAction
                           ->where('fecha_expiracion', '>', $ahora);
                   });
             })
-            ->get(['hora_inicio', 'hora_fin']);
+            ->get(['id_espacio', 'fecha_reserva', 'hora_inicio', 'hora_fin']);
 
         foreach ($reservaciones as $r) {
-            $ocupados[] = [
+            $fecha = $r->fecha_reserva;
+            $ocupados[$r->id_espacio][$fecha][] = [
                 'inicio' => substr($r->hora_inicio, 0, 5),
                 'fin'    => substr($r->hora_fin, 0, 5),
             ];
         }
 
-        // B. Sesiones activas (clases programadas)
+        // B. Sesiones activas (clases)
         $sesiones = SesionActiva::withoutGlobalScopes()
-            ->where('fecha_sesion', $fecha)
+            ->whereBetween('fecha_sesion', [$fechaInicio, $fechaFin])
             ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA', 'CANCELADA_POR_TORNEO'])
-            ->whereHas('actividadPlantilla', function ($q) use ($idEspacio) {
-                $q->where('id_espacio', $idEspacio);
+            ->whereHas('actividadPlantilla', function ($q) use ($espacioIds) {
+                $q->whereIn('id_espacio', $espacioIds);
             })
-            ->with('actividadPlantilla:id_actividad_plantilla,hora_inicio,hora_fin')
+            ->with('actividadPlantilla:id_actividad_plantilla,id_espacio,hora_inicio,hora_fin')
             ->get();
 
-        foreach ($sesiones as $sesion) {
-            $ap = $sesion->actividadPlantilla;
+        foreach ($sesiones as $s) {
+            $ap = $s->actividadPlantilla;
             if ($ap) {
-                $ocupados[] = [
+                $fecha = $s->fecha_sesion;
+                $ocupados[$ap->id_espacio][$fecha][] = [
                     'inicio' => substr($ap->hora_inicio, 0, 5),
                     'fin'    => substr($ap->hora_fin, 0, 5),
                 ];
             }
         }
 
-        // C. Otros encuentros de torneo ya programados en este espacio
-        $encuentros = EncuentrosTorneo::where('id_espacio', $idEspacio)
-            ->whereDate('fecha_hora_inicio', $fecha)
+        // C. Otros encuentros ya programados
+        $encuentros = EncuentrosTorneo::whereIn('id_espacio', $espacioIds)
+            ->whereBetween(DB::raw('DATE(fecha_hora_inicio)'), [$fechaInicio, $fechaFin])
             ->whereNotNull('fecha_hora_inicio')
             ->whereNotNull('fecha_hora_fin')
             ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
-            ->get(['fecha_hora_inicio', 'fecha_hora_fin']);
+            ->get(['id_espacio', 'fecha_hora_inicio', 'fecha_hora_fin']);
 
         foreach ($encuentros as $enc) {
-            $ocupados[] = [
+            $fecha = Carbon::parse($enc->fecha_hora_inicio)->toDateString();
+            $ocupados[$enc->id_espacio][$fecha][] = [
                 'inicio' => Carbon::parse($enc->fecha_hora_inicio)->format('H:i'),
                 'fin'    => Carbon::parse($enc->fecha_hora_fin)->format('H:i'),
             ];
         }
 
-        // Ordenar por hora de inicio
+        return $ocupados;
+    }
+
+    /**
+     * Obtiene los bloques ocupados pre-cargados para un espacio y fecha.
+     */
+    private function obtenerBloquesOcupados(array $precargados, int $idEspacio, string $fecha): array
+    {
+        $ocupados = $precargados[$idEspacio][$fecha] ?? [];
+
         usort($ocupados, fn($a, $b) => strcmp($a['inicio'], $b['inicio']));
 
         return $ocupados;

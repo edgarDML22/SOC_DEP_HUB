@@ -42,7 +42,10 @@ class GenerarBracketAction
         $byes     = $potencia - $n;
 
         // DB Transaction atómica
-        DB::transaction(function () use ($torneo, $participantes, $n, $potencia, $byes) {
+        DB::transaction(function () use ($torneo, $participantes, $potencia) {
+
+            // Limpiar encuentros generados previamente para este torneo (hacerlo idempotente)
+            \App\Models\EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)->delete();
 
             // 4. Asignar seed (id_interno) a cada participante según su posición por ranking
             foreach ($participantes as $index => $participante) {
@@ -55,8 +58,10 @@ class GenerarBracketAction
                 $seedsMap[$index + 1] = $participante;
             }
 
-            // El tipo morph correcto para encuentros_torneo → siempre ParticipantesTorneo
-            $participanteType = ParticipantesTorneo::class;
+            // El tipo morph correcto para encuentros_torneo.
+            // Se usa el alias del MorphMap definido en AppServiceProvider ('PARTICIPANTE'),
+            // NO el FQCN, ya que se usa enforceMorphMap().
+            $participanteType = 'PARTICIPANTE';
 
             // 5. Determinar la fase de la primera ronda según matchesInRound
             $matchesInRound = $potencia / 2;
@@ -103,10 +108,10 @@ class GenerarBracketAction
             }
 
             // 6. Crear slots vacíos para las fases subsecuentes
-            $matchesInRound = $matchesInRound / 2;
-            while ($matchesInRound >= 1) {
-                $fase = $this->getFaseName($matchesInRound);
-                for ($i = 1; $i <= $matchesInRound; $i++) {
+            $nextRoundMatches = $matchesInRound / 2;
+            while ($nextRoundMatches >= 1) {
+                $fase = $this->getFaseName($nextRoundMatches);
+                for ($i = 1; $i <= $nextRoundMatches; $i++) {
                     EncuentrosTorneo::create([
                         'id_torneo'          => $torneo->id_torneo,
                         'fase_bracket'       => $fase,
@@ -119,7 +124,47 @@ class GenerarBracketAction
                         'numero_encuentro'   => $numeroEncuentro++,
                     ]);
                 }
-                $matchesInRound = $matchesInRound / 2;
+                $nextRoundMatches = $nextRoundMatches / 2;
+            }
+
+            // 7. Propagar ganadores de BYEs a sus posiciones en la siguiente ronda.
+            // Un BYE en el encuentro N alimenta al slot de la siguiente ronda en
+            // la posición ceil(N / 2). Puesto que numero_encuentro es continuo,
+            // el encuentro destino tendrá numero_encuentro = $matchesInRound + ceil(N / 2).
+            $byeEncuentros = EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)
+                ->where('es_bye', true)
+                ->get();
+
+            // Obtener la fase inmediatamente siguiente a la primera ronda
+            $nextFase = $this->getFaseName($matchesInRound / 2);
+
+            foreach ($byeEncuentros as $bye) {
+                // bye->numero_encuentro va de 1 a $matchesInRound.
+                $offset = (int) ceil($bye->numero_encuentro / 2);
+                $nextMatchNum = $matchesInRound + $offset;
+
+                $nextMatch = EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)
+                    ->where('fase_bracket', $nextFase)
+                    ->where('numero_encuentro', $nextMatchNum)
+                    ->first();
+
+                if (!$nextMatch) {
+                    continue;
+                }
+
+                if ($bye->numero_encuentro % 2 !== 0) {
+                    // Número impar → ocupa el slot de competidor 1
+                    $nextMatch->update([
+                        'competidor_1_id'   => $bye->id_ganador,
+                        'competidor_1_type' => $participanteType,
+                    ]);
+                } else {
+                    // Número par → ocupa el slot de competidor 2
+                    $nextMatch->update([
+                        'competidor_2_id'   => $bye->id_ganador,
+                        'competidor_2_type' => $participanteType,
+                    ]);
+                }
             }
         });
     }
