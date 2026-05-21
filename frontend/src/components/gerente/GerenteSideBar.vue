@@ -168,12 +168,12 @@ const sections = [
           <div class="min-h-0 flex flex-col gap-0.5 pl-3 pb-0.5">
             <!-- Línea decorativa vertical -->
             <div class="relative">
-              <div class="absolute left-2 top-1 bottom-1 w-px bg-slate-700/60 rounded-full" />
+              <div class="absolute left-2 top-1 bottom-1 w-px bg-slate-700/60 rounded-full z-0" />
 
               <template v-for="child in section.children" :key="child.to">
                 <router-link 
                   :to="child.to" 
-                  class="flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm transition-all duration-150 ml-0" 
+                  class="relative z-10 flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm transition-all duration-150 ml-0" 
                   :class="route.path.startsWith(child.to)
                     ? 'text-white font-bold bg-blue-600 shadow-md shadow-blue-600/20'
                     : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 font-medium'"

@@ -248,30 +248,32 @@ const buildMenuItems = (miembro) => [
           <p class="text-sm text-surface-500 mt-1 max-w-xs">No se han registrado miembros familiares para este socio.</p>
         </div>
 
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Nombre</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Correo</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Género</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Parentesco</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Edad</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-100">
-            <tr v-for="miembro in miembros" :key="miembro.id_miembro" class="hover:bg-surface-50/70 transition-colors">
-              <td class="px-5 py-3.5 font-semibold text-surface-900">{{ miembro.nombre_completo }}</td>
-              <td class="px-4 py-3.5 font-semibold text-surface-900">{{ miembro.correo || 'N/A' }}</td>
-              <td class="px-4 py-3.5"><BadgeStatus :status="miembro.genero" /></td>
-              <td class="px-4 py-3.5 font-semibold text-surface-900">{{ formatParentesco(miembro.parentesco, miembro.genero) }}</td>
-              <td class="px-4 py-3.5 font-semibold text-surface-900">{{ miembro.edad }} años</td>
-              <td class="px-4 py-3.5 text-right">
-                <ActionMenu :items="buildMenuItems(miembro)" align="right" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-slate-600">
+            <thead>
+              <tr class="bg-surface-50 border-b border-surface-200">
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Nombre</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Correo</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Género</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Parentesco</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Edad</th>
+                <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="miembro in miembros" :key="miembro.id_miembro" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.nombre_completo }}</td>
+                <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.correo || 'N/A' }}</td>
+                <td class="px-6 py-4"><BadgeStatus :status="miembro.genero" /></td>
+                <td class="px-6 py-4 font-semibold text-surface-900">{{ formatParentesco(miembro.parentesco, miembro.genero) }}</td>
+                <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.edad }} años</td>
+                <td class="px-6 py-4 text-right">
+                  <ActionMenu :items="buildMenuItems(miembro)" align="right" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

@@ -19,7 +19,7 @@ import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
 import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
-import { IconAlertCircle, IconTarget, IconChevronDown, IconUser, IconPhone, IconMail } from '@/components/icons'
+import { IconAlertCircle, IconTarget, IconChevronDown, IconUser, IconPhone, IconMail, IconClock, IconCalendar } from '@/components/icons'
 import InstructorStatusModal from './InstructorStatusModal.vue'
 import ManageDisciplinesModal from '@/views/admin/Disciplines/ManageDisciplinesModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
@@ -28,7 +28,7 @@ const router = useRouter()
 const instructorStore = useInstructorStore()
 const { toastInfo } = useAlerts()
 
-const { instructors, isLoading, error: errorMsg } = storeToRefs(instructorStore)
+const { instructors, isLoading, error: errorMsg, listFilters } = storeToRefs(instructorStore)
 const { fetchInstructors, updateInstructor } = instructorStore
 
 // ── DISCIPLINAS ───────────────────────────────────────────────
@@ -43,10 +43,7 @@ const fetchDisciplinas = async () => {
 }
 
 // ── FILTROS ────────────────────────────────────────────────────
-const search = ref('')
-const filterEstatus = ref(null)
-const filterDisciplina = ref(null)
-
+// OPT_ESTATUS
 const OPT_ESTATUS = [
   { label: 'Todos los estatus', value: null },
   { label: 'Activo', value: 'ACTIVO' },
@@ -61,26 +58,27 @@ const disciplinasOpts = computed(() => [
 
 const filteredInstructors = computed(() => {
   let r = instructors.value
+  const f = listFilters.value
 
-  if (search.value) {
-    const q = search.value.toLowerCase()
+  if (f.search) {
+    const q = f.search.toLowerCase()
     r = r.filter(i => i.nombre_completo?.toLowerCase().includes(q))
   }
-  if (filterEstatus.value)
-    r = r.filter(i => i.estatus === filterEstatus.value)
-  if (filterDisciplina.value)
-    r = r.filter(i => i.disciplinas?.some(d => d.id_disciplina == filterDisciplina.value))
+  if (f.estatus)
+    r = r.filter(i => i.estatus === f.estatus)
+  if (f.disciplina)
+    r = r.filter(i => i.disciplinas?.some(d => d.id_disciplina == f.disciplina))
 
   // Ordenar alfabéticamente por nombre
   return [...r].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
 })
 
 const hasActiveFilters = computed(() =>
-  search.value || filterEstatus.value || filterDisciplina.value
+  listFilters.value.search || listFilters.value.estatus || listFilters.value.disciplina
 )
 const clearFilters = () => {
-  search.value = ''
-  filterEstatus.value = filterDisciplina.value = null
+  listFilters.value.search = ''
+  listFilters.value.estatus = listFilters.value.disciplina = null
 }
 
 // ── AVATAR ────────────────────────────────────────────────────
@@ -282,12 +280,12 @@ onMounted(async () => {
       <!-- BARRA DE FILTROS -->
       <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
         <template #search>
-          <SearchInput v-model="search" placeholder="Buscar instructor por nombre…" />
+          <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
         </template>
 
         <FilterSelect
           label="Estatus"
-          v-model="filterEstatus"
+          v-model="listFilters.estatus"
           :options="OPT_ESTATUS"
         >
           <template #icon>
@@ -297,7 +295,7 @@ onMounted(async () => {
 
         <FilterSelect
           label="Disciplina"
-          v-model="filterDisciplina"
+          v-model="listFilters.disciplina"
           :options="disciplinasOpts"
         >
           <template #icon>
@@ -307,7 +305,7 @@ onMounted(async () => {
       </FilterContainer>
 
       <!-- TABLA -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
 
         <!-- Estado: cargando -->
         <TableSkeleton v-if="isLoading" :rows="6" :columns="4" :has-avatar="true" />
@@ -335,89 +333,101 @@ onMounted(async () => {
         </div>
 
         <!-- Tabla con datos -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Instructor
-              </th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estatus
-              </th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">
-                Disciplinas</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">
-                Horario</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">
-                Afiliación</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700">Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-100">
-            <tr v-for="instructor in filteredInstructors" :key="instructor.id_instructor"
-              class="hover:bg-surface-50/70 transition-colors group">
-              <!-- Avatar + nombre + email -->
-              <td class="px-5 py-3.5">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
-                           text-white font-black text-xs shrink-0 shadow-sm"
-                    :class="avatarGradient(instructor.nombre_completo)">
-                    {{ initials(instructor.nombre_completo) }}
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-50 border-b border-surface-200">
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Instructor
+                </th>
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">
+                  Disciplinas</th>
+                <th
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
+                  Horario</th>
+                <th
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
+                  Afiliación</th>
+                <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="instructor in filteredInstructors" :key="instructor.id_instructor"
+                class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                <!-- Avatar + nombre + email -->
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
+                             text-white font-black text-xs shrink-0 shadow-sm"
+                      :class="avatarGradient(instructor.nombre_completo)">
+                      {{ initials(instructor.nombre_completo) }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-semibold text-surface-900 truncate max-w-[180px] leading-tight">
+                        {{ instructor.nombre_completo }}
+                      </p>
+                      <p class="text-xs text-surface-400 truncate max-w-[180px]">
+                        {{ instructor.correo_electronico ?? 'Sin correo' }}
+                      </p>
+                    </div>
                   </div>
-                  <div class="min-w-0">
-                    <p class="font-semibold text-surface-900 truncate max-w-[180px] leading-tight">
-                      {{ instructor.nombre_completo }}
-                    </p>
-                    <p class="text-xs text-surface-400 truncate max-w-[180px]">
-                      {{ instructor.correo_electronico ?? 'Sin correo' }}
-                    </p>
+                </td>
+                <!-- Estatus -->
+                <td class="px-6 py-4">
+                  <BadgeStatus :status="instructor.estatus" />
+                </td>
+                <!-- Disciplinas chips -->
+                <td class="px-6 py-4 hidden md:table-cell">
+                  <div v-if="instructor.disciplinas?.length" class="flex flex-wrap gap-1">
+                    <span v-for="d in instructor.disciplinas.slice(0, 2)" :key="d.id_disciplina"
+                      class="px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                      {{ d.nombre_disciplina }}
+                    </span>
+                    <span v-if="instructor.disciplinas.length > 2"
+                      class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                      +{{ instructor.disciplinas.length - 2 }}
+                    </span>
                   </div>
-                </div>
-              </td>
-              <!-- Estatus -->
-              <td class="px-4 py-3.5">
-                <BadgeStatus :status="instructor.estatus" />
-              </td>
-              <!-- Disciplinas chips -->
-              <td class="px-4 py-3.5 hidden md:table-cell">
-                <div v-if="instructor.disciplinas?.length" class="flex flex-wrap gap-1">
-                  <span v-for="d in instructor.disciplinas.slice(0, 2)" :key="d.id_disciplina"
-                    class="px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
-                    {{ d.nombre_disciplina }}
+                  <span v-else class="text-xs text-surface-400 italic">Sin disciplinas</span>
+                </td>
+                <!-- Horario -->
+                <td class="px-6 py-4 hidden lg:table-cell">
+                  <span v-if="instructor.hora_entrada || instructor.hora_salida"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
+                    <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
+                    <span>
+                      {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0, 5) ?? '--' }}
+                    </span>
                   </span>
-                  <span v-if="instructor.disciplinas.length > 2"
-                    class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
-                    +{{ instructor.disciplinas.length - 2 }}
+                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
+                    Sin horario
                   </span>
-                </div>
-                <span v-else class="text-xs text-surface-400 italic">Sin disciplinas</span>
-              </td>
-              <!-- Horario -->
-              <td class="px-4 py-3.5 hidden lg:table-cell">
-                <span v-if="instructor.hora_entrada || instructor.hora_salida"
-                  class="text-xs font-semibold text-surface-700 font-mono">
-                  {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0, 5) ??
-                    '--' }}
-                </span>
-                <span v-else class="text-xs text-surface-400">—</span>
-              </td>
-              <!-- Fecha afiliación -->
-              <td class="px-4 py-3.5 hidden lg:table-cell">
-                <span class="text-xs font-semibold text-surface-700">
-                  {{ instructor.fecha_afiliacion ?? '—' }}
-                </span>
-              </td>
-              <!-- Menú acciones -->
-              <td class="px-4 py-3.5 text-right">
-                <ActionMenu :items="buildMenuItems(instructor)" align="right" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <!-- Fecha afiliación -->
+                <td class="px-6 py-4 hidden lg:table-cell">
+                  <span v-if="instructor.fecha_afiliacion"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
+                    <IconCalendar class="w-3.5 h-3.5 text-surface-400 shrink-0" />
+                    <span>
+                      {{ instructor.fecha_afiliacion }}
+                    </span>
+                  </span>
+                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
+                    Sin fecha
+                  </span>
+                </td>
+                <!-- Menú acciones -->
+                <td class="px-6 py-4 text-right">
+                  <ActionMenu :items="buildMenuItems(instructor)" align="right" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-
     </div><!-- /max-w -->
 
     <!-- ══════════════════════════════════════════════════════════

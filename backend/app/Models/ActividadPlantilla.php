@@ -32,6 +32,11 @@ class ActividadPlantilla extends Model
         return $this->belongsTo(EspacioFisico::class, 'id_espacio', 'id_espacio');
     }
 
+    public function plantilla()
+    {
+        return $this->belongsTo(PlantillaProgramacion::class, 'id_plantilla', 'id_plantilla');
+    }
+
     public function disciplina()
     {
         return $this->belongsTo(Disciplina::class, 'id_disciplina', 'id_disciplina');

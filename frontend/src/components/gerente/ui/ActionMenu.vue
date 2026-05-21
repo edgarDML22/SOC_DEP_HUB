@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
 
 /**
@@ -53,6 +53,20 @@ const handleAction = async (item, idx) => {
 const onClickOutside = (e) => {
   if (menuRef.value && !menuRef.value.contains(e.target)) close()
 }
+
+watch(isOpen, (val) => {
+  if (!menuRef.value) return
+  const row = menuRef.value.closest('tr') || menuRef.value.parentElement
+  if (row) {
+    if (val) {
+      row.style.zIndex = '50'
+      row.style.position = 'relative'
+    } else {
+      row.style.zIndex = ''
+      row.style.position = ''
+    }
+  }
+})
 
 onMounted(()  => document.addEventListener('mousedown', onClickOutside))
 onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))

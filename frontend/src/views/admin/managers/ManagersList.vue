@@ -235,7 +235,7 @@ onMounted(() => {
       </FilterContainer>
 
       <!-- TABLA -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-96">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
 
         <!-- Estado: cargando -->
         <TableSkeleton v-if="isLoading.fetch" :rows="4" :columns="5" :has-avatar="true" />
@@ -258,63 +258,65 @@ onMounted(() => {
         </div>
 
         <!-- Tabla con datos -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-8 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Gerente</th>
-              <th
-                class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">
-                Cargo</th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Rol</th>
-              <th class="px-6 py-4 text-center text-xs font-black uppercase tracking-widest text-surface-700">Estatus
-              </th>
-              <th class="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-surface-700">Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-50">
-            <tr v-for="manager in filteredManagers" :key="manager.id"
-              class="hover:bg-surface-50/50 transition-colors group">
-              <td class="px-8 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center
-                             text-white font-black text-xs shrink-0 shadow-sm" :class="avatarGradient(manager.name)">
-                    {{ initials(manager.name) }}
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-50 border-b border-surface-200">
+                <th class="px-8 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Gerente</th>
+                <th
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">
+                  Cargo</th>
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Rol</th>
+                <th class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
+                </th>
+                <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="manager in filteredManagers" :key="manager.id"
+                class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                <td class="px-8 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center
+                               text-white font-black text-xs shrink-0 shadow-sm" :class="avatarGradient(manager.name)">
+                      {{ initials(manager.name) }}
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <span class="font-bold text-surface-900 tracking-tight truncate">{{ manager.name }}</span>
+                      <span class="text-xs text-surface-400 truncate">{{ manager.email }}</span>
+                    </div>
                   </div>
-                  <div class="flex flex-col min-w-0">
-                    <span class="font-bold text-surface-900 tracking-tight truncate">{{ manager.name }}</span>
-                    <span class="text-xs text-surface-400 truncate">{{ manager.email }}</span>
+                </td>
+                <td class="px-6 py-4 text-sm font-semibold text-surface-500 hidden md:table-cell">
+                  {{ manager.cargo }}
+                </td>
+                <td class="px-6 py-4">
+                  <BadgeStatus :status="manager.rol" size="sm" />
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex justify-center">
+                    <button v-if="isGerente" @click="handleToggleStatus(manager)"
+                      class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                      :class="manager.activo ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-slate-200'"
+                      :disabled="isLoading.toggle">
+                      <span
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        :class="manager.activo ? 'translate-x-5' : 'translate-x-0'" />
+                    </button>
+                    <div v-else>
+                      <div class="w-2.5 h-2.5 rounded-full"
+                        :class="manager.activo ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'" />
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 text-sm font-semibold text-surface-500 hidden md:table-cell">
-                {{ manager.cargo }}
-              </td>
-              <td class="px-6 py-4">
-                <BadgeStatus :status="manager.rol" size="sm" />
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex justify-center">
-                  <button v-if="isGerente" @click="handleToggleStatus(manager)"
-                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
-                    :class="manager.activo ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-slate-200'"
-                    :disabled="isLoading.toggle">
-                    <span
-                      class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                      :class="manager.activo ? 'translate-x-5' : 'translate-x-0'" />
-                  </button>
-                  <div v-else>
-                    <div class="w-2.5 h-2.5 rounded-full"
-                      :class="manager.activo ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'" />
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 text-right">
-                <ActionMenu :items="buildMenuItems(manager)" align="right" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <ActionMenu :items="buildMenuItems(manager)" align="right" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 

@@ -8,6 +8,12 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
     const isLoading = ref(false);
     const error = ref(null);
 
+    const listFilters = ref({
+        search: '',
+        estatus: null,
+        categoria: null
+    });
+
     const setCurrentDiscipline = (discipline) => {
         currentDiscipline.value = discipline;
     };
@@ -172,6 +178,7 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
         currentDiscipline,
         isLoading,
         error,
+        listFilters,
         fetchDisciplines,
         fetchDisciplineDetails,
         setCurrentDiscipline,

@@ -8,6 +8,12 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
     const isLoading = ref(false);
     const error = ref(null);
 
+    const listFilters = ref({
+        search: '',
+        estatus: null,
+        tipo: null
+    });
+
     const setCurrentSpace = (space) => {
         currentSpace.value = space;
     };
@@ -147,6 +153,7 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
         currentSpace,
         isLoading,
         error,
+        listFilters,
         setCurrentSpace,
         fetchSpaces,
         fetchSpaceDetails,

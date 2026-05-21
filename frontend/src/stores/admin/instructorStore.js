@@ -9,6 +9,12 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
     const isLoading = ref(false);
     const error = ref(null);
 
+    const listFilters = ref({
+        search: '',
+        estatus: null,
+        disciplina: null
+    });
+
     const setCurrentInstructor = (instructor) => {
         currentInstructor.value = instructor;
     };
@@ -188,6 +194,7 @@ export const useInstructorStore = defineStore("instructorAdmin", () => {
         currentInstructor,
         isLoading,
         error,
+        listFilters,
         fetchInstructors,
         fetchInstructorDetails,
         setCurrentInstructor,

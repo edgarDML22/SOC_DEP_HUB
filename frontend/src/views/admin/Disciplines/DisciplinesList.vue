@@ -23,13 +23,8 @@ const categoryStore = useCategoryStore()
 const { formatText, formatCategoryEnum } = useformat()
 const { toastInfo } = useAlerts()
 
-const { disciplines, isLoading } = storeToRefs(disciplinesStore)
+const { disciplines, isLoading, listFilters } = storeToRefs(disciplinesStore)
 const { categories: storeCategories } = storeToRefs(categoryStore)
-
-// ── FILTROS ────────────────────────────────────────────────────
-const search = ref('')
-const filterStatus = ref(null)
-const filterCategory = ref(null)
 
 const categories = computed(() =>
   (storeCategories.value || []).filter(c => c.nombre !== 'INFANTIL')
@@ -47,17 +42,18 @@ const OPT_STATUS = [
 
 const filteredDisciplines = computed(() => {
   let r = [...disciplines.value]
-  if (search.value) {
-    const q = search.value.toLowerCase()
+  const f = listFilters.value
+  if (f.search) {
+    const q = f.search.toLowerCase()
     r = r.filter(d => {
       // La API devuelve categorias como array (many-to-many)
       const catName = d.categorias?.[0]?.nombre || d.categoria_disciplina || ''
       return d.nombre_disciplina.toLowerCase().includes(q) || catName.toLowerCase().includes(q)
     })
   }
-  if (filterStatus.value) r = r.filter(d => d.estatus === filterStatus.value)
-  if (filterCategory.value) {
-    r = r.filter(d => d.categorias?.some(c => String(c.id_categoria) === String(filterCategory.value)))
+  if (f.estatus) r = r.filter(d => d.estatus === f.estatus)
+  if (f.categoria) {
+    r = r.filter(d => d.categorias?.some(c => String(c.id_categoria) === String(f.categoria)))
   }
   return r.sort((a, b) => {
     const catA = a.categorias?.[0]?.nombre || a.categoria_disciplina || ''
@@ -67,10 +63,10 @@ const filteredDisciplines = computed(() => {
   })
 })
 
-const hasActiveFilters = computed(() => search.value || filterStatus.value || filterCategory.value)
+const hasActiveFilters = computed(() => listFilters.value.search || listFilters.value.estatus || listFilters.value.categoria)
 const clearFilters = () => {
-  search.value = ''
-  filterStatus.value = filterCategory.value = null
+  listFilters.value.search = ''
+  listFilters.value.estatus = listFilters.value.categoria = null
 }
 
 // ── PALETA POR CATEGORÍA ───────────────────────────────────────
@@ -210,12 +206,12 @@ onMounted(() => {
       <!-- FILTROS -->
       <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
         <template #search>
-          <SearchInput v-model="search" placeholder="Buscar por nombre o categoría…" />
+          <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o categoría…" />
         </template>
 
         <FilterSelect
           label="Categoría"
-          v-model="filterCategory"
+          v-model="listFilters.categoria"
           :options="categoryOpts"
         >
           <template #icon>
@@ -225,7 +221,7 @@ onMounted(() => {
 
         <FilterSelect
           label="Estatus"
-          v-model="filterStatus"
+          v-model="listFilters.estatus"
           :options="OPT_STATUS"
         >
           <template #icon>
