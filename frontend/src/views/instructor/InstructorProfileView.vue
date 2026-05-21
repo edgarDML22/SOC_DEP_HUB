@@ -37,7 +37,7 @@ const handleLogout = () => {
                 <p class="text-sm md:text-base font-medium text-surface-500 m-0 mt-2">Gestión de Información y Seguridad</p>
             </div>
             
-            <button @click="handleLogout" class="px-6 py-2.5 w-full md:w-auto bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
+            <button @click="handleLogout" class="px-6 py-2.5 w-full md:w-auto bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Cerrar Sesión
             </button>
@@ -48,7 +48,7 @@ const handleLogout = () => {
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
 
         <!-- Lado Izquierdo (MÁS ANCHO) -->
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6 order-2 lg:order-1">
           
           <!-- TARJETA 1: DATOS PERSONALES Y PROFESIONALES -->
           <div class="bg-white rounded-3xl border border-surface-200 p-6 sm:p-8 shadow-sm">
@@ -96,7 +96,7 @@ const handleLogout = () => {
         </div>
 
         <!-- Lado Derecho (WIDGETS) -->
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6 order-1 lg:order-2">
 
           <!-- HERO CARD: RESUMEN Y AVATAR -->
           <div class="bg-linear-to-br from-primary-800 to-primary-600 rounded-3xl p-6 shadow-lg relative overflow-hidden flex flex-col items-center text-center">
