@@ -44,6 +44,34 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
   const colisionesLocales = ref([])
   const errorInit = ref(null)
 
+  // ─── UI state — Panel lateral y filtros del calendario (sesión Pinia) ─────
+  const panelVisible = ref(false)
+  const filtros = ref({
+    id_espacio:     null,
+    id_instructor:  null,
+    id_disciplina:  null,   // estrictamente una a la vez
+  })
+
+  function togglePanel() { panelVisible.value = !panelVisible.value }
+  function setPanelVisible(v) { panelVisible.value = !!v }
+  function setFiltro(campo, valor) {
+    if (campo in filtros.value) filtros.value[campo] = valor
+  }
+  function resetFiltros() {
+    filtros.value = { id_espacio: null, id_instructor: null, id_disciplina: null }
+  }
+
+  // ─── Modal de detalle de sesión (estado UI compartido) ────────────────────
+  // origen: 'draft' (persistida) | 'borrador' (local) | null
+  const sesionEnDetalle = ref({ origen: null, index: null })
+
+  function abrirDetalleSesion(origen, index) {
+    sesionEnDetalle.value = { origen, index }
+  }
+  function cerrarDetalleSesion() {
+    sesionEnDetalle.value = { origen: null, index: null }
+  }
+
   // ─── Getters ──────────────────────────────────────────────────────────────
   const tieneActividades = computed(() => draft.value.actividades.length > 0)
   const totalActividades = computed(() => draft.value.actividades.length)
@@ -194,6 +222,87 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
     return conflictos
   }
 
+  // ─── Sesiones visibles aplicando filtros del header del calendario ────────
+  // Retorna objetos { ...sesion, _origen, _srcIdx } para que la vista sepa
+  // de dónde viene cada bloque y pueda abrir el modal correctamente.
+  const sesionesVisibles = computed(() => {
+    const { id_espacio, id_instructor, id_disciplina } = filtros.value
+    const aplicaFiltros = (s) => {
+      if (id_espacio    !== null && s.id_espacio    !== id_espacio)    return false
+      if (id_instructor !== null && s.id_instructor !== id_instructor) return false
+      if (id_disciplina !== null && s.id_disciplina !== id_disciplina) return false
+      return true
+    }
+    const persistidas = draft.value.actividades
+      .map((s, i) => ({ ...s, _origen: 'draft',     _srcIdx: i }))
+      .filter(aplicaFiltros)
+    const locales = borradorLocal.value
+      .map((s, i) => ({ ...s, _origen: 'borrador',  _srcIdx: i }))
+      .filter(aplicaFiltros)
+    return [...persistidas, ...locales]
+  })
+
+  // ─── detectarColisionEnEdicion ────────────────────────────────────────────
+  // Evalúa una sesión candidata contra el resto del draft+borradorLocal,
+  // EXCLUYÉNDOSE a sí misma cuando se está editando.
+  // origen: 'draft' | 'borrador' | null (creación nueva)
+  function detectarColisionEnEdicion(candidata, origen = null, indexExcluido = null) {
+    if (!candidata?.hora_inicio || !candidata?.hora_fin || !candidata?.dia_semana) return []
+
+    const cStart = toMinutes(candidata.hora_inicio)
+    const cEnd   = toMinutes(candidata.hora_fin)
+    if (cEnd <= cStart) return []
+
+    const conflictos = []
+    const lista = [
+      ...draft.value.actividades.map((s, i) => ({ s, origen: 'draft',    i })),
+      ...borradorLocal.value.map((s, i)    => ({ s, origen: 'borrador', i })),
+    ]
+
+    for (const { s, origen: o, i } of lista) {
+      if (o === origen && i === indexExcluido) continue
+      if (s.dia_semana !== candidata.dia_semana) continue
+      const sStart = toMinutes(s.hora_inicio)
+      const sEnd   = toMinutes(s.hora_fin)
+      if (!overlaps(cStart, cEnd, sStart, sEnd)) continue
+
+      if (s.id_espacio === candidata.id_espacio) {
+        conflictos.push({
+          tipo: 'espacio',
+          dia: candidata.dia_semana,
+          nombre: candidata._espacio_nombre ?? s._espacio_nombre ?? '',
+          horario_nuevo:     `${candidata.hora_inicio}–${candidata.hora_fin}`,
+          horario_existente: `${s.hora_inicio}–${s.hora_fin}`,
+        })
+      }
+      if (s.id_instructor === candidata.id_instructor) {
+        conflictos.push({
+          tipo: 'instructor',
+          dia: candidata.dia_semana,
+          nombre: candidata._instructor_nombre ?? s._instructor_nombre ?? '',
+          horario_nuevo:     `${candidata.hora_inicio}–${candidata.hora_fin}`,
+          horario_existente: `${s.hora_inicio}–${s.hora_fin}`,
+        })
+      }
+    }
+    return conflictos
+  }
+
+  // ─── actualizarSesion ─────────────────────────────────────────────────────
+  // Aplica un parcial a la sesión indicada. NO valida — el componente que
+  // edita es responsable de chequear con detectarColisionEnEdicion antes.
+  function actualizarSesion(origen, index, parcial) {
+    const lista = origen === 'draft' ? draft.value.actividades : borradorLocal.value
+    if (!lista[index]) return
+    lista[index] = { ...lista[index], ...parcial }
+  }
+
+  // ─── eliminarSesion (unificada por origen) ────────────────────────────────
+  function eliminarSesion(origen, index) {
+    if (origen === 'draft')    return eliminarActividad(index)
+    if (origen === 'borrador') return eliminarDeBorradorLocal(index)
+  }
+
   // ─── agregarSesiones ──────────────────────────────────────────────────────
   // Expands dias[] → individual sessions, validates, pushes to borradorLocal
   function agregarSesiones(formData) {
@@ -279,12 +388,18 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
     // ui state
     isCreatingDraft, isSavingDraft, isSavingProgress, isPublishing, publishSuccess,
     conflictosPublicacion, colisionesLocales, errorInit,
+    // ui — panel + filtros + modal detalle (sesión)
+    panelVisible, filtros, sesionEnDetalle,
+    togglePanel, setPanelVisible, setFiltro, resetFiltros,
+    abrirDetalleSesion, cerrarDetalleSesion,
     // getters
-    tieneActividades, totalActividades, espaciosEnDraft,
+    tieneActividades, totalActividades, espaciosEnDraft, sesionesVisibles,
     // actions
     fetchDependencias, crearDraft, guardarDraft, guardarProgreso,
     agregarSesiones, agregarBloques, eliminarActividad,
     eliminarDeBorradorLocal, seleccionarSesion,
     publicarProgramacion, resetPublish,
+    // edición / colisión live
+    detectarColisionEnEdicion, actualizarSesion, eliminarSesion,
   }
 })
