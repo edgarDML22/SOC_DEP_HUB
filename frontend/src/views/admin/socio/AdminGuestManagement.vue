@@ -375,7 +375,7 @@ const handleDeleteGuest = async () => {
       </div>
 
       <!-- TABLA DE INVITADOS -->
-      <div class="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
 
         <!-- Estado: Cargando -->
         <div v-if="isLoading && !guests.length" class="p-12 flex flex-col items-center justify-center gap-4">
@@ -410,80 +410,81 @@ const handleDeleteGuest = async () => {
         </div>
 
         <!-- Tabla -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Invitado
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Contacto
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estatus
-                Invitado</th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-surface-700">Daily
-                Pass
-              </th>
-              <th class="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-surface-700">
-                Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-100">
-            <tr v-for="guest in filteredGuests" :key="guest.id_invitado"
-              class="hover:bg-surface-50/70 transition-all group">
-              <!-- Info Invitado -->
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-4">
-                  <div
-                    class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shadow-sm shrink-0"
-                    :class="avatarGradient(guest.nombre_invitado)">
-                    {{ initials(guest.nombre_invitado) }}
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-50 border-b border-surface-200">
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Invitado
+                </th>
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Contacto
+                </th>
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
+                  Invitado</th>
+                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Daily
+                  Pass
+                </th>
+                <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">
+                  Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="guest in filteredGuests" :key="guest.id_invitado"
+                class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                <!-- Info Invitado -->
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-4">
+                    <div
+                      class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shadow-sm shrink-0"
+                      :class="avatarGradient(guest.nombre_invitado)">
+                      {{ initials(guest.nombre_invitado) }}
+                    </div>
+                    <div>
+                      <p class="font-bold text-surface-900 text-sm leading-none">{{ guest.nombre_invitado }}</p>
+                      <p class="text-[10px] text-surface-400 mt-1.5 font-medium">Invitado desde {{
+                        dateFormat(guest.fecha_registro) || 'N/A' }}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p class="font-bold text-surface-900 text-sm leading-none">{{ guest.nombre_invitado }}</p>
-                    <p class="text-[10px] text-surface-400 mt-1.5 font-medium">Invitado desde {{
-                      dateFormat(guest.fecha_registro) || 'N/A' }}
-                    </p>
+                </td>
+
+                <!-- Contacto -->
+                <td class="px-6 py-4">
+                  <div class="space-y-1.5">
+                    <div class="flex items-center gap-2 text-surface-600">
+                      <IconMail class="w-3.5 h-3.5 text-surface-300" />
+                      <span class="text-xs font-medium">{{ guest.correo || '—' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-surface-600">
+                      <IconPhone class="w-3.5 h-3.5 text-surface-300" />
+                      <span class="text-xs font-medium">{{ guest.telefono || '—' }}</span>
+                    </div>
                   </div>
-                </div>
-              </td>
+                </td>
 
-              <!-- Contacto -->
-              <td class="px-6 py-4">
-                <div class="space-y-1.5">
-                  <div class="flex items-center gap-2 text-surface-600">
-                    <IconMail class="w-3.5 h-3.5 text-surface-300" />
-                    <span class="text-xs font-medium">{{ guest.correo || '—' }}</span>
+                <!-- Estatus Invitado -->
+                <td class="px-6 py-4">
+                  <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
+                </td>
+
+                <!-- Daily Pass -->
+                <td class="px-6 py-4">
+                  <div class="flex flex-col gap-1">
+                    <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
+                    <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400 ml-1">
+                      Expira: {{ dateFormat(guest.fecha_expiracion) }}
+                    </span>
                   </div>
-                  <div class="flex items-center gap-2 text-surface-600">
-                    <IconPhone class="w-3.5 h-3.5 text-surface-300" />
-                    <span class="text-xs font-medium">{{ guest.telefono || '—' }}</span>
-                  </div>
-                </div>
-              </td>
+                </td>
 
-              <!-- Estatus Invitado -->
-              <td class="px-6 py-4">
-                <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
-              </td>
-
-              <!-- Daily Pass -->
-              <td class="px-6 py-4">
-                <div class="flex flex-col gap-1">
-                  <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
-                  <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400 ml-1">
-                    Expira: {{ dateFormat(guest.fecha_expiracion) }}
-                  </span>
-                </div>
-              </td>
-
-              <!-- Acciones -->
-              <td class="px-6 py-4 text-right">
-                <ActionMenu :items="buildMenuItems(guest)" align="right" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <!-- Acciones -->
+                <td class="px-6 py-4 text-right">
+                  <ActionMenu :items="buildMenuItems(guest)" align="right" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-
     </div>
   </main>
 

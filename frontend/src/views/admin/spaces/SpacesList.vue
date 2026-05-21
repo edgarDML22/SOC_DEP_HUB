@@ -28,13 +28,8 @@ const spacesStore      = useSpacesStore()
 const disciplinesStore = useDisciplinesStore()
 const { toastInfo }    = useAlerts()
 
-const { spaces, isLoading }      = storeToRefs(spacesStore)
+const { spaces, isLoading, listFilters }      = storeToRefs(spacesStore)
 const { disciplines }            = storeToRefs(disciplinesStore)
-
-// ── FILTROS ────────────────────────────────────────────────────
-const search       = ref('')
-const filterTipo   = ref(null)
-const filterStatus = ref(null)
 
 const OPT_TIPO = [
   { label: 'Todos los tipos',      value: null },
@@ -51,21 +46,22 @@ const OPT_STATUS = [
 
 const filteredSpaces = computed(() => {
   let r = [...spaces.value]
-  if (search.value) {
-    const q = search.value.toLowerCase()
+  const f = listFilters.value
+  if (f.search) {
+    const q = f.search.toLowerCase()
     r = r.filter(s => s.nombre_espacio.toLowerCase().includes(q))
   }
-  if (filterTipo.value === 'RESERVA_ON_DEMAND') r = r.filter(s => s.es_reserva_on_demand)
-  else if (filterTipo.value === 'CLASE_PROGRAMADA') r = r.filter(s => s.es_clase_programada)
-  else if (filterTipo.value === 'USO_LIBRE')  r = r.filter(s => s.es_uso_libre)
-  if (filterStatus.value) r = r.filter(s => s.estatus === filterStatus.value)
+  if (f.tipo === 'RESERVA_ON_DEMAND') r = r.filter(s => s.es_reserva_on_demand)
+  else if (f.tipo === 'CLASE_PROGRAMADA') r = r.filter(s => s.es_clase_programada)
+  else if (f.tipo === 'USO_LIBRE')  r = r.filter(s => s.es_uso_libre)
+  if (f.estatus) r = r.filter(s => s.estatus === f.estatus)
   return r.sort((a, b) => a.nombre_espacio.localeCompare(b.nombre_espacio))
 })
 
-const hasActiveFilters = computed(() => search.value || filterTipo.value || filterStatus.value)
+const hasActiveFilters = computed(() => listFilters.value.search || listFilters.value.tipo || listFilters.value.estatus)
 const clearFilters = () => {
-  search.value = ''
-  filterTipo.value = filterStatus.value = null
+  listFilters.value.search = ''
+  listFilters.value.tipo = listFilters.value.estatus = null
 }
 
 // ── FRANJA DE COLOR ESTATUS ────────────────────────────────────
@@ -251,12 +247,12 @@ onMounted(() => {
       <!-- BARRA DE FILTROS -->
       <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
         <template #search>
-          <SearchInput v-model="search" placeholder="Buscar espacio por nombre…" />
+          <SearchInput v-model="listFilters.search" placeholder="Buscar espacio por nombre…" />
         </template>
 
         <FilterSelect
           label="Tipo de uso"
-          v-model="filterTipo"
+          v-model="listFilters.tipo"
           :options="OPT_TIPO"
         >
           <template #icon>
@@ -266,7 +262,7 @@ onMounted(() => {
 
         <FilterSelect
           label="Estatus"
-          v-model="filterStatus"
+          v-model="listFilters.estatus"
           :options="OPT_STATUS"
         >
           <template #icon>

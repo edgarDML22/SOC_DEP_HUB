@@ -258,29 +258,29 @@ const exportColumns = [
         </div>
 
         <!-- Data Table -->
-        <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
+        <div class="overflow-x-auto rounded-2xl border border-surface-200 shadow-sm bg-white">
             
             <!-- SKELETON -->
             <TableSkeleton v-if="store.loading.reservaciones" :rows="6" :columns="5" :has-avatar="false" />
 
             <table v-else class="w-full text-sm text-left text-slate-600">
-                <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                <thead class="bg-surface-50 border-b border-surface-200">
                     <tr>
-                        <th scope="col" class="px-6 py-4 font-extrabold tracking-wider">Titular / Acción</th>
-                        <th scope="col" class="px-6 py-4 font-extrabold tracking-wider">Espacio / Disciplina</th>
-                        <th scope="col" class="px-6 py-4 font-extrabold tracking-wider">Modalidad</th>
-                        <th scope="col" class="px-6 py-4 font-extrabold tracking-wider">Fecha / Hora</th>
-                        <th scope="col" class="px-6 py-4 font-extrabold tracking-wider">Estatus</th>
-                        <th scope="col" class="px-6 py-4 font-extrabold tracking-wider text-right">Acciones</th>
+                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Titular / Acción</th>
+                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Espacio / Disciplina</th>
+                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Modalidad</th>
+                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Fecha / Hora</th>
+                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus</th>
+                        <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="sortedReservaciones.length === 0" class="bg-white border-b border-slate-100">
+                    <tr v-if="sortedReservaciones.length === 0" class="bg-white border-b border-surface-100">
                         <td colspan="6" class="px-6 py-12 text-center text-slate-500">
                             No se encontraron reservaciones con los filtros actuales.
                         </td>
                     </tr>
-                    <tr v-else v-for="reserva in sortedReservaciones" :key="reserva.id_reserva" class="bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr v-else v-for="reserva in sortedReservaciones" :key="reserva.id_reserva" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors">
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-800">{{ reserva.nombre_titular }}</div>
                             <div class="text-slate-500 text-xs mt-0.5">{{ reserva.numero_accion }}</div>

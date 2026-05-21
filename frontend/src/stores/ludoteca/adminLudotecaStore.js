@@ -39,6 +39,15 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     const error = ref(null);
 
+    const listFilters = ref({
+        search: '',
+        dateRange: null,
+        socio: null,
+        calificacion: null,
+        estatus: null,
+        tiempo: null
+    });
+
     const fetchStats = async (rango = 'hoy', silent = false, force = false) => {
         if (!force && statsCache.value[rango]) {
             return statsCache.value[rango];
@@ -201,6 +210,7 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         sociosConMenores,
         loading,
         error,
+        listFilters,
         // Actions
         fetchStats,
         fetchInstructores,

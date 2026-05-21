@@ -167,22 +167,22 @@ defineExpose({ openCreate })
   <div class="flex flex-col gap-6">
 
     <!-- ── Tabla de Plantillas ─────────────────────────────────────────────── -->
-    <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
+    <div class="overflow-x-auto rounded-2xl border border-surface-200 shadow-sm bg-white">
 
       <TableSkeleton v-if="store.isLoading" :rows="4" :columns="5" :has-avatar="false" />
 
-      <table v-else class="w-full text-sm text-left text-slate-600">
-        <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+      <table v-else class="w-full text-sm text-left">
+        <thead class="bg-surface-50 border-b border-surface-200">
           <tr>
-            <th class="px-6 py-4 font-extrabold tracking-wider">Nombre de Plantilla</th>
-            <th class="px-6 py-4 font-extrabold tracking-wider">Fecha Inicio</th>
-            <th class="px-6 py-4 font-extrabold tracking-wider">Fecha Fin</th>
-            <th class="px-6 py-4 font-extrabold tracking-wider">Actividades</th>
-            <th class="px-6 py-4 font-extrabold tracking-wider">Estatus</th>
-            <th class="px-6 py-4 font-extrabold tracking-wider text-right">Acciones</th>
+            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Nombre de Plantilla</th>
+            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Fecha Inicio</th>
+            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Fecha Fin</th>
+            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Actividades</th>
+            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus</th>
+            <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">Acciones</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-surface-100">
           <tr v-if="store.plantillas.length === 0" class="bg-white">
             <td colspan="6" class="px-6 py-14 text-center text-slate-400 font-medium">
               No hay plantillas registradas aún.
@@ -192,7 +192,7 @@ defineExpose({ openCreate })
             v-else
             v-for="(p, idx) in store.plantillas"
             :key="p.id_plantilla"
-            class="bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors animate-row-in"
+            class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors animate-row-in"
             :style="{ animationDelay: `${idx * 40}ms` }"
           >
             <td class="px-6 py-4">

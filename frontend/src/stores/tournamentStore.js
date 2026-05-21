@@ -11,6 +11,7 @@ export const useTournamentStore = defineStore("tournament", () => {
     const error = ref(null);
     const pagination = ref({ page: 1, total: 0, perPage: 15 });
     const filtros = ref({
+        search: '',
         estatus: null,
         disciplina: null,
         categoria: null,

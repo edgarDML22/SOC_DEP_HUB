@@ -20,17 +20,10 @@ const router = useRouter()
 const store = useAdminLudotecaStore()
 const { formatText, dateFormat } = useformat();
 
-const { record, sociosConMenores, loading } = storeToRefs(store)
+const { record, sociosConMenores, loading, listFilters } = storeToRefs(store)
 const { fetchRecord, fetchSociosConMenores } = store
 
 // ── FILTROS ────────────────────────────────────────────────────
-const search = ref('')
-const dateRange = ref(null) // [start, end]
-const filterSocio = ref(null)
-const filterCalificacion = ref(null)
-const filterEstatus = ref(null)
-const filterTiempo = ref(null)
-
 const OPT_CALIFICACION = [
     { label: 'Todas', value: null },
     { label: '1 Estrella', value: 1 },
@@ -62,12 +55,13 @@ const isFiltering = ref(false)
 const loadData = async (silent = false) => {
     if (silent) isFiltering.value = true
     const params = {}
+    const f = listFilters.value
 
-    if (dateRange.value && dateRange.value[0] && dateRange.value[1]) {
+    if (f.dateRange && f.dateRange[0] && f.dateRange[1]) {
         // Formatear fechas YYYY-MM-DD
         const formatDate = (d) => d.toISOString().split('T')[0]
-        params.fecha_inicio = formatDate(dateRange.value[0])
-        params.fecha_fin = formatDate(dateRange.value[1])
+        params.fecha_inicio = formatDate(f.dateRange[0])
+        params.fecha_fin = formatDate(f.dateRange[1])
     }
 
     await fetchRecord(params, true)
@@ -82,15 +76,16 @@ onMounted(async () => {
 })
 
 // Solo el rango de fechas gatilla una nueva petición al servidor
-watch(dateRange, () => {
+watch(() => listFilters.value.dateRange, () => {
     loadData(true)
 })
 
 const filteredRecord = computed(() => {
     let r = record.value
+    const f = listFilters.value
 
-    if (search.value) {
-        const q = search.value.toLowerCase()
+    if (f.search) {
+        const q = f.search.toLowerCase()
         r = r.filter(i =>
             i.nombre_menor?.toLowerCase().includes(q) ||
             i.nombre_titular?.toLowerCase().includes(q) ||
@@ -98,26 +93,26 @@ const filteredRecord = computed(() => {
         )
     }
 
-    if (filterSocio.value) {
-        r = r.filter(i => i.id_socio === filterSocio.value)
+    if (f.socio) {
+        r = r.filter(i => i.id_socio === f.socio)
     }
 
-    if (filterCalificacion.value) {
-        r = r.filter(i => i.calificacion_servicio === filterCalificacion.value)
+    if (f.calificacion) {
+        r = r.filter(i => i.calificacion_servicio === f.calificacion)
     }
 
-    if (filterEstatus.value) {
-        r = r.filter(i => i.estatus_final === filterEstatus.value)
+    if (f.estatus) {
+        r = r.filter(i => i.estatus_final === f.estatus)
     }
 
-    if (filterTiempo.value) {
+    if (f.tiempo) {
         r = r.filter(i => {
             const t = i.tiempo_total_minutos
-            if (filterTiempo.value === 'lt15') return t < 15
-            if (filterTiempo.value === 'lt30') return t >= 15 && t <= 30
-            if (filterTiempo.value === 'lt60') return t >= 31 && t <= 60
-            if (filterTiempo.value === 'lt90') return t >= 61 && t <= 90
-            if (filterTiempo.value === 'gt90') return t > 90
+            if (f.tiempo === 'lt15') return t < 15
+            if (f.tiempo === 'lt30') return t >= 15 && t <= 30
+            if (f.tiempo === 'lt60') return t >= 31 && t <= 60
+            if (f.tiempo === 'lt90') return t >= 61 && t <= 90
+            if (f.tiempo === 'gt90') return t > 90
             return true
         })
     }
@@ -126,17 +121,17 @@ const filteredRecord = computed(() => {
 })
 
 const hasActiveFilters = computed(() =>
-    search.value || dateRange.value || filterSocio.value ||
-    filterCalificacion.value || filterEstatus.value || filterTiempo.value
+    listFilters.value.search || listFilters.value.dateRange || listFilters.value.socio ||
+    listFilters.value.calificacion || listFilters.value.estatus || listFilters.value.tiempo
 )
 
 const clearFilters = () => {
-    search.value = ''
-    dateRange.value = null
-    filterSocio.value = null
-    filterCalificacion.value = null
-    filterEstatus.value = null
-    filterTiempo.value = null
+    listFilters.value.search = ''
+    listFilters.value.dateRange = null
+    listFilters.value.socio = null
+    listFilters.value.calificacion = null
+    listFilters.value.estatus = null
+    listFilters.value.tiempo = null
 }
 
 // ── AVATAR ────────────────────────────────────────────────────
@@ -198,13 +193,13 @@ const buildMenuItems = (item) => [
         <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
             <div class="flex flex-col lg:flex-row gap-4">
                 <div class="flex-1">
-                    <SearchInput v-model="search" placeholder="Buscar por menor, titular o acción…" />
+                    <SearchInput v-model="listFilters.search" placeholder="Buscar por menor, titular o acción…" />
                 </div>
                 <div class="lg:w-72">
                     <div class="relative group">
                         <IconCalendar
                             class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 z-10" />
-                        <DatePicker v-model="dateRange" selectionMode="range" :manualInput="false"
+                        <DatePicker v-model="listFilters.dateRange" selectionMode="range" :manualInput="false"
                             placeholder="Rango de fechas" class="w-full"
                             inputClass="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
                             showIcon="false" />
@@ -220,7 +215,7 @@ const buildMenuItems = (item) => [
                     <div class="relative">
                         <IconUser
                             class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="filterSocio"
+                        <select v-model="listFilters.socio"
                             class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
                             <option :value="null">Todos los socios</option>
                             <option v-for="s in sociosConMenores" :key="s.id_socio" :value="s.id_socio">
@@ -239,7 +234,7 @@ const buildMenuItems = (item) => [
                     <div class="relative">
                         <IconStar
                             class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="filterCalificacion"
+                        <select v-model="listFilters.calificacion"
                             class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
                             <option v-for="opt in OPT_CALIFICACION" :key="opt.value" :value="opt.value">{{ opt.label }}
                             </option>
@@ -256,7 +251,7 @@ const buildMenuItems = (item) => [
                     <div class="relative">
                         <IconAlertCircle
                             class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="filterEstatus"
+                        <select v-model="listFilters.estatus"
                             class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
                             <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{
                                 formatText(opt.label) }}
@@ -274,7 +269,7 @@ const buildMenuItems = (item) => [
                     <div class="relative">
                         <IconHourglass
                             class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="filterTiempo"
+                        <select v-model="listFilters.tiempo"
                             class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
                             <option v-for="opt in OPT_TIEMPO" :key="opt.value" :value="opt.value">{{ opt.label }}
                             </option>
@@ -324,39 +319,39 @@ const buildMenuItems = (item) => [
 
             <!-- Table -->
             <div v-else class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm text-left text-slate-600">
                     <thead>
                         <tr class="bg-surface-50 border-b border-surface-200">
-                            <th
-                                class="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Menor</th>
-                            <th
-                                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Titular</th>
-                            <th
-                                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Ingreso / Egreso</th>
-                            <th
-                                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Tiempo</th>
-                            <th
-                                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Calif.</th>
-                            <th
-                                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Estatus Final</th>
-                            <th
-                                class="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-surface-700">
+                            <th scope="col"
+                                class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100">
                         <tr v-for="item in filteredRecord" :key="item.id_historial"
-                            class="hover:bg-surface-50/50 transition-colors group cursor-pointer"
+                            class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group cursor-pointer"
                             @click="router.push(`/admin/ludoteca/record/${item.id_historial}`)">
 
                             <!-- Menor -->
-                            <td class="px-5 py-4">
+                            <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shrink-0 shadow-sm"
                                         :class="avatarGradient(item.nombre_menor)">
@@ -367,7 +362,7 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Titular -->
-                            <td class="px-4 py-4">
+                            <td class="px-6 py-4">
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium text-surface-700">{{ item.nombre_titular
                                     }}</span>
@@ -378,7 +373,7 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Ingreso / Egreso -->
-                            <td class="px-4 py-4">
+                            <td class="px-6 py-4">
                                 <div class="flex flex-col gap-0.5">
                                     <div class="flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -393,7 +388,7 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Tiempo -->
-                            <td class="px-4 py-4 text-center">
+                            <td class="px-6 py-4 text-center">
                                 <span
                                     class="px-2.5 py-1 rounded-lg bg-surface-100 text-surface-700 font-medium text-[10px]">
                                     {{ item.tiempo_total_minutos }} min
@@ -401,7 +396,7 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Calificación -->
-                            <td class="px-4 py-4 text-center">
+                            <td class="px-6 py-4 text-center">
                                 <div v-if="item.calificacion_servicio" class="flex items-center justify-center gap-0.5">
                                     <span class="text-xs font-medium text-amber-500">{{ item.calificacion_servicio
                                     }}</span>
@@ -411,12 +406,12 @@ const buildMenuItems = (item) => [
                             </td>
 
                             <!-- Estatus Final -->
-                            <td class="px-4 py-4 text-center" @click.stop>
+                            <td class="px-6 py-4 text-center" @click.stop>
                                 <BadgeStatus :status="item.estatus_final" />
                             </td>
 
                             <!-- Acciones -->
-                            <td class="px-4 py-4 text-right" @click.stop>
+                            <td class="px-6 py-4 text-right" @click.stop>
                                 <ActionMenu :items="buildMenuItems(item)" align="right" />
                             </td>
                         </tr>

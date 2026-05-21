@@ -48,11 +48,12 @@ const disciplineOpts = computed(() => {
 
 // Debounce para búsqueda
 let debounceTimer = null
-const searchQuery = ref('')
+const searchQuery = ref(filtros.value.search || '')
 watch(searchQuery, (val) => {
+  filtros.value.search = val
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
-    store.fetchTorneos({ search: val })
+    store.fetchTorneos()
   }, 300)
 })
 
@@ -61,9 +62,10 @@ watch([() => filtros.value.estatus, () => filtros.value.disciplina, () => filtro
   store.fetchTorneos()
 })
 
-const hasActiveFilters = computed(() => searchQuery.value || filtros.value.estatus || filtros.value.disciplina || filtros.value.tipo_acceso)
+const hasActiveFilters = computed(() => filtros.value.search || filtros.value.estatus || filtros.value.disciplina || filtros.value.tipo_acceso)
 const clearFilters = () => {
   searchQuery.value = ''
+  filtros.value.search = ''
   filtros.value.estatus = null
   filtros.value.disciplina = null
   filtros.value.tipo_acceso = null
@@ -265,41 +267,43 @@ onMounted(() => {
         </div>
 
         <!-- Tabla con datos -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Torneo</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">Disciplina</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">Categoría</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">Acceso</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estado</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-100">
-            <tr v-for="torneo in torneos" :key="torneo.id_torneo" class="hover:bg-surface-50/70 transition-colors group">
-              <td class="px-5 py-3.5">
-                <div class="font-bold text-surface-900">{{ torneo.nombre_torneo }}</div>
-                <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
-              </td>
-              <td class="px-4 py-3.5 hidden md:table-cell text-surface-600 font-medium">
-                {{ torneo.disciplina || '—' }}
-              </td>
-              <td class="px-4 py-3.5 hidden lg:table-cell text-surface-600 font-medium">
-                {{ torneo.categoria || '—' }}
-              </td>
-              <td class="px-4 py-3.5 hidden sm:table-cell">
-                 <BadgeStatus v-if="torneo.tipo_acceso" :status="torneo.tipo_acceso" />
-              </td>
-              <td class="px-4 py-3.5">
-                <BadgeStatus v-if="torneo.estado || torneo.estatus_torneo" :status="torneo.estado || torneo.estatus_torneo" />
-              </td>
-              <td class="px-4 py-3.5 text-right">
-                <ActionMenu :items="buildActions(torneo)" :disabled="loading || isActionLoading" align="right" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-slate-600">
+            <thead>
+              <tr class="bg-surface-50 border-b border-surface-200">
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Torneo</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">Disciplina</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">Categoría</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden sm:table-cell">Acceso</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estado</th>
+                <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="torneo in torneos" :key="torneo.id_torneo" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                <td class="px-6 py-4">
+                  <div class="font-bold text-surface-900">{{ torneo.nombre_torneo }}</div>
+                  <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
+                </td>
+                <td class="px-6 py-4 hidden md:table-cell text-surface-600 font-medium">
+                  {{ torneo.disciplina || '—' }}
+                </td>
+                <td class="px-6 py-4 hidden lg:table-cell text-surface-600 font-medium">
+                  {{ torneo.categoria || '—' }}
+                </td>
+                <td class="px-6 py-4 hidden sm:table-cell">
+                   <BadgeStatus v-if="torneo.tipo_acceso" :status="torneo.tipo_acceso" />
+                </td>
+                <td class="px-6 py-4">
+                  <BadgeStatus v-if="torneo.estado || torneo.estatus_torneo" :status="torneo.estado || torneo.estatus_torneo" />
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <ActionMenu :items="buildActions(torneo)" :disabled="loading || isActionLoading" align="right" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
