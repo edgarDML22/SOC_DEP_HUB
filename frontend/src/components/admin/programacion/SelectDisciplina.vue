@@ -93,7 +93,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
       type="button"
       @click.stop="toggle"
       :class="[
-        'w-full flex items-center gap-3 rounded-xl border text-sm font-semibold transition-all duration-150 text-left',
+        'w-full flex items-center gap-3 rounded-xl border text-sm font-semibold transition-all duration-150 text-left focus:outline-none',
         padCls,
         error
           ? 'border-red-300 bg-red-50'
@@ -112,7 +112,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
         v-if="seleccionado && allowClear"
         type="button"
         @click.stop="seleccionar(null)"
-        class="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 flex items-center justify-center text-slate-500 shrink-0 transition-colors"
+        class="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 flex items-center justify-center text-slate-500 shrink-0 transition-colors focus:outline-none"
       >
         <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -137,7 +137,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
           type="button"
           @click.stop="seleccionar(null)"
           :class="[
-            'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left',
+            'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left focus:outline-none',
             modelValue === null ? 'bg-slate-100 text-slate-600' : 'text-slate-400 hover:bg-slate-50'
           ]"
         >
@@ -161,7 +161,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
           type="button"
           @click.stop="seleccionar(d.id_disciplina)"
           :class="[
-            'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left',
+            'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left focus:outline-none',
             modelValue === d.id_disciplina
               ? 'bg-primary-50 text-primary-700'
               : highlightId === d.id_disciplina

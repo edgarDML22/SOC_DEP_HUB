@@ -1,11 +1,15 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useWizardStore } from '@/stores/programacion/wizardStore'
 
 const props = defineProps({
   // Sesión local resaltada (por compatibilidad con el wizard al hacer click en una tarjeta del borrador)
   sesionResaltadaIndex: { type: Number, default: null },
+  // Formulario de sesión en progreso para preview en tiempo real
+  sesionPreview: { type: Object, default: null },
 })
+
+const emit = defineEmits(['click-slot'])
 
 const store = useWizardStore()
 
@@ -52,15 +56,40 @@ function sesionASlots(s) {
 // o desde el ojo de la sección de borradores para ver las sesiones.
 const calendarVisibleSinFiltro = computed(() => store.filtros.id_disciplina !== null)
 
-// ─── Bloques filtrados desde el store ────────────────────────────────────
-// Cada bloque trae { ...sesion, _origen: 'draft'|'borrador', _srcIdx }
-const bloques = computed(() => calendarVisibleSinFiltro.value ? store.sesionesVisibles : [])
+// ─── Bloques de vista previa (preview en tiempo real desde el formulario) ───
+const bloquesPreview = computed(() => {
+  const f = props.sesionPreview
+  if (!f || !f.hora_inicio || !f.hora_fin || !f.dias || f.dias.length === 0) return []
+  
+  const disc = store.disciplinas.find(d => d.id_disciplina === f.id_disciplina)
+  const inst = store.instructores.find(i => i.id_instructor === f.id_instructor)
+  const esp  = store.espacios.find(e => e.id_espacio === f.id_espacio)
+  
+  return f.dias.map((dia, idx) => ({
+    _origen: 'preview',
+    _srcIdx: idx,
+    dia_semana: dia,
+    hora_inicio: f.hora_inicio,
+    hora_fin: f.hora_fin,
+    requiere_inscripcion: f.requiere_inscripcion,
+    _disciplina_nombre: disc?.nombre_disciplina ?? '',
+    _instructor_nombre: inst?.nombre_completo ?? '',
+    _espacio_nombre: esp?.nombre_espacio ?? '',
+  }))
+})
+
+// Combina bloques guardados/borradores con los de vista previa si corresponde
+const todosLosBloques = computed(() => {
+  const visible = calendarVisibleSinFiltro.value || bloquesPreview.value.length > 0
+  const base = visible ? store.sesionesVisibles : []
+  return [...base, ...bloquesPreview.value]
+})
 
 // ─── Layout de lanes por día (manejo de solapamientos) ───────────────────
 // Para cada día calculamos columnas-lane para que los bloques solapados se
 // repartan el ancho disponible (estilo Google Calendar simplificado).
 function layoutDia(dia) {
-  const items = bloques.value
+  const items = todosLosBloques.value
     .filter(b => b.dia_semana === dia)
     .map(b => {
       const { startSlot, endSlot } = sesionASlots(b)
@@ -103,62 +132,141 @@ const layoutPorDia = computed(() => {
 function clasesBloque(b, conflicto) {
   if (conflicto) {
     return {
-      bg: 'bg-amber-50',
-      borderColor: 'border-amber-400',
-      borderStyle: 'border-l-4 border-y border-r',
-      text: 'text-amber-800',
-      sub:  'text-amber-700',
-      stripeBg: 'repeating-linear-gradient(135deg, rgba(245,158,11,0.15) 0 6px, transparent 6px 12px)',
+      bg: 'bg-amber-50/90 backdrop-blur-[1px]',
+      borderColor: 'border-amber-300',
+      borderStyle: 'border border-l-4 border-l-amber-500',
+      text: 'text-amber-900 font-extrabold',
+      sub:  'text-amber-700 font-semibold',
+      stripeBg: 'repeating-linear-gradient(135deg, rgba(245,158,11,0.08) 0 8px, rgba(245,158,11,0.18) 8px 16px)',
     }
   }
+
+  if (b._origen === 'preview') {
+    return {
+      bg: 'bg-primary-50/55',
+      borderColor: 'border-primary-300',
+      borderStyle: 'border border-dashed border-l-4 border-l-primary-500',
+      text: 'text-primary-800 font-extrabold',
+      sub:  'text-primary-600 font-semibold',
+      stripeBg: null,
+    }
+  }
+
   const cerrada = !!b.requiere_inscripcion
   const esBorrador = b._origen === 'borrador'
 
   if (esBorrador) {
     return cerrada
       ? {
-          bg: 'bg-red-50/40',
-          borderColor: 'border-red-400',
-          borderStyle: 'border border-dashed border-l-[3px]',
-          text: 'text-red-700',
-          sub:  'text-red-600',
+          bg: 'bg-rose-50/40',
+          borderColor: 'border-rose-300/80',
+          borderStyle: 'border border-dashed border-l-4 border-l-rose-500/80',
+          text: 'text-rose-800 font-extrabold',
+          sub:  'text-rose-600/90 font-medium',
           stripeBg: null,
         }
       : {
           bg: 'bg-emerald-50/40',
-          borderColor: 'border-emerald-400',
-          borderStyle: 'border border-dashed border-l-[3px]',
-          text: 'text-emerald-700',
-          sub:  'text-emerald-600',
+          borderColor: 'border-emerald-300/80',
+          borderStyle: 'border border-dashed border-l-4 border-l-emerald-500/80',
+          text: 'text-emerald-800 font-extrabold',
+          sub:  'text-emerald-600/90 font-medium',
           stripeBg: null,
         }
   }
   return cerrada
     ? {
-        bg: 'bg-red-50',
-        borderColor: 'border-red-300',
-        borderStyle: 'border border-l-[3px]',
-        text: 'text-red-700',
-        sub:  'text-red-600',
+        bg: 'bg-rose-50/90',
+        borderColor: 'border-rose-200',
+        borderStyle: 'border border-l-4 border-l-rose-500',
+        text: 'text-rose-900 font-extrabold',
+        sub:  'text-rose-700 font-semibold',
         stripeBg: null,
       }
     : {
-        bg: 'bg-emerald-50',
-        borderColor: 'border-emerald-300',
-        borderStyle: 'border border-l-[3px]',
-        text: 'text-emerald-700',
-        sub:  'text-emerald-600',
+        bg: 'bg-emerald-50/90',
+        borderColor: 'border-emerald-200',
+        borderStyle: 'border border-l-4 border-l-emerald-500',
+        text: 'text-emerald-900 font-extrabold',
+        sub:  'text-emerald-700 font-semibold',
         stripeBg: null,
       }
 }
 
 function tieneConflicto(b) {
+  if (b._origen === 'preview') {
+    return store.detectarColisionEnEdicion(b, null, null).length > 0
+  }
   return store.detectarColisionEnEdicion(b, b._origen, b._srcIdx).length > 0
 }
 
 // ─── Click → abre modal (vía store) ───────────────────────────────────────
+// Omitir para bloques de preview en tiempo real
 function abrirDetalle(b) {
+  if (b._origen === 'preview') return
   store.abrirDetalleSesion(b._origen, b._srcIdx)
+}
+
+// ─── Click en celda vacía del Calendario ──────────────────────────────────
+// ─── Arrastre y Selección de Rango de Celdas (Estilo Google Calendar) ──────
+const isDragging = ref(false)
+const dragStartDia = ref(null)
+const dragStartHourIdx = ref(null)
+const dragCurrentHourIdx = ref(null)
+
+function iniciarArrastre(dia, hIdx) {
+  isDragging.value = true
+  dragStartDia.value = dia
+  dragStartHourIdx.value = hIdx
+  dragCurrentHourIdx.value = hIdx
+  window.addEventListener('mouseup', finalizarArrastre)
+}
+
+function actualizarArrastre(dia, hIdx) {
+  if (!isDragging.value) return
+  if (dia === dragStartDia.value) {
+    dragCurrentHourIdx.value = hIdx
+  }
+}
+
+function finalizarArrastre() {
+  if (!isDragging.value) return
+
+  const minIdx = Math.min(dragStartHourIdx.value, dragCurrentHourIdx.value)
+  const maxIdx = Math.max(dragStartHourIdx.value, dragCurrentHourIdx.value)
+
+  const startHour = HORA_INICIO + (minIdx - 1)
+  const endHour = HORA_INICIO + maxIdx
+  const formatHour = (h) => `${String(h).padStart(2, '0')}:00`
+
+  emit('click-slot', {
+    dia: dragStartDia.value,
+    horaInicio: formatHour(startHour),
+    horaFin: formatHour(endHour),
+  })
+
+  isDragging.value = false
+  dragStartDia.value = null
+  dragStartHourIdx.value = null
+  dragCurrentHourIdx.value = null
+  window.removeEventListener('mouseup', finalizarArrastre)
+}
+
+function estaEnRangoSeleccionado(dia, hIdx) {
+  if (!isDragging.value) return false
+  if (dia !== dragStartDia.value) return false
+  const minIdx = Math.min(dragStartHourIdx.value, dragCurrentHourIdx.value)
+  const maxIdx = Math.max(dragStartHourIdx.value, dragCurrentHourIdx.value)
+  return hIdx >= minIdx && hIdx <= maxIdx
+}
+
+onUnmounted(() => {
+  window.removeEventListener('mouseup', finalizarArrastre)
+})
+
+function getHourTimeLabel(hIdx) {
+  const hour = HORA_INICIO + (hIdx - 1)
+  return `${String(hour).padStart(2, '0')}:00`
 }
 
 // ─── Indicador de hora actual ─────────────────────────────────────────────
@@ -170,15 +278,52 @@ const currentTimeTopPx = computed(() => {
   return (offsetMin / SLOT_MIN) * SLOT_PX
 })
 const todayDia = DIAS[now.getDay() === 0 ? 6 : now.getDay() - 1]
+const todayIdx = computed(() => DIAS.indexOf(todayDia))
+
+const timezoneLabel = computed(() => {
+  const offsetMinutes = new Date().getTimezoneOffset()
+  const offsetHours = -offsetMinutes / 60
+  const sign = offsetHours >= 0 ? '+' : ''
+  return `GMT${sign}${offsetHours}`
+})
+
+const weekDays = computed(() => {
+  const current = new Date()
+  const currentDay = current.getDay() // 0 = Sunday, 1 = Monday, etc.
+  const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1
+  
+  const monday = new Date(current)
+  monday.setDate(current.getDate() - distanceToMonday)
+  
+  return DIAS.map((dia, index) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + index)
+    return {
+      dia,
+      fecha: d.getDate(),
+    }
+  })
+})
+
+function formatGutterHour(h) {
+  const [hStr] = h.split(':')
+  const num = parseInt(hStr, 10)
+  if (num === 12) return '12 PM'
+  if (num === 0) return '12 AM'
+  return num < 12 ? `${num} AM` : `${num - 12} PM`
+}
 
 // ─── Estado vacío ─────────────────────────────────────────────────────────
-const sinResultados   = computed(() => bloques.value.length === 0)
+const sinResultados   = computed(() => {
+  if (bloquesPreview.value.length > 0) return false
+  return todosLosBloques.value.length === 0
+})
 const hayDataEnSistema = computed(() => store.tieneActividades || store.tieneBorradorLocal)
 
 // Razón del estado vacío (para el mensaje)
 const motivoVacio = computed(() => {
-  if (!calendarVisibleSinFiltro.value) return 'sin-filtro'
-  if (!hayDataEnSistema.value)          return 'sin-data'
+  if (!calendarVisibleSinFiltro.value && bloquesPreview.value.length === 0) return 'sin-filtro'
+  if (!hayDataEnSistema.value && bloquesPreview.value.length === 0)          return 'sin-data'
   return 'filtro-sin-resultados'
 })
 </script>
@@ -187,30 +332,42 @@ const motivoVacio = computed(() => {
   <div class="flex flex-col h-full gap-3 min-h-0">
 
     <!-- ══════════ CALENDAR GRID ══════════ -->
-    <div class="flex-1 min-h-0 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div class="min-w-[820px]">
+    <div class="flex-1 min-h-0 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm calendar-scrollbar">
+      <div class="min-w-[820px] pb-4">
 
         <!-- ── Day headers (sticky) ── -->
         <div
-          class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 grid"
-          :style="{ gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))' }"
+          class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-200 grid"
+          :style="{ gridTemplateColumns: '64px repeat(7, minmax(0, 1fr))' }"
         >
-          <div class="h-12" />
+          <!-- Top-left: Timezone label -->
+          <div class="h-20 flex flex-col items-end justify-end pb-2 pr-3 border-r border-slate-100">
+            <span class="text-[10px] font-semibold text-slate-600 tracking-wider">
+              {{ timezoneLabel }}
+            </span>
+          </div>
+          <!-- Day names & dates -->
           <div
-            v-for="dia in DIAS"
-            :key="dia"
-            class="h-12 border-l border-slate-100 flex flex-col items-center justify-center"
+            v-for="dayObj in weekDays"
+            :key="dayObj.dia"
+            class="h-20 border-l border-slate-100 flex flex-col items-center justify-center gap-1"
           >
             <span
               :class="[
-                'text-[10px] font-black uppercase tracking-widest',
-                dia === todayDia ? 'text-primary-600' : 'text-slate-400'
+                'text-[11px] font-bold uppercase tracking-wider',
+                dayObj.dia === todayDia ? 'text-primary-600' : 'text-slate-700'
               ]"
-            >{{ DIAS_LABEL[dia] }}</span>
-            <span
-              v-if="dia === todayDia"
-              class="mt-0.5 w-1 h-1 rounded-full bg-primary-500"
-            />
+            >{{ DIAS_LABEL[dayObj.dia] }}</span>
+            <div
+              :class="[
+                'w-9 h-9 rounded-full flex items-center justify-center text-[15px] transition-colors duration-150',
+                dayObj.dia === todayDia
+                  ? 'bg-primary-600 text-white font-bold shadow-sm'
+                  : 'text-slate-800 font-semibold hover:bg-slate-100'
+              ]"
+            >
+              {{ dayObj.fecha }}
+            </div>
           </div>
         </div>
 
@@ -218,7 +375,7 @@ const motivoVacio = computed(() => {
         <div
           class="relative grid"
           :style="{
-            gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))',
+            gridTemplateColumns: '64px repeat(7, minmax(0, 1fr))',
             gridTemplateRows: `repeat(${TOTAL_SLOTS}, ${SLOT_PX}px)`,
           }"
         >
@@ -226,35 +383,69 @@ const motivoVacio = computed(() => {
           <div
             v-for="(hora, i) in horas"
             :key="'g-' + hora"
-            class="border-t border-slate-100 pr-2.5 flex items-start justify-end"
+            class="pr-3 flex items-start justify-end relative"
             :style="{ gridColumn: 1, gridRow: `${i * SLOTS_POR_HORA + 1} / span ${SLOTS_POR_HORA}` }"
           >
-            <span class="text-[9px] font-bold text-slate-300 leading-none -translate-y-1 tracking-wide">{{ hora }}</span>
+            <span
+              :class="[
+                'text-[10px] font-semibold text-slate-700 leading-none tracking-wide',
+                i > 0 ? '-translate-y-1.5' : 'translate-y-1'
+              ]"
+            >
+              {{ formatGutterHour(hora) }}
+            </span>
+            <!-- Render the final hour (10 PM / 22:00) at the bottom border of the last hour slot -->
+            <span
+              v-if="i === horas.length - 1"
+              class="absolute bottom-0 right-3 translate-y-1 text-[10px] font-semibold text-slate-700 leading-none tracking-wide"
+            >
+              {{ formatGutterHour(`${String(HORA_FIN).padStart(2, '0')}:00`) }}
+            </span>
           </div>
 
-          <!-- COLUMNAS DE DÍA — fondo (líneas de hora y media hora) -->
+          <!-- COLUMNAS DE DÍA — fondo (líneas de hora) -->
           <template v-for="(dia, diaIdx) in DIAS" :key="'col-' + dia">
-            <div
-              v-for="slot in TOTAL_SLOTS"
-              :key="`bg-${dia}-${slot}`"
+            <button
+              v-for="hIdx in TOTAL_HORAS"
+              :key="`bg-${dia}-${hIdx}`"
+              type="button"
+              @mousedown.prevent="iniciarArrastre(dia, hIdx)"
+              @mouseenter="actualizarArrastre(dia, hIdx)"
               :class="[
-                'border-l',
-                slot % 2 === 1 ? 'border-t border-t-slate-100' : 'border-t border-t-dashed border-t-slate-100/60',
-                dia === todayDia ? 'bg-primary-50/15' : '',
-                'border-l-slate-100',
+                'w-full h-full border-l border-l-slate-100 border-t border-t-slate-100 text-left align-top transition-all duration-100 cursor-pointer focus:outline-none select-none group',
+                hIdx === TOTAL_HORAS ? 'border-b border-b-slate-100' : '',
+                estaEnRangoSeleccionado(dia, hIdx)
+                  ? 'bg-primary-100/70 border-primary-200'
+                  : (dia === todayDia ? 'bg-primary-50/10 hover:bg-primary-100/30' : 'hover:bg-slate-50'),
               ]"
-              :style="{ gridColumn: diaIdx + 2, gridRow: slot }"
-            />
+              :style="{
+                gridColumn: diaIdx + 2,
+                gridRow: `${(hIdx - 1) * SLOTS_POR_HORA + 1} / span ${SLOTS_POR_HORA}`,
+              }"
+              :title="`Programar sesión el ${DIAS_LABEL[dia]} a las ${getHourTimeLabel(hIdx)}`"
+            >
+              <!-- Faint dashed inner line to represent 30-minute slot visually -->
+              <div
+                :class="[
+                  'h-1/2 border-b border-b-slate-100/30 border-dashed pointer-events-none group-hover:border-b-transparent transition-colors duration-100',
+                  estaEnRangoSeleccionado(dia, hIdx) ? 'border-b-transparent' : ''
+                ]"
+              />
+            </button>
           </template>
 
           <!-- LÍNEA DE HORA ACTUAL -->
-          <template v-if="currentTimeTopPx !== null">
+          <template v-if="currentTimeTopPx !== null && todayIdx !== -1">
             <div
-              class="pointer-events-none z-10 absolute left-14 right-0 flex items-center"
-              :style="{ top: currentTimeTopPx + 'px' }"
+              class="pointer-events-none z-20 absolute left-0 right-0 flex items-center"
+              :style="{
+                gridColumn: todayIdx + 2,
+                top: currentTimeTopPx + 'px',
+                height: '1px'
+              }"
             >
-              <div class="w-1.5 h-1.5 rounded-full bg-primary-500 -ml-1 shadow-sm shrink-0" />
-              <div class="flex-1 h-px bg-primary-400" />
+              <div class="w-2 h-2 rounded-full bg-red-500 -ml-1 shadow-sm shrink-0 z-30" />
+              <div class="flex-1 h-0.5 bg-red-500" />
             </div>
           </template>
 
@@ -268,14 +459,16 @@ const motivoVacio = computed(() => {
               :style="{
                 gridColumn: diaIdx + 2,
                 gridRow: `${b._startSlot + 1} / ${b._endSlot + 1}`,
-                width: `calc(${100 / b._totalLanes}% - 4px)`,
-                marginLeft: `calc(${(100 / b._totalLanes) * b._lane}% + 2px)`,
+                width: `calc(${100 / b._totalLanes}% - 6px)`,
+                marginLeft: `calc(${(100 / b._totalLanes) * b._lane}% + 3px)`,
                 ...(tieneConflicto(b) ? { backgroundImage: clasesBloque(b, true).stripeBg } : {}),
               }"
               :class="[
-                'relative z-10 rounded-lg overflow-hidden text-left transition-all duration-150',
-                'hover:shadow-md hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500/40',
-                'my-px',
+                'relative z-10 rounded-xl overflow-hidden text-left transition-all duration-150',
+                b._origen === 'preview'
+                  ? 'cursor-default focus:outline-none'
+                  : 'hover:shadow-md hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500/40 active:scale-[0.98]',
+                'my-[2px]',
                 clasesBloque(b, tieneConflicto(b)).bg,
                 clasesBloque(b, tieneConflicto(b)).borderStyle,
                 clasesBloque(b, tieneConflicto(b)).borderColor,
@@ -284,22 +477,25 @@ const motivoVacio = computed(() => {
                   : '',
               ]"
             >
-              <div class="px-2 py-1.5 h-full flex flex-col justify-start overflow-hidden">
+              <div class="pl-2.5 pr-2 py-1.5 h-full flex flex-col justify-start overflow-hidden">
                 <p
-                  :class="['text-xs font-extrabold truncate leading-tight', clasesBloque(b, tieneConflicto(b)).text]"
-                >{{ b._disciplina_nombre || '—' }}</p>
+                  :class="['text-[11px] font-bold truncate leading-tight flex items-center gap-1.5', clasesBloque(b, tieneConflicto(b)).text]"
+                >
+                  <span v-if="b._origen === 'preview'" class="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+                  {{ b._disciplina_nombre || 'Nueva Sesión' }}
+                </p>
                 <p
                   v-if="(b._endSlot - b._startSlot) >= 2"
-                  :class="['text-[11px] font-semibold truncate leading-tight mt-0.5 tabular-nums', clasesBloque(b, tieneConflicto(b)).sub]"
+                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5 tabular-nums', clasesBloque(b, tieneConflicto(b)).sub]"
                 >{{ String(b.hora_inicio).slice(0,5) }}–{{ String(b.hora_fin).slice(0,5) }}</p>
                 <p
                   v-if="(b._endSlot - b._startSlot) >= 3"
-                  :class="['text-[11px] truncate leading-tight opacity-80 mt-0.5', clasesBloque(b, tieneConflicto(b)).sub]"
-                >{{ b._instructor_nombre }}</p>
+                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5', b._instructor_nombre ? clasesBloque(b, tieneConflicto(b)).sub : 'text-slate-400 italic']"
+                >{{ b._instructor_nombre || 'Sin instructor' }}</p>
                 <p
                   v-if="(b._endSlot - b._startSlot) >= 4"
-                  :class="['text-[10px] truncate leading-tight opacity-60 mt-0.5', clasesBloque(b, tieneConflicto(b)).sub]"
-                >{{ b._espacio_nombre }}</p>
+                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5', b._espacio_nombre ? clasesBloque(b, tieneConflicto(b)).sub : 'text-slate-400 italic']"
+                >{{ b._espacio_nombre || 'Sin espacio' }}</p>
               </div>
             </button>
           </template>
@@ -307,42 +503,47 @@ const motivoVacio = computed(() => {
           <!-- ── Empty state overlay ── -->
           <div
             v-if="sinResultados"
-            class="absolute inset-0 flex items-center justify-center pointer-events-none"
+            class="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+            style="grid-column: 1 / -1; grid-row: 1 / -1;"
           >
             <!-- Sin filtro activo: mensaje principal de bienvenida -->
-            <div v-if="motivoVacio === 'sin-filtro'" class="text-center select-none px-8 max-w-sm">
-              <div class="w-16 h-16 rounded-3xl bg-primary-50 border border-primary-100 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <div v-if="motivoVacio === 'sin-filtro'" class="bg-white border border-slate-200/80 shadow-xl rounded-2xl p-8 max-w-sm text-center select-none pointer-events-auto mx-4 transition-all duration-200">
+              <div class="w-14 h-14 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <p class="text-sm font-extrabold text-slate-600 mb-1">Selecciona una disciplina para visualizar</p>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Usa el filtro de Disciplina en el header, o el ícono de ojo <span class="font-bold">👁</span> en la sección de borradores para activar la vista.
+              <h3 class="text-sm font-bold text-slate-800 mb-1.5">Selecciona una disciplina</h3>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Usa el filtro de <span class="font-semibold text-slate-700">Disciplina</span> en el encabezado o haz clic en el ícono de ojo <span class="text-primary-600 font-bold">👁</span> en la barra de borradores para ver las sesiones.
               </p>
             </div>
 
             <!-- Sin datos en el sistema -->
-            <div v-else-if="motivoVacio === 'sin-data'" class="text-center select-none px-6 max-w-sm bg-white/60 backdrop-blur-sm rounded-2xl py-6">
-              <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <div v-else-if="motivoVacio === 'sin-data'" class="bg-white border border-slate-200/80 shadow-xl rounded-2xl p-8 max-w-sm text-center select-none pointer-events-auto mx-4 transition-all duration-200">
+              <div class="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" />
                 </svg>
               </div>
-              <p class="text-sm font-bold text-slate-500">Sin sesiones aún</p>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">Abre el panel y agrega tu primera sesión.</p>
+              <h3 class="text-sm font-bold text-slate-800 mb-1.5">Sin sesiones programadas</h3>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                No hay sesiones creadas en el sistema para esta semana. Abre el panel lateral y programa tu primera actividad.
+              </p>
             </div>
 
             <!-- Con datos pero filtro sin resultados -->
-            <div v-else class="text-center select-none px-6 max-w-sm bg-white/60 backdrop-blur-sm rounded-2xl py-6">
-              <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <div v-else class="bg-white border border-slate-200/80 shadow-xl rounded-2xl p-8 max-w-sm text-center select-none pointer-events-auto mx-4 transition-all duration-200">
+              <div class="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                 </svg>
               </div>
-              <p class="text-sm font-bold text-slate-500">Sin resultados para este filtro</p>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">Prueba con otra disciplina o ajusta los filtros del header.</p>
+              <h3 class="text-sm font-bold text-slate-800 mb-1.5">Sin coincidencias</h3>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                No se encontraron sesiones que coincidan con los filtros seleccionados. Intenta ajustar o limpiar los filtros en la barra superior.
+              </p>
             </div>
           </div>
         </div>
@@ -374,6 +575,28 @@ const motivoVacio = computed(() => {
         />
         Conflicto
       </span>
+      <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-primary-400 bg-primary-50/40 inline-block" />
+        Vista previa (Borrador actual)
+      </span>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Custom scrollbar for the calendar grid container to make it match Google Calendar */
+.calendar-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.calendar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.calendar-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.calendar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+</style>

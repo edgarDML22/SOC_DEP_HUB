@@ -245,6 +245,18 @@ function resetForm() {
   formErrors.value = {}
 }
 
+function handleCeldaClick({ dia, horaInicio, horaFin }) {
+  store.setPanelVisible(true)
+  seccionCrear.value = true
+  form.value.dias = [dia]
+  form.value.hora_inicio = horaInicio
+  form.value.hora_fin = horaFin
+  
+  if (formErrors.value.dias) delete formErrors.value.dias
+  if (formErrors.value.hora_inicio) delete formErrors.value.hora_inicio
+  if (formErrors.value.hora_fin) delete formErrors.value.hora_fin
+}
+
 // ─── Borrador local (agrupado por disciplina) ─────────────────────────────
 const borradorOrdenado = computed(() =>
   store.borradorLocal
@@ -839,7 +851,11 @@ onMounted(async () => {
 
       <!-- ════ CALENDARIO ════ -->
       <main class="flex-1 min-w-0 overflow-hidden p-4">
-        <CalendarioGrid :sesion-resaltada-index="store.sesionSeleccionada" />
+        <CalendarioGrid
+          :sesion-resaltada-index="store.sesionSeleccionada"
+          :sesion-preview="form"
+          @click-slot="handleCeldaClick"
+        />
       </main>
     </div>
 
