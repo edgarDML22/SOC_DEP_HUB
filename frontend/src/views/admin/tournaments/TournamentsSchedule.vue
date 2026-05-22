@@ -10,6 +10,7 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
 
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
@@ -26,7 +27,7 @@ const { toastInfo } = useAlerts()
 const {
   torneoSeleccionado, encuentros, arbitrosPool,
   loadingStates, calendarEvents, allTournamentsEvents,
-  todosLosTorneos, TOURNAMENT_COLORS
+  todosLosTorneos, TOURNAMENT_COLORS, espaciosActivos
 } = storeToRefs(scheduleStore)
 
 // ── UI STATE ────────────────────────────────────────────────
@@ -35,6 +36,9 @@ const showAssignModal = ref(false)
 const selectedEncuentro = ref(null)
 const rangoActivo = ref(null)
 const calendarRef = ref(null)
+const searchQuery = ref('')
+const filterTab = ref('ALL') // 'ALL' | 'SCHEDULED' | 'UNSCHEDULED'
+const currentMiniView = ref('timeGridWeek')
 
 // ── COMPUTED ────────────────────────────────────────────────
 const torneoIdFromQuery = computed(() => route.query.torneo ? Number(route.query.torneo) : null)
@@ -48,6 +52,21 @@ const overviewEvents = computed(() => allTournamentsEvents.value)
 // Events for the detail calendar (single tournament)
 const detailEvents = computed(() => calendarEvents.value.filter(e => e.start))
 
+// Glow preview and scheduled events combined for the mini calendar
+const miniCalendarEvents = computed(() => {
+  const list = [...detailEvents.value]
+  if (rangoActivo.value && rangoActivo.value.inicio && rangoActivo.value.fin) {
+    list.push({
+      id: 'glow-preview',
+      start: rangoActivo.value.inicio,
+      end: rangoActivo.value.fin,
+      display: 'background',
+      classNames: ['preview-highlight-pulse']
+    })
+  }
+  return list
+})
+
 // Color legend for overview
 const colorLegend = computed(() => {
   return todosLosTorneos.value.map(t => ({
@@ -55,6 +74,50 @@ const colorLegend = computed(() => {
     nombre: t.nombre_torneo,
     color: scheduleStore.getTournamentColor(t.id_torneo),
   }))
+})
+
+// Filtered encounters table list (excluding Bye matches)
+const filteredEncuentrosTable = computed(() => {
+  return encuentros.value
+    .filter(e => !e.es_bye)
+    .map(enc => {
+      const comp1 = enc.competidor1?.equipo?.nombre_equipo
+        || enc.competidor1?.participante?.nombre_equipo
+        || enc.competidor1?.participante?.nombre_completo
+        || enc.competidor1?.participante?.nombre
+        || enc.competidor1?.nombre_completo
+        || (enc.competidor1?.id_interno ? `Participante #${enc.competidor1.id_interno}` : 'TBD');
+      const comp2 = enc.competidor2?.equipo?.nombre_equipo
+        || enc.competidor2?.participante?.nombre_equipo
+        || enc.competidor2?.participante?.nombre_completo
+        || enc.competidor2?.participante?.nombre
+        || enc.competidor2?.nombre_completo
+        || (enc.competidor2?.id_interno ? `Participante #${enc.competidor2.id_interno}` : 'TBD');
+
+      return {
+        ...enc,
+        comp1Name: comp1,
+        comp2Name: comp2,
+        isAssigned: !!enc.id_arbitro_asignado && !!enc.fecha_hora_inicio && !!enc.id_espacio,
+        faseLabel: formatFase(enc.fase_bracket || enc.fase)
+      }
+    })
+    .filter(e => {
+      // 1. Search filter
+      const q = searchQuery.value.toLowerCase().trim()
+      if (q) {
+        const matchComp1 = e.comp1Name.toLowerCase().includes(q)
+        const matchComp2 = e.comp2Name.toLowerCase().includes(q)
+        const matchFase = e.faseLabel.toLowerCase().includes(q)
+        if (!matchComp1 && !matchComp2 && !matchFase) return false
+      }
+
+      // 2. Tab filter
+      if (filterTab.value === 'SCHEDULED') return e.isAssigned
+      if (filterTab.value === 'UNSCHEDULED') return !e.isAssigned
+
+      return true
+    })
 })
 
 // Encounters without date for detail view
@@ -88,27 +151,28 @@ const overviewCalendarOptions = computed(() => ({
 }))
 
 const detailCalendarOptions = computed(() => ({
-  plugins: calendarPlugins,
-  initialView: 'timeGridWeek',
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+  initialView: currentMiniView.value,
   locale: 'es',
   headerToolbar: {
     left: 'prev,today,next',
     center: 'title',
-    right: 'timeGridWeek,timeGridDay'
+    right: '' // Custom view pills are used instead
   },
   height: 'auto',
   slotMinTime: '06:00:00',
   slotMaxTime: '23:00:00',
   allDaySlot: false,
   nowIndicator: true,
-  events: detailEvents.value,
+  events: miniCalendarEvents.value,
   eventClick: handleDetailEventClick,
   editable: false,
-  selectable: false,
+  selectable: true,
+  select: handleSlotSelect,
   eventDisplay: 'block',
   slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
   dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
-  buttonText: { today: 'Hoy', week: 'Semana', day: 'Día' },
+  buttonText: { today: 'Hoy' },
 }))
 
 // ── EVENT HANDLERS ──────────────────────────────────────────
@@ -119,16 +183,48 @@ function handleOverviewEventClick(info) {
   }
 }
 
+function handleSlotSelect(selectionInfo) {
+  rangoActivo.value = {
+    inicio: selectionInfo.start,
+    fin: selectionInfo.end,
+    id_espacio: null
+  }
+}
+
 function handleDetailEventClick(info) {
+  if (info.event.id === 'glow-preview') return
   const enc = info.event.extendedProps
   if (enc) {
+    if (info.event.start && info.event.end) {
+      rangoActivo.value = {
+        inicio: info.event.start,
+        fin: info.event.end,
+        id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
+      }
+    }
     selectedEncuentro.value = enc
     showAssignModal.value = true
   }
 }
 
 function openAssignModal(enc) {
-  selectedEncuentro.value = enc
+  const enrichedEnc = { ...enc }
+  if (rangoActivo.value) {
+    enrichedEnc.fecha_hora_inicio = rangoActivo.value.inicio
+    enrichedEnc.fecha_hora_fin = rangoActivo.value.fin
+    if (rangoActivo.value.id_espacio && rangoActivo.value.id_espacio !== 'sin-asignar') {
+      enrichedEnc.id_espacio = Number(rangoActivo.value.id_espacio)
+    }
+  } else {
+    if (enc.fecha_hora_inicio && enc.fecha_hora_fin) {
+      rangoActivo.value = {
+        inicio: new Date(enc.fecha_hora_inicio),
+        fin: new Date(enc.fecha_hora_fin),
+        id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
+      }
+    }
+  }
+  selectedEncuentro.value = enrichedEnc
   showAssignModal.value = true
 }
 
@@ -139,8 +235,57 @@ function handleAssignmentSaved() {
 }
 
 function goToOverview() {
+  rangoActivo.value = null
   scheduleStore.clearSelection()
   router.push({ query: {} })
+}
+
+function setMiniCalendarView(viewName) {
+  currentMiniView.value = viewName
+  if (calendarRef.value) {
+    const calendarApi = calendarRef.value.getApi()
+    if (calendarApi) {
+      calendarApi.changeView(viewName)
+    }
+  }
+}
+
+// ── UTILS / RESOLVERS ────────────────────────────────────────
+const getRefereeName = (row) => {
+  const refObj = row.arbitro
+  if (refObj?.nombre) return refObj.nombre
+  if (refObj?.nombre_completo) return refObj.nombre_completo
+  
+  if (row.id_arbitro_asignado) {
+    const refInPool = scheduleStore.arbitrosPool?.disponibles?.find(a => a.id_instructor === row.id_arbitro_asignado)
+      || scheduleStore.arbitrosPool?.ocupados?.find(a => a.id_instructor === row.id_arbitro_asignado)
+    if (refInPool?.nombre) return refInPool.nombre
+  }
+  return 'Árbitro'
+}
+
+const getRefereeInitial = (nombre) => {
+  if (!nombre) return '?'
+  return nombre.charAt(0).toUpperCase()
+}
+
+const getRefereeBg = (nombre) => {
+  const colors = [
+    'bg-blue-100 text-blue-750 border border-blue-200',
+    'bg-purple-100 text-purple-750 border border-purple-200',
+    'bg-pink-100 text-pink-750 border border-pink-200',
+    'bg-amber-100 text-amber-750 border border-amber-200',
+    'bg-emerald-100 text-emerald-750 border border-emerald-200',
+    'bg-cyan-100 text-cyan-750 border border-cyan-200',
+  ]
+  const idx = nombre ? nombre.charCodeAt(0) % colors.length : 0
+  return colors[idx]
+}
+
+const getEspacioName = (idEspacio) => {
+  if (!idEspacio) return 'Sin asignar'
+  const sp = espaciosActivos.value.find(e => e.id_espacio === idEspacio)
+  return sp ? sp.nombre_espacio : `Espacio #${idEspacio}`
 }
 
 function handleTorneoCreated() {
@@ -162,12 +307,32 @@ const formatFecha = (f) => {
   })
 }
 
+const formatDateForApi = (date) => {
+  if (!date) return null
+  const d = new Date(date)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`
+}
+
 // ── WATCHERS ────────────────────────────────────────────────
+watch(rangoActivo, async (newRange) => {
+  if (newRange?.inicio && newRange?.fin) {
+    const inicioStr = formatDateForApi(newRange.inicio)
+    const finStr = formatDateForApi(newRange.fin)
+    const torneoId = torneoIdFromQuery.value
+    if (torneoId) {
+      await scheduleStore.fetchArbitrosDisponibles(torneoId, inicioStr, finStr)
+    }
+  }
+}, { deep: true })
+
 watch(torneoIdFromQuery, async (id) => {
+  rangoActivo.value = null
   if (id) {
     await scheduleStore.fetchEncuentrosTorneo(id)
     await scheduleStore.fetchEspacios()    
-    await scheduleStore.fetchArbitrosTorneo(id)  // Obtener todos los árbitros del torneo  } else {
+    await scheduleStore.fetchArbitrosTorneo(id)  // Obtener todos los árbitros del torneo
+  } else {
     scheduleStore.clearSelection()
     scheduleStore.fetchTodosLosTorneos()
   }
@@ -251,57 +416,182 @@ onMounted(async () => {
           <p class="text-sm font-bold text-surface-400 mt-4 animate-pulse">Cargando encuentros del torneo...</p>
         </div>
 
-        <!-- Layout: Calendario + Sidebar -->
-        <div v-else class="flex gap-6 items-start">
-          <!-- Calendario principal -->
-          <div class="flex-1 min-w-0 space-y-5">
-            <!-- Calendar Card -->
-            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 overflow-hidden">
-              <FullCalendar ref="calendarRef" :options="detailCalendarOptions" />
-            </div>
+        <!-- Layout de doble columna: 60% tabla + 40% mini-calendar -->
+        <div v-else class="grid grid-cols-[1fr_380px] gap-6 items-start">
 
-            <!-- Encuentros sin programar -->
-            <div v-if="unscheduledEncuentros.length > 0"
-              class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
-              <div class="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
-                <div class="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
-                  <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 class="text-sm font-black text-surface-900">Encuentros sin programar</h3>
-                <span
-                  class="ml-auto px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-black">
-                  {{ unscheduledEncuentros.length }}
+          <!-- ══════════════════════════════════════════ -->
+          <!-- COLUMNA IZQUIERDA (60%): Tabla de encuentros -->
+          <!-- ══════════════════════════════════════════ -->
+          <div class="space-y-4 min-w-0">
+            <!-- Buscador + filtros -->
+            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm px-5 py-4 space-y-3">
+              <!-- Search bar -->
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input v-model="searchQuery" type="text" placeholder="Buscar equipos o fase..."
+                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-200 bg-surface-50 text-sm text-surface-800 placeholder-surface-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all" />
+              </div>
+              <!-- Filter pills -->
+              <div class="flex items-center gap-2">
+                <button v-for="tab in [{ key: 'ALL', label: 'Todos' }, { key: 'SCHEDULED', label: 'Programados' }, { key: 'UNSCHEDULED', label: 'Por programar' }]"
+                  :key="tab.key" @click="filterTab = tab.key"
+                  class="px-3 py-1 rounded-lg text-[11px] font-bold transition-all border"
+                  :class="filterTab === tab.key
+                    ? 'bg-surface-900 text-white border-surface-900 shadow-sm'
+                    : 'bg-white text-surface-500 border-surface-200 hover:border-surface-300 hover:text-surface-700'">
+                  {{ tab.label }}
+                </button>
+                <span class="ml-auto text-[10px] font-bold text-surface-400">
+                  {{ filteredEncuentrosTable.length }} encuentro{{ filteredEncuentrosTable.length !== 1 ? 's' : '' }}
                 </span>
               </div>
-              <div class="divide-y divide-surface-100">
-                <div v-for="enc in unscheduledEncuentros" :key="enc.id_encuentro"
-                  class="px-5 py-3 flex items-center justify-between hover:bg-surface-50 transition-colors group cursor-pointer"
+            </div>
+
+            <!-- Tabla de encuentros -->
+            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+              <!-- Encabezado de tabla -->
+              <div class="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 px-5 py-3 bg-surface-50 border-b border-surface-100">
+                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400 col-span-2">Encuentro</div>
+                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400">Espacio</div>
+                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400">Árbitro</div>
+                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400">Acción</div>
+              </div>
+
+              <!-- Empty state -->
+              <div v-if="filteredEncuentrosTable.length === 0"
+                class="flex flex-col items-center justify-center py-16 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-surface-50 flex items-center justify-center mb-3">
+                  <svg class="w-6 h-6 text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <p class="text-sm font-bold text-surface-400">Sin resultados</p>
+                <p class="text-xs text-surface-400 mt-1">Intenta ajustar los filtros o la búsqueda.</p>
+              </div>
+
+              <!-- Filas de encuentros -->
+              <div v-else class="divide-y divide-surface-50">
+                <div v-for="enc in filteredEncuentrosTable" :key="enc.id_encuentro"
+                  class="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 items-center px-5 py-3.5 hover:bg-surface-50/70 transition-colors group cursor-pointer"
                   @click="openAssignModal(enc)">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-2 h-2 rounded-full bg-surface-300 shrink-0"></div>
-                    <div class="min-w-0">
-                      <p class="text-xs font-bold text-surface-800 truncate">
-                        {{ enc.competidor1?.equipo?.nombre_equipo || enc.competidor1?.participante?.nombre_equipo || enc.competidor1?.participante?.nombre_completo || enc.competidor1?.nombre_completo || (enc.competidor1?.id_interno ? `Participante #${enc.competidor1.id_interno}` : 'TBD') }}
-                        <span class="text-surface-400 mx-1">vs</span>
-                        {{ enc.competidor2?.equipo?.nombre_equipo || enc.competidor2?.participante?.nombre_equipo || enc.competidor2?.participante?.nombre_completo || enc.competidor2?.nombre_completo || (enc.competidor2?.id_interno ? `Participante #${enc.competidor2.id_interno}` : 'TBD') }}
-                      </p>
-                      <p class="text-[10px] text-surface-400 font-bold uppercase">{{ formatFase(enc.fase_bracket || enc.fase) }}</p>
+
+                  <!-- Status dot + fase -->
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="w-2 h-2 rounded-full shrink-0 transition-all"
+                      :class="enc.isAssigned ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]' : 'bg-surface-300'"></div>
+                  </div>
+
+                  <!-- Nombres de competidores -->
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-surface-800 truncate leading-snug">
+                      <span class="text-surface-700">{{ enc.comp1Name }}</span>
+                      <span class="text-surface-400 mx-1.5 font-normal">vs</span>
+                      <span class="text-surface-700">{{ enc.comp2Name }}</span>
+                    </p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">{{ enc.faseLabel }}</span>
+                      <span v-if="enc.fecha_hora_inicio" class="text-[9px] font-bold text-surface-400">
+                        · {{ formatFecha(enc.fecha_hora_inicio) }}
+                      </span>
                     </div>
                   </div>
-                  <button
-                    class="px-3 py-1.5 rounded-lg bg-surface-900 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary-600 shrink-0">
-                    Asignar
-                  </button>
+
+                  <!-- Espacio -->
+                  <div class="shrink-0">
+                    <span v-if="enc.id_espacio"
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 border border-blue-100 text-[9px] font-black text-blue-700 whitespace-nowrap">
+                      <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      </svg>
+                      {{ getEspacioName(enc.id_espacio) }}
+                    </span>
+                    <span v-else
+                      class="inline-flex items-center px-2 py-1 rounded-lg bg-surface-100 text-[9px] font-black text-surface-400 whitespace-nowrap">
+                      Sin asignar
+                    </span>
+                  </div>
+
+                  <!-- Árbitro -->
+                  <div class="shrink-0">
+                    <div v-if="enc.id_arbitro_asignado" class="flex items-center gap-1.5">
+                      <div class="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black shrink-0"
+                        :class="getRefereeBg(getRefereeName(enc))">
+                        {{ getRefereeInitial(getRefereeName(enc)) }}
+                      </div>
+                      <span class="text-[9px] font-bold text-surface-700 max-w-[80px] truncate">{{ getRefereeName(enc) }}</span>
+                    </div>
+                    <span v-else
+                      class="inline-flex items-center px-2 py-1 rounded-lg bg-amber-50 border border-amber-100 text-[9px] font-black text-amber-600 whitespace-nowrap">
+                      Por asignar
+                    </span>
+                  </div>
+
+                  <!-- Acción -->
+                  <div class="shrink-0">
+                    <button
+                      class="px-2.5 py-1.5 rounded-lg border border-surface-200 bg-white text-[9px] font-black text-surface-600 hover:bg-surface-900 hover:text-white hover:border-surface-900 transition-all opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-sm">
+                      {{ enc.isAssigned ? 'Editar' : 'Asignar' }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Sidebar -->
-          <div class="w-72 shrink-0 sticky top-6">
+          <!-- ══════════════════════════════════════════ -->
+          <!-- COLUMNA DERECHA (40%): Mini-calendario + Sidebar -->
+          <!-- ══════════════════════════════════════════ -->
+          <div class="space-y-4 sticky top-6">
+            <!-- Mini Calendar Card -->
+            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+              <!-- Card header con pestañas de vista -->
+              <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-lg bg-primary-50 flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span class="text-xs font-black text-surface-900">Calendario</span>
+                  <span v-if="rangoActivo" class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-[9px] font-black text-emerald-700">Rango activo</span>
+                  </span>
+                </div>
+                <!-- View toggle pills -->
+                <div class="flex items-center gap-1 p-0.5 bg-surface-100 rounded-lg">
+                  <button @click="setMiniCalendarView('timeGridWeek')"
+                    class="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all"
+                    :class="currentMiniView === 'timeGridWeek' ? 'bg-white shadow-sm text-surface-900' : 'text-surface-500 hover:text-surface-700'">
+                    Semana
+                  </button>
+                  <button @click="setMiniCalendarView('timeGridDay')"
+                    class="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all"
+                    :class="currentMiniView === 'timeGridDay' ? 'bg-white shadow-sm text-surface-900' : 'text-surface-500 hover:text-surface-700'">
+                    Día
+                  </button>
+                </div>
+              </div>
+
+              <!-- Hint de interacción cuando no hay rango -->
+              <div v-if="!rangoActivo" class="mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-[9px] font-bold text-blue-700">Haz clic y arrastra en el calendario para seleccionar un rango horario.</p>
+              </div>
+
+              <!-- FullCalendar mini instance -->
+              <div class="mini-calendar-container p-3">
+                <FullCalendar ref="calendarRef" :options="detailCalendarOptions" />
+              </div>
+            </div>
+
+            <!-- Sidebar de árbitros -->
             <SidebarArbitros :torneo="torneoSeleccionado" :arbitros-pool="arbitrosPool" :loading="loadingStates.arbitros"
               :rango-activo="rangoActivo" />
           </div>
@@ -454,5 +744,46 @@ onMounted(async () => {
 .fc .fc-timegrid-now-indicator-line {
   border-color: #ef4444 !important;
   border-width: 2px !important;
+}
+
+/* Glowing preview and mini-calendar styles */
+@keyframes pulse-glowing {
+  0% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+  100% { opacity: 0.55; }
+}
+
+.preview-highlight-pulse {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(16, 185, 129, 0.15),
+    rgba(16, 185, 129, 0.15) 10px,
+    rgba(59, 130, 246, 0.15) 10px,
+    rgba(59, 130, 246, 0.15) 20px
+  ) !important;
+  border: 2px dashed #10b981 !important;
+  animation: pulse-glowing 2s infinite ease-in-out !important;
+  z-index: 50 !important;
+}
+
+/* Custom mini calendar styling */
+.mini-calendar-container .fc {
+  font-size: 0.72rem !important;
+}
+
+.mini-calendar-container .fc-header-toolbar {
+  margin-bottom: 0.75rem !important;
+  padding: 0 0.25rem !important;
+}
+
+.mini-calendar-container .fc-toolbar-title {
+  font-size: 0.8rem !important;
+  font-weight: 800 !important;
+}
+
+.mini-calendar-container .fc .fc-button {
+  padding: 0.2rem 0.4rem !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
 }
 </style>

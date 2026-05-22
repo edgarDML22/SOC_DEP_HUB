@@ -17,7 +17,7 @@ class RefereeAvailabilityController extends Controller
      */
     public function all(int $id_torneo)
     {
-        $torneo = Torneo::select('id_disciplina')
+        $torneo = Torneo::select('id_disciplina', 'pool_arbitros')
             ->where('id_torneo', $id_torneo)
             ->first();
 
@@ -27,7 +27,9 @@ class RefereeAvailabilityController extends Controller
             ], 404);
         }
 
-        $instructores = Instructor::query()
+        $poolIds = $torneo->pool_arbitros ?? [];
+
+        $query = Instructor::query()
             ->join(
                 'instructor_disciplina',
                 'instructores.id_instructor',
@@ -42,8 +44,14 @@ class RefereeAvailabilityController extends Controller
                 'instructores.id_instructor',
                 'instructores.nombre_completo'
             )
-            ->distinct()
-            ->get();
+            ->distinct();
+
+        // Si el torneo tiene una pool definida, filtrar solo esos árbitros
+        if (!empty($poolIds)) {
+            $query->whereIn('instructores.id_instructor', $poolIds);
+        }
+
+        $instructores = $query->get();
 
         return response()->json([
             'arbitros' => $instructores->map(fn($i) => [
@@ -82,7 +90,9 @@ class RefereeAvailabilityController extends Controller
         $diasMap = [0 => 'DOMINGO', 1 => 'LUNES', 2 => 'MARTES', 3 => 'MIERCOLES', 4 => 'JUEVES', 5 => 'VIERNES', 6 => 'SABADO'];
         $diaSemana = $diasMap[$fechaInicio->dayOfWeek];
 
-        $instructores = Instructor::query()
+        $poolIds = $torneo->pool_arbitros ?? [];
+
+        $query = Instructor::query()
             ->join(
                 'instructor_disciplina',
                 'instructores.id_instructor',
@@ -97,15 +107,21 @@ class RefereeAvailabilityController extends Controller
                 'instructores.id_instructor',
                 'instructores.nombre_completo'
             )
-            ->distinct()
-            ->get();
+            ->distinct();
+
+        // Si el torneo tiene una pool definida, filtrar solo esos árbitros
+        if (!empty($poolIds)) {
+            $query->whereIn('instructores.id_instructor', $poolIds);
+        }
+
+        $instructores = $query->get();
 
         $disponibles = [];
         $ocupados = [];
 
         foreach ($instructores as $instructor) {
 
-            $conflictoActividad = ActividadPlantilla::query()
+            $actividadConflicto = ActividadPlantilla::query()
                 ->where(
                     'id_instructor',
                     $instructor->id_instructor
@@ -124,9 +140,9 @@ class RefereeAvailabilityController extends Controller
                     '>',
                     $horaInicio
                 )
-                ->exists();
+                ->first();
 
-            $conflictoEncuentro = EncuentrosTorneo::query()
+            $encuentroConflicto = EncuentrosTorneo::query()
                 ->where(
                     'id_arbitro_asignado',
                     $instructor->id_instructor
@@ -145,14 +161,26 @@ class RefereeAvailabilityController extends Controller
                     'BYE',
                     'FINALIZADO'
                 ])
-                ->exists();
+                ->first();
 
-            $ocupado = $conflictoActividad || $conflictoEncuentro;
+            $ocupado = !is_null($actividadConflicto) || !is_null($encuentroConflicto);
+
+            $motivo = null;
+            if ($actividadConflicto) {
+                $motivo = "Clase programada (" . $diaSemana . ")";
+            } elseif ($encuentroConflicto) {
+                $torneoConflicto = $encuentroConflicto->torneo;
+                $nombreT = $torneoConflicto ? $torneoConflicto->nombre_torneo : "Torneo #" . $encuentroConflicto->id_torneo;
+                $horaIni = Carbon::parse($encuentroConflicto->fecha_hora_inicio)->format('H:i');
+                $horaF = Carbon::parse($encuentroConflicto->fecha_hora_fin)->format('H:i');
+                $motivo = "Encuentro en " . $nombreT . " (" . $horaIni . " - " . $horaF . ")";
+            }
 
             $instructorData = [
                 'id_instructor' => $instructor->id_instructor,
                 'nombre' => $instructor->nombre_completo,
-                'ocupado' => $ocupado
+                'ocupado' => $ocupado,
+                'motivo' => $motivo
             ];
 
             if ($ocupado) {

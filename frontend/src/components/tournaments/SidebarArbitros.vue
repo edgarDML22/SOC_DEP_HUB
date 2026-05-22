@@ -151,6 +151,9 @@ const getInitialBg = (nombre) => {
                         <!-- Info -->
                         <div class="flex-1 min-w-0">
                             <p class="text-xs font-bold text-surface-800 truncate">{{ arbitro.nombre }}</p>
+                            <p v-if="arbitro.ocupado && arbitro.motivo" class="text-[10px] font-medium text-red-500 mt-0.5 leading-tight truncate" :title="arbitro.motivo">
+                                {{ arbitro.motivo }}
+                            </p>
                         </div>
 
                         <!-- Badge -->
