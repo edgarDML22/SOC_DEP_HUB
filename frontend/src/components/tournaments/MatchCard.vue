@@ -26,7 +26,7 @@ const currentUserId = computed(() => (userData ? Number(userData.id) : null));
 const getCompetidorName = (comp, esBye) => {
   if (esBye) return "BYE";
   if (!comp) return "Por definir";
-  return comp.participante?.nombre_completo || `Participante #${comp.id_interno || comp.id_participante_torneo}`;
+  return comp.nombre_completo || comp.participante?.nombre_completo || `Participante #${comp.id_interno || comp.id_participante_torneo}`;
 };
 
 const comp1Name = computed(() => getCompetidorName(props.match.competidor1, props.match.es_bye));
@@ -53,6 +53,7 @@ const statusLabel = computed(() => {
     BYE: "Bye",
     RESULTADO_PENDIENTE_VALIDACION: "Pendiente validación",
     FINALIZADO: "Finalizado",
+    CANCELADO: "Cancelado",
   };
   return map[props.match.estatus_encuentro] ?? props.match.estatus_encuentro;
 });
@@ -64,6 +65,7 @@ const statusClasses = computed(() => {
     BYE: "bg-violet-200 text-violet-900 border-violet-400",
     RESULTADO_PENDIENTE_VALIDACION: "bg-amber-50 text-amber-700 border-amber-200",
     FINALIZADO: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    CANCELADO: "bg-red-50 text-red-700 border-red-200",
   };
   return map[props.match.estatus_encuentro] ?? "bg-surface-100 text-surface-600 border-surface-200";
 });

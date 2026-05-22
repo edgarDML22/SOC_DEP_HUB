@@ -57,10 +57,11 @@ class TorneoController extends Controller
             'categoria',
             'encuentros' => fn($q) => $q->orderBy('fase_bracket')->orderBy('numero_encuentro'),
             'encuentros.competidor1.participante',
-            'encuentros.competidor2.participante',
             'encuentros.competidor1.equipo',
+            'encuentros.competidor1.capitanDeEquipo',
+            'encuentros.competidor2.participante',
             'encuentros.competidor2.equipo',
-
+            'encuentros.competidor2.capitanDeEquipo',
         ])
 
             ->findOrFail($id);
@@ -192,7 +193,14 @@ class TorneoController extends Controller
         $torneo = Torneo::findOrFail($id);
 
         $encuentros = $torneo->encuentros()
-            ->with(['competidor1.participante', 'competidor2.participante'])
+            ->with([
+                'competidor1.participante',
+                'competidor1.equipo',
+                'competidor1.capitanDeEquipo',
+                'competidor2.participante',
+                'competidor2.equipo',
+                'competidor2.capitanDeEquipo'
+            ])
             ->orderBy('numero_encuentro', 'asc')
             ->get();
 

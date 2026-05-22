@@ -4,6 +4,7 @@ namespace App\Actions\Torneo;
 
 use App\Models\Torneo;
 use App\Models\ParticipantesTorneo;
+use App\Models\EquiposTorneo;
 use App\Models\EncuentrosTorneo;
 use App\Exceptions\InsufficientParticipantsException;
 use Illuminate\Support\Facades\DB;
@@ -25,19 +26,34 @@ class GenerarBracketAction
     public function execute(Torneo $torneo): void
     {
         // 1. Obtener participantes activos con inscripción confirmada, ordenados por ranking DESC
-        $participantes = ParticipantesTorneo::where('id_torneo', $torneo->id_torneo)
-            ->where('estatus_participacion', 'ACTIVO')
-            ->orderBy('ranking_declarado', 'desc')
-            ->get();
+        if (in_array($torneo->modalidad, ['PAREJAS', 'MIXTO'])) {
+            // Team tournament: use captains of active teams as participants
+            $teams = EquiposTorneo::where('id_torneo', $torneo->id_torneo)
+                ->where('estatus_equipo', 'ACTIVO')
+                ->orderBy('siembra_ranking', 'desc')
+                ->get();
 
-        $n = count($participantes);
+            $n = $teams->count();
 
-        // 2. Validar contra el cupo mínimo
+            // Collect captains (ParticipantesTorneo) for each team
+            $participantes = $teams->map(function ($team) {
+                return $team->participanteCapitan;
+            })->filter();
+        } else {
+            // Individual tournament: use all active participants
+            $participantes = ParticipantesTorneo::where('id_torneo', $torneo->id_torneo)
+                ->where('estatus_participacion', 'ACTIVO')
+                ->orderBy('ranking_declarado', 'desc')
+                ->get();
+            $n = count($participantes);
+        }
+
+        // Validate minimum participants
         if ($n < $torneo->cupo_minimo) {
             throw new InsufficientParticipantsException();
         }
 
-        // 3. Calcular la potencia de 2 superior más cercana y la cantidad de Byes
+        // Calculate bracket size (power) and number of Byes
         $potencia = (int) pow(2, ceil(log($n, 2)));
         $byes     = $potencia - $n;
 
@@ -45,7 +61,7 @@ class GenerarBracketAction
         DB::transaction(function () use ($torneo, $participantes, $potencia) {
 
             // Limpiar encuentros generados previamente para este torneo (hacerlo idempotente)
-            \App\Models\EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)->delete();
+            EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)->delete();
 
             // 4. Asignar seed (id_interno) a cada participante según su posición por ranking
             foreach ($participantes as $index => $participante) {

@@ -51,6 +51,7 @@ use App\Http\Controllers\MatchAssignmentController;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
+|----------------------------------------------------------------
 |
 | Aquí es donde registras las rutas API para tu aplicación.
 |
@@ -343,6 +344,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
         Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
+        Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);
     });
 
 
@@ -367,6 +369,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Descargar/visualizar documento del preregistro
     Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+    //RESULTADOS TORNEOS
+    Route::get('/v1/instructor/encuentros-torneo', [ResultadoController::class, 'misEncuentros']);
+
+    Route::get('/v1/subgerente/resultados-pendientes', [ResultadoController::class, 'resultadosPendientes']);
 
 });
 

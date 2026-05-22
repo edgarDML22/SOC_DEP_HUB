@@ -249,6 +249,24 @@ const handleGoToDetails = (sessionObj) => {
                 Entrar al Módulo &rarr;
               </router-link>
             </div>
+
+            <!-- MÓDULO DE ARBITRAJE DE TORNEOS -->
+            <div class="bg-amber-50/50 rounded-3xl border border-amber-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-fade-in mt-4">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white border border-amber-100 rounded-full flex items-center justify-center text-amber-600 shadow-xs shrink-0">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="font-bold text-surface-900 text-lg leading-tight mb-1">Arbitraje de Torneos</h4>
+                  <p class="text-surface-600 text-sm leading-snug">Reporta resultados de los encuentros en los que estás asignado como árbitro.</p>
+                </div>
+              </div>
+              <router-link to="/instructor/encuentros" class="w-full md:w-auto bg-white border border-surface-300 hover:border-amber-400 text-surface-800 hover:text-amber-700 rounded-xl px-6 py-3 font-bold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 shrink-0">
+                Ver Mis Encuentros &rarr;
+              </router-link>
+            </div>
       </template>
     </div>
   </main>

@@ -31,8 +31,8 @@ class AvanzarBracketAction
             $ganadorId   = $encuentro->competidor_1_id;
         }
 
-        // El type morph siempre apunta a ParticipantesTorneo (nivel de participación, no de socio)
-        $ganadorType = \App\Models\ParticipantesTorneo::class;
+        // El type morph usa el alias normalizado del MorphMap (no la clase completa)
+        $ganadorType = 'PARTICIPANTE';
 
         $torneoFinalizado = false;
 
@@ -72,8 +72,8 @@ class AvanzarBracketAction
             $potencia     = $totalMatches + 1;
 
             $siguienteNumero = $this->getSiguienteEncuentroNumero(
-                $encuentro->numero_encuentro,
-                $potencia
+                (int) $encuentro->numero_encuentro,
+                (int) $potencia
             );
 
             if ($siguienteNumero > 0) {
@@ -85,7 +85,7 @@ class AvanzarBracketAction
                     // Posición del ganador en el siguiente encuentro:
                     // número impar dentro de su ronda → competidor_1
                     // número par  dentro de su ronda  → competidor_2
-                    if ($encuentro->numero_encuentro % 2 !== 0) {
+                    if ((int) $encuentro->numero_encuentro % 2 !== 0) {
                         $siguienteEncuentro->update([
                             'competidor_1_id'   => $ganadorId,
                             'competidor_1_type' => $ganadorType,
