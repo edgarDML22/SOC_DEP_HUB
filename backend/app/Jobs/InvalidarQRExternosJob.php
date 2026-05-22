@@ -38,9 +38,10 @@ class InvalidarQRExternosJob implements ShouldQueue
         );
 
         ParticipantesTorneo::where('id_torneo', $this->idTorneo)
+            ->where('tipo_entidad', 'COMPETIDOR_EXTERNO')
             ->whereNotNull('qr_codigo')
             ->update([
-                'qr_estatus' => 'INACTIVO'
+                'qr_estatus' => 'INACTIVO',
             ]);
 
         Log::channel('torneo')->info(

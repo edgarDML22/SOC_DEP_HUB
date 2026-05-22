@@ -55,18 +55,19 @@ use App\Models\Torneo;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
-Route::patch('/test-cancelar-torneo/{id}', function ($id) {
+if (app()->environment('local')) {
+    Route::patch('/test-cancelar-torneo/{id}', function ($id) {
+        $torneo = \App\Models\Torneo::findOrFail($id);
 
-    $torneo = \App\Models\Torneo::findOrFail($id);
+        app(\App\Actions\Torneo\CancelarTorneoAction::class)
+            ->execute($torneo, 'Prueba de cancelación');
 
-    app(\App\Actions\Torneo\CancelarTorneoAction::class)
-        ->execute($torneo, 'Prueba de cancelación');
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Torneo cancelado'
-    ]);
-});
+        return response()->json([
+            'success' => true,
+            'message' => 'Torneo cancelado (cola torneo-cancelacion)',
+        ]);
+    });
+}
 
 // ==========================================
 // RUTAS PÚBLICAS

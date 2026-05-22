@@ -38,8 +38,9 @@ class LiberarAgendaInstructoresJob implements ShouldQueue
         );
 
         EncuentrosTorneo::where('id_torneo', $this->idTorneo)
+            ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
             ->update([
-                'estatus_encuentro' => 'CANCELADO'
+                'estatus_encuentro' => 'CANCELADO',
             ]);
 
         Log::channel('torneo')->info(

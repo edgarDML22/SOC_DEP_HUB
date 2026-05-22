@@ -21,7 +21,7 @@ class SocioAgendaController extends Controller
         if (!in_array($user->rol, ['socio_titular', 'miembro_familiar'], true)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acceso denegado. Rol inválido 2.',
+                'message' => 'Acceso denegado. Rol inválido.',
             ], 403);
         }
 

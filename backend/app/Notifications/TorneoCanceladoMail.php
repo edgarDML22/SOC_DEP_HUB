@@ -29,7 +29,10 @@ class TorneoCanceladoMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Torneo cancelado')
-            ->view('emails.torneo-cancelado');
+        return $this->subject("Torneo cancelado: {$this->torneo->nombre_torneo}")
+            ->view('emails.torneo-cancelado', [
+                'torneo' => $this->torneo,
+                'motivo' => $this->motivo,
+            ]);
     }
 }

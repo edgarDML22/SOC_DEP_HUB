@@ -8,37 +8,43 @@ use App\Jobs\LiberarAgendaInstructoresJob;
 use App\Jobs\NotificarCancelacionMasivaJob;
 use App\Jobs\ActualizarPreRegistrosJob;
 
-
 class CancelarTorneoAction
 {
     /**
-     * Ejecuta la cancelación orquestada del torneo.
-     *
-     * @param Torneo $torneo
-     * @param string $motivo
-     * @return void
+     * Cancelación completa (persistencia + efectos asíncronos).
+     * Usado por rutas de prueba o flujos que no pasan por TransitionTorneoStatusAction.
      */
     public function execute(Torneo $torneo, string $motivo): void
     {
-        // Parte síncrona
         $torneo->update([
             'estatus_torneo' => 'CANCELADO',
             'motivo_cancelacion' => $motivo,
         ]);
 
-        // Jobs asíncronos
-        InvalidarQRExternosJob::dispatch($torneo->id_torneo)
+        $this->dispatchPostCancelacionJobs($torneo->id_torneo, $motivo);
+    }
+
+    /**
+     * Efectos post-cancelación cuando el torneo ya fue marcado CANCELADO
+     * (p. ej. desde TransitionTorneoStatusAction dentro de la transición de estatus).
+     */
+    public function ejecutarPostCancelacion(Torneo $torneo, string $motivo): void
+    {
+        $this->dispatchPostCancelacionJobs($torneo->id_torneo, $motivo);
+    }
+
+    protected function dispatchPostCancelacionJobs(int $idTorneo, string $motivo): void
+    {
+        InvalidarQRExternosJob::dispatch($idTorneo)
             ->onQueue('torneo-cancelacion');
 
-        LiberarAgendaInstructoresJob::dispatch($torneo->id_torneo)
+        LiberarAgendaInstructoresJob::dispatch($idTorneo)
             ->onQueue('torneo-cancelacion');
 
-        ActualizarPreRegistrosJob::dispatch($torneo->id_torneo)
+        ActualizarPreRegistrosJob::dispatch($idTorneo)
             ->onQueue('torneo-cancelacion');
 
-        NotificarCancelacionMasivaJob::dispatch(
-            $torneo->id_torneo,
-            $motivo
-        )->onQueue('torneo-cancelacion');
+        NotificarCancelacionMasivaJob::dispatch($idTorneo, $motivo)
+            ->onQueue('torneo-cancelacion');
     }
 }

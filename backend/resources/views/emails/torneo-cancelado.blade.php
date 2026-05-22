@@ -32,7 +32,7 @@
 
         <div style="
             background:#fef2f2;
-            border-left:5px solid #2641dcff;
+            border-left:5px solid #dc2626;
             padding:15px;
             margin:20px 0;
         ">

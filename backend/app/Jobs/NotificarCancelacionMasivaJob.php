@@ -2,9 +2,10 @@
 
 namespace App\Jobs;
 
-use App\Notifications\TorneoCanceladoMail;
 use App\Models\ParticipantesTorneo;
+use App\Models\PreRegistroTorneo;
 use App\Models\Torneo;
+use App\Notifications\TorneoCanceladoMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,20 +23,15 @@ class NotificarCancelacionMasivaJob implements ShouldQueue
     public $backoff = [60, 300, 600];
 
     protected int $idTorneo;
+
     protected string $motivo;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(int $idTorneo, string $motivo)
     {
         $this->idTorneo = $idTorneo;
         $this->motivo = $motivo;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
         Log::channel('torneo')->info(
@@ -43,52 +39,62 @@ class NotificarCancelacionMasivaJob implements ShouldQueue
         );
 
         $torneo = Torneo::findOrFail($this->idTorneo);
-
-        $participantes = ParticipantesTorneo::where('id_torneo', $this->idTorneo)
-            ->with('participante')
-            ->get();
-
         $emails = [];
 
-        foreach ($participantes as $participante) {
+        ParticipantesTorneo::where('id_torneo', $this->idTorneo)
+            ->with('participante')
+            ->get()
+            ->each(function (ParticipantesTorneo $participante) use (&$emails) {
+                $correo = $this->resolverCorreoParticipante($participante);
+                if ($correo) {
+                    $emails[] = strtolower($correo);
+                }
+            });
 
-            if (
-                $participante->participante &&
-                isset($participante->participante->correo_electronico)
-            ) {
-                $emails[] = $participante->participante->correo_electronico;
-            }
-        }
+        PreRegistroTorneo::where('id_torneo', $this->idTorneo)
+            ->whereIn('estatus', ['PENDIENTE', 'APROBADO'])
+            ->get()
+            ->each(function (PreRegistroTorneo $preRegistro) use (&$emails) {
+                $datos = $preRegistro->datos_participante ?? [];
+                if (!empty($datos['correo'])) {
+                    $emails[] = strtolower($datos['correo']);
+                }
+                foreach ($datos['integrantes'] ?? [] as $integrante) {
+                    if (!empty($integrante['correo'])) {
+                        $emails[] = strtolower($integrante['correo']);
+                    }
+                }
+            });
 
-        $emails = array_unique($emails);
+        $emails = array_values(array_unique(array_filter($emails)));
 
-        Log::info($emails);
-
-        Log::info('Intentando enviar correo...');
-
-        if (!empty($emails)) {
-            foreach ($emails as $email) {
-
-                Mail::to($email)->send(
-                    new TorneoCanceladoMail(
-                        $torneo,
-                        $this->motivo
-                    )
-                );
-            }
+        foreach ($emails as $email) {
+            Mail::to($email)->send(new TorneoCanceladoMail($torneo, $this->motivo));
         }
 
         Log::channel('torneo')->info(
-            "Finalizado NotificarCancelacionMasivaJob para torneo {$this->idTorneo}"
+            "Finalizado NotificarCancelacionMasivaJob para torneo {$this->idTorneo}",
+            ['correos_enviados' => count($emails)]
         );
     }
 
-    /**
-     * Handle a job failure.
-     */
+    protected function resolverCorreoParticipante(ParticipantesTorneo $participante): ?string
+    {
+        if ($participante->correo) {
+            return $participante->correo;
+        }
+
+        $p = $participante->participante;
+        if (!$p) {
+            return null;
+        }
+
+        return $p->correo_electronico ?? $p->correo ?? null;
+    }
+
     public function failed(\Throwable $exception): void
     {
-        Log::error(
+        Log::channel('torneo')->error(
             "Error en NotificarCancelacionMasivaJob torneo {$this->idTorneo}: {$exception->getMessage()}"
         );
     }
