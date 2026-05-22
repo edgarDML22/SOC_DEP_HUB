@@ -60,14 +60,26 @@ class ParticipantesTorneo extends Model
     // Accessors for polymorphic relationships
     public function getCorreoAttribute()
     {
-        $id   = $this->participante_id;
-        $type = $this->participante_type;
-        if ($id && in_array($type, ['SOCIO', SocioTitular::class])) {
-            return SocioTitular::find($id)?->correo_electronico;
-        } elseif ($id && in_array($type, ['FAMILIAR', MiembrosFamiliares::class])) {
-            return MiembrosFamiliares::find($id)?->correo;
+        $tipo = $this->participante_type;
+        $esSocio = in_array($tipo, [SocioTitular::class, 'SOCIO', 'SOCIO_TITULAR'], true)
+            || $this->tipo_entidad === 'SOCIO_TITULAR';
+        $esFamiliar = in_array($tipo, [MiembrosFamiliares::class, 'FAMILIAR', 'MIEMBRO_FAMILIAR'], true)
+            || $this->tipo_entidad === 'MIEMBRO_FAMILIAR';
+
+        if (!$this->participante) {
+            return null;
         }
-        return null;
+
+        if ($esSocio) {
+            return $this->participante->correo_electronico ?? null;
+        }
+        if ($esFamiliar) {
+            return $this->participante->correo ?? null;
+        }
+
+        return $this->participante->correo_electronico
+            ?? $this->participante->correo
+            ?? null;
     }
 
     public function getNombreCompletoAttribute()
