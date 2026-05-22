@@ -33,6 +33,7 @@ class TorneoController extends Controller
                 'cupo_minimo' => $t->cupo_minimo,
                 'modalidad' => $t->modalidad,
                 'genero' => $t->genero_requerido,
+                'motivo_cancelacion' => $t->motivo_cancelacion,
             ];
         });
 
@@ -56,9 +57,12 @@ class TorneoController extends Controller
             'disciplina',
             'categoria',
             'encuentros' => fn($q) => $q->orderBy('fase_bracket')->orderBy('numero_encuentro'),
-            'encuentros.competidor1',
-            'encuentros.competidor2',
-
+            'encuentros.competidor1.participante',
+            'encuentros.competidor1.equipo',
+            'encuentros.competidor1.capitanDeEquipo',
+            'encuentros.competidor2.participante',
+            'encuentros.competidor2.equipo',
+            'encuentros.competidor2.capitanDeEquipo',
         ])
 
             ->findOrFail($id);
@@ -72,6 +76,7 @@ class TorneoController extends Controller
                 'nombre_torneo' => $torneo->nombre_torneo,
                 'categoria' => $torneo->categoria?->nombre_categoria,
                 'disciplina' => $torneo->disciplina?->nombre_disciplina,
+                'id_disciplina' => $torneo->id_disciplina,
                 'fecha_inicio' => $torneo->fecha_inicio,
                 'fecha_fin' => $torneo->fecha_fin,
                 'tipo_acceso' => $torneo->tipo_acceso,
@@ -190,7 +195,14 @@ class TorneoController extends Controller
         $torneo = Torneo::findOrFail($id);
 
         $encuentros = $torneo->encuentros()
-            ->with(['competidor1.participante', 'competidor2.participante'])
+            ->with([
+                'competidor1.participante',
+                'competidor1.equipo',
+                'competidor1.capitanDeEquipo',
+                'competidor2.participante',
+                'competidor2.equipo',
+                'competidor2.capitanDeEquipo'
+            ])
             ->orderBy('numero_encuentro', 'asc')
             ->get();
 

@@ -46,6 +46,10 @@ class AprobarPreRegistroAction
             $referenciaId = 0;
             $participanteType = null;
             $participanteId = null;
+            // If still external, store reference to pre‑registro for name lookup
+            if ($tipoEntidad === 'COMPETIDOR_EXTERNO') {
+                $referenciaId = $preRegistro->id;
+            }
 
             // Buscar socio titular
             $socio = SocioTitular::where('correo_electronico', $datos['correo'])->first();
@@ -176,12 +180,13 @@ class AprobarPreRegistroAction
                 */
 
                 $tipoEntidad = 'COMPETIDOR_EXTERNO';
-
                 $referenciaId = 0;
-
                 $participanteType = null;
-
                 $participanteId = null;
+                // For external participants, keep reference to the pre‑registro record
+                if ($tipoEntidad === 'COMPETIDOR_EXTERNO') {
+                    $referenciaId = $preRegistro->id;
+                }
 
                 // Buscar socio titular
                 $socio = SocioTitular::where(

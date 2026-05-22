@@ -29,7 +29,7 @@ class GenerarQRParticipanteJob implements ShouldQueue
     {
         $this->participante = $participante;
         $this->correoDestino = $correoDestino;
-        $this->afterCommit = true;
+
     }
 
     public function handle(): void

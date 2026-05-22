@@ -236,6 +236,12 @@ const router = createRouter({
           component: () => import("../views/instructor/InstructorHomeView.vue"),
         },
         {
+          path: 'encuentros',
+          name: 'instructor-encuentros',
+          alias: 'mis-encuentros-torneo',
+          component: () => import('../views/instructor/InstructorEncuentrosView.vue'),
+        },
+        {
           path: 'scanner',
           component: () => import('../views/instructor/ScannerView.vue'),
         },
@@ -246,6 +252,10 @@ const router = createRouter({
         {
           path: 'agenda',
           component: () => import('../views/instructor/InstructorAgendaView.vue'),
+        },
+        {
+          path: 'encuentros-torneo',
+          component: () => import('../views/instructor/InstructorEncuentrosView.vue'),
         },
         {
           path: 'sessions',
@@ -322,6 +332,11 @@ const router = createRouter({
               path: "pre-registros",
               name: "pre-registros-bandeja",
               component: () => import("@/views/admin/tournaments/PreRegistrosBandeja.vue"),
+            },
+            {
+              path: "resultados-pendientes",
+              name: "resultados-pendientes",
+              component: () => import("@/views/admin/tournaments/ResultadosPendientes.vue"),
             },
           ]
         },

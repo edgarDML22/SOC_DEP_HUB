@@ -21,6 +21,10 @@ const store = useTournamentStore()
 const { torneos, loading, error: errorMsg, filtros } = storeToRefs(store)
 const { toastSuccess, toastError, toastInfo } = useAlerts()
 
+// Obtener rol para mostrar opciones exclusivas
+const userData = JSON.parse(localStorage.getItem('user_data') || '{}')
+const esSubgerente = computed(() => userData.rol === 'subgerente')
+
 // ── FILTROS ────────────────────────────────────────────────────
 const search = ref('')
 const STATUS_OPTS = [
@@ -112,7 +116,43 @@ const buildMenuItems = (torneo) => {
     action: () => openStatusModal(torneo)
   })
 
+  if ((torneo.estado || torneo.estatus_torneo) === 'EN_INSCRIPCION') {
+    actions.push({
+      label: 'Ver pre-registros',
+      icon: `<svg class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m9-4h.01M12 17h.01" />
+             </svg>`,
+      action: () => {
+        router.push({ path: '/admin/tournaments/pre-registros', query: { torneo_id: torneo.id_torneo } })
+      }
+    })
+  }
+
+  if (esSubgerente.value) {
+    actions.push({
+      label: 'Validar Resultados',
+      icon: `<svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>`,
+      action: () => {
+        router.push({ path: '/admin/tournaments/resultados-pendientes', query: { torneo_id: torneo.id_torneo } })
+      }
+    })
+  }
+
   return actions
+}
+
+// ── EXPANSIÓN (torneos cancelados) ─────────────────────────────
+const expandedTorneoId = ref(null)
+
+const estatusTorneo = (t) => t.estado || t.estatus_torneo
+const isCancelado = (t) => estatusTorneo(t) === 'CANCELADO'
+
+const toggleExpand = (torneo) => {
+  if (!isCancelado(torneo)) return
+  const id = torneo.id_torneo
+  expandedTorneoId.value = expandedTorneoId.value === id ? null : id
 }
 
 // ── INIT ───────────────────────────────────────────────────────
@@ -199,7 +239,8 @@ onMounted(() => {
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div v-for="torneo in filteredTorneos" :key="torneo.id_torneo" 
              class="bg-white rounded-3xl border border-t-4 border-surface-200 shadow-sm hover:shadow-xl hover:shadow-surface-200/40 transition-all duration-300 group flex flex-col overflow-hidden"
-             :class="estadoAccent(torneo.estado || torneo.estatus_torneo)">
+             :class="[estadoAccent(torneo.estado || torneo.estatus_torneo), { 'cursor-pointer': isCancelado(torneo) }]"
+             @click="toggleExpand(torneo)">
           
           <div class="p-6 flex items-start gap-4">
             <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
@@ -212,11 +253,19 @@ onMounted(() => {
               <h3 class="text-sm font-black text-surface-900 truncate leading-tight">{{ torneo.nombre_torneo }}</h3>
               <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
               <p class="text-[10px] font-black text-surface-400 mt-1 uppercase tracking-widest">{{ torneo.disciplina || '—' }}</p>
-              <div class="mt-2.5">
+              <div class="mt-2.5 flex flex-col items-start gap-1">
                 <BadgeStatus :status="torneo.estado || torneo.estatus_torneo" />
+                <p
+                  v-if="isCancelado(torneo) && expandedTorneoId === torneo.id_torneo"
+                  class="text-xs text-surface-500 font-medium leading-relaxed mt-1"
+                >
+                  {{ torneo.motivo_cancelacion || 'Sin motivo de cancelación registrado.' }}
+                </p>
               </div>
             </div>
-            <ActionMenu :items="buildMenuItems(torneo)" align="right" />
+            <div @click.stop>
+              <ActionMenu :items="buildMenuItems(torneo)" align="right" />
+            </div>
           </div>
 
           <div class="px-6 pb-2 space-y-2">
@@ -231,7 +280,7 @@ onMounted(() => {
           </div>
 
           <div class="p-5 mt-auto">
-            <button @click="router.push(`/admin/tournaments/${torneo.id_torneo}`)" 
+            <button @click.stop="router.push(`/admin/tournaments/${torneo.id_torneo}`)" 
                     class="w-full py-2.5 rounded-xl bg-surface-900 text-white text-xs font-bold hover:bg-primary-600 transition-colors shadow-sm flex items-center justify-center gap-2">
               Ver detalles
             </button>

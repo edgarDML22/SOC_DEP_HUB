@@ -26,8 +26,18 @@ class EncuentrosTorneo extends Model
         'resultado_comp1',
         'resultado_comp2',
         'es_bye',
-        'numero_encuentro'
+        'numero_encuentro',
+        'id_espacio',
+        'fase_bracket'
     ];
+    public function torneo()
+    {
+        return $this->belongsTo(
+            Torneo::class,
+            'id_torneo',
+            'id_torneo'
+        );
+    }
 
     public function competidor1()
     {
@@ -52,8 +62,13 @@ class EncuentrosTorneo extends Model
         return $this->belongsTo(EspacioFisico::class, 'id_espacio', 'id_espacio');
     }
 
-    public function torneo()
+    public function getCompetidor1TypeAttribute($value)
     {
-        return $this->belongsTo(Torneo::class, 'id_torneo', 'id_torneo');
+        return $value ?: 'PARTICIPANTE';
+    }
+
+    public function getCompetidor2TypeAttribute($value)
+    {
+        return $value ?: 'PARTICIPANTE';
     }
 }

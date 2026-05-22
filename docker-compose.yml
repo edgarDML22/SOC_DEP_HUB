@@ -49,7 +49,7 @@ services:
     restart: unless-stopped
     environment:
       - TZ=America/Mexico_City
-    command: php artisan queue:work
+    command: php artisan queue:work --queue=default,torneo-cancelacion --tries=3 --timeout=120
     volumes:
       - ./backend:/var/www
       - /var/www/vendor # Preserva el vendor instalado en el build, no el del host

@@ -23,6 +23,10 @@ const store = useTournamentStore()
 const { torneos, loading, error: errorMsg, filtros } = storeToRefs(store)
 const { toastSuccess, toastError, toastInfo } = useAlerts()
 
+// Obtener rol para mostrar opciones exclusivas
+const userData = JSON.parse(localStorage.getItem('user_data') || '{}')
+const esSubgerente = computed(() => userData.rol === 'subgerente')
+
 // ── FILTROS ────────────────────────────────────────────────────
 const STATUS_OPTS = [
   { label: 'Todos los estados', value: null },
@@ -125,7 +129,32 @@ const buildActions = (torneo) => {
     })
   }
 
-  return actions
+  if (esSubgerente.value) {
+    actions.push({
+      label: 'Validar Resultados',
+      icon: `<svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>`,
+      action: () => {
+        router.push({ path: '/admin/tournaments/resultados-pendientes', query: { torneo_id: torneo.id_torneo } })
+      }
+    })
+  }
+
+  return actions;
+}
+
+// ── EXPANSIÓN (torneos cancelados) ─────────────────────────────
+const expandedTorneoId = ref(null)
+
+const estatusTorneo = (torneo) => torneo.estado || torneo.estatus_torneo
+
+const isCancelado = (torneo) => estatusTorneo(torneo) === 'CANCELADO'
+
+const toggleExpand = (torneo) => {
+  if (!isCancelado(torneo)) return
+  const id = torneo.id_torneo
+  expandedTorneoId.value = expandedTorneoId.value === id ? null : id
 }
 
 // ── INIT ───────────────────────────────────────────────────────
@@ -267,43 +296,81 @@ onMounted(() => {
         </div>
 
         <!-- Tabla con datos -->
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm text-left text-slate-600">
-            <thead>
-              <tr class="bg-surface-50 border-b border-surface-200">
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Torneo</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">Disciplina</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">Categoría</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden sm:table-cell">Acceso</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estado</th>
-                <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-100">
-              <tr v-for="torneo in torneos" :key="torneo.id_torneo" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
-                <td class="px-6 py-4">
-                  <div class="font-bold text-surface-900">{{ torneo.nombre_torneo }}</div>
-                  <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-50 border-b border-surface-200">
+              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Torneo</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">Disciplina</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">Categoría</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">Acceso</th>
+              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estado</th>
+              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-100">
+            <template v-for="torneo in torneos" :key="torneo.id_torneo">
+              <tr
+                class="hover:bg-surface-50/70 transition-colors group"
+                :class="{ 'cursor-pointer': isCancelado(torneo) }"
+                @click="toggleExpand(torneo)"
+              >
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <button
+                      v-if="isCancelado(torneo)"
+                      type="button"
+                      class="w-6 h-6 rounded-lg border border-surface-200 flex items-center justify-center text-surface-500 hover:text-primary-600 shrink-0"
+                      :aria-expanded="expandedTorneoId === torneo.id_torneo"
+                      @click.stop="toggleExpand(torneo)"
+                    >
+                      <svg
+                        class="w-3.5 h-3.5 transition-transform"
+                        :class="{ 'rotate-180': expandedTorneoId === torneo.id_torneo }"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                    <div>
+                      <div class="font-bold text-surface-900">{{ torneo.nombre_torneo }}</div>
+                      <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
+                    </div>
+                  </div>
                 </td>
-                <td class="px-6 py-4 hidden md:table-cell text-surface-600 font-medium">
+                <td class="px-4 py-3.5 hidden md:table-cell text-surface-600 font-medium">
                   {{ torneo.disciplina || '—' }}
                 </td>
-                <td class="px-6 py-4 hidden lg:table-cell text-surface-600 font-medium">
+                <td class="px-4 py-3.5 hidden lg:table-cell text-surface-600 font-medium">
                   {{ torneo.categoria || '—' }}
                 </td>
-                <td class="px-6 py-4 hidden sm:table-cell">
-                   <BadgeStatus v-if="torneo.tipo_acceso" :status="torneo.tipo_acceso" />
+                <td class="px-4 py-3.5 hidden sm:table-cell">
+                  <BadgeStatus v-if="torneo.tipo_acceso" :status="torneo.tipo_acceso" />
                 </td>
-                <td class="px-6 py-4">
-                  <BadgeStatus v-if="torneo.estado || torneo.estatus_torneo" :status="torneo.estado || torneo.estatus_torneo" />
+                <td class="px-4 py-3.5">
+                  <div class="flex flex-col items-start gap-1">
+                    <BadgeStatus v-if="estatusTorneo(torneo)" :status="estatusTorneo(torneo)" />
+                  </div>
                 </td>
-                <td class="px-6 py-4 text-right">
-                  <ActionMenu :items="buildActions(torneo)" :disabled="loading || isActionLoading" align="right" />
+                <td class="px-4 py-3.5 text-right" @click.stop>
+                  <ActionMenu :items="buildActions(torneo)" :disabled="loading" align="right" />
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
+              <tr
+                v-if="isCancelado(torneo) && expandedTorneoId === torneo.id_torneo"
+                class="bg-surface-50/80"
+              >
+                <td colspan="6" class="px-5 py-3 border-t border-surface-100">
+                  <p class="text-xs text-surface-500 font-medium leading-relaxed">
+                    {{ torneo.motivo_cancelacion || 'Sin motivo de cancelación registrado.' }}
+                  </p>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
       </div>
 
     </div>
