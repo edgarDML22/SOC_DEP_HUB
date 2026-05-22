@@ -262,7 +262,8 @@ class AsignarHorariosAction
 
         // C. Otros encuentros ya programados
         $encuentros = EncuentrosTorneo::whereIn('id_espacio', $espacioIds)
-            ->whereBetween(DB::raw('DATE(fecha_hora_inicio)'), [$fechaInicio, $fechaFin])
+            ->whereDate('fecha_hora_inicio', '>=', $fechaInicio)
+            ->whereDate('fecha_hora_inicio', '<=', $fechaFin)
             ->whereNotNull('fecha_hora_inicio')
             ->whereNotNull('fecha_hora_fin')
             ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])

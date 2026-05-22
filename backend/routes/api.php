@@ -46,6 +46,8 @@ use App\Http\Controllers\InstructorEncuentrosController;
 use App\Http\Controllers\PreRegisterController;
 use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
+use App\Http\Controllers\RefereeAvailabilityController;
+use App\Http\Controllers\MatchAssignmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +71,7 @@ if (app()->environment('local')) {
         ]);
     });
 }
+
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -345,11 +348,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [TorneoController::class, 'show']);
         //SDH-284 GENERAR EL BRACKET
         Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
+        
+        Route::get('/{id_torneo}/referees', [RefereeAvailabilityController::class, 'all']);
+        Route::get('/{id_torneo}/available-referees', [RefereeAvailabilityController::class, 'available']);
     });
 
 
 
     Route::prefix('v1/encuentros')->group(function () {
+        Route::patch('/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
         Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
         Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);

@@ -26,7 +26,9 @@ class EncuentrosTorneo extends Model
         'resultado_comp1',
         'resultado_comp2',
         'es_bye',
-        'numero_encuentro'
+        'numero_encuentro',
+        'id_espacio',
+        'fase_bracket'
     ];
     public function torneo()
     {

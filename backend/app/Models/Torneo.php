@@ -8,6 +8,9 @@ class Torneo extends Model
 {
     protected $table = "torneos";
     protected $primaryKey = 'id_torneo';
+    protected $casts = [
+        'pool_arbitros' => 'array'
+    ];
     public $timestamps = false;
     protected $fillable = [
         'id_disciplina',
@@ -23,7 +26,8 @@ class Torneo extends Model
         'cupo_minimo',
         'modalidad',
         'genero_requerido',
-        'motivo_cancelacion'
+        'motivo_cancelacion',
+        'pool_arbitros'
 
     ];
     public function disciplina()
