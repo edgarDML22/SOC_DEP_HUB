@@ -24,5 +24,8 @@ class PreRegistroTorneo extends Model
     protected $casts = [
         'datos_participante' => 'array',
         'urls_documentos' => 'array',
+        'nombre_completo' => 'string',
+        'nombre_representante' => 'string',
+        'email_representante' => 'string',
     ];
 }

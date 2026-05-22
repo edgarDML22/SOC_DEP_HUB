@@ -80,6 +80,13 @@ onUnmounted(() => {
                 <IconQr class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Escanear QR
             </router-link>
 
+            <router-link to="/instructor/encuentros" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
+                <svg class="w-[18px] h-[18px] group-[.router-link-active]:text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497" />
+                </svg>
+                Arbitraje
+            </router-link>
+
             <!-- Pestaña de Ludoteca Protegida -->
             <component
                 :is="profileStore.tieneTurnoLudotecaHoy ? 'router-link' : 'span'"
@@ -143,6 +150,13 @@ onUnmounted(() => {
                     
                     <router-link to="/instructor/profile" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">
                         <IconUser class="w-[18px] h-[18px]" /> Mi Perfil
+                    </router-link>
+                    
+                    <router-link to="/instructor/encuentros" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497" />
+                        </svg>
+                        Mis Encuentros (Árbitro)
                     </router-link>
                     
                     <button @click="profileStore.getSupportLink" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors text-left flex items-center gap-3 w-full">

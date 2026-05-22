@@ -18,12 +18,14 @@ const errorMsg = ref("");
 
 const comp1Name = computed(() => {
   if (props.match.es_bye) return "BYE";
-  return props.match.competidor1?.participante?.nombre_completo || `Participante #${props.match.competidor1?.id_interno || 1}`;
+  return props.match.competidor1?.nombre_completo
+    || `Participante #${props.match.competidor1?.id_interno ?? 1}`;
 });
 
 const comp2Name = computed(() => {
   if (props.match.es_bye) return "BYE";
-  return props.match.competidor2?.participante?.nombre_completo || `Participante #${props.match.competidor2?.id_interno || 2}`;
+  return props.match.competidor2?.nombre_completo
+    || `Participante #${props.match.competidor2?.id_interno ?? 2}`;
 });
 
 const handleSubmit = async () => {
@@ -42,13 +44,16 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true;
   try {
-    const res = await api.patch(`/v1/encuentros/${props.match.id_encuentro}/resultado`, {
+    const res = await api.patch(`/encuentros/${props.match.id_encuentro}/resultado`, {
       resultado_comp1: Number(score1.value),
       resultado_comp2: Number(score2.value),
     });
 
     if (res.data.estatus_encuentro) {
-      emit("updated");
+      emit("updated", {
+        resultado_comp1: Number(score1.value),
+        resultado_comp2: Number(score2.value)
+      });
       emit("close");
     }
   } catch (err) {
