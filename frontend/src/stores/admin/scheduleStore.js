@@ -52,7 +52,10 @@ export const useScheduleStore = defineStore("schedule", () => {
 
     // ── GETTERS ─────────────────────────────────────────────────
     const espaciosActivos = computed(() =>
-        espacios.value.filter(e => e.estatus === 'ACTIVO' || e.data?.estatus === 'ACTIVO')
+        espacios.value.filter(e => {
+            const status = (e.estatus || e.data?.estatus || '').toString().toUpperCase().trim();
+            return status === 'ACTIVO';
+        })
     );
 
     const isLoading = computed(() =>
@@ -181,6 +184,7 @@ export const useScheduleStore = defineStore("schedule", () => {
                 id_torneo: data.id_torneo || data.id,
                 nombre_torneo: data.nombre_torneo,
                 disciplina: data.disciplina,
+                id_disciplina: data.id_disciplina,
                 categoria: data.categoria,
                 estado: data.estado || data.estatus_torneo,
                 fecha_inicio: data.fecha_inicio,
@@ -377,6 +381,7 @@ export const useScheduleStore = defineStore("schedule", () => {
         espacios,
         encuentros,
         arbitrosPool,
+        arbitrosTotales,
         torneoSeleccionado,
         todosLosTorneos,
         fechaActiva,

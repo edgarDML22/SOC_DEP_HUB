@@ -32,7 +32,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const store = useScheduleStore()
-const { espaciosActivos, arbitrosPool, loadingStates } = storeToRefs(store)
+const { espaciosActivos, arbitrosPool, loadingStates, torneoSeleccionado } = storeToRefs(store)
 const { toastSuccess, toastError, confirmWarning } = useAlerts()
 
 // ── FORM STATE ──────────────────────────────────────────────
@@ -41,17 +41,56 @@ const fechaInicio = ref(null)
 const fechaFin = ref(null)
 const selectedArbitro = ref(null)
 
+function parseDateSafe(dateStr) {
+    if (!dateStr) return null
+    if (dateStr instanceof Date) return dateStr
+    if (typeof dateStr === 'object' && typeof dateStr.getTime === 'function') return dateStr
+    const normalized = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr
+    const parsed = new Date(normalized)
+    return isNaN(parsed.getTime()) ? null : parsed
+}
+
+
 // ── MODES: 'RESUMEN', 'HOT_SWAP', 'FULL_FORM' ────────────────
 const isEditing = computed(() => !!props.encuentro?.id_arbitro_asignado)
-const currentMode = ref('FULL_FORM')
+const currentMode = ref(props.encuentro?.id_arbitro_asignado ? 'RESUMEN' : 'FULL_FORM')
 
-// ── COMPUTED ────────────────────────────────────────────────
-const espacioOptions = computed(() =>
-    espaciosActivos.value.map(e => ({
+const normalizeString = (str) => {
+    if (!str) return ''
+    return str.toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim()
+}
+
+const supportsTournamentDiscipline = (spaceObj) => {
+    if (!spaceObj) return false
+    const targetId = torneoSeleccionado.value?.id_disciplina
+    const targetName = torneoSeleccionado.value?.disciplina
+    
+    // Si no hay torneo seleccionado o no tiene disciplina definida, no filtramos (mostramos todo)
+    if (!targetId && !targetName) return true
+    
+    // Si el espacio no tiene disciplinas asociadas, no es compatible con ninguna
+    if (!spaceObj.disciplinas || spaceObj.disciplinas.length === 0) return false
+    
+    const normTargetName = normalizeString(targetName)
+    
+    return spaceObj.disciplinas.some(d => {
+        if (targetId && String(d.id_disciplina) === String(targetId)) return true
+        if (normTargetName && normalizeString(d.nombre_disciplina) === normTargetName) return true
+        return false
+    })
+}
+
+const espacioOptions = computed(() => {
+    const filtered = espaciosActivos.value.filter(supportsTournamentDiscipline)
+    return filtered.map(e => ({
         label: e.nombre_espacio,
         value: e.id_espacio,
     }))
-)
+})
 
 const activeSpaceName = computed(() => {
     const sp = espaciosActivos.value.find(e => e.id_espacio === selectedEspacio.value)
@@ -129,11 +168,16 @@ const fechaFinValida = computed(() => {
     return new Date(fechaFin.value) > new Date(fechaInicio.value)
 })
 
+const isSpaceValid = computed(() => {
+    if (!selectedEspacio.value) return false
+    return espacioOptions.value.some(opt => opt.value === selectedEspacio.value)
+})
+
 const canSave = computed(() => {
     if (currentMode.value === 'HOT_SWAP') {
         return selectedArbitro.value && !loadingStates.value.asignando
     }
-    return selectedEspacio.value &&
+    return isSpaceValid.value &&
         fechaInicio.value &&
         fechaFin.value &&
         fechaFinValida.value &&
@@ -156,6 +200,36 @@ const encounterFase = computed(() =>
 )
 
 // ── WATCHERS ────────────────────────────────────────────────
+const hasPrefilled = ref(false)
+
+watch(
+    [() => props.encuentro, espaciosActivos, torneoSeleccionado],
+    ([enc, spaces, torneo]) => {
+        if (!enc || hasPrefilled.value) return
+
+        // Wait until spaces and tournament are loaded to prevent race conditions
+        if (spaces && spaces.length > 0 && torneo) {
+            if (enc.id_espacio) {
+                const selectedSpaceObj = spaces.find(e => e.id_espacio === enc.id_espacio)
+                if (supportsTournamentDiscipline(selectedSpaceObj)) {
+                    selectedEspacio.value = enc.id_espacio
+                } else {
+                    selectedEspacio.value = null
+                }
+            } else {
+                selectedEspacio.value = null
+            }
+
+            if (enc.fecha_hora_inicio) fechaInicio.value = parseDateSafe(enc.fecha_hora_inicio)
+            if (enc.fecha_hora_fin) fechaFin.value = parseDateSafe(enc.fecha_hora_fin)
+            if (enc.id_arbitro_asignado) selectedArbitro.value = enc.id_arbitro_asignado
+
+            hasPrefilled.value = true
+        }
+    },
+    { immediate: true, deep: true }
+)
+
 // Cuando se completa el horario, obtener disponibilidad de árbitros
 watch(horarioCompleto, async (complete) => {
     if (complete && fechaFinValida.value) {
@@ -169,13 +243,6 @@ watch(horarioCompleto, async (complete) => {
 })
 
 // ── HELPERS ─────────────────────────────────────────────────
-const parseDateSafe = (dateStr) => {
-    if (!dateStr) return null
-    if (dateStr instanceof Date) return dateStr
-    const normalized = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr
-    const parsed = new Date(normalized)
-    return isNaN(parsed.getTime()) ? null : parsed
-}
 
 const formatDateForApi = (date) => {
     if (!date) return null
@@ -266,27 +333,6 @@ const handleSave = async () => {
 // ── INIT ────────────────────────────────────────────────────
 onMounted(async () => {
     await store.fetchEspacios()
-
-    const enc = props.encuentro
-    if (enc) {
-        // Pre-rellenar si ya tiene datos
-        if (enc.id_espacio) selectedEspacio.value = enc.id_espacio
-        if (enc.fecha_hora_inicio) fechaInicio.value = parseDateSafe(enc.fecha_hora_inicio)
-        if (enc.fecha_hora_fin) fechaFin.value = parseDateSafe(enc.fecha_hora_fin)
-        if (enc.id_arbitro_asignado) {
-            selectedArbitro.value = enc.id_arbitro_asignado
-        }
-
-        // Pre-cargar disponibilidad de árbitros si ya tenemos horario completo
-        if (fechaInicio.value && fechaFin.value) {
-            const inicio = formatDateForApi(fechaInicio.value)
-            const fin = formatDateForApi(fechaFin.value)
-            const torneoId = props.idTorneo || enc.extendedProps?.id_torneo || enc.id_torneo
-            if (torneoId) {
-                await store.fetchArbitrosDisponibles(torneoId, inicio, fin)
-            }
-        }
-    }
 })
 </script>
 
@@ -357,16 +403,9 @@ onMounted(async () => {
                         </div>
 
                         <!-- Acciones en Resumen -->
-                        <div class="grid grid-cols-2 gap-3 pt-2">
-                            <button @click="startHotSwap"
-                                class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary-300 hover:border-primary-500 bg-primary-50/20 hover:bg-primary-50 text-primary-700 text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                <svg class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                Cambiar Árbitro
-                            </button>
+                        <div class="pt-2">
                             <button @click="startFullForm"
-                                class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-surface-200 hover:border-surface-300 hover:bg-surface-50 text-surface-700 text-xs font-bold transition-all shadow-sm cursor-pointer">
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-surface-200 hover:border-surface-300 hover:bg-surface-50 text-surface-700 text-xs font-bold transition-all shadow-sm cursor-pointer">
                                 <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>

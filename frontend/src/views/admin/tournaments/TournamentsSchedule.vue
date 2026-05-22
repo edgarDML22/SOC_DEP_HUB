@@ -195,6 +195,7 @@ function handleSlotSelect(selectionInfo) {
 const parseDateSafe = (dateStr) => {
   if (!dateStr) return null
   if (dateStr instanceof Date) return dateStr
+  if (typeof dateStr === 'object' && typeof dateStr.getTime === 'function') return dateStr
   const normalized = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr
   const parsed = new Date(normalized)
   return isNaN(parsed.getTime()) ? null : parsed
@@ -204,7 +205,19 @@ function handleDetailEventClick(info) {
   if (info.event.id === 'glow-preview') return
   const enc = info.event.extendedProps
   if (enc) {
-    openAssignModal(enc)
+    selectEncuentroSlot(enc)
+  }
+}
+
+function selectEncuentroSlot(enc) {
+  if (enc.fecha_hora_inicio && enc.fecha_hora_fin) {
+    rangoActivo.value = {
+      inicio: parseDateSafe(enc.fecha_hora_inicio),
+      fin: parseDateSafe(enc.fecha_hora_fin),
+      id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
+    }
+  } else {
+    rangoActivo.value = null
   }
 }
 
@@ -212,14 +225,9 @@ function openAssignModal(enc) {
   const enrichedEnc = { ...enc }
   
   if (enc.fecha_hora_inicio && enc.fecha_hora_fin) {
-    // If the encounter already has a scheduled slot, we ALWAYS use it
-    rangoActivo.value = {
-      inicio: parseDateSafe(enc.fecha_hora_inicio),
-      fin: parseDateSafe(enc.fecha_hora_fin),
-      id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
-    }
-    enrichedEnc.fecha_hora_inicio = rangoActivo.value.inicio
-    enrichedEnc.fecha_hora_fin = rangoActivo.value.fin
+    // If it's already scheduled, parse dates directly without touching rangoActivo
+    enrichedEnc.fecha_hora_inicio = parseDateSafe(enc.fecha_hora_inicio)
+    enrichedEnc.fecha_hora_fin = parseDateSafe(enc.fecha_hora_fin)
   } else {
     // If it's not scheduled yet, we use the active calendar range if available
     if (rangoActivo.value) {
@@ -609,7 +617,7 @@ onMounted(async () => {
               <div v-else class="divide-y divide-surface-50 max-h-[480px] overflow-y-auto">
                 <div v-for="enc in filteredEncuentrosTable" :key="enc.id_encuentro"
                   class="grid grid-cols-[24px_2.5fr_1.2fr_1.2fr_90px] gap-4 items-center px-5 py-4 hover:bg-surface-50/70 transition-colors group cursor-pointer"
-                  @click="openAssignModal(enc)">
+                  @click="selectEncuentroSlot(enc)">
 
                   <!-- Status dot + fase -->
                   <div class="flex flex-col items-center gap-1">
@@ -752,34 +760,67 @@ onMounted(async () => {
                       <span class="text-[8px] font-black uppercase tracking-wider">Bloque Seleccionado</span>
                     </div>
                     <div v-else
-                         class="w-full h-full p-2.5 rounded-xl border flex flex-col justify-between overflow-hidden transition-all font-bold cursor-pointer hover:scale-[1.01] hover:shadow-md"
+                         class="w-full h-full rounded-xl border flex transition-all font-bold cursor-pointer hover:scale-[1.01] hover:shadow-md overflow-hidden"
+                         :class="arg.event.start && arg.event.end && ((arg.event.end - arg.event.start) / 3600000 <= 1.2) ? 'flex-row items-center justify-between gap-3 px-3 py-1.5' : 'flex-col justify-between p-2.5'"
                          :style="getEventCardStyle(arg.event)">
                       
-                      <!-- Top: Fase -->
-                      <div class="min-w-0">
-                        <p class="font-black uppercase tracking-wider text-[11px] leading-tight" :style="getEventTitleStyle(arg.event)">
-                          {{ formatFase(arg.event.extendedProps.faseBracket || arg.event.extendedProps.fase) }}
-                        </p>
-                      </div>
-
-                      <!-- Bottom: Time & Referee with Icons -->
-                      <div class="space-y-1.5 mt-2">
-                        <!-- Time with Clock Icon -->
-                        <div class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
-                          <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span class="font-bold">{{ formatTimeRange(arg.event.start, arg.event.end) }}</span>
+                      <!-- Si el encuentro es de corta duración (menor o igual a 1 hora / 1.2 hrs) -->
+                      <template v-if="arg.event.start && arg.event.end && ((arg.event.end - arg.event.start) / 3600000 <= 1.2)">
+                        <!-- Izquierda: Fase -->
+                        <div class="min-w-0">
+                          <p class="font-black uppercase tracking-wider text-[11px] leading-none truncate" :style="getEventTitleStyle(arg.event)">
+                            {{ formatFase(arg.event.extendedProps.faseBracket || arg.event.extendedProps.fase) }}
+                          </p>
                         </div>
                         
-                        <!-- Referee with Person Icon -->
-                        <div v-if="arg.event.extendedProps.id_arbitro_asignado" class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
-                          <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <span class="font-bold truncate">{{ getRefereeName(arg.event.extendedProps) }}</span>
+                        <!-- Derecha: Datos en horizontal -->
+                        <div class="flex items-center gap-3 shrink-0">
+                          <!-- Hora -->
+                          <div class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
+                            <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="font-bold">{{ formatTimeRange(arg.event.start, arg.event.end) }}</span>
+                          </div>
+                          
+                          <!-- Árbitro -->
+                          <div v-if="arg.event.extendedProps.id_arbitro_asignado" class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
+                            <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span class="font-bold truncate max-w-[90px]">{{ getRefereeName(arg.event.extendedProps) }}</span>
+                          </div>
                         </div>
-                      </div>
+                      </template>
+
+                      <!-- Si el encuentro es largo (> 1.2 horas) -->
+                      <template v-else>
+                        <!-- Top: Fase -->
+                        <div class="min-w-0">
+                          <p class="font-black uppercase tracking-wider text-[11px] leading-tight" :style="getEventTitleStyle(arg.event)">
+                            {{ formatFase(arg.event.extendedProps.faseBracket || arg.event.extendedProps.fase) }}
+                          </p>
+                        </div>
+
+                        <!-- Bottom: Time & Referee with Icons -->
+                        <div class="space-y-1.5 mt-2">
+                          <!-- Time with Clock Icon -->
+                          <div class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
+                            <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="font-bold">{{ formatTimeRange(arg.event.start, arg.event.end) }}</span>
+                          </div>
+                          
+                          <!-- Referee with Person Icon -->
+                          <div v-if="arg.event.extendedProps.id_arbitro_asignado" class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
+                            <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span class="font-bold truncate">{{ getRefereeName(arg.event.extendedProps) }}</span>
+                          </div>
+                        </div>
+                      </template>
 
                     </div>
                   </template>
@@ -885,7 +926,7 @@ onMounted(async () => {
     <!-- MODALES -->
     <CreateTournamentModal v-if="showCreateModal" @close="showCreateModal = false" @created="handleTorneoCreated" />
 
-    <ModalAsignacionEncuentro v-if="showAssignModal && selectedEncuentro" :encuentro="selectedEncuentro"
+    <ModalAsignacionEncuentro v-if="showAssignModal && selectedEncuentro" :key="selectedEncuentro.id_encuentro" :encuentro="selectedEncuentro"
       :id-torneo="torneoIdFromQuery" @close="showAssignModal = false; selectedEncuentro = null"
       @saved="handleAssignmentSaved" />
   </main>

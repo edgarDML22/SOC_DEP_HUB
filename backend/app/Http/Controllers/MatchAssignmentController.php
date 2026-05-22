@@ -65,6 +65,18 @@ class MatchAssignmentController extends Controller
             ], 422);
         }
 
+        // VALIDACIÓN DE ESPACIO FÍSICO POR DISCIPLINA
+        $espacioDeDisciplina = DB::table('espacio_disciplina')
+            ->where('id_espacio', $request->id_espacio)
+            ->where('id_disciplina', $torneo->id_disciplina)
+            ->exists();
+
+        if (!$espacioDeDisciplina) {
+            return response()->json([
+                'message' => 'El espacio físico no está habilitado para la disciplina del torneo'
+            ], 422);
+        }
+
         // VALIDACIÓN CRONOLÓGICA (Task 5)
         $faseIndex = $this->getFaseIndex($encuentro->fase_bracket);
         $horaInicioNueva = Carbon::parse($request->fecha_hora_inicio);
