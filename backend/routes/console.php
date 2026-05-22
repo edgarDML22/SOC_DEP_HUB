@@ -47,8 +47,8 @@ Schedule::command('ludoteca:check-alerts')
 // Limpia tokens de Sanctum expirados (>30 días) — mantiene personal_access_tokens pequeña
 Schedule::command('sanctum:prune-expired --hours=720')->daily();
 
-// Procesa la cola de jobs (emails de sanciones, etc.) — corre y termina cuando no hay jobs pendientes
-Schedule::command('queue:work --stop-when-empty --tries=3 --timeout=60')
+// Procesa colas pendientes (default + cancelación de torneos) cuando el worker dedicado no las alcance
+Schedule::command('queue:work --queue=default,torneo-cancelacion --stop-when-empty --tries=3 --timeout=120')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground()

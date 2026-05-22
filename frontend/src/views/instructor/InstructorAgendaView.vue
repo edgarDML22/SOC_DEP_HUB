@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { useAgendaStore } from '@/stores/agendaStore';
+import { storeToRefs } from 'pinia';
 
 // Iconos estándar
 import {
@@ -13,6 +15,8 @@ import {
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue';
 
 const router = useRouter();
+const agendaStore = useAgendaStore();
+const { encuentrosInstructorVisibles } = storeToRefs(agendaStore);
 
 const sesionesData = ref([]);
 const isLoading = ref(true);
@@ -20,9 +24,12 @@ const errorMsg = ref('');
 
 onMounted(async () => {
   try {
-    const response = await api.get('/instructor/sessions');
-    if (response.data && response.data.success) {
-      sesionesData.value = response.data.data;
+    const [sessionsRes] = await Promise.all([
+      api.get('/instructor/sessions'),
+      agendaStore.fetchInstructorEncuentros(),
+    ]);
+    if (sessionsRes.data && sessionsRes.data.success) {
+      sesionesData.value = sessionsRes.data.data;
     }
   } catch (error) {
     console.error("Error cargando la agenda:", error);
@@ -31,6 +38,11 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
+
+const formatHoraEncuentro = (iso) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+};
 
 const ordenDias = {
   'LUNES': 1, 'MARTES': 2, 'MIÉRCOLES': 3, 'JUEVES': 4, 'VIERNES': 5, 'SÁBADO': 6, 'DOMINGO': 7
@@ -55,7 +67,7 @@ const sesionesAgrupadas = computed(() => {
   return resultado;
 });
 
-const haySesiones = computed(() => sesionesData.value.length > 0);
+const haySesiones = computed(() => sesionesData.value.length > 0 || encuentrosInstructorVisibles.value.length > 0);
 
 const handleSessionClick = (sesion) => {
   router.push({
@@ -92,8 +104,33 @@ const handleSessionClick = (sesion) => {
         <p class="text-red-600 text-sm font-medium">{{ errorMsg }}</p>
       </section>
 
+      <!-- Encuentros de torneo (filtrados en backend — ver agendaStore.js) -->
+      <section v-if="!isLoading && !errorMsg && encuentrosInstructorVisibles.length" class="flex flex-col gap-4 mt-2">
+        <div class="flex items-center gap-3">
+          <div class="inline-flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-2 rounded-2xl text-xs font-bold tracking-widest uppercase border border-amber-100">
+            Torneos — Hoy
+          </div>
+          <div class="h-px bg-linear-to-r from-surface-200 to-transparent grow"></div>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div
+            v-for="enc in encuentrosInstructorVisibles"
+            :key="'enc-' + enc.id_encuentro"
+            class="bg-white border border-amber-200 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+          >
+            <div>
+              <h4 class="font-bold text-surface-900">{{ enc.nombre_torneo }}</h4>
+              <p class="text-xs text-surface-500 mt-1">{{ enc.espacio || 'Espacio por confirmar' }}</p>
+            </div>
+            <span class="text-sm font-bold text-surface-900 bg-surface-100 px-4 py-2 rounded-xl border border-surface-200">
+              {{ formatHoraEncuentro(enc.fecha_hora_inicio) }}
+            </span>
+          </div>
+        </div>
+      </section>
+
       <!-- Mapeo por Día -->
-      <div v-else-if="haySesiones" class="flex flex-col gap-8 mt-2">
+      <div v-if="!isLoading && !errorMsg && sesionesData.length" class="flex flex-col gap-8 mt-2">
         
         <section v-for="(sesiones, dia) in sesionesAgrupadas" :key="dia" class="flex flex-col gap-4">
           
@@ -161,7 +198,7 @@ const handleSessionClick = (sesion) => {
       </div>
 
       <!-- Estado de Vacío -->
-      <section v-else class="h-72 flex flex-col items-center justify-center rounded-3xl border border-dashed border-surface-300 bg-white shadow-xs transition-colors mt-6 p-6">
+      <section v-else-if="!isLoading && !errorMsg" class="h-72 flex flex-col items-center justify-center rounded-3xl border border-dashed border-surface-300 bg-white shadow-xs transition-colors mt-6 p-6">
         <div class="w-16 h-16 bg-surface-50 text-surface-400 rounded-full flex items-center justify-center mb-4 border border-surface-100 shadow-2xs">
             <IconInbox class="w-8 h-8" />
         </div>
