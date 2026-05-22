@@ -38,7 +38,7 @@ const rangoActivo = ref(null)
 const calendarRef = ref(null)
 const searchQuery = ref('')
 const filterTab = ref('ALL') // 'ALL' | 'SCHEDULED' | 'UNSCHEDULED'
-const currentMiniView = ref('timeGridWeek')
+const currentMiniView = ref('timeGridDay')
 
 // ── COMPUTED ────────────────────────────────────────────────
 const torneoIdFromQuery = computed(() => route.query.torneo ? Number(route.query.torneo) : null)
@@ -153,6 +153,7 @@ const overviewCalendarOptions = computed(() => ({
 const detailCalendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   initialView: currentMiniView.value,
+  initialDate: torneoSeleccionado.value?.fecha_inicio || undefined,
   locale: 'es',
   headerToolbar: {
     left: 'prev,today,next',
@@ -191,39 +192,45 @@ function handleSlotSelect(selectionInfo) {
   }
 }
 
+const parseDateSafe = (dateStr) => {
+  if (!dateStr) return null
+  if (dateStr instanceof Date) return dateStr
+  const normalized = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr
+  const parsed = new Date(normalized)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
 function handleDetailEventClick(info) {
   if (info.event.id === 'glow-preview') return
   const enc = info.event.extendedProps
   if (enc) {
-    if (info.event.start && info.event.end) {
-      rangoActivo.value = {
-        inicio: info.event.start,
-        fin: info.event.end,
-        id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
-      }
-    }
-    selectedEncuentro.value = enc
-    showAssignModal.value = true
+    openAssignModal(enc)
   }
 }
 
 function openAssignModal(enc) {
   const enrichedEnc = { ...enc }
-  if (rangoActivo.value) {
+  
+  if (enc.fecha_hora_inicio && enc.fecha_hora_fin) {
+    // If the encounter already has a scheduled slot, we ALWAYS use it
+    rangoActivo.value = {
+      inicio: parseDateSafe(enc.fecha_hora_inicio),
+      fin: parseDateSafe(enc.fecha_hora_fin),
+      id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
+    }
     enrichedEnc.fecha_hora_inicio = rangoActivo.value.inicio
     enrichedEnc.fecha_hora_fin = rangoActivo.value.fin
-    if (rangoActivo.value.id_espacio && rangoActivo.value.id_espacio !== 'sin-asignar') {
-      enrichedEnc.id_espacio = Number(rangoActivo.value.id_espacio)
-    }
   } else {
-    if (enc.fecha_hora_inicio && enc.fecha_hora_fin) {
-      rangoActivo.value = {
-        inicio: new Date(enc.fecha_hora_inicio),
-        fin: new Date(enc.fecha_hora_fin),
-        id_espacio: enc.id_espacio ? String(enc.id_espacio) : null
+    // If it's not scheduled yet, we use the active calendar range if available
+    if (rangoActivo.value) {
+      enrichedEnc.fecha_hora_inicio = rangoActivo.value.inicio
+      enrichedEnc.fecha_hora_fin = rangoActivo.value.fin
+      if (rangoActivo.value.id_espacio && rangoActivo.value.id_espacio !== 'sin-asignar') {
+        enrichedEnc.id_espacio = Number(rangoActivo.value.id_espacio)
       }
     }
   }
+  
   selectedEncuentro.value = enrichedEnc
   showAssignModal.value = true
 }
@@ -251,17 +258,29 @@ function setMiniCalendarView(viewName) {
 }
 
 // ── UTILS / RESOLVERS ────────────────────────────────────────
+const getRgbaFromHex = (hex, alpha = 0.15) => {
+  if (!hex) return 'rgba(0,0,0,0.1)'
+  const cleanHex = hex.replace('#', '')
+  const r = parseInt(cleanHex.substring(0, 2), 16)
+  const g = parseInt(cleanHex.substring(2, 4), 16)
+  const b = parseInt(cleanHex.substring(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 const getRefereeName = (row) => {
   const refObj = row.arbitro
   if (refObj?.nombre) return refObj.nombre
   if (refObj?.nombre_completo) return refObj.nombre_completo
   
   if (row.id_arbitro_asignado) {
+    const refInTotals = scheduleStore.arbitrosTotales?.find(a => a.id_instructor === row.id_arbitro_asignado)
+    if (refInTotals?.nombre) return refInTotals.nombre
+
     const refInPool = scheduleStore.arbitrosPool?.disponibles?.find(a => a.id_instructor === row.id_arbitro_asignado)
       || scheduleStore.arbitrosPool?.ocupados?.find(a => a.id_instructor === row.id_arbitro_asignado)
     if (refInPool?.nombre) return refInPool.nombre
   }
-  return 'Árbitro'
+  return 'Por asignar'
 }
 
 const getRefereeInitial = (nombre) => {
@@ -296,8 +315,8 @@ function handleTorneoCreated() {
 }
 
 const formatFase = (fase) => {
-  if (!fase || fase === 'N/A') return 'Sin fase'
-  return fase.replace(/_/g, ' ')
+  if (!fase || fase === 'N/A') return 'ENCUENTRO'
+  return fase.replace(/_/g, ' ').toUpperCase()
 }
 
 const formatFecha = (f) => {
@@ -312,6 +331,110 @@ const formatDateForApi = (date) => {
   const d = new Date(date)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`
+}
+
+const formatWeekdayAbbreviation = (date) => {
+  if (!date) return ''
+  const weekdays = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
+  return weekdays[new Date(date).getDay()]
+}
+
+const isToday = (date) => {
+  if (!date) return false
+  const today = new Date()
+  const d = new Date(date)
+  return today.getDate() === d.getDate() &&
+         today.getMonth() === d.getMonth() &&
+         today.getFullYear() === d.getFullYear()
+}
+
+const formatHour12 = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  let hours = d.getHours()
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  hours = hours % 12
+  hours = hours ? hours : 12
+  return `${hours} ${ampm}`
+}
+
+const formatTimeRange = (start, end) => {
+  if (!start || !end) return ''
+  const formatTime = (date) => {
+    const d = new Date(date)
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+  return `${formatTime(start)} - ${formatTime(end)}`
+}
+
+const getEventCardStyle = (event) => {
+  if (event.id === 'glow-preview') return {}
+  
+  const ext = event.extendedProps || {}
+  const isAssigned = ext.isAssigned
+  const isFinalizado = ext.estatus_encuentro === 'FINALIZADO'
+  const hasConflicto = ext.has_conflicto
+  
+  if (hasConflicto) {
+    return {
+      backgroundColor: '#f59e0b', // bg-amber-500
+      borderColor: '#d97706', // border-amber-650
+      color: '#ffffff', // text-white
+    }
+  }
+  
+  if (isFinalizado) {
+    return {
+      backgroundColor: '#f43f5e', // bg-rose-500
+      borderColor: '#e11d48', // border-rose-650
+      color: '#ffffff', // text-white
+    }
+  }
+  
+  const tColor = scheduleStore.getTournamentColor(ext.id_torneo)
+  if (isAssigned) {
+    return {
+      backgroundColor: tColor.bg,
+      borderColor: tColor.gradient ? tColor.gradient[1] : tColor.bg,
+      color: '#ffffff',
+    }
+  } else {
+    // Unassigned: slate gray
+    return {
+      backgroundColor: '#f8fafc', // bg-slate-50
+      borderColor: '#cbd5e1', // border-slate-300
+      borderStyle: 'dashed',
+      color: '#475569', // text-slate-600
+    }
+  }
+}
+
+const getEventTitleStyle = (event) => {
+  const ext = event.extendedProps || {}
+  const isAssigned = ext.isAssigned
+  
+  return (isAssigned || ext.has_conflicto || ext.estatus_encuentro === 'FINALIZADO')
+    ? { color: '#ffffff', fontWeight: '900' }
+    : { color: '#1e293b', fontWeight: '900' }
+}
+
+const getEventSubTitleStyle = (event) => {
+  const ext = event.extendedProps || {}
+  const isAssigned = ext.isAssigned
+  
+  return (isAssigned || ext.has_conflicto || ext.estatus_encuentro === 'FINALIZADO')
+    ? { color: 'rgba(255, 255, 255, 0.85)', fontSize: '7.5px' }
+    : { color: '#64748b', fontSize: '7.5px' }
+}
+
+const getDividerStyle = (event) => {
+  const ext = event.extendedProps || {}
+  const isAssigned = ext.isAssigned
+  
+  return (isAssigned || ext.has_conflicto || ext.estatus_encuentro === 'FINALIZADO')
+    ? { borderColor: 'rgba(255, 255, 255, 0.15)' }
+    : { borderColor: '#cbd5e1' }
 }
 
 // ── WATCHERS ────────────────────────────────────────────────
@@ -337,6 +460,15 @@ watch(torneoIdFromQuery, async (id) => {
     scheduleStore.fetchTodosLosTorneos()
   }
 }, { immediate: false })
+
+watch(torneoSeleccionado, (newTorneo) => {
+  if (newTorneo?.fecha_inicio && calendarRef.value) {
+    const calendarApi = calendarRef.value.getApi()
+    if (calendarApi) {
+      calendarApi.gotoDate(newTorneo.fecha_inicio)
+    }
+  }
+}, { immediate: true })
 
 // ── INIT ────────────────────────────────────────────────────
 onMounted(async () => {
@@ -416,13 +548,13 @@ onMounted(async () => {
           <p class="text-sm font-bold text-surface-400 mt-4 animate-pulse">Cargando encuentros del torneo...</p>
         </div>
 
-        <!-- Layout de doble columna: 60% tabla + 40% mini-calendar -->
-        <div v-else class="grid grid-cols-[1fr_380px] gap-6 items-start">
+        <!-- Layout de doble columna: 7/12 columnas para calendario + 5/12 para buscador y pool -->
+        <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           <!-- ══════════════════════════════════════════ -->
-          <!-- COLUMNA IZQUIERDA (60%): Tabla de encuentros -->
+          <!-- COLUMNA IZQUIERDA: Buscador, Tabla y Pool  -->
           <!-- ══════════════════════════════════════════ -->
-          <div class="space-y-4 min-w-0">
+          <div class="lg:col-span-7 min-w-0 space-y-5">
             <!-- Buscador + filtros -->
             <div class="bg-white rounded-2xl border border-surface-200 shadow-sm px-5 py-4 space-y-3">
               <!-- Search bar -->
@@ -450,14 +582,14 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- Tabla de encuentros -->
+            <!-- Tabla/Lista de encuentros descongestionada -->
             <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
               <!-- Encabezado de tabla -->
-              <div class="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 px-5 py-3 bg-surface-50 border-b border-surface-100">
-                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400 col-span-2">Encuentro</div>
-                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400">Espacio</div>
-                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400">Árbitro</div>
-                <div class="text-[9px] font-black uppercase tracking-widest text-surface-400">Acción</div>
+              <div class="grid grid-cols-[24px_2.5fr_1.2fr_1.2fr_90px] gap-4 px-5 py-4 bg-surface-50 border-b border-surface-100">
+                <div class="text-[10px] font-black uppercase tracking-widest text-surface-400 col-span-2">Encuentro</div>
+                <div class="text-[10px] font-black uppercase tracking-widest text-surface-400">Espacio</div>
+                <div class="text-[10px] font-black uppercase tracking-widest text-surface-400">Árbitro</div>
+                <div class="text-[10px] font-black uppercase tracking-widest text-surface-400 text-right">Acción</div>
               </div>
 
               <!-- Empty state -->
@@ -473,28 +605,28 @@ onMounted(async () => {
                 <p class="text-xs text-surface-400 mt-1">Intenta ajustar los filtros o la búsqueda.</p>
               </div>
 
-              <!-- Filas de encuentros -->
-              <div v-else class="divide-y divide-surface-50">
+              <!-- Filas de encuentros amplias y descongestionadas -->
+              <div v-else class="divide-y divide-surface-50 max-h-[480px] overflow-y-auto">
                 <div v-for="enc in filteredEncuentrosTable" :key="enc.id_encuentro"
-                  class="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 items-center px-5 py-3.5 hover:bg-surface-50/70 transition-colors group cursor-pointer"
+                  class="grid grid-cols-[24px_2.5fr_1.2fr_1.2fr_90px] gap-4 items-center px-5 py-4 hover:bg-surface-50/70 transition-colors group cursor-pointer"
                   @click="openAssignModal(enc)">
 
                   <!-- Status dot + fase -->
                   <div class="flex flex-col items-center gap-1">
-                    <div class="w-2 h-2 rounded-full shrink-0 transition-all"
+                    <div class="w-2.5 h-2.5 rounded-full shrink-0 transition-all"
                       :class="enc.isAssigned ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]' : 'bg-surface-300'"></div>
                   </div>
 
                   <!-- Nombres de competidores -->
                   <div class="min-w-0">
-                    <p class="text-xs font-bold text-surface-800 truncate leading-snug">
+                    <p class="text-[12.5px] font-bold text-surface-800 truncate leading-tight">
                       <span class="text-surface-700">{{ enc.comp1Name }}</span>
-                      <span class="text-surface-400 mx-1.5 font-normal">vs</span>
+                      <span class="text-surface-400 mx-1 font-normal">vs</span>
                       <span class="text-surface-700">{{ enc.comp2Name }}</span>
                     </p>
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">{{ enc.faseLabel }}</span>
-                      <span v-if="enc.fecha_hora_inicio" class="text-[9px] font-bold text-surface-400">
+                    <div class="flex items-center gap-1.5 mt-1">
+                      <span class="text-[10px] font-black uppercase tracking-wider text-surface-400 truncate max-w-[130px]">{{ enc.faseLabel }}</span>
+                      <span v-if="enc.fecha_hora_inicio" class="text-[10px] font-bold text-surface-400">
                         · {{ formatFecha(enc.fecha_hora_inicio) }}
                       </span>
                     </div>
@@ -503,14 +635,14 @@ onMounted(async () => {
                   <!-- Espacio -->
                   <div class="shrink-0">
                     <span v-if="enc.id_espacio"
-                      class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 border border-blue-100 text-[9px] font-black text-blue-700 whitespace-nowrap">
+                      class="inline-flex items-center gap-0.5 px-2 py-1 rounded bg-blue-50 border border-blue-100 text-[10px] font-black text-blue-700 whitespace-nowrap">
                       <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       </svg>
-                      {{ getEspacioName(enc.id_espacio) }}
+                      <span class="max-w-[130px] truncate">{{ getEspacioName(enc.id_espacio) }}</span>
                     </span>
                     <span v-else
-                      class="inline-flex items-center px-2 py-1 rounded-lg bg-surface-100 text-[9px] font-black text-surface-400 whitespace-nowrap">
+                      class="inline-flex items-center px-2 py-1 rounded bg-surface-100 text-[10px] font-black text-surface-400 whitespace-nowrap">
                       Sin asignar
                     </span>
                   </div>
@@ -518,34 +650,39 @@ onMounted(async () => {
                   <!-- Árbitro -->
                   <div class="shrink-0">
                     <div v-if="enc.id_arbitro_asignado" class="flex items-center gap-1.5">
-                      <div class="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black shrink-0"
+                      <div class="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black shrink-0"
                         :class="getRefereeBg(getRefereeName(enc))">
                         {{ getRefereeInitial(getRefereeName(enc)) }}
                       </div>
-                      <span class="text-[9px] font-bold text-surface-700 max-w-[80px] truncate">{{ getRefereeName(enc) }}</span>
+                      <span class="text-[10px] font-bold text-surface-700 max-w-[130px] truncate">{{ getRefereeName(enc) }}</span>
                     </div>
                     <span v-else
-                      class="inline-flex items-center px-2 py-1 rounded-lg bg-amber-50 border border-amber-100 text-[9px] font-black text-amber-600 whitespace-nowrap">
+                      class="inline-flex items-center px-2 py-1 rounded bg-amber-50 border border-amber-100 text-[10px] font-black text-amber-600 whitespace-nowrap">
                       Por asignar
                     </span>
                   </div>
 
                   <!-- Acción -->
-                  <div class="shrink-0">
+                  <div class="shrink-0 text-right">
                     <button
-                      class="px-2.5 py-1.5 rounded-lg border border-surface-200 bg-white text-[9px] font-black text-surface-600 hover:bg-surface-900 hover:text-white hover:border-surface-900 transition-all opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-sm">
+                      @click.stop="openAssignModal(enc)"
+                      class="px-2.5 py-1.5 rounded border border-surface-200 bg-white text-[10px] font-black text-surface-600 hover:bg-surface-900 hover:text-white hover:border-surface-900 transition-all whitespace-nowrap shadow-sm">
                       {{ enc.isAssigned ? 'Editar' : 'Asignar' }}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- Pool del torneo (Sidebar de árbitros) abajo de donde se eligen -->
+            <SidebarArbitros :torneo="torneoSeleccionado" :arbitros-pool="arbitrosPool" :loading="loadingStates.arbitros"
+              :rango-activo="rangoActivo" />
           </div>
 
           <!-- ══════════════════════════════════════════ -->
-          <!-- COLUMNA DERECHA (40%): Mini-calendario + Sidebar -->
+          <!-- COLUMNA DERECHA: Calendario                -->
           <!-- ══════════════════════════════════════════ -->
-          <div class="space-y-4 sticky top-6">
+          <div class="w-full lg:col-span-5 space-y-4 lg:sticky lg:top-6">
             <!-- Mini Calendar Card -->
             <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
               <!-- Card header con pestañas de vista -->
@@ -587,13 +724,68 @@ onMounted(async () => {
 
               <!-- FullCalendar mini instance -->
               <div class="mini-calendar-container p-3">
-                <FullCalendar ref="calendarRef" :options="detailCalendarOptions" />
+                <FullCalendar ref="calendarRef" :options="detailCalendarOptions">
+                  <!-- Day Header Slot -->
+                  <template #dayHeaderContent="arg">
+                    <div class="flex flex-col items-center py-1 select-none">
+                      <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">
+                        {{ formatWeekdayAbbreviation(arg.date) }}
+                      </span>
+                      <div class="mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-xs transition-all font-bold"
+                           :class="isToday(arg.date) ? 'bg-primary-600 text-white font-black shadow-sm' : 'text-surface-700'">
+                        {{ arg.date.getDate() }}
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- Hour / Slot Label Slot -->
+                  <template #slotLabelContent="arg">
+                    <div class="text-[9px] font-black text-surface-400 uppercase tracking-wider pr-1">
+                      {{ formatHour12(arg.date) }}
+                    </div>
+                  </template>
+
+                  <!-- Event Content Slot -->
+                  <template #eventContent="arg">
+                    <div v-if="arg.event.id === 'glow-preview'"
+                         class="w-full h-full p-2 rounded-xl border border-dashed border-primary-500 bg-primary-50/20 text-primary-800 animate-pulse flex flex-col justify-center items-center overflow-hidden">
+                      <span class="text-[8px] font-black uppercase tracking-wider">Bloque Seleccionado</span>
+                    </div>
+                    <div v-else
+                         class="w-full h-full p-2.5 rounded-xl border flex flex-col justify-between overflow-hidden transition-all font-bold cursor-pointer hover:scale-[1.01] hover:shadow-md"
+                         :style="getEventCardStyle(arg.event)">
+                      
+                      <!-- Top: Fase -->
+                      <div class="min-w-0">
+                        <p class="font-black uppercase tracking-wider text-[11px] leading-tight" :style="getEventTitleStyle(arg.event)">
+                          {{ formatFase(arg.event.extendedProps.faseBracket || arg.event.extendedProps.fase) }}
+                        </p>
+                      </div>
+
+                      <!-- Bottom: Time & Referee with Icons -->
+                      <div class="space-y-1.5 mt-2">
+                        <!-- Time with Clock Icon -->
+                        <div class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
+                          <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span class="font-bold">{{ formatTimeRange(arg.event.start, arg.event.end) }}</span>
+                        </div>
+                        
+                        <!-- Referee with Person Icon -->
+                        <div v-if="arg.event.extendedProps.id_arbitro_asignado" class="flex items-center gap-1.5 text-[9.5px] leading-none" :style="getEventTitleStyle(arg.event)">
+                          <svg class="w-3.5 h-3.5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span class="font-bold truncate">{{ getRefereeName(arg.event.extendedProps) }}</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </template>
+                </FullCalendar>
               </div>
             </div>
-
-            <!-- Sidebar de árbitros -->
-            <SidebarArbitros :torneo="torneoSeleccionado" :arbitros-pool="arbitrosPool" :loading="loadingStates.arbitros"
-              :rango-activo="rangoActivo" />
           </div>
         </div>
       </template>
@@ -610,8 +802,53 @@ onMounted(async () => {
 
         <template v-else>
           <!-- Overview Calendar -->
-          <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 overflow-hidden">
-            <FullCalendar :options="overviewCalendarOptions" />
+          <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 overflow-hidden font-sans">
+            <FullCalendar :options="overviewCalendarOptions">
+              <!-- Day Header Slot -->
+              <template #dayHeaderContent="arg">
+                <div class="flex flex-col items-center py-1 select-none">
+                  <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">
+                    {{ formatWeekdayAbbreviation(arg.date) }}
+                  </span>
+                  <div class="mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-xs transition-all font-bold"
+                       :class="isToday(arg.date) ? 'bg-primary-600 text-white font-black shadow-sm' : 'text-surface-700'">
+                    {{ arg.date.getDate() }}
+                  </div>
+                </div>
+              </template>
+
+              <!-- Hour / Slot Label Slot -->
+              <template #slotLabelContent="arg">
+                <div class="text-[9px] font-black text-surface-400 uppercase tracking-wider pr-1">
+                  {{ formatHour12(arg.date) }}
+                </div>
+              </template>
+
+              <!-- Event Content Slot -->
+              <template #eventContent="arg">
+                <div class="w-full h-full p-1 rounded-lg border flex flex-col justify-between overflow-hidden transition-all text-[8px] leading-tight font-bold cursor-pointer hover:scale-[1.01] hover:shadow-sm"
+                     :style="{
+                       backgroundColor: getRgbaFromHex(scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg, 0.12),
+                       borderColor: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg,
+                       color: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg
+                     }">
+                  <div class="space-y-0.5 min-w-0">
+                    <p class="text-[7px] font-black uppercase tracking-wider opacity-85 truncate">
+                      {{ arg.event.extendedProps.nombre_torneo }}
+                    </p>
+                    <p class="font-black truncate uppercase tracking-tight text-[8.5px] leading-tight">
+                      {{ arg.event.title }}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-1 opacity-90 text-[7.5px] leading-none mt-0.5">
+                    <svg class="w-2 h-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ formatTimeRange(arg.event.start, arg.event.end) }}</span>
+                  </div>
+                </div>
+              </template>
+            </FullCalendar>
           </div>
 
           <!-- Leyenda de colores -->
@@ -708,25 +945,15 @@ onMounted(async () => {
 }
 
 .fc .fc-event {
-  border-radius: 0.5rem !important;
-  border-width: 2px !important;
-  padding: 2px 6px !important;
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
   cursor: pointer !important;
-  transition: box-shadow 0.2s ease, transform 0.15s ease !important;
 }
 
-.fc .fc-event:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  transform: scale(1.02) !important;
-  z-index: 10 !important;
-}
-
-.fc .fc-event.event-unassigned {
-  border-style: dashed !important;
-  border-color: #64748b !important;
-  opacity: 0.85;
+.fc .fc-event-main {
+  padding: 0 !important;
 }
 
 .fc .fc-daygrid-event-dot {
@@ -785,5 +1012,56 @@ onMounted(async () => {
   padding: 0.2rem 0.4rem !important;
   font-size: 0.68rem !important;
   font-weight: 700 !important;
+}
+
+/* Timezone GMT-6 indicator */
+.fc .fc-timegrid-axis-cushion::after {
+  content: "GMT-6";
+  display: block;
+  font-size: 8px;
+  font-weight: 900;
+  color: #94a3b8;
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* Transparent wrapper overrides for custom eventContent slots */
+.fc-v-event, .fc-timegrid-event, .fc-event {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.fc-event-main, .fc-event-main-frame {
+  padding: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.fc-timegrid-event {
+  height: 100% !important;
+}
+
+/* Custom timegrid axis slot layout to prevent hour clipping */
+.fc .fc-timegrid-slot-label {
+  width: 54px !important;
+  min-width: 54px !important;
+}
+
+.fc .fc-timegrid-axis {
+  width: 54px !important;
+  min-width: 54px !important;
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  text-align: right !important;
+  padding-right: 6px !important;
+  text-transform: uppercase !important;
 }
 </style>

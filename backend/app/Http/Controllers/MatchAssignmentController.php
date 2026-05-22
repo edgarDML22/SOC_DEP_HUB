@@ -127,8 +127,8 @@ class MatchAssignmentController extends Controller
             ->where('id_arbitro_asignado', $request->id_arbitro)
             ->where('id_encuentro', '!=', $id_encuentro)
             ->whereNotIn('estatus_encuentro', ['BYE', 'FINALIZADO'])
-            ->whereRaw('DATE(fecha_hora_inicio) = ?', [$diaInicioString])
-            ->whereRaw('TIME(fecha_hora_inicio) = ?', [$horaInicioString])
+            ->whereDate('fecha_hora_inicio', $diaInicioString)
+            ->whereTime('fecha_hora_inicio', $horaInicioString)
             ->exists();
 
         if ($conflictoHoraYDia) {

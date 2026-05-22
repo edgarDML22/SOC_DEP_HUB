@@ -64,7 +64,7 @@ export const useScheduleStore = defineStore("schedule", () => {
         return encuentros.value
             .filter(e => !e.es_bye)
             .map(enc => {
-                const isAssigned = !!enc.id_arbitro_asignado;
+                const isAssigned = !!enc.fecha_hora_inicio;
                 const color = isAssigned
                     ? getTournamentColor(enc.id_torneo)
                     : UNASSIGNED_COLOR;
@@ -85,8 +85,8 @@ export const useScheduleStore = defineStore("schedule", () => {
                 return {
                     id: String(enc.id_encuentro),
                     title: `${comp1} vs ${comp2}`,
-                    start: enc.fecha_hora_inicio || null,
-                    end: enc.fecha_hora_fin || null,
+                    start: enc.fecha_hora_inicio ? enc.fecha_hora_inicio.replace(' ', 'T') : null,
+                    end: enc.fecha_hora_fin ? enc.fecha_hora_fin.replace(' ', 'T') : null,
                     resourceId: enc.id_espacio ? String(enc.id_espacio) : 'sin-asignar',
                     backgroundColor: color.bg,
                     borderColor: isAssigned ? color.gradient[1] : 'transparent',
@@ -129,8 +129,8 @@ export const useScheduleStore = defineStore("schedule", () => {
                     events.push({
                         id: `${torneo.id_torneo}-${enc.id_encuentro}`,
                         title: `${comp1} vs ${comp2}`,
-                        start: enc.fecha_hora_inicio,
-                        end: enc.fecha_hora_fin,
+                        start: enc.fecha_hora_inicio ? enc.fecha_hora_inicio.replace(' ', 'T') : null,
+                        end: enc.fecha_hora_fin ? enc.fecha_hora_fin.replace(' ', 'T') : null,
                         backgroundColor: color.bg,
                         borderColor: color.gradient[1],
                         textColor: color.text,
@@ -319,15 +319,14 @@ export const useScheduleStore = defineStore("schedule", () => {
                 torneosList = listData;
             }
 
-            // Para cada torneo con estado activo, obtener sus encuentros
-            const torneosConEncuentros = [];
+            // Para cada torneo con estado activo, obtener sus encuentros en paralelo
             const activeTorneos = torneosList.filter(t =>
                 ['PROGRAMADO', 'EN_CURSO'].includes(t.estado || t.estatus_torneo)
             );
 
-            for (const torneo of activeTorneos) {
+            const promises = activeTorneos.map(async (torneo) => {
+                const id = torneo.id_torneo || torneo.id;
                 try {
-                    const id = torneo.id_torneo || torneo.id;
                     const detailRes = await api.get(`/torneos/${id}`);
                     const detail = detailRes.data?.data ?? detailRes.data;
                     const bracket = detail.bracket || {};
@@ -341,18 +340,21 @@ export const useScheduleStore = defineStore("schedule", () => {
                         });
                     }
 
-                    torneosConEncuentros.push({
+                    return {
                         ...torneo,
                         id_torneo: id,
                         _encuentros: flat,
-                    });
+                    };
                 } catch {
-                    // Si falla un torneo, continuamos
-                    torneosConEncuentros.push({ ...torneo, _encuentros: [] });
+                    return {
+                        ...torneo,
+                        id_torneo: id,
+                        _encuentros: [],
+                    };
                 }
-            }
+            });
 
-            todosLosTorneos.value = torneosConEncuentros;
+            todosLosTorneos.value = await Promise.all(promises);
         } catch (err) {
             console.error("Error fetching todos los torneos:", err);
             error.value = "Error al cargar los torneos.";

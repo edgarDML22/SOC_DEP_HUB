@@ -43,7 +43,7 @@ const selectedArbitro = ref(null)
 
 // ── MODES: 'RESUMEN', 'HOT_SWAP', 'FULL_FORM' ────────────────
 const isEditing = computed(() => !!props.encuentro?.id_arbitro_asignado)
-const currentMode = ref(props.encuentro?.id_arbitro_asignado ? 'RESUMEN' : 'FULL_FORM')
+const currentMode = ref('FULL_FORM')
 
 // ── COMPUTED ────────────────────────────────────────────────
 const espacioOptions = computed(() =>
@@ -169,6 +169,14 @@ watch(horarioCompleto, async (complete) => {
 })
 
 // ── HELPERS ─────────────────────────────────────────────────
+const parseDateSafe = (dateStr) => {
+    if (!dateStr) return null
+    if (dateStr instanceof Date) return dateStr
+    const normalized = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr
+    const parsed = new Date(normalized)
+    return isNaN(parsed.getTime()) ? null : parsed
+}
+
 const formatDateForApi = (date) => {
     if (!date) return null
     const d = new Date(date)
@@ -263,10 +271,20 @@ onMounted(async () => {
     if (enc) {
         // Pre-rellenar si ya tiene datos
         if (enc.id_espacio) selectedEspacio.value = enc.id_espacio
-        if (enc.fecha_hora_inicio) fechaInicio.value = new Date(enc.fecha_hora_inicio)
-        if (enc.fecha_hora_fin) fechaFin.value = new Date(enc.fecha_hora_fin)
+        if (enc.fecha_hora_inicio) fechaInicio.value = parseDateSafe(enc.fecha_hora_inicio)
+        if (enc.fecha_hora_fin) fechaFin.value = parseDateSafe(enc.fecha_hora_fin)
         if (enc.id_arbitro_asignado) {
             selectedArbitro.value = enc.id_arbitro_asignado
+        }
+
+        // Pre-cargar disponibilidad de árbitros si ya tenemos horario completo
+        if (fechaInicio.value && fechaFin.value) {
+            const inicio = formatDateForApi(fechaInicio.value)
+            const fin = formatDateForApi(fechaFin.value)
+            const torneoId = props.idTorneo || enc.extendedProps?.id_torneo || enc.id_torneo
+            if (torneoId) {
+                await store.fetchArbitrosDisponibles(torneoId, inicio, fin)
+            }
         }
     }
 })
@@ -492,7 +510,7 @@ onMounted(async () => {
                         </button>
                         <button @click="handleSave" :disabled="!canSave"
                             class="flex-1 py-3 rounded-xl bg-surface-900 text-white text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
-                            <LoadingSpinner v-if="loadingStates.asignando" size="sm" color="white" />
+                            <LoadingSpinner v-if="loadingStates.asignando" size="sm" color="white" class="!mx-0" />
                             <span>{{ loadingStates.asignando ? 'Guardando...' : 'Reasignar Árbitro' }}</span>
                         </button>
                     </template>
@@ -505,7 +523,7 @@ onMounted(async () => {
                         </button>
                         <button @click="handleSave" :disabled="!canSave"
                             class="flex-1 py-3 rounded-xl bg-surface-900 text-white text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
-                            <LoadingSpinner v-if="loadingStates.asignando" size="sm" color="white" />
+                            <LoadingSpinner v-if="loadingStates.asignando" size="sm" color="white" class="!mx-0" />
                             <span>{{ loadingStates.asignando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar Asignación') }}</span>
                         </button>
                     </template>
