@@ -12,7 +12,7 @@ const props = defineProps({
   size:         { type: String,  default: 'md' },
   allowClear:   { type: Boolean, default: true },
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'open'])
 
 const open = ref(false)
 const highlightId = ref(null)
@@ -25,7 +25,7 @@ const seleccionado = computed(() =>
 
 function toggle() {
   open.value = !open.value
-  if (open.value) { keyBuffer.value = ''; highlightId.value = props.modelValue }
+  if (open.value) { keyBuffer.value = ''; highlightId.value = props.modelValue; emit('open') }
 }
 function close() { open.value = false }
 
@@ -47,6 +47,18 @@ function onKey(e) {
     e.preventDefault()
     if (highlightId.value !== null) seleccionar(highlightId.value)
     else close()
+    return
+  }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const ids = props.opciones.map(i => i.id_instructor)
+    if (!ids.length) return
+    const cur = ids.indexOf(highlightId.value)
+    const next = e.key === 'ArrowDown'
+      ? (cur + 1) % ids.length
+      : (cur - 1 + ids.length) % ids.length
+    highlightId.value = ids[next]
+    document.getElementById(`${uid}-opt-${ids[next]}`)?.scrollIntoView({ block: 'nearest' })
     return
   }
   if (e.key.length !== 1) return
@@ -77,6 +89,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside)
   document.removeEventListener('keydown', onKey)
 })
+
+defineExpose({ close })
 
 // ─── Avatares ────────────────────────────────────────────────────────────
 const AVATAR_GRADIENTS = [
@@ -115,7 +129,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
         error
           ? 'border-red-300 bg-red-50'
           : open
-            ? 'border-emerald-400 bg-white shadow-md ring-2 ring-emerald-400/20'
+            ? 'border-primary-400 bg-white shadow-md ring-2 ring-primary-400/20'
             : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
       ]"
     >
@@ -125,8 +139,8 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
       >
         {{ getInitials(seleccionado.nombre_completo) }}
       </div>
-      <span v-else class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-        <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+      <span v-else class="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
+        <svg class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
       </span>
@@ -189,10 +203,10 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
           :class="[
             'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left focus:outline-none',
             modelValue === inst.id_instructor
-              ? 'bg-emerald-50 text-emerald-700'
+              ? 'bg-primary-50 text-primary-700'
               : highlightId === inst.id_instructor
-                ? 'bg-emerald-50/70 text-emerald-600'
-                : 'text-slate-700 hover:bg-emerald-50'
+                ? 'bg-primary-50/70 text-primary-600'
+                : 'text-slate-700 hover:bg-primary-50'
           ]"
         >
           <div :class="['w-8 h-8 rounded-full bg-linear-to-br flex items-center justify-center text-white text-xs font-black shrink-0', avatarGradient(inst.nombre_completo)]">
@@ -201,7 +215,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
           <span class="font-semibold truncate flex-1">{{ inst.nombre_completo }}</span>
           <svg
             v-if="modelValue === inst.id_instructor"
-            class="w-4 h-4 text-emerald-500 shrink-0"
+            class="w-4 h-4 text-primary-500 shrink-0"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
           >
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />

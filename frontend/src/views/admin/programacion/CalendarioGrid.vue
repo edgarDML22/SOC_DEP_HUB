@@ -67,6 +67,8 @@ const bloquesPreview = computed(() => {
     hora_inicio: f.hora_inicio,
     hora_fin: f.hora_fin,
     requiere_inscripcion: f.requiere_inscripcion,
+    id_espacio:    f.id_espacio    ?? null,
+    id_instructor: f.id_instructor ?? null,
     _disciplina_nombre: disc?.nombre_disciplina ?? '',
     _instructor_nombre: inst?.nombre_completo ?? '',
     _espacio_nombre: esp?.nombre_espacio ?? '',
@@ -133,15 +135,30 @@ const layoutPorDia = computed(() => {
 // BORRADOR LOCAL (origen 'borrador' — en memoria):
 //   Mismo estilo que draft (punteado) — visualmente idéntico a draft pendiente
 //
-// CONFLICTO → bg-amber-50, border-amber-400, text-amber-700
+// CONFLICTO vs CONFIRMADA → bg-amber-500 sólido, texto blanco (causa severa)
+// CONFLICTO vs BORRADOR   → bg-amber-50 punteado, text-amber-700, border-amber-400 dashed
 // PREVIEW   → fondo primary suave, borde punteado primary
 //
-function clasesBloque(b, conflicto) {
-  if (conflicto) {
+// conflictoTipo: 'confirmada' | 'borrador' | null
+function clasesBloque(b, conflictoTipo) {
+  if (conflictoTipo === 'confirmada') {
+    // Ámbar degradado suave — mismo tono que las tarjetas del panel lateral
+    return {
+      bg: '',
+      borderColor: 'border-amber-600',
+      borderStyle: 'border border-amber-600 border-l-4 border-l-amber-700',
+      text: 'text-white font-extrabold',
+      sub:  'text-amber-100 font-semibold',
+      stripeBg: 'linear-gradient(to bottom right, #fbbf24, #d97706)',
+    }
+  }
+
+  if (conflictoTipo === 'borrador') {
+    // Ámbar claro punteado — la causa es un draft o borrador local
     return {
       bg: 'bg-amber-50',
       borderColor: 'border-amber-400',
-      borderStyle: 'border border-amber-400 border-l-4',
+      borderStyle: 'border border-dashed border-amber-400 border-l-4 border-l-amber-500',
       text: 'text-amber-700 font-extrabold',
       sub:  'text-amber-600 font-semibold',
       stripeBg: 'repeating-linear-gradient(135deg, rgba(245,158,11,0.08) 0 8px, rgba(245,158,11,0.18) 8px 16px)',
@@ -149,12 +166,13 @@ function clasesBloque(b, conflicto) {
   }
 
   if (b._origen === 'preview') {
+    // Siempre azul primary — la bolita verde/roja dentro del bloque indica el tipo
     return {
-      bg: 'bg-primary-50/55',
-      borderColor: 'border-primary-300',
+      bg: 'bg-primary-50',
+      borderColor: 'border-primary-400',
       borderStyle: 'border border-dashed border-l-4 border-l-primary-500',
-      text: 'text-primary-800 font-extrabold',
-      sub:  'text-primary-600 font-semibold',
+      text: 'text-primary-700 font-extrabold',
+      sub:  'text-primary-500 font-semibold',
       stripeBg: null,
     }
   }
@@ -203,11 +221,40 @@ function clasesBloque(b, conflicto) {
       }
 }
 
-function tieneConflicto(b) {
-  if (b._origen === 'preview') {
-    return store.detectarColisionEnEdicion(b, null, null).length > 0
+function overlaps(aS, aE, bS, bE) { return aS < bE && bS < aE }
+
+// Retorna el tipo de conflicto del bloque contra cualquier preview activo.
+// El preview es un borrador en progreso → tipo 'borrador'.
+function tipoConflictoConPreview(b) {
+  if (!bloquesPreview.value.length) return null
+  const bS = toMinutes(b.hora_inicio)
+  const bE = toMinutes(b.hora_fin)
+  for (const p of bloquesPreview.value) {
+    if (p.dia_semana !== b.dia_semana) continue
+    if (!overlaps(bS, bE, toMinutes(p.hora_inicio), toMinutes(p.hora_fin))) continue
+    if (p.id_espacio    && p.id_espacio    === b.id_espacio)    return 'borrador'
+    if (p.id_instructor && p.id_instructor === b.id_instructor) return 'borrador'
   }
-  return store.detectarColisionEnEdicion(b, b._origen, b._srcIdx).length > 0
+  return null
+}
+
+// Retorna 'confirmada' | 'borrador' | null según el tipo de conflicto del bloque.
+// - Para bloques preview: detecta si choca contra una confirmada o un borrador/draft existente.
+// - Para bloques existentes: consulta el Map sesionesEnConflicto del store.
+function tipoConflicto(b) {
+  if (b._origen === 'preview') {
+    const cols = store.detectarColisionEnEdicion(b, null, null)
+    if (!cols.length) return null
+    const tieneConfirmada = cols.some(c => c.sesionInfractora?.origen === 'confirmada')
+    return tieneConfirmada ? 'confirmada' : 'borrador'
+  }
+  // Conflicto vs preview activo (siempre tipo 'borrador') o conflicto entre sesiones existentes
+  const vsPreview = tipoConflictoConPreview(b)
+  const vsExistente = store.sesionesEnConflicto.get(`${b._origen}-${b._srcIdx}`) ?? null
+  // Prevalece 'confirmada' si cualquiera de los dos es confirmada
+  if (vsPreview === 'confirmada' || vsExistente === 'confirmada') return 'confirmada'
+  if (vsPreview === 'borrador'   || vsExistente === 'borrador')   return 'borrador'
+  return null
 }
 
 // ─── Click → abre modal (vía store) ───────────────────────────────────────
@@ -472,7 +519,7 @@ const motivoVacio = computed(() => {
                 gridRow: `${b._startSlot + 1} / ${b._endSlot + 1}`,
                 width: `calc(${100 / b._totalLanes}% - 6px)`,
                 marginLeft: `calc(${(100 / b._totalLanes) * b._lane}% + 3px)`,
-                ...(tieneConflicto(b) ? { backgroundImage: clasesBloque(b, true).stripeBg } : {}),
+                ...(clasesBloque(b, tipoConflicto(b)).stripeBg ? { backgroundImage: clasesBloque(b, tipoConflicto(b)).stripeBg } : {}),
               }"
               :class="[
                 'relative z-10 rounded-xl overflow-hidden text-left transition-all duration-150',
@@ -480,9 +527,9 @@ const motivoVacio = computed(() => {
                   ? 'cursor-default focus:outline-none'
                   : 'hover:shadow-md hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500/40 active:scale-[0.98]',
                 'my-0.5',
-                clasesBloque(b, tieneConflicto(b)).bg,
-                clasesBloque(b, tieneConflicto(b)).borderStyle,
-                clasesBloque(b, tieneConflicto(b)).borderColor,
+                clasesBloque(b, tipoConflicto(b)).bg,
+                clasesBloque(b, tipoConflicto(b)).borderStyle,
+                clasesBloque(b, tipoConflicto(b)).borderColor,
                 props.sesionResaltadaIndex !== null && b._origen === 'borrador' && b._srcIdx === props.sesionResaltadaIndex
                   ? 'ring-2 ring-primary-500/50 shadow-md -translate-y-px'
                   : '',
@@ -490,22 +537,22 @@ const motivoVacio = computed(() => {
             >
               <div class="pl-2.5 pr-2 py-1.5 h-full flex flex-col justify-start overflow-hidden">
                 <p
-                  :class="['text-[11px] font-bold truncate leading-tight flex items-center gap-1.5', clasesBloque(b, tieneConflicto(b)).text]"
+                  :class="['text-[11px] font-bold truncate leading-tight flex items-center gap-1.5', clasesBloque(b, tipoConflicto(b)).text]"
                 >
-                  <span v-if="b._origen === 'preview'" class="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+                  <span v-if="b._origen === 'preview'" :class="['w-1.5 h-1.5 rounded-full shrink-0', b.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500']" />
                   {{ b._disciplina_nombre || 'Nueva Sesión' }}
                 </p>
                 <p
                   v-if="(b._endSlot - b._startSlot) >= 2"
-                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5 tabular-nums', clasesBloque(b, tieneConflicto(b)).sub]"
+                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5 tabular-nums', clasesBloque(b, tipoConflicto(b)).sub]"
                 >{{ String(b.hora_inicio).slice(0,5) }}–{{ String(b.hora_fin).slice(0,5) }}</p>
                 <p
                   v-if="(b._endSlot - b._startSlot) >= 3"
-                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5', b._instructor_nombre ? clasesBloque(b, tieneConflicto(b)).sub : 'text-slate-400 italic']"
+                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5', b._instructor_nombre ? clasesBloque(b, tipoConflicto(b)).sub : 'text-slate-400 italic']"
                 >{{ b._instructor_nombre || 'Sin instructor' }}</p>
                 <p
                   v-if="(b._endSlot - b._startSlot) >= 4"
-                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5', b._espacio_nombre ? clasesBloque(b, tieneConflicto(b)).sub : 'text-slate-400 italic']"
+                  :class="['text-[10px] font-medium truncate leading-tight mt-0.5', b._espacio_nombre ? clasesBloque(b, tipoConflicto(b)).sub : 'text-slate-400 italic']"
                 >{{ b._espacio_nombre || 'Sin espacio' }}</p>
               </div>
             </button>
@@ -564,11 +611,13 @@ const motivoVacio = computed(() => {
     <!-- ══════════ LEYENDA ══════════ -->
     <div class="flex gap-3 flex-wrap shrink-0 px-1">
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-emerald-700 border-l-emerald-800 bg-emerald-600 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-teal-800 border border-teal-700 inline-block"
+          style="background: linear-gradient(to bottom right, #10b981, #0f766e);" />
         Confirmada · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-red-700 border-l-red-800 bg-red-600 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-red-800 border border-red-700 inline-block"
+          style="background: linear-gradient(to bottom right, #f43f5e, #b91c1c);" />
         Confirmada · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
@@ -580,11 +629,16 @@ const motivoVacio = computed(() => {
         Borrador · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-amber-700 border border-amber-600 inline-block"
+          style="background: linear-gradient(to bottom right, #fbbf24, #d97706);" />
+        Conflicto · vs Confirmada
+      </span>
+      <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
         <span
-          class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-amber-400 bg-amber-50 inline-block"
+          class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-l-amber-500 border-amber-400 bg-amber-50 inline-block"
           style="background-image: repeating-linear-gradient(135deg, rgba(245,158,11,0.25) 0 3px, transparent 3px 6px);"
         />
-        Conflicto
+        Conflicto · vs Borrador
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
         <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-primary-400 bg-primary-50/40 inline-block" />

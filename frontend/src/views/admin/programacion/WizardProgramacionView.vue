@@ -110,6 +110,7 @@ function onSeleccionarDisciplina(id) {
     if (!esp?.disciplinas_ids?.includes(id)) form.value.id_espacio = null
   }
   form.value.id_disciplina = id
+  store.setFiltro('id_disciplina', id)
 }
 
 function onSeleccionarEspacio(id) {
@@ -118,6 +119,7 @@ function onSeleccionarEspacio(id) {
     if (!esp?.disciplinas_ids?.includes(form.value.id_disciplina)) form.value.id_disciplina = null
   }
   form.value.id_espacio = id
+  store.setFiltro('id_espacio', id)
 }
 
 function onSeleccionarInstructor(id) {
@@ -126,12 +128,14 @@ function onSeleccionarInstructor(id) {
     if (!inst?.disciplinas_ids?.includes(form.value.id_disciplina)) form.value.id_disciplina = null
   }
   form.value.id_instructor = id
+  store.setFiltro('id_instructor', id)
 }
 
 function resetSelects() {
   form.value.id_disciplina = null
   form.value.id_espacio    = null
   form.value.id_instructor = null
+  store.resetFiltros()
 }
 
 function toggleDia(dia) {
@@ -199,6 +203,106 @@ const formularioCompleto = computed(() => Object.keys(validarForm()).length === 
 // Botones deshabilitados si hay conflicto de preview o colisión global activa
 const puedeAgregar = computed(() => formularioCompleto.value && !tieneConflictoPreview.value && !store.hayColisionActiva)
 
+// Los filtros globales se sincronizan con el formulario en onSeleccionarDisciplina/Espacio/Instructor,
+// por lo que al haber conflicto las sesiones implicadas ya son visibles.
+
+// Mapa de id_disciplina → tipo de conflicto ('confirmada' | 'borrador') para las sesiones
+// infractoras detectadas contra el preview activo del formulario.
+const disciplinasEnConflictoPreview = computed(() => {
+  const map = new Map()
+  if (!tieneConflictoPreview.value) return map
+  for (const c of colisionesPreview.value) {
+    const id = c.sesionInfractora?.id_disciplina
+    if (!id) continue
+    const tipo = c.sesionInfractora?.origen === 'confirmada' ? 'confirmada' : 'borrador'
+    // Prevalece 'confirmada' sobre 'borrador' si ya existe la clave
+    if (!map.has(id) || map.get(id) !== 'confirmada') map.set(id, tipo)
+  }
+  return map
+})
+
+// Mapa de id_disciplina → tipo de conflicto para colisiones entre sesiones existentes
+// (no vinculadas al preview). Consulta el Map sesionesEnConflicto del store.
+const disciplinasEnConflictoExistente = computed(() => {
+  const map = new Map()
+  const sesMap = store.sesionesEnConflicto
+  if (!sesMap.size) return map
+
+  const listar = (lista, origen) => {
+    lista.forEach((s, i) => {
+      const tipo = sesMap.get(`${origen}-${i}`)
+      if (!tipo) return
+      const id = s.id_disciplina
+      if (!id) return
+      if (!map.has(id) || map.get(id) !== 'confirmada') map.set(id, tipo)
+    })
+  }
+  listar(store.actividadesConfirmadas, 'confirmada')
+  listar(store.draft.actividades, 'draft')
+  listar(store.borradorLocal, 'borrador')
+  return map
+})
+
+// Retorna 'confirmada' | 'borrador' | null para el grupo de Borradores.
+// Combina conflictos de preview y conflictos entre sesiones existentes.
+function grupoBorradoresEnConflicto(idGrupo) {
+  const porPreview    = disciplinasEnConflictoPreview.value.get(idGrupo)    ?? null
+  const porExistente  = disciplinasEnConflictoExistente.value.get(idGrupo)  ?? null
+  if (porPreview === 'confirmada' || porExistente === 'confirmada') return 'confirmada'
+  if (porPreview === 'borrador'   || porExistente === 'borrador')   return 'borrador'
+  return null
+}
+
+// Retorna 'confirmada' | 'borrador' | null para el grupo de Confirmadas.
+function grupoConfirmadasEnConflicto(idGrupo) {
+  const porPreview    = disciplinasEnConflictoPreview.value.get(idGrupo)    ?? null
+  const porExistente  = disciplinasEnConflictoExistente.value.get(idGrupo)  ?? null
+  if (porPreview === 'confirmada' || porExistente === 'confirmada') return 'confirmada'
+  if (porPreview === 'borrador'   || porExistente === 'borrador')   return 'borrador'
+  return null
+}
+
+// ─── Conflicto a nivel de sesión individual ───────────────────────────────
+// Determina si una sesión ESPECÍFICA de borradorLocal está en conflicto y de qué tipo.
+// Combina conflictos vs preview (candidata del form) + conflictos entre existentes.
+function sesionBorradorEnConflicto(s) {
+  // El índice original en borradorLocal determina su clave en el store
+  const idx = s._originalIdx
+  // Conflicto entre sesiones existentes (Map del store)
+  const vsExistente = store.sesionesEnConflicto.get(`borrador-${idx}`) ?? null
+  // Conflicto vs preview activo: verificamos si esta sesión específica choca contra el preview
+  let vsPreview = null
+  if (tieneConflictoPreview.value) {
+    for (const c of colisionesPreview.value) {
+      if (c.sesionInfractora?.origen === 'borrador' && c.sesionInfractora?.index === idx) {
+        vsPreview = c.sesionInfractora?.origen === 'confirmada' ? 'confirmada' : 'borrador'
+        break
+      }
+    }
+  }
+  if (vsExistente === 'confirmada' || vsPreview === 'confirmada') return 'confirmada'
+  if (vsExistente === 'borrador'   || vsPreview === 'borrador')   return 'borrador'
+  return null
+}
+
+// Ídem para sesiones de actividadesConfirmadas.
+function sesionConfirmadaEnConflicto(s) {
+  const idx = s._originalIdx
+  const vsExistente = store.sesionesEnConflicto.get(`confirmada-${idx}`) ?? null
+  let vsPreview = null
+  if (tieneConflictoPreview.value) {
+    for (const c of colisionesPreview.value) {
+      if (c.sesionInfractora?.origen === 'confirmada' && c.sesionInfractora?.index === idx) {
+        vsPreview = 'confirmada'
+        break
+      }
+    }
+  }
+  if (vsExistente === 'confirmada' || vsPreview === 'confirmada') return 'confirmada'
+  if (vsExistente === 'borrador'   || vsPreview === 'borrador')   return 'borrador'
+  return null
+}
+
 // ─── Agregar al borrador local ───────────────────────────────────────────
 function handleAgregar() {
   formErrors.value = validarForm()
@@ -245,15 +349,17 @@ function resetForm() {
     requiere_inscripcion: false,
   }
   formErrors.value = {}
+  store.resetFiltros()
 }
 
 function handleCeldaClick({ dia, horaInicio, horaFin }) {
   store.setPanelVisible(true)
+  seccionCrearAbiertaPorCelda = !seccionCrear.value
   seccionCrear.value = true
   form.value.dias = [dia]
   form.value.hora_inicio = horaInicio
   form.value.hora_fin = horaFin
-  
+
   if (formErrors.value.dias) delete formErrors.value.dias
   if (formErrors.value.hora_inicio) delete formErrors.value.hora_inicio
   if (formErrors.value.hora_fin) delete formErrors.value.hora_fin
@@ -286,33 +392,64 @@ const borradorPorDisciplina = computed(() => {
 function toggleGrupoBorrador(idDisciplina) { store.toggleGrupoBorrador(idDisciplina) }
 function grupoEstaExpandido(idDisciplina)  { return store.grupoEstaExpandido(idDisciplina) }
 
-// Ojito por disciplina (borradores) — bloqueado si maestro apagado o filtro header activo
-function toggleVisibilidadBorradorDesdeOjo(idDisciplina) {
-  if (!store.mostrarBorradores) return
-  if (store.filtros.id_disciplina !== null) return
-  store.toggleDisciplinaBorradores(idDisciplina)
+function limpiarSeleccionBorradores() {
+  Object.keys(store.disciplinasEncendidasBorradores).forEach(k => delete store.disciplinasEncendidasBorradores[k])
+}
+function limpiarSeleccionConfirmadas() {
+  Object.keys(store.disciplinasEncendidasConfirmadas).forEach(k => delete store.disciplinasEncendidasConfirmadas[k])
 }
 
-// Ojito por disciplina (confirmadas) — bloqueado si maestro apagado o filtro header activo
+// Ojito por disciplina — bloqueado si maestro apagado o cualquier filtro de header activo.
+// Con filtro activo el calendario ya lo maneja automáticamente; los ojitos individuales
+// quedan en modo lectura para no generar inconsistencias visuales.
+function toggleVisibilidadBorradorDesdeOjo(idDisciplina) {
+  if (!store.mostrarBorradores) return
+  if (hayFiltroHeader.value) return
+  store.toggleDisciplinaBorradores(idDisciplina)
+}
 function toggleVisibilidadConfirmadaDesdeOjo(idDisciplina) {
   if (!store.mostrarConfirmadas) return
-  if (store.filtros.id_disciplina !== null) return
+  if (hayFiltroHeader.value) return
   store.toggleDisciplinaConfirmadas(idDisciplina)
 }
 
-// Helpers de estado activo para los toggles de disciplina en el panel.
-// Un grupo se destaca en azul solo si su ojito maestro está encendido Y además
-// la disciplina está visible individualmente o coincide con el filtro del header.
+// ─── Computed auxiliares de filtro ───────────────────────────────────────────
+// Centraliza la detección de filtros activos para usarla en helpers y template.
+const hayFiltroHeader = computed(() =>
+  store.filtros.id_disciplina !== null ||
+  store.filtros.id_instructor !== null ||
+  store.filtros.id_espacio    !== null
+)
+
+// Devuelve true si la sesión s pasa todos los filtros activos del header.
+function sesionPasaFiltros(s) {
+  const { id_disciplina, id_instructor, id_espacio } = store.filtros
+  if (id_disciplina !== null && s.id_disciplina !== id_disciplina) return false
+  if (id_instructor !== null && s.id_instructor !== id_instructor) return false
+  if (id_espacio    !== null && s.id_espacio    !== id_espacio)    return false
+  return true
+}
+
+// Un grupo de disciplina queda activo (azul) si:
+//   a) Sin filtro → ojito individual encendido.
+//   b) Con filtro → al menos una sesión del grupo pasa todos los filtros activos.
 function grupoBorradoresActivo(idGrupo) {
   if (!store.mostrarBorradores) return false
-  // Con filtro de header activo: solo el grupo que coincide exactamente se destaca
-  if (store.filtros.id_disciplina !== null) return store.filtros.id_disciplina === idGrupo
-  return store.disciplinaBorradoresVisible(idGrupo)
+  if (!hayFiltroHeader.value) return store.disciplinaBorradoresVisible(idGrupo)
+  const grupo = borradorPorDisciplina.value.find(g => g.id === idGrupo)
+  return !!grupo && grupo.sesiones.some(sesionPasaFiltros)
 }
 function grupoConfirmadasActivo(idGrupo) {
   if (!store.mostrarConfirmadas) return false
-  if (store.filtros.id_disciplina !== null) return store.filtros.id_disciplina === idGrupo
-  return store.disciplinaConfirmadasVisible(idGrupo)
+  if (!hayFiltroHeader.value) return store.disciplinaConfirmadasVisible(idGrupo)
+  const grupo = confirmadasPorDisciplina.value.find(g => g.id === idGrupo)
+  return !!grupo && grupo.sesiones.some(sesionPasaFiltros)
+}
+
+// Resalta una sesión individual dentro del panel cuando coincide con el filtro activo.
+function sesionResaltadaEnPanel(s) {
+  if (!hayFiltroHeader.value) return false
+  return sesionPasaFiltros(s)
 }
 
 function handleClickTarjeta(idx) {
@@ -465,9 +602,52 @@ async function confirmarPublicacion() {
 }
 
 // ─── Toggles de las secciones colapsables ─────────────────────────────────
-const seccionCrear        = ref(true)
-const seccionConfirmadas  = ref(true)
-const seccionBorrador     = ref(true)
+const seccionCrear        = ref(false)
+const seccionConfirmadas  = ref(false)
+const seccionBorrador     = ref(false)
+
+// ─── Refs para cerrar selects mutuamente exclusivos ───────────────────────
+// Panel "Nueva sesión"
+const selectDiscipForm = ref(null)
+const selectEspForm    = ref(null)
+const selectInstForm   = ref(null)
+// Header filtros
+const selectDiscipHdr  = ref(null)
+const selectEspHdr     = ref(null)
+const selectInstHdr    = ref(null)
+
+function cerrarOtrosForm(abierto) {
+  if (abierto !== 'disc') selectDiscipForm.value?.close()
+  if (abierto !== 'esp')  selectEspForm.value?.close()
+  if (abierto !== 'inst') selectInstForm.value?.close()
+}
+function cerrarOtrosHdr(abierto) {
+  if (abierto !== 'disc') selectDiscipHdr.value?.close()
+  if (abierto !== 'esp')  selectEspHdr.value?.close()
+  if (abierto !== 'inst') selectInstHdr.value?.close()
+}
+
+// ─── Descartar formulario ─────────────────────────────────────────────────
+const formTieneDatos = computed(() =>
+  !!form.value.id_disciplina ||
+  !!form.value.id_espacio    ||
+  !!form.value.id_instructor ||
+  form.value.dias.length > 0 ||
+  !!form.value.hora_inicio   ||
+  !!form.value.hora_fin      ||
+  !!form.value.cupo_maximo
+)
+
+// true si el toggle estaba cerrado cuando el calendario lo abrió automáticamente
+let seccionCrearAbiertaPorCelda = false
+
+function descartarCelda() {
+  resetForm()
+  if (seccionCrearAbiertaPorCelda) {
+    seccionCrear.value = false
+    seccionCrearAbiertaPorCelda = false
+  }
+}
 
 // Init delegado a ActividadesView.selectTab para que el modal de recovery
 // solo aparezca al cambiar a esta pestaña, no al montar el componente.
@@ -507,14 +687,17 @@ const seccionBorrador     = ref(true)
           </div>
         </div>
 
+        <template v-if="plantillasStore.plantillaActiva">
         <div class="w-px h-8 bg-slate-200 shrink-0" />
 
         <!-- ── Filtros del calendario (Disciplina / Espacio / Instructor) ── -->
         <div class="flex items-center gap-2 flex-1 min-w-0">
           <div class="flex-1 min-w-40 max-w-60">
             <SelectDisciplina
+              ref="selectDiscipHdr"
               :model-value="store.filtros.id_disciplina"
               @update:model-value="(v) => store.setFiltro('id_disciplina', v)"
+              @open="cerrarOtrosHdr('disc')"
               :opciones="store.disciplinas"
               size="sm"
               :show-label="false"
@@ -523,8 +706,10 @@ const seccionBorrador     = ref(true)
           </div>
           <div class="flex-1 min-w-40 max-w-60">
             <SelectEspacio
+              ref="selectEspHdr"
               :model-value="store.filtros.id_espacio"
               @update:model-value="(v) => store.setFiltro('id_espacio', v)"
+              @open="cerrarOtrosHdr('esp')"
               :opciones="store.espacios"
               size="sm"
               :show-label="false"
@@ -533,8 +718,10 @@ const seccionBorrador     = ref(true)
           </div>
           <div class="flex-1 min-w-40 max-w-60">
             <SelectInstructor
+              ref="selectInstHdr"
               :model-value="store.filtros.id_instructor"
               @update:model-value="(v) => store.setFiltro('id_instructor', v)"
+              @open="cerrarOtrosHdr('inst')"
               :opciones="store.instructores"
               size="sm"
               :show-label="false"
@@ -626,35 +813,14 @@ const seccionBorrador     = ref(true)
 
         </div>
 
-        <!-- ── Estado + Publicar ── -->
-        <div class="flex items-center gap-3 shrink-0">
-          <div v-if="store.tieneActividades" class="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span class="text-xs font-bold text-slate-600">
-              {{ store.totalActividades }} sesión{{ store.totalActividades !== 1 ? 'es' : '' }}
-            </span>
-          </div>
-
-          <button
-            :disabled="!store.tieneActividades || store.isPublishing"
-            @click="showPublishModal = true"
-            :class="[
-              'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-extrabold transition-all duration-200',
-              store.tieneActividades && !store.isPublishing
-                ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md active:scale-[0.98]'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            ]"
-          >
-            <svg v-if="!store.isPublishing" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg v-else class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-            </svg>
-            <span class="hidden sm:inline">{{ store.isPublishing ? 'Publicando...' : 'Publicar' }}</span>
-          </button>
+        <!-- ── Contador de sesiones ── -->
+        <div v-if="store.tieneActividades" class="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 shrink-0">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span class="text-xs font-bold text-slate-600">
+            {{ store.totalActividades }} sesión{{ store.totalActividades !== 1 ? 'es' : '' }}
+          </span>
         </div>
+        </template>
       </div>
     </header>
 
@@ -713,7 +879,7 @@ const seccionBorrador     = ref(true)
       >
         <aside
           v-if="store.panelVisible"
-          class="w-[380px] shrink-0 border-r border-slate-200 bg-white flex flex-col min-h-0 overflow-hidden"
+          class="w-[440px] shrink-0 border-r-2 border-primary-100 bg-white flex flex-col min-h-0 overflow-hidden"
         >
           <div class="flex-1 min-h-0 overflow-y-auto">
 
@@ -722,7 +888,26 @@ const seccionBorrador     = ref(true)
               v-model="seccionCrear"
               title="Nueva sesión"
               hint="Creación rápida"
+              :dot-class="form.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500'"
             >
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </template>
+              <template #actions>
+                <button
+                  v-if="formTieneDatos"
+                  type="button"
+                  @click="descartarCelda"
+                  class="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Descartar
+                </button>
+              </template>
               <!-- Plantilla activa -->
               <div class="mb-4 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-2">
                 <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -739,8 +924,10 @@ const seccionBorrador     = ref(true)
               <!-- Selectores -->
               <div class="space-y-3">
                 <SelectDisciplina
+                  ref="selectDiscipForm"
                   :model-value="form.id_disciplina"
                   @update:model-value="onSeleccionarDisciplina"
+                  @open="cerrarOtrosForm('disc')"
                   :opciones="disciplinasFormulario"
                   :error="formErrors.id_disciplina ?? ''"
                 >
@@ -760,15 +947,19 @@ const seccionBorrador     = ref(true)
                 </SelectDisciplina>
 
                 <SelectEspacio
+                  ref="selectEspForm"
                   :model-value="form.id_espacio"
                   @update:model-value="onSeleccionarEspacio"
+                  @open="cerrarOtrosForm('esp')"
                   :opciones="espaciosFormulario"
                   :error="formErrors.id_espacio ?? ''"
                 />
 
                 <SelectInstructor
+                  ref="selectInstForm"
                   :model-value="form.id_instructor"
                   @update:model-value="onSeleccionarInstructor"
+                  @open="cerrarOtrosForm('inst')"
                   :opciones="instructoresFormulario"
                   :error="formErrors.id_instructor ?? ''"
                 />
@@ -862,48 +1053,54 @@ const seccionBorrador     = ref(true)
               <!-- Alerta de conflicto LIVE — diagnóstico detallado -->
               <div v-if="tieneConflictoPreview" class="mt-4 rounded-xl overflow-hidden border border-amber-300">
                 <!-- Cabecera -->
-                <div class="bg-amber-500 px-3 py-2 flex items-center gap-2">
-                  <svg class="w-3.5 h-3.5 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <div class="bg-amber-500 px-3 py-2.5 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
                   </svg>
-                  <p class="text-white text-[10px] font-black uppercase tracking-widest flex-1">
+                  <p class="text-white text-xs font-black uppercase tracking-wide flex-1">
                     {{ colisionesPreviewPorTipo.ambos ? 'Conflicto de espacio e instructor' : colisionesPreviewPorTipo.espacio.length ? 'Espacio ocupado' : 'Instructor duplicado' }}
                   </p>
-                  <span class="text-amber-100 text-[10px] font-bold tabular-nums">
+                  <span class="text-amber-100 text-xs font-bold tabular-nums">
                     {{ colisionesPreview.length }} conflicto{{ colisionesPreview.length !== 1 ? 's' : '' }}
                   </span>
                 </div>
                 <!-- Filas -->
                 <div class="bg-amber-50 divide-y divide-amber-100">
                   <div v-if="colisionesPreviewPorTipo.espacio.length > 0">
-                    <div class="px-3 pt-2 pb-1 flex items-center gap-1.5">
+                    <div class="px-3 pt-2.5 pb-1.5 flex items-center gap-1.5">
                       <span class="w-4 h-4 rounded bg-amber-200 text-amber-800 flex items-center justify-center shrink-0">
                         <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                         </svg>
                       </span>
-                      <p class="text-[9px] font-black uppercase tracking-widest text-amber-700">Espacio ocupado</p>
+                      <p class="text-[10px] font-black uppercase tracking-widest text-amber-700">Espacio ocupado</p>
                     </div>
-                    <div v-for="(c, idx) in colisionesPreviewPorTipo.espacio.slice(0, 2)" :key="'e' + idx" class="px-3 pb-2 ml-6">
+                    <div v-for="(c, idx) in colisionesPreviewPorTipo.espacio.slice(0, 2)" :key="'e' + idx" class="px-3 pb-2.5 ml-6">
                       <p class="text-xs font-extrabold text-amber-900 truncate">{{ c.nombre }}</p>
-                      <p class="text-[11px] font-semibold text-amber-700 tabular-nums">
-                        {{ DIAS_LABEL[c.dia] }} · Ocupado {{ c.horario_existente }}
+                      <p class="text-xs font-semibold text-amber-700 tabular-nums leading-snug mt-0.5">
+                        Choque con <span class="font-black">{{ c.sesionInfractora?.disciplina || '—' }}</span>
+                        con <span class="font-black">{{ c.sesionInfractora?.instructor || 'sin instructor' }}</span>
+                        el {{ DIAS_LABEL[c.dia] }}
+                        de {{ c.sesionInfractora?.hora_inicio }} a {{ c.sesionInfractora?.hora_fin }}
                       </p>
                     </div>
                   </div>
                   <div v-if="colisionesPreviewPorTipo.instructor.length > 0">
-                    <div class="px-3 pt-2 pb-1 flex items-center gap-1.5">
+                    <div class="px-3 pt-2.5 pb-1.5 flex items-center gap-1.5">
                       <span class="w-4 h-4 rounded bg-amber-200 text-amber-800 flex items-center justify-center shrink-0">
                         <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
                         </svg>
                       </span>
-                      <p class="text-[9px] font-black uppercase tracking-widest text-amber-700">Instructor duplicado</p>
+                      <p class="text-[10px] font-black uppercase tracking-widest text-amber-700">Instructor duplicado</p>
                     </div>
-                    <div v-for="(c, idx) in colisionesPreviewPorTipo.instructor.slice(0, 2)" :key="'i' + idx" class="px-3 pb-2 ml-6">
+                    <div v-for="(c, idx) in colisionesPreviewPorTipo.instructor.slice(0, 2)" :key="'i' + idx" class="px-3 pb-2.5 ml-6">
                       <p class="text-xs font-extrabold text-amber-900 truncate">{{ c.nombre }}</p>
-                      <p class="text-[11px] font-semibold text-amber-700 tabular-nums">
-                        {{ DIAS_LABEL[c.dia] }} · Ya asignado {{ c.horario_existente }}
+                      <p class="text-xs font-semibold text-amber-700 tabular-nums leading-snug mt-0.5">
+                        Ya asignado a <span class="font-black">{{ c.sesionInfractora?.disciplina || '—' }}</span>
+                        en <span class="font-black">{{ c.sesionInfractora?.espacio || 'sin espacio' }}</span>
+                        el {{ DIAS_LABEL[c.dia] }}
+                        de {{ c.sesionInfractora?.hora_inicio }} a {{ c.sesionInfractora?.hora_fin }}
                       </p>
                     </div>
                   </div>
@@ -934,6 +1131,24 @@ const seccionBorrador     = ref(true)
               :badge="store.borradorLocal.length || null"
               badge-tone="primary"
             >
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              </template>
+              <template #actions>
+                <button
+                  v-if="Object.keys(store.disciplinasEncendidasBorradores).length > 0"
+                  type="button"
+                  @click="limpiarSeleccionBorradores"
+                  class="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Limpiar
+                </button>
+              </template>
               <div v-if="!store.tieneBorradorLocal" class="text-center py-6">
                 <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-2">
                   <svg class="w-5 h-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -949,33 +1164,53 @@ const seccionBorrador     = ref(true)
                   v-for="grupo in borradorPorDisciplina"
                   :key="grupo.id"
                   class="rounded-xl border border-dashed overflow-hidden transition-colors"
-                  :class="grupoBorradoresActivo(grupo.id) ? 'border-primary-400' : 'border-slate-200'"
+                  :class="grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                    ? 'border-amber-500'
+                    : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                      ? 'border-amber-400 border-dashed'
+                      : grupoBorradoresActivo(grupo.id) ? 'border-primary-400' : 'border-slate-200'"
                 >
                   <!-- Cabecera del grupo -->
                   <div
                     class="flex items-center gap-2 px-2.5 py-2 cursor-pointer select-none transition-colors"
-                    :class="grupoBorradoresActivo(grupo.id)
-                      ? 'bg-primary-600 hover:bg-primary-700'
-                      : 'bg-slate-50 hover:bg-slate-100'"
+                    :class="grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
+                      : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                        ? 'bg-amber-50 hover:bg-amber-100'
+                        : grupoBorradoresActivo(grupo.id)
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'bg-slate-50 hover:bg-slate-100'"
                     @click="toggleGrupoBorrador(grupo.id)"
                   >
                     <div
                       class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 border"
-                      :class="grupoBorradoresActivo(grupo.id)
-                        ? 'bg-primary-500 border-primary-400 text-white'
-                        : 'bg-white border-slate-200 text-slate-500'"
+                      :class="grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                        ? 'bg-amber-400 border-amber-300 text-white'
+                        : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                          ? 'bg-amber-100 border-amber-300 text-amber-700'
+                          : grupoBorradoresActivo(grupo.id)
+                            ? 'bg-primary-500 border-primary-400 text-white'
+                            : 'bg-white border-slate-200 text-slate-500'"
                     >
                       <DisciplineIcon :name="grupo.nombre" class="w-3.5 h-3.5" />
                     </div>
                     <span
                       class="flex-1 text-sm font-black truncate"
-                      :class="grupoBorradoresActivo(grupo.id) ? 'text-white' : 'text-slate-700'"
+                      :class="grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                        ? 'text-white'
+                        : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                          ? 'text-amber-800'
+                          : grupoBorradoresActivo(grupo.id) ? 'text-white' : 'text-slate-700'"
                     >{{ grupo.nombre }}</span>
 
                     <!-- Contador -->
                     <span
                       class="text-[10px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
-                      :class="grupoBorradoresActivo(grupo.id) ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-600'"
+                      :class="grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                        ? 'bg-amber-400 text-white'
+                        : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                          ? 'bg-amber-200 text-amber-800'
+                          : grupoBorradoresActivo(grupo.id) ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-600'"
                     >
                       {{ grupo.sesiones.length }}
                     </span>
@@ -984,12 +1219,16 @@ const seccionBorrador     = ref(true)
                     <button
                       type="button"
                       @click.stop="toggleVisibilidadBorradorDesdeOjo(grupo.id)"
-                      :disabled="!store.mostrarBorradores || store.filtros.id_disciplina !== null"
-                      :title="!store.mostrarBorradores ? 'El maestro de borradores está bloqueado' : store.filtros.id_disciplina !== null ? 'Limpia el filtro de disciplina para usar los ojitos individuales' : grupoBorradoresActivo(grupo.id) ? 'Ocultar en el calendario' : 'Mostrar en el calendario'"
+                      :disabled="!store.mostrarBorradores || hayFiltroHeader"
+                      :title="!store.mostrarBorradores ? 'El maestro de borradores está bloqueado' : hayFiltroHeader ? 'Limpia los filtros del header para usar los ojitos individuales' : grupoBorradoresActivo(grupo.id) ? 'Ocultar en el calendario' : 'Mostrar en el calendario'"
                       class="w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0"
-                      :class="grupoBorradoresActivo(grupo.id)
-                        ? 'text-white hover:bg-primary-500'
-                        : 'text-slate-300 hover:text-slate-500 hover:bg-slate-200'"
+                      :class="grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                        ? 'text-white hover:bg-amber-400'
+                        : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                          ? 'text-amber-600 hover:bg-amber-200'
+                          : grupoBorradoresActivo(grupo.id)
+                            ? 'text-white hover:bg-primary-500'
+                            : 'text-slate-300 hover:text-slate-500 hover:bg-slate-200'"
                     >
                       <svg v-if="grupoBorradoresActivo(grupo.id)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -1005,7 +1244,11 @@ const seccionBorrador     = ref(true)
                       class="w-3.5 h-3.5 shrink-0 transition-transform duration-150"
                       :class="[
                         grupoEstaExpandido(grupo.id) ? 'rotate-90' : '',
-                        grupoBorradoresActivo(grupo.id) ? 'text-white/70' : 'text-slate-400'
+                        grupoBorradoresEnConflicto(grupo.id) === 'confirmada'
+                          ? 'text-white/80'
+                          : grupoBorradoresEnConflicto(grupo.id) === 'borrador'
+                            ? 'text-amber-500'
+                            : grupoBorradoresActivo(grupo.id) ? 'text-white/70' : 'text-slate-400'
                       ]"
                       fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
                     >
@@ -1020,26 +1263,73 @@ const seccionBorrador     = ref(true)
                       :key="s._originalIdx"
                       :class="[
                         'flex items-center gap-2 p-2 rounded-lg border transition-all duration-150',
-                        s.requiere_inscripcion
-                          ? 'border-red-100 bg-red-50/50'
-                          : 'border-emerald-100 bg-emerald-50/50'
+                        // Prioridad 1: conflicto activo en el grupo
+                        grupoBorradoresEnConflicto(grupo.id)
+                          ? sesionBorradorEnConflicto(s) === 'confirmada'
+                            ? 'border-amber-500 bg-gradient-to-r from-amber-400 to-amber-600 shadow-sm'
+                            : sesionBorradorEnConflicto(s) === 'borrador'
+                              ? 'border-amber-300 bg-amber-50'
+                              : 'border-slate-100 bg-slate-50/50 opacity-35'
+                          // Prioridad 2: filtro de header
+                          : hayFiltroHeader && sesionResaltadaEnPanel(s)
+                            ? 'border-primary-200 bg-primary-50/60'
+                            : hayFiltroHeader
+                              ? 'border-slate-100 bg-slate-50/50 opacity-40'
+                              // Prioridad 3: estado normal
+                              : s.requiere_inscripcion
+                                ? 'border-red-100 bg-red-50/50'
+                                : 'border-emerald-100 bg-emerald-50/50'
                       ]"
                     >
                       <div class="flex-1 min-w-0">
                         <p class="text-xs font-black tabular-nums truncate"
-                          :class="s.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
+                          :class="sesionBorradorEnConflicto(s) === 'confirmada'
+                            ? 'text-white'
+                            : sesionBorradorEnConflicto(s) === 'borrador'
+                              ? 'text-amber-700'
+                              : grupoBorradoresEnConflicto(grupo.id)
+                                ? 'text-slate-400'
+                                : hayFiltroHeader && sesionResaltadaEnPanel(s)
+                                  ? 'text-primary-700'
+                                  : s.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
                           {{ DIAS_LABEL[s.dia_semana] }} · {{ s.hora_inicio }}–{{ s.hora_fin }}
                         </p>
-                        <p class="text-[11px] font-semibold text-slate-400 truncate">{{ s._espacio_nombre }}</p>
+                        <p class="text-[11px] font-semibold truncate"
+                          :class="sesionBorradorEnConflicto(s) === 'confirmada'
+                            ? 'text-orange-100'
+                            : sesionBorradorEnConflicto(s) === 'borrador'
+                              ? 'text-amber-500'
+                              : 'text-slate-400'">
+                          {{ s._espacio_nombre }}
+                        </p>
                       </div>
+                      <!-- Icono de alerta — izquierda del botón, colores rojo/naranja contrastantes -->
+                      <span
+                        v-if="sesionBorradorEnConflicto(s)"
+                        class="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                        :class="sesionBorradorEnConflicto(s) === 'confirmada'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-orange-100 text-orange-600'"
+                        title="Sesión en conflicto"
+                      >
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                      </span>
                       <button
                         type="button"
                         @click.stop="store.eliminarDeBorradorLocal(s._originalIdx)"
-                        class="w-5 h-5 rounded-md bg-white/80 hover:bg-red-100 text-slate-300 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 border border-slate-100"
+                        class="w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 border"
+                        :class="sesionBorradorEnConflicto(s) === 'confirmada'
+                          ? 'bg-white/20 hover:bg-red-500 text-white hover:text-white border-white/30'
+                          : sesionBorradorEnConflicto(s) === 'borrador'
+                            ? 'bg-white/80 hover:bg-red-100 text-amber-400 hover:text-red-500 border-amber-200'
+                            : 'bg-white/80 hover:bg-red-100 text-slate-300 hover:text-red-500 border-slate-100'"
                         title="Quitar del borrador"
                       >
-                        <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       </button>
                     </div>
@@ -1077,6 +1367,24 @@ const seccionBorrador     = ref(true)
               :badge="store.actividadesConfirmadas.length || null"
               badge-tone="emerald"
             >
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </template>
+              <template #actions>
+                <button
+                  v-if="Object.keys(store.disciplinasEncendidasConfirmadas).length > 0"
+                  type="button"
+                  @click="limpiarSeleccionConfirmadas"
+                  class="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Limpiar
+                </button>
+              </template>
               <div v-if="store.isLoadingConfirmadas" class="flex items-center justify-center py-6">
                 <div class="animate-spin rounded-full h-6 w-6 border-2 border-slate-200 border-t-emerald-500" />
               </div>
@@ -1095,33 +1403,53 @@ const seccionBorrador     = ref(true)
                   v-for="grupo in confirmadasPorDisciplina"
                   :key="grupo.id"
                   class="rounded-xl border overflow-hidden transition-colors"
-                  :class="grupoConfirmadasActivo(grupo.id) ? 'border-primary-400' : 'border-slate-200'"
+                  :class="grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                    ? 'border-amber-500'
+                    : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                      ? 'border-amber-400 border-dashed'
+                      : grupoConfirmadasActivo(grupo.id) ? 'border-primary-400' : 'border-slate-200'"
                 >
                   <!-- Cabecera del grupo -->
                   <div
                     class="flex items-center gap-2 px-2.5 py-2 cursor-pointer select-none transition-colors"
-                    :class="grupoConfirmadasActivo(grupo.id)
-                      ? 'bg-primary-600 hover:bg-primary-700'
-                      : 'bg-slate-50 hover:bg-slate-100'"
+                    :class="grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
+                      : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                        ? 'bg-amber-50 hover:bg-amber-100'
+                        : grupoConfirmadasActivo(grupo.id)
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'bg-slate-50 hover:bg-slate-100'"
                     @click="store.toggleGrupoConfirmadas(grupo.id)"
                   >
                     <div
                       class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 border"
-                      :class="grupoConfirmadasActivo(grupo.id)
-                        ? 'bg-primary-500 border-primary-400 text-white'
-                        : 'bg-white border-slate-200 text-slate-500'"
+                      :class="grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                        ? 'bg-amber-400 border-amber-300 text-white'
+                        : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                          ? 'bg-amber-100 border-amber-300 text-amber-700'
+                          : grupoConfirmadasActivo(grupo.id)
+                            ? 'bg-primary-500 border-primary-400 text-white'
+                            : 'bg-white border-slate-200 text-slate-500'"
                     >
                       <DisciplineIcon :name="grupo.nombre" class="w-3.5 h-3.5" />
                     </div>
                     <span
                       class="flex-1 text-sm font-black truncate"
-                      :class="grupoConfirmadasActivo(grupo.id) ? 'text-white' : 'text-slate-700'"
+                      :class="grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                        ? 'text-white'
+                        : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                          ? 'text-amber-800'
+                          : grupoConfirmadasActivo(grupo.id) ? 'text-white' : 'text-slate-700'"
                     >{{ grupo.nombre }}</span>
 
                     <!-- Contador -->
                     <span
                       class="text-[10px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
-                      :class="grupoConfirmadasActivo(grupo.id) ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-600'"
+                      :class="grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                        ? 'bg-amber-400 text-white'
+                        : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                          ? 'bg-amber-200 text-amber-800'
+                          : grupoConfirmadasActivo(grupo.id) ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-600'"
                     >
                       {{ grupo.sesiones.length }}
                     </span>
@@ -1130,12 +1458,16 @@ const seccionBorrador     = ref(true)
                     <button
                       type="button"
                       @click.stop="toggleVisibilidadConfirmadaDesdeOjo(grupo.id)"
-                      :disabled="!store.mostrarConfirmadas || store.filtros.id_disciplina !== null"
-                      :title="!store.mostrarConfirmadas ? 'El maestro de confirmadas está bloqueado' : store.filtros.id_disciplina !== null ? 'Limpia el filtro de disciplina para usar los ojitos individuales' : grupoConfirmadasActivo(grupo.id) ? 'Ocultar en el calendario' : 'Mostrar en el calendario'"
+                      :disabled="!store.mostrarConfirmadas || hayFiltroHeader"
+                      :title="!store.mostrarConfirmadas ? 'El maestro de confirmadas está bloqueado' : hayFiltroHeader ? 'Limpia los filtros del header para usar los ojitos individuales' : grupoConfirmadasActivo(grupo.id) ? 'Ocultar en el calendario' : 'Mostrar en el calendario'"
                       class="w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0"
-                      :class="grupoConfirmadasActivo(grupo.id)
-                        ? 'text-white hover:bg-primary-500'
-                        : 'text-slate-300 hover:text-slate-500 hover:bg-slate-200'"
+                      :class="grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                        ? 'text-white hover:bg-amber-400'
+                        : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                          ? 'text-amber-600 hover:bg-amber-200'
+                          : grupoConfirmadasActivo(grupo.id)
+                            ? 'text-white hover:bg-primary-500'
+                            : 'text-slate-300 hover:text-slate-500 hover:bg-slate-200'"
                     >
                       <svg v-if="grupoConfirmadasActivo(grupo.id)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -1151,7 +1483,11 @@ const seccionBorrador     = ref(true)
                       class="w-3.5 h-3.5 shrink-0 transition-transform duration-150"
                       :class="[
                         store.grupoConfirmadasExpandido(grupo.id) ? 'rotate-90' : '',
-                        grupoConfirmadasActivo(grupo.id) ? 'text-white/70' : 'text-slate-400'
+                        grupoConfirmadasEnConflicto(grupo.id) === 'confirmada'
+                          ? 'text-white/80'
+                          : grupoConfirmadasEnConflicto(grupo.id) === 'borrador'
+                            ? 'text-amber-500'
+                            : grupoConfirmadasActivo(grupo.id) ? 'text-white/70' : 'text-slate-400'
                       ]"
                       fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
                     >
@@ -1166,23 +1502,76 @@ const seccionBorrador     = ref(true)
                       :key="s.id_actividad_plantilla ?? s._originalIdx"
                       :class="[
                         'flex items-center gap-2 p-2 rounded-lg border transition-all duration-150',
-                        s.requiere_inscripcion
-                          ? 'border-red-100 bg-red-50/40'
-                          : 'border-emerald-100 bg-emerald-50/40'
+                        // Prioridad 1: conflicto activo en el grupo
+                        grupoConfirmadasEnConflicto(grupo.id)
+                          ? sesionConfirmadaEnConflicto(s) === 'confirmada'
+                            ? 'border-amber-500 bg-gradient-to-r from-amber-400 to-amber-600 shadow-sm'
+                            : sesionConfirmadaEnConflicto(s) === 'borrador'
+                              ? 'border-amber-300 bg-amber-50'
+                              : 'border-slate-100 bg-slate-50/50 opacity-35'
+                          // Prioridad 2: filtro de header
+                          : hayFiltroHeader && sesionResaltadaEnPanel(s)
+                            ? 'border-primary-200 bg-primary-50/60'
+                            : hayFiltroHeader
+                              ? 'border-slate-100 bg-slate-50/50 opacity-40'
+                              // Prioridad 3: estado normal
+                              : s.requiere_inscripcion
+                                ? 'border-red-100 bg-red-50/40'
+                                : 'border-emerald-100 bg-emerald-50/40'
                       ]"
                     >
                       <div class="flex-1 min-w-0">
                         <p class="text-xs font-black tabular-nums truncate"
-                          :class="s.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
+                          :class="sesionConfirmadaEnConflicto(s) === 'confirmada'
+                            ? 'text-white'
+                            : sesionConfirmadaEnConflicto(s) === 'borrador'
+                              ? 'text-amber-700'
+                              : grupoConfirmadasEnConflicto(grupo.id)
+                                ? 'text-slate-400'
+                                : hayFiltroHeader && sesionResaltadaEnPanel(s)
+                                  ? 'text-primary-700'
+                                  : s.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
                           {{ DIAS_LABEL[s.dia_semana] }} · {{ s.hora_inicio }}–{{ s.hora_fin }}
                         </p>
-                        <p class="text-[11px] font-semibold text-slate-400 truncate">{{ s._espacio_nombre }}</p>
+                        <p class="text-[11px] font-semibold truncate"
+                          :class="sesionConfirmadaEnConflicto(s) === 'confirmada'
+                            ? 'text-orange-100'
+                            : sesionConfirmadaEnConflicto(s) === 'borrador'
+                              ? 'text-amber-500'
+                              : 'text-slate-400'">
+                          {{ s._espacio_nombre }}
+                        </p>
                       </div>
+                      <!-- Icono de alerta — izquierda del ojito, colores rojo/naranja contrastantes -->
+                      <span
+                        v-if="sesionConfirmadaEnConflicto(s)"
+                        class="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                        :class="sesionConfirmadaEnConflicto(s) === 'confirmada'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-orange-100 text-orange-600'"
+                        title="Sesión en conflicto"
+                      >
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                      </span>
                       <!-- Ojito visor: abre el detalle de la sesión en modo lectura -->
                       <button
                         type="button"
-                        @click.stop="verDetalleConfirmada(s._originalIdx)"
-                        class="w-5 h-5 rounded-md bg-white/80 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 flex items-center justify-center transition-colors shrink-0 border border-slate-100"
+                        @click.stop="sesionResaltadaEnPanel(s) || !hayFiltroHeader ? verDetalleConfirmada(s._originalIdx) : null"
+                        :disabled="hayFiltroHeader && !sesionResaltadaEnPanel(s)"
+                        :class="[
+                          'w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 border',
+                          sesionConfirmadaEnConflicto(s) === 'confirmada'
+                            ? 'bg-white/20 hover:bg-white/40 text-white border-white/30'
+                            : sesionConfirmadaEnConflicto(s) === 'borrador'
+                              ? 'bg-white/80 hover:bg-amber-100 text-amber-500 hover:text-amber-700 border-amber-200'
+                              : hayFiltroHeader && sesionResaltadaEnPanel(s)
+                                ? 'bg-white/80 hover:bg-primary-100 text-primary-500 hover:text-primary-700 border-primary-200'
+                                : hayFiltroHeader
+                                  ? 'bg-transparent text-slate-200 border-slate-100 cursor-not-allowed'
+                                  : 'bg-white/80 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 border-slate-100'
+                        ]"
                         title="Ver detalle"
                       >
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -3,7 +3,6 @@ import { ref, computed, watch } from 'vue'
 import { useWizardStore } from '@/stores/programacion/wizardStore'
 import { useAlerts } from '@/composables/useAlerts'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
-import IconSportCourt from '@/components/icons/IconSportCourt.vue'
 import SelectDisciplina from './SelectDisciplina.vue'
 import SelectEspacio    from './SelectEspacio.vue'
 import SelectInstructor from './SelectInstructor.vue'
@@ -110,6 +109,9 @@ const conflictosLive = computed(() => {
 })
 
 const tieneConflicto = computed(() => conflictosLive.value.length > 0)
+
+// Auto-limpiar filtros globales cuando aparece un conflicto en el modal de edición
+watch(tieneConflicto, (tiene) => { if (tiene) store.resetFiltros() })
 
 // Agrupa los conflictos por tipo para el diagnóstico detallado
 const conflictosPorTipo = computed(() => {
@@ -376,10 +378,11 @@ const horasFin = computed(() =>
                       </div>
                       <div v-for="(c, idx) in conflictosPorTipo.espacio" :key="'esp-' + idx" class="px-4 pb-2.5 ml-7">
                         <p class="text-sm font-extrabold text-amber-900 truncate">{{ c.nombre }}</p>
-                        <p class="text-xs font-semibold text-amber-700 tabular-nums">
-                          Ocupado {{ c.horario_existente }}
-                          <span class="text-amber-500 mx-1">·</span>
-                          Tu sesión: {{ c.horario_nuevo }}
+                        <p class="text-xs font-semibold text-amber-700 tabular-nums leading-snug">
+                          Choque con <span class="font-black">{{ c.sesionInfractora?.disciplina || '—' }}</span>
+                          con <span class="font-black">{{ c.sesionInfractora?.instructor || 'sin instructor' }}</span>
+                          el {{ DIAS_LABEL[c.dia] }}
+                          de {{ c.sesionInfractora?.hora_inicio }} a {{ c.sesionInfractora?.hora_fin }}
                         </p>
                       </div>
                     </div>
@@ -395,10 +398,11 @@ const horasFin = computed(() =>
                       </div>
                       <div v-for="(c, idx) in conflictosPorTipo.instructor" :key="'inst-' + idx" class="px-4 pb-2.5 ml-7">
                         <p class="text-sm font-extrabold text-amber-900 truncate">{{ c.nombre }}</p>
-                        <p class="text-xs font-semibold text-amber-700 tabular-nums">
-                          Ya asignado {{ c.horario_existente }}
-                          <span class="text-amber-500 mx-1">·</span>
-                          Tu sesión: {{ c.horario_nuevo }}
+                        <p class="text-xs font-semibold text-amber-700 tabular-nums leading-snug">
+                          Ya asignado a <span class="font-black">{{ c.sesionInfractora?.disciplina || '—' }}</span>
+                          en <span class="font-black">{{ c.sesionInfractora?.espacio || 'sin espacio' }}</span>
+                          el {{ DIAS_LABEL[c.dia] }}
+                          de {{ c.sesionInfractora?.hora_inicio }} a {{ c.sesionInfractora?.hora_fin }}
                         </p>
                       </div>
                     </div>
@@ -424,8 +428,10 @@ const horasFin = computed(() =>
                 <div class="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
                   <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Espacio</p>
                   <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0">
-                      <IconSportCourt class="w-4.5 h-4.5" />
+                    <span class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shrink-0">
+                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                      </svg>
                     </span>
                     <div class="min-w-0">
                       <p class="text-base font-extrabold text-slate-800 truncate leading-tight">{{ form._espacio_nombre || '—' }}</p>

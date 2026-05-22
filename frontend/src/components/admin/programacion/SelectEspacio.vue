@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import IconSportCourt from '@/components/icons/IconSportCourt.vue'
 
 const props = defineProps({
   modelValue:   { type: [Number, null], default: null },
@@ -13,21 +12,72 @@ const props = defineProps({
   size:         { type: String,  default: 'md' },
   allowClear:   { type: Boolean, default: true },
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'open'])
 
 const open = ref(false)
+const highlightId = ref(null)
 const rootRef = ref(null)
+const uid = `esp-${Math.random().toString(36).slice(2, 9)}`
 
 const seleccionado = computed(() =>
   props.opciones.find(e => e.id_espacio === props.modelValue) ?? null
 )
 
-function toggle() { open.value = !open.value }
+function toggle() {
+  open.value = !open.value
+  if (open.value) {
+    keyBuffer.value = ''
+    highlightId.value = props.modelValue
+    emit('open')
+  }
+}
 function close() { open.value = false }
 
 function seleccionar(id) {
   emit('update:modelValue', id)
+  highlightId.value = null
+  keyBuffer.value = ''
   close()
+}
+
+// ─── Búsqueda por teclado ────────────────────────────────────────────────
+const keyBuffer = ref('')
+let keyTimer = null
+
+function onKey(e) {
+  if (!open.value) return
+  if (e.key === 'Escape') { close(); return }
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (highlightId.value !== null) seleccionar(highlightId.value)
+    else close()
+    return
+  }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const ids = props.opciones.map(e => e.id_espacio)
+    if (!ids.length) return
+    const cur = ids.indexOf(highlightId.value)
+    const next = e.key === 'ArrowDown'
+      ? (cur + 1) % ids.length
+      : (cur - 1 + ids.length) % ids.length
+    highlightId.value = ids[next]
+    document.getElementById(`${uid}-opt-${ids[next]}`)?.scrollIntoView({ block: 'nearest' })
+    return
+  }
+  if (e.key.length !== 1) return
+
+  clearTimeout(keyTimer)
+  keyBuffer.value += e.key.toLowerCase()
+  keyTimer = setTimeout(() => { keyBuffer.value = '' }, 800)
+
+  const match = props.opciones.find(e =>
+    e.nombre_espacio.toLowerCase().startsWith(keyBuffer.value)
+  )
+  if (match) {
+    highlightId.value = match.id_espacio
+    document.getElementById(`${uid}-opt-${match.id_espacio}`)?.scrollIntoView({ block: 'nearest' })
+  }
 }
 
 function onClickOutside(e) {
@@ -35,8 +85,16 @@ function onClickOutside(e) {
   if (!rootRef.value.contains(e.target)) close()
 }
 
-onMounted(() => document.addEventListener('click', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
+onMounted(() => {
+  document.addEventListener('click', onClickOutside)
+  document.addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
+  document.removeEventListener('keydown', onKey)
+})
+
+defineExpose({ close })
 
 const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
 </script>
@@ -56,12 +114,14 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
         error
           ? 'border-red-300 bg-red-50'
           : open
-            ? 'border-violet-500 bg-white shadow-md ring-2 ring-violet-500/25'
+            ? 'border-primary-500 bg-white shadow-md ring-2 ring-primary-500/25'
             : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
       ]"
     >
-      <span class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-        <IconSportCourt class="w-4 h-4 text-violet-700" />
+      <span class="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center shrink-0">
+        <svg class="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+        </svg>
       </span>
       <span :class="['flex-1 truncate', seleccionado ? 'text-slate-800' : 'text-slate-400']">
         {{ seleccionado ? `${seleccionado.nombre_espacio} (cap. ${seleccionado.capacidad_maxima})` : placeholder }}
@@ -115,11 +175,16 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
         <button
           v-for="e in opciones"
           :key="e.id_espacio"
+          :id="`${uid}-opt-${e.id_espacio}`"
           type="button"
           @click.stop="seleccionar(e.id_espacio)"
           :class="[
             'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left focus:outline-none',
-            modelValue === e.id_espacio ? 'bg-violet-100 text-violet-700' : 'text-slate-700 hover:bg-violet-100'
+            modelValue === e.id_espacio
+              ? 'bg-primary-100 text-primary-700'
+              : highlightId === e.id_espacio
+                ? 'bg-primary-50/70 text-primary-600'
+                : 'text-slate-700 hover:bg-primary-50'
           ]"
         >
           <div class="flex-1 min-w-0">
@@ -128,7 +193,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
           </div>
           <svg
             v-if="modelValue === e.id_espacio"
-            class="w-4 h-4 text-violet-600 shrink-0"
+            class="w-4 h-4 text-primary-600 shrink-0"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
           >
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />

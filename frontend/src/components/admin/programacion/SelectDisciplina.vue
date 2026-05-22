@@ -13,7 +13,7 @@ const props = defineProps({
   size:          { type: String,  default: 'md' }, // md | sm
   allowClear:    { type: Boolean, default: true },
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'open'])
 
 const open = ref(false)
 const highlightId = ref(null)
@@ -26,7 +26,7 @@ const seleccionado = computed(() =>
 
 function toggle() {
   open.value = !open.value
-  if (open.value) { keyBuffer.value = ''; highlightId.value = props.modelValue }
+  if (open.value) { keyBuffer.value = ''; highlightId.value = props.modelValue; emit('open') }
 }
 function close() { open.value = false }
 
@@ -48,6 +48,18 @@ function onKey(e) {
     e.preventDefault()
     if (highlightId.value !== null) seleccionar(highlightId.value)
     else close()
+    return
+  }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const ids = props.opciones.map(d => d.id_disciplina)
+    if (!ids.length) return
+    const cur = ids.indexOf(highlightId.value)
+    const next = e.key === 'ArrowDown'
+      ? (cur + 1) % ids.length
+      : (cur - 1 + ids.length) % ids.length
+    highlightId.value = ids[next]
+    document.getElementById(`${uid}-opt-${ids[next]}`)?.scrollIntoView({ block: 'nearest' })
     return
   }
   if (e.key.length !== 1) return
@@ -78,6 +90,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside)
   document.removeEventListener('keydown', onKey)
 })
+
+defineExpose({ close })
 
 const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
 </script>

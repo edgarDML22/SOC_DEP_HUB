@@ -93,64 +93,39 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
   const gruposConfirmadasExpandidos = reactive({})
 
   // ─── Visibilidad granular para el calendario (ojitos) ─────────────────────
-  // - mostrarConfirmadas / mostrarBorradores: ojitos maestros.
-  // - disciplinasOcultasConfirmadas / disciplinasOcultasBorradores:
-  //   sets de id_disciplina ocultas individualmente por origen.
-  // sesionesVisibles fusiona estos toggles con los filtros del header.
-  const mostrarConfirmadas              = ref(false)
-  const mostrarBorradores               = ref(false)
-  const disciplinasOcultasConfirmadas   = reactive({})
-  const disciplinasOcultasBorradores    = reactive({})
-  // Sets de disciplinas explícitamente encendidas desde el panel (ojitos individuales).
-  // Solo se usan cuando NO hay filtro de header activo.
+  // Arquitectura de intersección limpia — el maestro NUNCA muta los individuales:
+  //   visible_en_calendario = maestro.encendido && disciplina.encendida_individualmente
+  //
+  // mostrarConfirmadas / mostrarBorradores → flag de capa (solo apaga/enciende la capa
+  //   completa sin tocar la selección individual del usuario).
+  // disciplinasEncendidasConfirmadas / disciplinasEncendidasBorradores → set de
+  //   disciplinas que el usuario activó individualmente. Solo una activa a la vez.
+  //   El maestro nunca los modifica; se conservan al apagar/encender el maestro.
+  const mostrarConfirmadas               = ref(true)
+  const mostrarBorradores                = ref(true)
   const disciplinasEncendidasConfirmadas = reactive({})
   const disciplinasEncendidasBorradores  = reactive({})
 
-  function toggleMaestroConfirmadas() {
-    mostrarConfirmadas.value = !mostrarConfirmadas.value
-    // Encender maestro = encender todas las disciplinas conocidas de confirmadas
-    if (mostrarConfirmadas.value) {
-      for (const s of actividadesConfirmadas.value) {
-        disciplinasEncendidasConfirmadas[s.id_disciplina] = true
-        delete disciplinasOcultasConfirmadas[s.id_disciplina]
-      }
-    } else {
-      Object.keys(disciplinasEncendidasConfirmadas).forEach(k => delete disciplinasEncendidasConfirmadas[k])
-    }
-  }
+  // Toggle maestro: solo invierte el flag de capa, preserva selecciones individuales.
+  function toggleMaestroConfirmadas() { mostrarConfirmadas.value = !mostrarConfirmadas.value }
+  function toggleMaestroBorradores()  { mostrarBorradores.value  = !mostrarBorradores.value }
 
-  function toggleMaestroBorradores() {
-    mostrarBorradores.value = !mostrarBorradores.value
-    const todas = [...draft.value.actividades, ...borradorLocal.value]
-    if (mostrarBorradores.value) {
-      for (const s of todas) {
-        disciplinasEncendidasBorradores[s.id_disciplina] = true
-        delete disciplinasOcultasBorradores[s.id_disciplina]
-      }
-    } else {
-      Object.keys(disciplinasEncendidasBorradores).forEach(k => delete disciplinasEncendidasBorradores[k])
-    }
-  }
-
-  // El ojito individual del panel: enciende/apaga la disciplina en el calendario.
-  // "Visible" = encendida Y no oculta.
+  // Visibilidad individual: intersección maestro + selección propia.
   function disciplinaConfirmadasVisible(id) {
-    return !!disciplinasEncendidasConfirmadas[id] && !disciplinasOcultasConfirmadas[id]
+    return mostrarConfirmadas.value && !!disciplinasEncendidasConfirmadas[id]
   }
   function disciplinaBorradoresVisible(id) {
-    return !!disciplinasEncendidasBorradores[id] && !disciplinasOcultasBorradores[id]
+    return mostrarBorradores.value && !!disciplinasEncendidasBorradores[id]
   }
 
+  // Toggle individual: exclusivo (solo una activa por origen). El maestro no interviene.
   function toggleDisciplinaConfirmadas(id) {
     if (disciplinasEncendidasConfirmadas[id]) {
-      // Apagar la activa → todo queda apagado
       delete disciplinasEncendidasConfirmadas[id]
     } else {
-      // Apagar la que estaba activa y encender la nueva
       Object.keys(disciplinasEncendidasConfirmadas).forEach(k => delete disciplinasEncendidasConfirmadas[k])
       disciplinasEncendidasConfirmadas[id] = true
     }
-    Object.keys(disciplinasOcultasConfirmadas).forEach(k => delete disciplinasOcultasConfirmadas[k])
   }
   function toggleDisciplinaBorradores(id) {
     if (disciplinasEncendidasBorradores[id]) {
@@ -159,7 +134,6 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
       Object.keys(disciplinasEncendidasBorradores).forEach(k => delete disciplinasEncendidasBorradores[k])
       disciplinasEncendidasBorradores[id] = true
     }
-    Object.keys(disciplinasOcultasBorradores).forEach(k => delete disciplinasOcultasBorradores[k])
   }
 
   function toggleGrupoConfirmadas(idDisciplina) {
@@ -270,8 +244,6 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
     errorInit.value          = null
     Object.keys(gruposBorradorExpandidos).forEach(k => delete gruposBorradorExpandidos[k])
     Object.keys(gruposConfirmadasExpandidos).forEach(k => delete gruposConfirmadasExpandidos[k])
-    Object.keys(disciplinasOcultasConfirmadas).forEach(k => delete disciplinasOcultasConfirmadas[k])
-    Object.keys(disciplinasOcultasBorradores).forEach(k => delete disciplinasOcultasBorradores[k])
     Object.keys(disciplinasEncendidasConfirmadas).forEach(k => delete disciplinasEncendidasConfirmadas[k])
     Object.keys(disciplinasEncendidasBorradores).forEach(k => delete disciplinasEncendidasBorradores[k])
     mostrarConfirmadas.value = true
@@ -478,21 +450,67 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
       if (o === origen && i === indexExcluido) continue
       if (s.dia_semana !== candidata.dia_semana) continue
       if (!overlaps(cS, cE, toMinutes(s.hora_inicio), toMinutes(s.hora_fin))) continue
+      // Datos completos de la sesión infractora para el diagnóstico preciso
+      const sesionInfractora = {
+        origen: o, index: i,
+        id_disciplina: s.id_disciplina ?? null,
+        disciplina:  s._disciplina_nombre ?? '',
+        espacio:     s._espacio_nombre    ?? '',
+        instructor:  s._instructor_nombre ?? '',
+        dia:         s.dia_semana,
+        hora_inicio: s.hora_inicio,
+        hora_fin:    s.hora_fin,
+      }
       if (s.id_espacio === candidata.id_espacio) {
-        conflictos.push({ tipo: 'espacio', dia: candidata.dia_semana,
+        conflictos.push({
+          tipo: 'espacio',
+          dia: candidata.dia_semana,
           nombre: candidata._espacio_nombre ?? s._espacio_nombre ?? '',
           horario_nuevo: `${candidata.hora_inicio}–${candidata.hora_fin}`,
-          horario_existente: `${s.hora_inicio}–${s.hora_fin}` })
+          horario_existente: `${s.hora_inicio}–${s.hora_fin}`,
+          sesionInfractora,
+        })
       }
       if (s.id_instructor === candidata.id_instructor) {
-        conflictos.push({ tipo: 'instructor', dia: candidata.dia_semana,
+        conflictos.push({
+          tipo: 'instructor',
+          dia: candidata.dia_semana,
           nombre: candidata._instructor_nombre ?? s._instructor_nombre ?? '',
           horario_nuevo: `${candidata.hora_inicio}–${candidata.hora_fin}`,
-          horario_existente: `${s.hora_inicio}–${s.hora_fin}` })
+          horario_existente: `${s.hora_inicio}–${s.hora_fin}`,
+          sesionInfractora,
+        })
       }
     }
     return conflictos
   }
+
+  // Mapa de claves "origen-index" → tipo de sesión causante del conflicto.
+  // Valor: 'confirmada' si choca contra una sesión de actividades_plantilla (sólido),
+  //        'borrador'   si choca contra un draft/borradorLocal (punteado).
+  // Cuando hay colisión mixta (causa confirmada Y borrador), prevalece 'confirmada' (más severo).
+  // Usado por CalendarioGrid y el panel para aplicar la paleta ámbar diferenciada.
+  const sesionesEnConflicto = computed(() => {
+    const map = new Map()
+    const todos = [
+      ...actividadesConfirmadas.value.map((s, i) => ({ s, origen: 'confirmada', i })),
+      ...draft.value.actividades.map((s, i)        => ({ s, origen: 'draft',     i })),
+      ...borradorLocal.value.map((s, i)             => ({ s, origen: 'borrador',  i })),
+    ]
+    for (const { s, origen, i } of todos) {
+      const colisiones = detectarColisionEnEdicion(s, origen, i)
+      if (colisiones.length === 0) continue
+      const key = `${origen}-${i}`
+      // Determina el peor tipo de causa: confirmada > borrador/draft
+      const tieneConfirmadaCausante = colisiones.some(c => c.sesionInfractora?.origen === 'confirmada')
+      const tipoCausa = tieneConfirmadaCausante ? 'confirmada' : 'borrador'
+      // Si ya existe la clave con 'confirmada', no degradar a 'borrador'
+      if (!map.has(key) || map.get(key) !== 'confirmada') {
+        map.set(key, tipoCausa)
+      }
+    }
+    return map
+  })
 
   // ─── sesionesVisibles ─────────────────────────────────────────────────────
   // Estado por defecto: calendario vacío. Las sesiones solo aparecen cuando el
@@ -516,20 +534,18 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
       return true
     }
 
-    // Sin filtro de header: solo aparece lo que el usuario encendió explícitamente
-    // con los ojitos del panel (disciplina visible = está en el set de encendidas).
-    // Con filtro de header: aplica primero el filtro, luego respeta los ojitos.
+    // Intersección limpia: maestro encendido AND (filtro header O disciplina individual encendida).
+    // El maestro nunca muta los sets individuales — solo actúa como capa de bloqueo global.
     const visConfirmadas = (s) => {
       if (!mostrarConfirmadas.value) return false
-      if (hayFiltroHeader) return !disciplinasOcultasConfirmadas[s.id_disciplina]
-      // Sin filtro: solo si el ojito individual de esa disciplina está encendido
-      return !disciplinasOcultasConfirmadas[s.id_disciplina] && disciplinasEncendidasConfirmadas[s.id_disciplina]
+      if (hayFiltroHeader) return true   // el filtro del header ya restringe en pasaFiltrosHeader
+      return !!disciplinasEncendidasConfirmadas[s.id_disciplina]
     }
 
     const visBorradores = (s) => {
       if (!mostrarBorradores.value) return false
-      if (hayFiltroHeader) return !disciplinasOcultasBorradores[s.id_disciplina]
-      return !disciplinasOcultasBorradores[s.id_disciplina] && disciplinasEncendidasBorradores[s.id_disciplina]
+      if (hayFiltroHeader) return true
+      return !!disciplinasEncendidasBorradores[s.id_disciplina]
     }
 
     return [
@@ -673,13 +689,12 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
     gruposConfirmadasExpandidos, toggleGrupoConfirmadas, grupoConfirmadasExpandido,
     // visibilidad granular (ojitos maestros + por disciplina)
     mostrarConfirmadas, mostrarBorradores,
-    disciplinasOcultasConfirmadas, disciplinasOcultasBorradores,
     disciplinasEncendidasConfirmadas, disciplinasEncendidasBorradores,
     toggleMaestroConfirmadas, toggleMaestroBorradores,
     toggleDisciplinaConfirmadas, toggleDisciplinaBorradores,
     disciplinaConfirmadasVisible, disciplinaBorradoresVisible,
     // getters
-    tieneActividades, totalActividades, espaciosEnDraft, sesionesVisibles, hayColisionActiva,
+    tieneActividades, totalActividades, espaciosEnDraft, sesionesVisibles, hayColisionActiva, sesionesEnConflicto,
     // actions
     fetchDependencias, fetchActividadesConfirmadas,
     resetWizard,
