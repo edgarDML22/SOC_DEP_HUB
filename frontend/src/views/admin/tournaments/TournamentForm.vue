@@ -115,6 +115,18 @@ const buildMenuItems = (torneo) => {
   return actions
 }
 
+// ── EXPANSIÓN (torneos cancelados) ─────────────────────────────
+const expandedTorneoId = ref(null)
+
+const estatusTorneo = (t) => t.estado || t.estatus_torneo
+const isCancelado = (t) => estatusTorneo(t) === 'CANCELADO'
+
+const toggleExpand = (torneo) => {
+  if (!isCancelado(torneo)) return
+  const id = torneo.id_torneo
+  expandedTorneoId.value = expandedTorneoId.value === id ? null : id
+}
+
 // ── INIT ───────────────────────────────────────────────────────
 onMounted(() => {
   store.fetchTorneos()
@@ -199,7 +211,8 @@ onMounted(() => {
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div v-for="torneo in filteredTorneos" :key="torneo.id_torneo" 
              class="bg-white rounded-3xl border border-t-4 border-surface-200 shadow-sm hover:shadow-xl hover:shadow-surface-200/40 transition-all duration-300 group flex flex-col overflow-hidden"
-             :class="estadoAccent(torneo.estado || torneo.estatus_torneo)">
+             :class="[estadoAccent(torneo.estado || torneo.estatus_torneo), { 'cursor-pointer': isCancelado(torneo) }]"
+             @click="toggleExpand(torneo)">
           
           <div class="p-6 flex items-start gap-4">
             <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
@@ -212,11 +225,19 @@ onMounted(() => {
               <h3 class="text-sm font-black text-surface-900 truncate leading-tight">{{ torneo.nombre_torneo }}</h3>
               <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
               <p class="text-[10px] font-black text-surface-400 mt-1 uppercase tracking-widest">{{ torneo.disciplina || '—' }}</p>
-              <div class="mt-2.5">
+              <div class="mt-2.5 flex flex-col items-start gap-1">
                 <BadgeStatus :status="torneo.estado || torneo.estatus_torneo" />
+                <p
+                  v-if="isCancelado(torneo) && expandedTorneoId === torneo.id_torneo"
+                  class="text-xs text-surface-500 font-medium leading-relaxed mt-1"
+                >
+                  {{ torneo.motivo_cancelacion || 'Sin motivo de cancelación registrado.' }}
+                </p>
               </div>
             </div>
-            <ActionMenu :items="buildMenuItems(torneo)" align="right" />
+            <div @click.stop>
+              <ActionMenu :items="buildMenuItems(torneo)" align="right" />
+            </div>
           </div>
 
           <div class="px-6 pb-2 space-y-2">
@@ -231,7 +252,7 @@ onMounted(() => {
           </div>
 
           <div class="p-5 mt-auto">
-            <button @click="router.push(`/admin/tournaments/${torneo.id_torneo}`)" 
+            <button @click.stop="router.push(`/admin/tournaments/${torneo.id_torneo}`)" 
                     class="w-full py-2.5 rounded-xl bg-surface-900 text-white text-xs font-bold hover:bg-primary-600 transition-colors shadow-sm flex items-center justify-center gap-2">
               Ver detalles
             </button>

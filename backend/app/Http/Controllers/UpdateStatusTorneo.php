@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use App\Models\Torneo;
 
 use App\Actions\Torneo\TransitionTorneoStatusAction;
+use App\Exceptions\InsufficientParticipantsException;
 
 class UpdateStatusTorneo extends Controller
 {
@@ -38,11 +39,18 @@ class UpdateStatusTorneo extends Controller
 
         $torneo = Torneo::findOrFail($id);
 
-        $resultado = $action->execute(
-            $torneo,
-            $request->nuevo_estatus,
-            $request->motivo_cancelacion
-        );
+        try {
+            $resultado = $action->execute(
+                $torneo,
+                $request->nuevo_estatus,
+                $request->motivo_cancelacion
+            );
+        } catch (InsufficientParticipantsException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
 
         return response()->json($resultado);
     }

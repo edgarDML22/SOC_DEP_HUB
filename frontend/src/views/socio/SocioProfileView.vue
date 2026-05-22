@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProfileStore } from '@/stores/profiles/socioStore';
+import PanelPenalizaciones from '@/components/socio/PanelPenalizaciones.vue';
 import {
   IconArrowLeft, IconEdit, IconUser, IconIdCard, IconCreditCard,
   IconShield, IconLock, IconCalendar, IconMail, IconGender
@@ -55,9 +56,9 @@ const logout = () => {
 
 const formatearFecha = (fecha) => {
   if (!fecha) return 'N/A';
-  // Agregar T00:00:00 para evitar desfasaje de zona horaria si viene solo la fecha
-  const fechaStr = fecha.includes('T') ? fecha : `${fecha}T00:00:00`;
-  const d = new Date(fechaStr);
+  const str = String(fecha);
+  const datePart = str.split(/[ T]/)[0];
+  const d = new Date(`${datePart}T00:00:00`);
   if (isNaN(d.getTime())) return fecha;
   return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 };
@@ -78,82 +79,66 @@ const formatearFecha = (fecha) => {
                 <p class="text-sm md:text-base font-medium text-surface-500 m-0 mt-2">Gestiona tu Información Personal</p>
             </div>
             
-            <button @click="logout" class="px-6 py-2.5 w-full md:w-auto bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
+            <button @click="logout" class="px-6 py-2.5 w-full md:w-auto bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Cerrar Sesión
             </button>
         </div>
       </div>
 
-      <div v-if="profileStore.profileData?.estatus_cuenta === 'MOROSO'" 
-           class="bg-red-50 text-red-700 p-4 border border-red-200 rounded-2xl mb-2 text-sm font-medium flex gap-3 shadow-sm animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-        <span>⚠️ Atención: El estatus de esta cuenta es <strong class="font-bold uppercase">{{ profileStore.statusAccount }}</strong>.</span>
-      </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
 
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6 order-2 lg:order-1">
           
-          <div class="bg-white rounded-3xl border border-surface-200 p-6 sm:p-8 shadow-sm h-full">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-surface-100 pb-5 mb-5 md:mb-8 gap-4">
-              <h3 class="text-xl font-bold text-surface-900 m-0 tracking-tight">Datos del Socio</h3>
+          <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm h-full">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-4 mb-4 gap-4">
+              <h3 class="text-lg font-bold text-gray-900 m-0 tracking-tight">Datos del Socio</h3>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-7">
               
-              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
-                  <IconUser class="w-5 h-5" />
-                </div>
-                <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Nombre Completo</label>
-                  <input type="text" :value="profileStore.fullName" readonly disabled 
-                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
-                </div>
-              </div>
 
-              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
+              <div class="flex items-start gap-4 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-gray-100">
                   <IconMail class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Correo Electrónico</label>
+                  <label class="block font-medium text-[11px] text-gray-500 uppercase tracking-widest">Correo Electrónico</label>
                   <input type="text" :value="profileStore.correoElectronico" readonly disabled 
-                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-gray-900 focus:outline-none truncate" />
                 </div>
               </div>
 
-              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-surface-100 text-primary-600">
+              <div class="flex items-start gap-4 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-gray-100 text-primary-600">
                   <IconCalendar class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Nacimiento</label>
+                  <label class="block font-medium text-[11px] text-gray-500 uppercase tracking-widest">Nacimiento</label>
                   <input type="text" :value="formatearFecha(profileStore.fechaNacimiento)" readonly disabled 
-                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none truncate" />
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-gray-900 focus:outline-none truncate" />
                 </div>
               </div>
 
-              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-surface-100 text-primary-600">
+              <div class="flex items-start gap-4 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-gray-100 text-primary-600">
                   <IconGender class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Género</label>
+                  <label class="block font-medium text-[11px] text-gray-500 uppercase tracking-widest">Género</label>
                   <input type="text" :value="profileStore.genero === 'M' ? 'Masculino' : profileStore.genero === 'F' ? 'Femenino' : 'Otro'" readonly disabled 
-                         class="w-full bg-transparent text-sm md:text-base font-semibold text-surface-900 focus:outline-none" />
+                         class="w-full bg-transparent text-sm md:text-base font-semibold text-gray-900 focus:outline-none" />
                 </div>
               </div>
               
-              <div class="flex items-start gap-4 p-3 bg-surface-50/50 rounded-2xl border border-surface-100">
-                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100">
+              <div class="flex items-start gap-4 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-gray-100">
                   <IconIdCard class="w-5 h-5" />
                 </div>
                 <div class="grow min-w-0 flex flex-col justify-center h-12">
-                  <label class="block font-medium text-[11px] text-surface-500 uppercase tracking-widest">Número de Acción</label>
+                  <label class="block font-medium text-[11px] text-gray-500 uppercase tracking-widest">Número de Acción</label>
                   <input type="text" :value="profileStore.actionNumber || 'N/A'" readonly disabled 
-                         class="w-full bg-transparent text-sm md:text-base font-bold text-surface-900 focus:outline-none truncate" />
+                         class="w-full bg-transparent text-sm md:text-base font-bold text-gray-900 focus:outline-none truncate" />
                 </div>
               </div>
 
@@ -163,7 +148,7 @@ const formatearFecha = (fecha) => {
           
         </div>
 
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6 order-1 lg:order-2">
 
           <div class="bg-linear-to-br from-primary-800 to-primary-600 rounded-3xl p-6 shadow-lg relative overflow-hidden flex flex-col items-center text-center">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -188,17 +173,12 @@ const formatearFecha = (fecha) => {
                 <span class="text-primary-100 text-xs font-medium uppercase tracking-wider">Plan Activo</span>
                 <span class="text-white text-sm font-bold truncate max-w-[120px]">{{ profileStore.modalidadPlan }}</span>
               </div>
-              <div class="bg-white/10 rounded-xl p-3.5 border border-white/10 flex items-center justify-between backdrop-blur-sm">
-                <span class="text-primary-100 text-xs font-medium uppercase tracking-wider">Faltas (No Show)</span>
-                <span class="text-white text-sm font-bold flex items-center gap-1.5">
-                    <span v-if="profileStore.profileData?.contador_no_shows > 0" class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
-                    <span v-else class="w-2 h-2 rounded-full bg-green-400"></span>
-                    {{ profileStore.profileData?.contador_no_shows || 0 }}
-                </span>
-              </div>
             </div>
           </div>
           
+          <!-- Inserción del nuevo panel unificado -->
+          <PanelPenalizaciones />
+
           <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100 group-hover:bg-primary-50 group-hover:border-primary-200 transition-all">

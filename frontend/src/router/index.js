@@ -49,6 +49,14 @@ const router = createRouter({
       },
     },
 
+    // Ruta de Dead-End (Cuenta Suspendida)
+    {
+      path: "/account-suspended",
+      name: "account-suspended",
+      component: () => import("@/views/socio/CuentaSuspendidaView.vue"),
+      meta: { requiresAuth: true }
+    },
+
     // Socio Routes
     {
       path: "/socio",
@@ -56,6 +64,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         allowedRoles: ["socio_titular", "miembro_familiar"],
+        requiresSocio: true, // Agregado para el Kill-Switch
       },
       children: [
         {
@@ -102,8 +111,6 @@ const router = createRouter({
           name: "programmed-activities",
           component: () => import("@/views/reservations/socio/ClassReservationsHub.vue"),
         },
-
-
         {
           path: "tournaments",
           name: "socio-tournaments",
@@ -147,14 +154,12 @@ const router = createRouter({
             },
           ]
         },
-
         {
           path: "community",
           name: "socio-guests",
           component: () => import("@/views/socio/SocioCommunityView.vue"),
           redirect: '/socio/community/guests-list',
           children: [
-            // CRUD GUESTS
             {
               path: "guests-list",
               name: "guests-list",
@@ -165,27 +170,17 @@ const router = createRouter({
               name: "guests-add",
               component: () => import("@/views/community/AddGuest.vue"),
             },
-
-            // CRUD FAMILY MEMBERS
-            // -- SHOW
             {
               path: "family-members-list",
               name: "family-members-list",
               component: () => import("@/views/community/FamilyMembersList.vue"),
             },
-            // -- CREATE
             {
               path: "family-members-add",
               name: "family-members-add",
               component: () => import("@/views/community/AddFamilyMember.vue"),
             },
-
-
-
-            // CRUD FRIENDS
-
             {
-              // PENDIENTE
               path: "friends-list",
               name: "friends-list",
               component: () => import("@/views/community/friends/FriendsList.vue"),
@@ -253,6 +248,10 @@ const router = createRouter({
           component: () => import('../views/instructor/InstructorAgendaView.vue'),
         },
         {
+          path: 'encuentros-torneo',
+          component: () => import('../views/instructor/InstructorEncuentrosView.vue'),
+        },
+        {
           path: 'sessions',
           component: () => import('../views/instructor/InstructorSessionsView.vue'),
         },
@@ -268,6 +267,23 @@ const router = createRouter({
           path: 'ludoteca',
           name: 'ludoteca-operativa',
           component: () => import('@/views/ludoteca/LudotecaOperativaView.vue'),
+          beforeEnter: async (to, from, next) => {
+            const { useInstructorStore } = await import('@/stores/profiles/instructorStore');
+            const store = useInstructorStore();
+
+            if (!store.profileData) {
+              try {
+                await store.fetchProfile();
+              } catch (error) {
+                console.error("Error cargando el perfil del instructor en el router guard", error);
+              }
+            }
+
+            if (!store.tieneTurnoLudotecaHoy) {
+              return next('/instructor/home');
+            }
+            next();
+          },
         },
       ]
     },
@@ -454,7 +470,7 @@ const router = createRouter({
 });
 
 // Global Navigation Guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem("auth_token");
   const userData = JSON.parse(localStorage.getItem("user_data"));
 
@@ -493,6 +509,24 @@ router.beforeEach((to, from, next) => {
         return next("/instructor/home");
       default:
         return next();
+    }
+  }
+
+  // 3. Kill-Switch (Validación de Cuenta Suspendida)
+  if (to.meta.requiresSocio && to.name !== 'account-suspended') {
+    const profileStore = useProfileStore();
+    
+    // Nos aseguramos de tener el perfil antes de evaluar
+    if (!profileStore.profileData && token) {
+      try {
+        await profileStore.fetchProfile();
+      } catch (error) {
+        console.error("Error cargando el store desde el router", error);
+      }
+    }
+
+    if (profileStore.profileData?.estatus_cuenta === 'SUSPENDIDO') {
+      return next({ name: 'account-suspended' });
     }
   }
 

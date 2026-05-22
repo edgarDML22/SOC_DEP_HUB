@@ -7,6 +7,9 @@ import TournamentStatusModal from '@/components/tournaments/TournamentStatusModa
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import BracketView from '@/components/tournaments/BracketView.vue'
+
+const activeTab = ref('detalles')
 
 const route = useRoute()
 const router = useRouter()
@@ -34,9 +37,16 @@ onMounted(async () => {
 
 const showStatusModal = ref(false)
 
-const isFinalState = computed(() => {
+const esTerminal = computed(() => {
   const status = torneo.value.estado || torneo.value.estatus_torneo
   return ['FINALIZADO', 'CANCELADO'].includes(status)
+})
+
+const esCancelado = computed(() => (torneo.value.estado || torneo.value.estatus_torneo) === 'CANCELADO')
+
+const canConfirm = computed(() => {
+  const status = torneo.value.estado || torneo.value.estatus_torneo
+  return status === 'EN_PLANIFICACION' && !esTerminal.value
 })
 
 const handleStatusUpdated = async () => {
@@ -104,7 +114,7 @@ const goBack = () => {
           <h1 class="text-2xl font-black text-surface-900 tracking-tight">Detalles del Torneo</h1>
         </div>
 
-        <ConfirmButton v-if="!isFinalState" label="Gestionar Estado" @click="showStatusModal = true"
+        <ConfirmButton v-if="!esTerminal" label="Gestionar Estado" @click="showStatusModal = true"
           class="bg-primary-600! hover:bg-primary-700!" />
       </header>
 
@@ -129,6 +139,21 @@ const goBack = () => {
         <section v-if="torneo && !isLoading">
           <article
             class="bg-white rounded-2xl shadow-xl shadow-surface-200/40 border border-surface-200 overflow-hidden relative">
+
+            <!-- Banner de cancelación -->
+            <div
+              v-if="esCancelado"
+              class="bg-red-600 text-white px-7 py-4 flex items-start gap-3"
+            >
+              <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <div>
+                <p class="text-xs font-black uppercase tracking-widest text-red-100">Torneo cancelado</p>
+                <p class="text-sm font-bold text-red-50 mt-1.5">Este torneo ha sido cancelado y no se aceptarán más inscripciones ni participaciones.</p>
+              </div>
+            </div>
 
             <!-- Accent Bar -->
             <div class="absolute top-0 left-0 right-0 h-1" :class="{
@@ -165,8 +190,26 @@ const goBack = () => {
               </span>
             </div>
 
+            <!-- Tabs de Navegación -->
+            <div class="flex border-b border-surface-200 bg-surface-50/50">
+              <button 
+                @click="activeTab = 'detalles'"
+                :class="activeTab === 'detalles' ? 'border-primary-600 text-primary-600 font-black' : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 font-bold'"
+                class="py-3 px-6 border-b-2 text-sm transition-all focus:outline-none"
+              >
+                Detalles
+              </button>
+              <button 
+                @click="activeTab = 'bracket'"
+                :class="activeTab === 'bracket' ? 'border-primary-600 text-primary-600 font-black' : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300 font-bold'"
+                class="py-3 px-6 border-b-2 text-sm transition-all focus:outline-none"
+              >
+                Bracket
+              </button>
+            </div>
+
             <!-- Cuerpo de Información -->
-            <div class="bg-surface-50/40 p-7">
+            <div v-if="activeTab === 'detalles'" class="bg-surface-50/40 p-7">
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                 <!-- Columna Izquierda: Detalles -->
@@ -271,11 +314,19 @@ const goBack = () => {
               </div>
             </div>
 
+            <!-- Cuerpo del Bracket -->
+            <div v-else-if="activeTab === 'bracket'" class="p-7">
+              <BracketView :idTorneo="Number(torneoId)" :readonly="esTerminal" />
+            </div>
+
             <!-- Pie de Acciones -->
             <div class="flex items-center justify-end gap-3 px-7 py-5 border-t border-surface-100 bg-white">
-              <button v-if="(torneo.estado || torneo.estatus_torneo) === 'EN_INSCRIPCION'"
-                      @click="router.push({ path: '/admin/tournaments/pre-registros', query: { torneo_id: torneo.id_torneo || torneo.id } })"
-                      class="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-sm font-bold text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md shadow-primary-600/10 mr-auto">
+              <button
+                v-if="(torneo.estado || torneo.estatus_torneo) === 'EN_INSCRIPCION' && !esTerminal"
+                @click="router.push({ path: '/admin/tournaments/pre-registros', query: { torneo_id: torneo.id_torneo || torneo.id } })"
+                class="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-sm font-bold text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md shadow-primary-600/10 mr-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="esTerminal"
+              >
                 <i class="fas fa-inbox"></i> Ver Pre-registros
               </button>
 

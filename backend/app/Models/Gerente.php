@@ -20,12 +20,10 @@ class Gerente extends Model
         'nombre_completo',
         'correo_electronico',
         'cargo',
-        'estatus',
     ];
 
     // 5. Casteos de tipos de datos para que PHP los maneje nativamente
     protected $casts = [
-        'estatus' => 'boolean',
     ];
 
     /**

@@ -17,6 +17,7 @@ use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
 use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\ResultadoController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
@@ -40,7 +41,11 @@ use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
+use App\Http\Controllers\SocioAgendaController;
+use App\Http\Controllers\InstructorEncuentrosController;
 use App\Http\Controllers\PreRegisterController;
+use App\Actions\Torneo\GenerarBracketAction;
+use App\Models\Torneo;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,7 +67,6 @@ Route::patch('/test-cancelar-torneo/{id}', function ($id) {
         'message' => 'Torneo cancelado'
     ]);
 });
-
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -266,6 +270,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
+    Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
@@ -336,14 +341,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         //SDH-268:VER TORNEO
         Route::get('/{id}', [TorneoController::class, 'show']);
+        //SDH-284 GENERAR EL BRACKET
         Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
     });
 
 
 
     Route::prefix('v1/encuentros')->group(function () {
-
-        //
+        Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
+        Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
     });
 
 
@@ -353,6 +359,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
 
     // TORNEOS: Hub del Socio (disponibles e historial)
+    Route::get('/v1/socio/agenda', [SocioAgendaController::class, 'index']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 

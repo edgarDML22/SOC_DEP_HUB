@@ -60,7 +60,9 @@ export const useProfileStore = defineStore("profile", () => {
   // Formato legible "dd de mes" para mostrar en la UI del socio
   const formatFechaLiberacion = (isoString) => {
     if (!isoString) return null;
-    const d = new Date(isoString);
+    const str = String(isoString);
+    const datePart = str.split(/[ T]/)[0];
+    const d = new Date(`${datePart}T00:00:00`);
     if (isNaN(d.getTime())) return null;
     return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
   };
@@ -192,6 +194,7 @@ export const useProfileStore = defineStore("profile", () => {
     updateProfile,
     tienePlanFamiliar,
     logout,
-    getSupportLink
+    getSupportLink,
+    formatFechaLiberacion
   };
 });
