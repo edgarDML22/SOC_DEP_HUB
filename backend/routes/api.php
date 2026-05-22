@@ -56,14 +56,7 @@ use App\Http\Controllers\MatchAssignmentController;
 |
 */
 
-Route::get(
-    '/v1/torneos/{id_torneo}/available-referees',
-    [RefereeAvailabilityController::class, 'available']
-);
-Route::patch(
-    '/v1/encuentros/{id_encuentro}/assign',
-    [MatchAssignmentController::class, 'assign']
-);
+
 
 // ==========================================
 // RUTAS PÚBLICAS
@@ -339,11 +332,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [TorneoController::class, 'show']);
         //SDH-284 GENERAR EL BRACKET
         Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
+        
+        Route::get('/{id_torneo}/referees', [RefereeAvailabilityController::class, 'all']);
+        Route::get('/{id_torneo}/available-referees', [RefereeAvailabilityController::class, 'available']);
     });
 
 
 
     Route::prefix('v1/encuentros')->group(function () {
+        Route::patch('/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
         Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
     });

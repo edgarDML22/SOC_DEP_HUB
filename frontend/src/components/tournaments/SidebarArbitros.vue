@@ -100,38 +100,43 @@ const getInitialBg = (nombre) => {
                 <p class="text-xs font-bold text-surface-400 animate-pulse">Cargando árbitros...</p>
             </div>
 
-            <!-- Sin rango horario -->
-            <div v-else-if="!hayRango && hayArbitros"
-                class="flex flex-col items-center justify-center text-center py-8 px-4">
-                <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-3">
-                    <svg class="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <p class="text-xs font-bold text-surface-600">Selecciona un horario</p>
-                <p class="text-[11px] text-surface-400 mt-1">Abre un encuentro y selecciona inicio/fin para ver la
-                    disponibilidad.</p>
-            </div>
-
-            <!-- Sin pool de árbitros -->
-            <div v-else-if="!hayArbitros && !loading"
-                class="flex flex-col items-center justify-center text-center py-8 px-4">
-                <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mb-3">
-                    <svg class="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                </div>
-                <p class="text-xs font-bold text-surface-600">Sin árbitros asignados</p>
-                <p class="text-[11px] text-surface-400 mt-1">Este torneo no tiene un pool de árbitros configurado.</p>
-            </div>
-
-            <!-- Lista de árbitros -->
-            <template v-else>
+            <!-- Sin rango horario: mostrar todos los árbitros del torneo -->
+            <template v-if="!hayRango && hayArbitros">
                 <TransitionGroup name="list" tag="div" class="space-y-1.5">
+                    <div v-for="arbitro in todosLosArbitros" :key="arbitro.id_instructor"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200"
+                        :class="arbitro.ocupado
+                            ? 'bg-red-50/50 border border-red-100'
+                            : 'bg-blue-50/50 border border-blue-100 hover:bg-blue-50'">
+                        <!-- Avatar -->
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0"
+                            :class="getInitialBg(arbitro.nombre)">
+                            {{ getInitial(arbitro.nombre) }}
+                        </div>
+
+                        <!-- Info -->
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-surface-800 truncate">{{ arbitro.nombre }}</p>
+                        </div>
+
+                        <!-- Badge: Designado (sin horario) -->
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0 bg-blue-100 text-blue-700">
+                            Designado
+                        </span>
+                    </div>
+                </TransitionGroup>
+            </template>
+
+            <!-- Con rango horario: mostrar carga o árbitros con disponibilidad -->
+            <template v-else-if="hayRango">
+                <!-- Cargando disponibilidad -->
+                <div v-if="loading" class="py-12 flex flex-col items-center gap-3">
+                    <LoadingSpinner size="md" />
+                    <p class="text-xs font-bold text-surface-400 animate-pulse">Verificando disponibilidad...</p>
+                </div>
+
+                <!-- Árbitros con estado LIBRE/OCUPADO -->
+                <TransitionGroup v-else name="list" tag="div" class="space-y-1.5">
                     <div v-for="arbitro in todosLosArbitros" :key="arbitro.id_instructor"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200"
                         :class="arbitro.ocupado
@@ -158,6 +163,20 @@ const getInitialBg = (nombre) => {
                     </div>
                 </TransitionGroup>
             </template>
+
+            <!-- Sin pool de árbitros -->
+            <div v-else-if="!hayArbitros && !loading"
+                class="flex flex-col items-center justify-center text-center py-8 px-4">
+                <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                </div>
+                <p class="text-xs font-bold text-surface-600">Sin árbitros asignados</p>
+                <p class="text-[11px] text-surface-400 mt-1">Este torneo no tiene un pool de árbitros configurado.</p>
+            </div>
         </div>
 
         <!-- Footer stats -->

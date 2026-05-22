@@ -40,7 +40,6 @@ const selectedEspacio = ref(null)
 const fechaInicio = ref(null)
 const fechaFin = ref(null)
 const selectedArbitro = ref(null)
-const isHotSwap = ref(false)
 
 // ── COMPUTED ────────────────────────────────────────────────
 const isEditing = computed(() => !!props.encuentro?.id_arbitro_asignado)
@@ -111,7 +110,10 @@ watch(horarioCompleto, async (complete) => {
     if (complete && fechaFinValida.value) {
         const inicio = formatDateForApi(fechaInicio.value)
         const fin = formatDateForApi(fechaFin.value)
-        await store.fetchArbitrosDisponibles(props.idTorneo, inicio, fin)
+        const torneoId = props.idTorneo || props.encuentro?.extendedProps?.id_torneo || props.encuentro?.id_torneo
+        if (torneoId) {
+            await store.fetchArbitrosDisponibles(torneoId, inicio, fin)
+        }
     }
 })
 
@@ -160,37 +162,6 @@ const handleSave = async () => {
     }
 }
 
-const handleHotSwap = async () => {
-    if (!selectedArbitro.value) return
-
-    const confirmed = await confirmWarning(
-        '¿Cambiar árbitro?',
-        'Se reemplazará el árbitro asignado actualmente a este encuentro.',
-        'Sí, cambiar'
-    )
-
-    if (!confirmed.isConfirmed) return
-
-    const enc = props.encuentro
-    const payload = {
-        id_arbitro: selectedArbitro.value,
-        id_espacio: enc.id_espacio || selectedEspacio.value,
-        fecha_hora_inicio: enc.fecha_hora_inicio || formatDateForApi(fechaInicio.value),
-        fecha_hora_fin: enc.fecha_hora_fin || formatDateForApi(fechaFin.value),
-    }
-
-    const idEncuentro = enc?.id_encuentro || enc?.extendedProps?.id_encuentro
-
-    const result = await store.asignarEncuentro(idEncuentro, payload)
-
-    if (result.success) {
-        toastSuccess('Árbitro actualizado correctamente')
-        emit('saved')
-        emit('close')
-    } else {
-        toastError(result.message || 'Error al cambiar el árbitro')
-    }
-}
 
 // ── INIT ────────────────────────────────────────────────────
 onMounted(async () => {
@@ -310,25 +281,8 @@ onMounted(async () => {
                         </div>
 
                         <template v-else>
-                            <!-- Hot-swap mode para encuentros ya asignados -->
-                            <div v-if="isEditing && !isHotSwap"
-                                class="p-4 rounded-xl bg-surface-50 border border-surface-200 space-y-3">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                    <p class="text-xs font-bold text-surface-700">
-                                        Árbitro actual: <span class="text-surface-900">{{
-                                            encuentro?.arbitro_nombre || `ID: ${encuentro?.id_arbitro_asignado}`
-                                            }}</span>
-                                    </p>
-                                </div>
-                                <button @click="isHotSwap = true"
-                                    class="w-full py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-colors">
-                                    Cambiar Árbitro
-                                </button>
-                            </div>
-
-                            <!-- Select de árbitro (nueva asignación o hot-swap) -->
-                            <div v-if="!isEditing || isHotSwap">
+                            <!-- Select de árbitro -->
+                            <div>
                                 <Select v-model="selectedArbitro" :options="allArbitroOptions" option-label="label"
                                     option-value="value" placeholder="Seleccionar árbitro..." class="w-full"
                                     :optionDisabled="(opt) => opt.ocupado" />
@@ -347,15 +301,10 @@ onMounted(async () => {
                         class="flex-1 py-3 rounded-xl bg-white border border-surface-200 text-surface-700 text-sm font-bold hover:bg-surface-50 transition-colors">
                         Cancelar
                     </button>
-                    <button v-if="isEditing && isHotSwap" @click="handleHotSwap" :disabled="!selectedArbitro || loadingStates.asignando"
-                        class="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                        <LoadingSpinner v-if="loadingStates.asignando" size="sm" color="white" />
-                        <span>{{ loadingStates.asignando ? 'Cambiando...' : 'Cambiar Árbitro' }}</span>
-                    </button>
-                    <button v-else @click="handleSave" :disabled="!canSave"
+                    <button @click="handleSave" :disabled="!canSave"
                         class="flex-1 py-3 rounded-xl bg-surface-900 text-white text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                         <LoadingSpinner v-if="loadingStates.asignando" size="sm" color="white" />
-                        <span>{{ loadingStates.asignando ? 'Asignando...' : 'Guardar Asignación' }}</span>
+                        <span>{{ loadingStates.asignando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar Asignación') }}</span>
                     </button>
                 </div>
             </div>

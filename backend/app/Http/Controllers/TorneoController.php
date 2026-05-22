@@ -56,8 +56,10 @@ class TorneoController extends Controller
             'disciplina',
             'categoria',
             'encuentros' => fn($q) => $q->orderBy('fase_bracket')->orderBy('numero_encuentro'),
-            'encuentros.competidor1',
-            'encuentros.competidor2',
+            'encuentros.competidor1.participante',
+            'encuentros.competidor2.participante',
+            'encuentros.competidor1.equipo',
+            'encuentros.competidor2.equipo',
 
         ])
 

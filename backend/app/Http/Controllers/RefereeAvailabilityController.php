@@ -11,6 +11,48 @@ use Illuminate\Http\Request;
 
 class RefereeAvailabilityController extends Controller
 {
+    /**
+     * Obtiene TODOS los árbitros/instructores designados para un torneo
+     * (sin filtro de horario).
+     */
+    public function all(int $id_torneo)
+    {
+        $torneo = Torneo::select('id_disciplina')
+            ->where('id_torneo', $id_torneo)
+            ->first();
+
+        if (!$torneo) {
+            return response()->json([
+                'message' => 'Torneo no encontrado'
+            ], 404);
+        }
+
+        $instructores = Instructor::query()
+            ->join(
+                'instructor_disciplina',
+                'instructores.id_instructor',
+                '=',
+                'instructor_disciplina.id_instructor'
+            )
+            ->where(
+                'instructor_disciplina.id_disciplina',
+                $torneo->id_disciplina
+            )
+            ->select(
+                'instructores.id_instructor',
+                'instructores.nombre_completo'
+            )
+            ->distinct()
+            ->get();
+
+        return response()->json([
+            'arbitros' => $instructores->map(fn($i) => [
+                'id_instructor' => $i->id_instructor,
+                'nombre' => $i->nombre_completo,
+            ])->values()
+        ]);
+    }
+
     public function available(Request $request, int $id_torneo)
     {
         $request->validate([
@@ -37,7 +79,8 @@ class RefereeAvailabilityController extends Controller
         $horaInicio = $fechaInicio->format('H:i');
         $horaFin = $fechaFin->format('H:i');
 
-        $diaSemana = strtoupper($fechaInicio->locale('es')->dayName);
+        $diasMap = [0 => 'DOMINGO', 1 => 'LUNES', 2 => 'MARTES', 3 => 'MIERCOLES', 4 => 'JUEVES', 5 => 'VIERNES', 6 => 'SABADO'];
+        $diaSemana = $diasMap[$fechaInicio->dayOfWeek];
 
         $instructores = Instructor::query()
             ->join(
@@ -49,10 +92,6 @@ class RefereeAvailabilityController extends Controller
             ->where(
                 'instructor_disciplina.id_disciplina',
                 $torneo->id_disciplina
-            )
-            ->whereIn(
-                'instructores.id_instructor',
-                $torneo->pool_arbitros ?? []
             )
             ->select(
                 'instructores.id_instructor',

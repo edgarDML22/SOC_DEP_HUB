@@ -15,7 +15,8 @@ export const useScheduleStore = defineStore("schedule", () => {
     // ── STATE ────────────────────────────────────────────────────
     const espacios = ref([]);
     const encuentros = ref([]);
-    const arbitrosPool = ref({ disponibles: [], ocupados: [] });
+    const arbitrosTotales = ref([]);  // Todos los árbitros del torneo
+    const arbitrosPool = ref({ disponibles: [], ocupados: [] });  // Filtrando por horario
     const torneoSeleccionado = ref(null);
     const todosLosTorneos = ref([]);
     const fechaActiva = ref(new Date());
@@ -68,14 +69,18 @@ export const useScheduleStore = defineStore("schedule", () => {
                     ? getTournamentColor(enc.id_torneo)
                     : UNASSIGNED_COLOR;
 
-                const comp1 = enc.competidor1?.nombre_equipo
+                const comp1 = enc.competidor1?.equipo?.nombre_equipo
+                    || enc.competidor1?.participante?.nombre_equipo
+                    || enc.competidor1?.participante?.nombre_completo
+                    || enc.competidor1?.participante?.nombre
                     || enc.competidor1?.nombre_completo
-                    || enc.competidor1?.nombre
-                    || 'TBD';
-                const comp2 = enc.competidor2?.nombre_equipo
+                    || (enc.competidor1?.id_interno ? `Participante #${enc.competidor1.id_interno}` : 'TBD');
+                const comp2 = enc.competidor2?.equipo?.nombre_equipo
+                    || enc.competidor2?.participante?.nombre_equipo
+                    || enc.competidor2?.participante?.nombre_completo
+                    || enc.competidor2?.participante?.nombre
                     || enc.competidor2?.nombre_completo
-                    || enc.competidor2?.nombre
-                    || 'TBD';
+                    || (enc.competidor2?.id_interno ? `Participante #${enc.competidor2.id_interno}` : 'TBD');
 
                 return {
                     id: String(enc.id_encuentro),
@@ -108,14 +113,18 @@ export const useScheduleStore = defineStore("schedule", () => {
             encuentrosTorneo
                 .filter(e => !e.es_bye && e.fecha_hora_inicio)
                 .forEach(enc => {
-                    const comp1 = enc.competidor1?.nombre_equipo
+                    const comp1 = enc.competidor1?.equipo?.nombre_equipo
+                        || enc.competidor1?.participante?.nombre_equipo
+                        || enc.competidor1?.participante?.nombre_completo
+                        || enc.competidor1?.participante?.nombre
                         || enc.competidor1?.nombre_completo
-                        || enc.competidor1?.nombre
-                        || 'TBD';
-                    const comp2 = enc.competidor2?.nombre_equipo
+                        || (enc.competidor1?.id_interno ? `Participante #${enc.competidor1.id_interno}` : 'TBD');
+                    const comp2 = enc.competidor2?.equipo?.nombre_equipo
+                        || enc.competidor2?.participante?.nombre_equipo
+                        || enc.competidor2?.participante?.nombre_completo
+                        || enc.competidor2?.participante?.nombre
                         || enc.competidor2?.nombre_completo
-                        || enc.competidor2?.nombre
-                        || 'TBD';
+                        || (enc.competidor2?.id_interno ? `Participante #${enc.competidor2.id_interno}` : 'TBD');
 
                     events.push({
                         id: `${torneo.id_torneo}-${enc.id_encuentro}`,
@@ -199,6 +208,28 @@ export const useScheduleStore = defineStore("schedule", () => {
             torneoSeleccionado.value = null;
         } finally {
             loadingStates.value.encuentros = false;
+        }
+    };
+
+    /**
+     * Obtiene TODOS los árbitros/instructores designados para un torneo (sin filtro horario).
+     */
+    const fetchArbitrosTorneo = async (idTorneo) => {
+        loadingStates.value.arbitros = true;
+        try {
+            const res = await api.get(`/torneos/${idTorneo}/referees`);
+            arbitrosTotales.value = res.data?.arbitros || [];
+            // Mostrar todos como disponibles por defecto (sin horario seleccionado)
+            arbitrosPool.value = {
+                disponibles: arbitrosTotales.value.map(a => ({ ...a, ocupado: false })),
+                ocupados: [],
+            };
+        } catch (err) {
+            console.error(`Error fetching árbitros torneo ${idTorneo}:`, err);
+            arbitrosTotales.value = [];
+            arbitrosPool.value = { disponibles: [], ocupados: [] };
+        } finally {
+            loadingStates.value.arbitros = false;
         }
     };
 
@@ -362,6 +393,7 @@ export const useScheduleStore = defineStore("schedule", () => {
         getTournamentColor,
         fetchEspacios,
         fetchEncuentrosTorneo,
+        fetchArbitrosTorneo,
         fetchArbitrosDisponibles,
         asignarEncuentro,
         fetchTodosLosTorneos,

@@ -166,8 +166,8 @@ const formatFecha = (f) => {
 watch(torneoIdFromQuery, async (id) => {
   if (id) {
     await scheduleStore.fetchEncuentrosTorneo(id)
-    await scheduleStore.fetchEspacios()
-  } else {
+    await scheduleStore.fetchEspacios()    
+    await scheduleStore.fetchArbitrosTorneo(id)  // Obtener todos los árbitros del torneo  } else {
     scheduleStore.clearSelection()
     scheduleStore.fetchTodosLosTorneos()
   }
@@ -178,6 +178,7 @@ onMounted(async () => {
   if (torneoIdFromQuery.value) {
     await scheduleStore.fetchEncuentrosTorneo(torneoIdFromQuery.value)
     await scheduleStore.fetchEspacios()
+    await scheduleStore.fetchArbitrosTorneo(torneoIdFromQuery.value)  // Obtener todos los árbitros del torneo
   } else {
     await scheduleStore.fetchTodosLosTorneos()
   }
@@ -283,9 +284,9 @@ onMounted(async () => {
                     <div class="w-2 h-2 rounded-full bg-surface-300 shrink-0"></div>
                     <div class="min-w-0">
                       <p class="text-xs font-bold text-surface-800 truncate">
-                        {{ enc.competidor1?.nombre_equipo || enc.competidor1?.nombre_completo || 'TBD' }}
+                        {{ enc.competidor1?.equipo?.nombre_equipo || enc.competidor1?.participante?.nombre_equipo || enc.competidor1?.participante?.nombre_completo || enc.competidor1?.nombre_completo || (enc.competidor1?.id_interno ? `Participante #${enc.competidor1.id_interno}` : 'TBD') }}
                         <span class="text-surface-400 mx-1">vs</span>
-                        {{ enc.competidor2?.nombre_equipo || enc.competidor2?.nombre_completo || 'TBD' }}
+                        {{ enc.competidor2?.equipo?.nombre_equipo || enc.competidor2?.participante?.nombre_equipo || enc.competidor2?.participante?.nombre_completo || enc.competidor2?.nombre_completo || (enc.competidor2?.id_interno ? `Participante #${enc.competidor2.id_interno}` : 'TBD') }}
                       </p>
                       <p class="text-[10px] text-surface-400 font-bold uppercase">{{ formatFase(enc.fase_bracket || enc.fase) }}</p>
                     </div>
