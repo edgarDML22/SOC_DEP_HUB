@@ -16,83 +16,130 @@ use Illuminate\Validation\ValidationException;
 
 class PlantillaProgramacionController extends Controller
 {
-    // POST /api/v1/programacion/drafts
-    public function store(Request $request): JsonResponse
+    // =========================================================================
+    // DRAFT — arquitectura UPSERT (un único registro por gerente)
+    //
+    // La tabla drafts_programacion mantiene como máximo UNA fila por id_gerente.
+    // No se hacen INSERT + DELETE en cada sesión: el registro vive mientras el
+    // gerente no publique. Publicar vacía el payload (no borra la fila).
+    //
+    // Endpoints:
+    //   GET  /drafts/activo   → devuelve o crea (upsert) el draft del gerente
+    //   PUT  /drafts/activo   → actualiza el payload (upsert)
+    //   POST /drafts/publicar → INSERT masivo en actividades_plantilla + vacía payload
+    // =========================================================================
+
+    // GET /api/v1/programacion/drafts/activo?id_plantilla={id}
+    // Devuelve el draft de (gerente + plantilla) o lo crea vacío si no existe.
+    // El frontend siempre obtiene un registro válido — nunca un 404.
+    public function showDraftActivo(Request $request): JsonResponse
     {
         /** @var \App\Models\User $user */
-        $user      = Auth::user();
-        $idGerente = $user->user_id;
+        $idGerente   = Auth::user()->user_id;
+        $idPlantilla = $request->query('id_plantilla');
 
-        $existing = DraftProgramacion::delGerente($idGerente)->first();
-        if ($existing) {
-            return response()->json([
-                'message' => 'Ya existe un draft activo. Finalízalo antes de crear uno nuevo.',
-                'data'    => $existing,
-            ], 409);
-        }
-
-        $draft = DraftProgramacion::create([
-            'id_gerente' => $idGerente,
-            'payload'    => [],
-        ]);
-
-        return response()->json(['data' => $draft], 201);
-    }
-
-    // PATCH /api/v1/programacion/drafts/{id}
-    public function update(UpdateDraftRequest $request, int $id): JsonResponse
-    {
-        /** @var \App\Models\User $user */
-        $user  = Auth::user();
-        $draft = DraftProgramacion::findOrFail($id);
-
-        if ($draft->id_gerente !== $user->user_id) {
-            return response()->json(['message' => 'No autorizado.'], 403);
-        }
-
-        $draft->update(['payload' => $request->validated()['payload']]);
-
-        return response()->json(['data' => $draft->fresh()], 200);
-    }
-
-    // GET /api/v1/programacion/drafts/{id}
-    public function showDraft(int $id): JsonResponse
-    {
-        /** @var \App\Models\User $user */
-        $user  = Auth::user();
-        $draft = DraftProgramacion::findOrFail($id);
-
-        if ($draft->id_gerente !== $user->user_id) {
-            return response()->json(['message' => 'No autorizado.'], 403);
-        }
+        $draft = DraftProgramacion::firstOrCreate(
+            ['id_gerente' => $idGerente, 'id_plantilla' => $idPlantilla],
+            ['payload'    => (object)['actividades' => []]]
+        );
 
         return response()->json(['data' => $draft], 200);
     }
 
-    // DELETE /api/v1/programacion/drafts/{id}
-    public function destroyDraft(int $id): JsonResponse
+    // PUT /api/v1/programacion/drafts/activo
+    // Upsert del payload por (id_gerente, id_plantilla). Una sola query por par.
+    public function updateDraftActivo(UpdateDraftRequest $request): JsonResponse
     {
-        $draft = DraftProgramacion::findOrFail($id);
+        /** @var \App\Models\User $user */
+        $idGerente   = Auth::user()->user_id;
+        $validated   = $request->validated();
+        $idPlantilla = $validated['id_plantilla'] ?? null;
 
-        if ($draft->id_gerente !== Auth::user()->user_id) {
-            return response()->json(['message' => 'No autorizado.'], 403);
-        }
+        $draft = DraftProgramacion::updateOrCreate(
+            ['id_gerente'   => $idGerente, 'id_plantilla' => $idPlantilla],
+            ['payload'      => $validated['payload']]
+        );
 
-        $draft->delete();
-
-        return response()->json(['message' => 'Draft eliminado.'], 200);
+        return response()->json(['data' => $draft], 200);
     }
 
-    // POST /api/v1/programacion/drafts/{id}/publicar
-    public function publicar(PublicarDraftRequest $request, int $id): JsonResponse
+    // POST /api/v1/programacion/drafts/consolidar
+    // Mueve las sesiones del draft a la plantilla activa (ya existente) sin publicar.
+    // Diferencia clave con publicar(): NO crea una nueva plantilla — inserta en la que
+    // ya está ACTIVA. Ideal para el flujo "Guardar progreso" del wizard.
+    //
+    // Pasos:
+    //   1. Lee el draft por (id_gerente, id_plantilla)
+    //   2. Valida campos requeridos + conflictos de horario
+    //   3. INSERT masivo en actividades_plantilla usando el id_plantilla del draft
+    //   4. Vacía el payload del draft (no borra la fila)
+    //   5. Devuelve { actividades_creadas, total_actividades } para que el
+    //      frontend actualice el contador sin necesidad de un refetch completo
+    public function consolidar(Request $request): JsonResponse
     {
-        $draft = DraftProgramacion::findOrFail($id);
+        /** @var \App\Models\User $user */
+        $idGerente   = Auth::user()->user_id;
+        $idPlantilla = $request->input('id_plantilla');
 
-        if ($draft->id_gerente !== Auth::user()->user_id) {
-            return response()->json(['message' => 'No autorizado.'], 403);
+        if (!$idPlantilla) {
+            return response()->json(['message' => 'El parámetro id_plantilla es obligatorio.'], 422);
         }
 
-        $payload     = $draft->payload;
+        $draft = DraftProgramacion::where('id_gerente', $idGerente)
+            ->where('id_plantilla', $idPlantilla)
+            ->firstOrFail();
+
+        $actividades = $draft->payload['actividades'] ?? [];
+
+        if (empty($actividades)) {
+            return response()->json(['message' => 'El draft no contiene sesiones para consolidar.'], 422);
+        }
+
+        $plantilla = PlantillaProgramacion::withoutGlobalScopes()->findOrFail($idPlantilla);
+
+        $this->validarCamposRequeridos($actividades);
+        $this->validarConflictosYCongruencia($actividades);
+
+        $resultado = DB::transaction(function () use ($draft, $actividades, $plantilla) {
+            $rows = array_map(fn($a) => [
+                'id_plantilla'  => $plantilla->id_plantilla,
+                'id_disciplina' => $a['id_disciplina'],
+                'id_espacio'    => $a['id_espacio'],
+                'id_instructor' => $a['id_instructor'],
+                'dia_semana'    => $a['dia_semana'],
+                'hora_inicio'   => $a['hora_inicio'],
+                'hora_fin'      => $a['hora_fin'],
+                'cupo_maximo'   => $a['cupo_maximo'],
+                'requiere_inscripcion' => $a['requiere_inscripcion'] ?? false,
+                'estatus'       => 'ACTIVO',
+            ], $actividades);
+
+            ActividadPlantilla::insert($rows);
+            $draft->update(['payload' => ['actividades' => []]]);
+
+            $total = ActividadPlantilla::where('id_plantilla', $plantilla->id_plantilla)
+                ->where('estatus', 'ACTIVO')
+                ->count();
+
+            return [
+                'actividades_creadas' => count($rows),
+                'total_actividades'   => $total,
+            ];
+        });
+
+        return response()->json(['data' => $resultado], 200);
+    }
+
+    // POST /api/v1/programacion/drafts/publicar
+    // Lee el draft activo del gerente, valida, hace INSERT masivo y vacía el payload.
+    // No borra el registro — lo deja listo para la próxima programación.
+    public function publicar(PublicarDraftRequest $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $idGerente = Auth::user()->user_id;
+
+        $draft       = DraftProgramacion::where('id_gerente', $idGerente)->firstOrFail();
+        $payload     = $draft->payload ?? [];
         $actividades = $payload['actividades'] ?? [];
 
         if (empty($actividades)) {
@@ -107,8 +154,8 @@ class PlantillaProgramacionController extends Controller
         $resultado = DB::transaction(function () use ($draft, $payload, $actividades) {
             $plantilla = PlantillaProgramacion::create([
                 'nombre_plantilla'  => $payload['nombre_plantilla'] ?? 'Plantilla sin nombre',
-                'fecha_inicio'      => $payload['fecha_inicio'],
-                'fecha_fin'         => $payload['fecha_fin'],
+                'fecha_inicio'      => $payload['fecha_inicio'] ?? null,
+                'fecha_fin'         => $payload['fecha_fin'] ?? null,
                 'estatus_plantilla' => 'ACTIVO',
             ]);
 
@@ -125,11 +172,13 @@ class PlantillaProgramacionController extends Controller
             ], $actividades);
 
             ActividadPlantilla::insert($rows);
-            $draft->delete();
+
+            // Vaciar el payload — el registro persiste para la próxima programación
+            $draft->update(['payload' => ['actividades' => []]]);
 
             return [
-                'id_plantilla'       => $plantilla->id_plantilla,
-                'actividades_creadas' => \count($rows),
+                'id_plantilla'        => $plantilla->id_plantilla,
+                'actividades_creadas' => count($rows),
             ];
         });
 
@@ -406,7 +455,7 @@ class PlantillaProgramacionController extends Controller
     // GET /api/v1/programacion/plantillas/{id}
     public function show(int $id): JsonResponse
     {
-        $plantilla = PlantillaProgramacion::with([
+        $plantilla = PlantillaProgramacion::withoutGlobalScopes()->with([
             'actividades' => function ($query) {
                 $query->where('estatus', 'ACTIVO')
                     ->with([
@@ -449,5 +498,37 @@ class PlantillaProgramacionController extends Controller
                 'actividades'       => $actividades,
             ],
         ], 200);
+    }
+
+    // PATCH /api/v1/programacion/actividades/{id}
+    // Actualiza campos editables de una actividad ya confirmada en actividades_plantilla.
+    public function updateActividad(Request $request, int $id): JsonResponse
+    {
+        $actividad = ActividadPlantilla::where('estatus', 'ACTIVO')->findOrFail($id);
+
+        $validated = $request->validate([
+            'id_disciplina'        => 'sometimes|integer|exists:disciplinas,id_disciplina',
+            'id_espacio'           => 'sometimes|integer|exists:espacios_fisicos,id_espacio',
+            'id_instructor'        => 'sometimes|integer|exists:instructores,id_instructor',
+            'dia_semana'           => 'sometimes|string|in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO',
+            'hora_inicio'          => 'sometimes|date_format:H:i',
+            'hora_fin'             => 'sometimes|date_format:H:i|after:hora_inicio',
+            'cupo_maximo'          => 'sometimes|integer|min:1|max:40',
+            'requiere_inscripcion' => 'sometimes|boolean',
+        ]);
+
+        $actividad->update($validated);
+
+        return response()->json(['data' => ['id_actividad_plantilla' => $actividad->id_actividad_plantilla]], 200);
+    }
+
+    // DELETE /api/v1/programacion/actividades/{id}
+    // Soft-delete de una actividad confirmada (la saca del calendario pero no la borra físicamente).
+    public function destroyActividad(int $id): JsonResponse
+    {
+        $actividad = ActividadPlantilla::where('estatus', 'ACTIVO')->findOrFail($id);
+        $actividad->delete();
+
+        return response()->json(['message' => 'Actividad eliminada correctamente.'], 200);
     }
 }

@@ -372,11 +372,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('dependencias', [ProgramacionDependenciasController::class, 'index']);
 
         Route::prefix('drafts')->group(function () {
-            Route::post('/', [PlantillaProgramacionController::class, 'store']);
-            Route::get('/{draftId}', [PlantillaProgramacionController::class, 'showDraft']);
-            Route::patch('/{draftId}', [PlantillaProgramacionController::class, 'update']);
-            Route::delete('/{draftId}', [PlantillaProgramacionController::class, 'destroyDraft']);
-            Route::post('/{draftId}/publicar', [PlantillaProgramacionController::class, 'publicar']);
+            Route::get('/activo',      [PlantillaProgramacionController::class, 'showDraftActivo']);
+            Route::put('/activo',      [PlantillaProgramacionController::class, 'updateDraftActivo']);
+            Route::post('/consolidar', [PlantillaProgramacionController::class, 'consolidar']);
+            Route::post('/publicar',   [PlantillaProgramacionController::class, 'publicar']);
         });
 
         Route::prefix('plantillas')->group(function () {
@@ -385,6 +384,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{plantillaId}', [PlantillaProgramacionController::class, 'show']);
             Route::patch('/{plantillaId}', [PlantillaProgramacionController::class, 'updatePlantilla']);
             Route::delete('/{plantillaId}', [PlantillaProgramacionController::class, 'destroyPlantilla']);
+        });
+
+        Route::prefix('actividades')->group(function () {
+            Route::patch('/{id}', [PlantillaProgramacionController::class, 'updateActividad']);
+            Route::delete('/{id}', [PlantillaProgramacionController::class, 'destroyActividad']);
         });
         // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
 

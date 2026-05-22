@@ -51,20 +51,15 @@ function sesionASlots(s) {
   return { startSlot, endSlot: Math.max(endSlot, startSlot + 1) }
 }
 
-// ─── Estado inicial vacío: sin filtro de disciplina activo, no renderizar nada ───
-// Evita la saturación visual masiva. El usuario activa el filtro desde el header
-// o desde el ojo de la sección de borradores para ver las sesiones.
-const calendarVisibleSinFiltro = computed(() => store.filtros.id_disciplina !== null)
-
 // ─── Bloques de vista previa (preview en tiempo real desde el formulario) ───
 const bloquesPreview = computed(() => {
   const f = props.sesionPreview
   if (!f || !f.hora_inicio || !f.hora_fin || !f.dias || f.dias.length === 0) return []
-  
+
   const disc = store.disciplinas.find(d => d.id_disciplina === f.id_disciplina)
   const inst = store.instructores.find(i => i.id_instructor === f.id_instructor)
   const esp  = store.espacios.find(e => e.id_espacio === f.id_espacio)
-  
+
   return f.dias.map((dia, idx) => ({
     _origen: 'preview',
     _srcIdx: idx,
@@ -78,12 +73,11 @@ const bloquesPreview = computed(() => {
   }))
 })
 
-// Combina bloques guardados/borradores con los de vista previa si corresponde
-const todosLosBloques = computed(() => {
-  const visible = calendarVisibleSinFiltro.value || bloquesPreview.value.length > 0
-  const base = visible ? store.sesionesVisibles : []
-  return [...base, ...bloquesPreview.value]
-})
+// Combina bloques guardados/borradores con los de vista previa
+const todosLosBloques = computed(() => [
+  ...store.sesionesVisibles,
+  ...bloquesPreview.value,
+])
 
 // ─── Layout de lanes por día (manejo de solapamientos) ───────────────────
 // Para cada día calculamos columnas-lane para que los bloques solapados se
@@ -126,17 +120,30 @@ const layoutPorDia = computed(() => {
   return out
 })
 
-// ─── Tokens visuales (paleta unificada) ───────────────────────────────────
-// Confirmadas (draft persistido): fondo sólido emerald/red, border-l grueso
-// Borrador local: fondo tenue, border-dashed
+// ─── Tokens visuales — paleta Google Calendar exacta ─────────────────────
+//
+// CONFIRMADAS (origen 'confirmada' — BD actividades_plantilla):
+//   Abierta  → bg-emerald-600 sólido, texto blanco
+//   Cerrada  → bg-red-600 sólido, texto blanco
+//
+// DRAFT persistido (origen 'draft' — payload JSON):
+//   Abierta  → bg-emerald-50, text-emerald-700, borde punteado border-emerald-400
+//   Cerrada  → bg-red-50, text-red-700, borde punteado border-red-400
+//
+// BORRADOR LOCAL (origen 'borrador' — en memoria):
+//   Mismo estilo que draft (punteado) — visualmente idéntico a draft pendiente
+//
+// CONFLICTO → bg-amber-50, border-amber-400, text-amber-700
+// PREVIEW   → fondo primary suave, borde punteado primary
+//
 function clasesBloque(b, conflicto) {
   if (conflicto) {
     return {
-      bg: 'bg-amber-50/90 backdrop-blur-[1px]',
-      borderColor: 'border-amber-300',
-      borderStyle: 'border border-l-4 border-l-amber-500',
-      text: 'text-amber-900 font-extrabold',
-      sub:  'text-amber-700 font-semibold',
+      bg: 'bg-amber-50',
+      borderColor: 'border-amber-400',
+      borderStyle: 'border border-amber-400 border-l-4',
+      text: 'text-amber-700 font-extrabold',
+      sub:  'text-amber-600 font-semibold',
       stripeBg: 'repeating-linear-gradient(135deg, rgba(245,158,11,0.08) 0 8px, rgba(245,158,11,0.18) 8px 16px)',
     }
   }
@@ -152,43 +159,46 @@ function clasesBloque(b, conflicto) {
     }
   }
 
-  const cerrada = !!b.requiere_inscripcion
-  const esBorrador = b._origen === 'borrador'
+  const cerrada     = !!b.requiere_inscripcion
+  const esConfirmada = b._origen === 'confirmada'
 
-  if (esBorrador) {
+  // Confirmadas: gradiente metálico — mismo tono que los headers del modal de detalle
+  if (esConfirmada) {
     return cerrada
       ? {
-          bg: 'bg-rose-50/40',
-          borderColor: 'border-rose-300/80',
-          borderStyle: 'border border-dashed border-l-4 border-l-rose-500/80',
-          text: 'text-rose-800 font-extrabold',
-          sub:  'text-rose-600/90 font-medium',
+          bg: 'bg-gradient-to-br from-rose-500 to-red-700',
+          borderColor: 'border-red-700',
+          borderStyle: 'border border-red-700 border-l-4 border-l-red-800',
+          text: 'text-white font-extrabold',
+          sub:  'text-rose-100 font-semibold',
           stripeBg: null,
         }
       : {
-          bg: 'bg-emerald-50/40',
-          borderColor: 'border-emerald-300/80',
-          borderStyle: 'border border-dashed border-l-4 border-l-emerald-500/80',
-          text: 'text-emerald-800 font-extrabold',
-          sub:  'text-emerald-600/90 font-medium',
+          bg: 'bg-gradient-to-br from-emerald-500 to-teal-700',
+          borderColor: 'border-teal-700',
+          borderStyle: 'border border-teal-700 border-l-4 border-l-teal-800',
+          text: 'text-white font-extrabold',
+          sub:  'text-emerald-100 font-semibold',
           stripeBg: null,
         }
   }
+
+  // Draft persistido o borrador local: fondo muy claro, borde punteado
   return cerrada
     ? {
-        bg: 'bg-rose-50/90',
-        borderColor: 'border-rose-200',
-        borderStyle: 'border border-l-4 border-l-rose-500',
-        text: 'text-rose-900 font-extrabold',
-        sub:  'text-rose-700 font-semibold',
+        bg: 'bg-red-50',
+        borderColor: 'border-red-400',
+        borderStyle: 'border border-dashed border-red-400 border-l-4 border-l-red-500',
+        text: 'text-red-700 font-extrabold',
+        sub:  'text-red-600 font-medium',
         stripeBg: null,
       }
     : {
-        bg: 'bg-emerald-50/90',
-        borderColor: 'border-emerald-200',
-        borderStyle: 'border border-l-4 border-l-emerald-500',
-        text: 'text-emerald-900 font-extrabold',
-        sub:  'text-emerald-700 font-semibold',
+        bg: 'bg-emerald-50',
+        borderColor: 'border-emerald-400',
+        borderStyle: 'border border-dashed border-emerald-400 border-l-4 border-l-emerald-500',
+        text: 'text-emerald-700 font-extrabold',
+        sub:  'text-emerald-600 font-medium',
         stripeBg: null,
       }
 }
@@ -314,16 +324,17 @@ function formatGutterHour(h) {
 }
 
 // ─── Estado vacío ─────────────────────────────────────────────────────────
-const sinResultados   = computed(() => {
-  if (bloquesPreview.value.length > 0) return false
-  return todosLosBloques.value.length === 0
-})
-const hayDataEnSistema = computed(() => store.tieneActividades || store.tieneBorradorLocal)
+const sinResultados = computed(() =>
+  bloquesPreview.value.length === 0 && todosLosBloques.value.length === 0
+)
+const hayDataEnSistema = computed(() =>
+  store.tieneActividades || store.tieneBorradorLocal || store.actividadesConfirmadas.length > 0
+)
 
 // Razón del estado vacío (para el mensaje)
 const motivoVacio = computed(() => {
-  if (!calendarVisibleSinFiltro.value && bloquesPreview.value.length === 0) return 'sin-filtro'
-  if (!hayDataEnSistema.value && bloquesPreview.value.length === 0)          return 'sin-data'
+  if (store.filtros.id_disciplina === null) return 'sin-filtro'
+  if (!hayDataEnSistema.value)              return 'sin-data'
   return 'filtro-sin-resultados'
 })
 </script>
@@ -468,7 +479,7 @@ const motivoVacio = computed(() => {
                 b._origen === 'preview'
                   ? 'cursor-default focus:outline-none'
                   : 'hover:shadow-md hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-primary-500/40 active:scale-[0.98]',
-                'my-[2px]',
+                'my-0.5',
                 clasesBloque(b, tieneConflicto(b)).bg,
                 clasesBloque(b, tieneConflicto(b)).borderStyle,
                 clasesBloque(b, tieneConflicto(b)).borderColor,
@@ -506,7 +517,7 @@ const motivoVacio = computed(() => {
             class="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
             style="grid-column: 1 / -1; grid-row: 1 / -1;"
           >
-            <!-- Sin filtro activo: mensaje principal de bienvenida -->
+            <!-- Sin filtro de disciplina activo -->
             <div v-if="motivoVacio === 'sin-filtro'" class="bg-white border border-slate-200/80 shadow-xl rounded-2xl p-8 max-w-sm text-center select-none pointer-events-auto mx-4 transition-all duration-200">
               <div class="w-14 h-14 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center mx-auto mb-4">
                 <svg class="w-7 h-7 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -516,11 +527,11 @@ const motivoVacio = computed(() => {
               </div>
               <h3 class="text-sm font-bold text-slate-800 mb-1.5">Selecciona una disciplina</h3>
               <p class="text-xs text-slate-500 leading-relaxed">
-                Usa el filtro de <span class="font-semibold text-slate-700">Disciplina</span> en el encabezado o haz clic en el ícono de ojo <span class="text-primary-600 font-bold">👁</span> en la barra de borradores para ver las sesiones.
+                Usa el filtro de <span class="font-semibold text-slate-700">Disciplina</span> en el encabezado o haz clic en el ícono de ojo en la barra de borradores para ver las sesiones.
               </p>
             </div>
 
-            <!-- Sin datos en el sistema -->
+            <!-- Sin datos con filtro activo -->
             <div v-else-if="motivoVacio === 'sin-data'" class="bg-white border border-slate-200/80 shadow-xl rounded-2xl p-8 max-w-sm text-center select-none pointer-events-auto mx-4 transition-all duration-200">
               <div class="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
                 <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -529,7 +540,7 @@ const motivoVacio = computed(() => {
               </div>
               <h3 class="text-sm font-bold text-slate-800 mb-1.5">Sin sesiones programadas</h3>
               <p class="text-xs text-slate-500 leading-relaxed">
-                No hay sesiones creadas en el sistema para esta semana. Abre el panel lateral y programa tu primera actividad.
+                No hay sesiones creadas para esta disciplina. Abre el panel lateral y programa tu primera actividad.
               </p>
             </div>
 
@@ -553,31 +564,31 @@ const motivoVacio = computed(() => {
     <!-- ══════════ LEYENDA ══════════ -->
     <div class="flex gap-3 flex-wrap shrink-0 px-1">
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-emerald-300 border-l-emerald-500 bg-emerald-50 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-emerald-700 border-l-emerald-800 bg-emerald-600 inline-block" />
         Confirmada · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-red-300 border-l-red-500 bg-red-50 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-red-700 border-l-red-800 bg-red-600 inline-block" />
         Confirmada · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-emerald-400 bg-emerald-50/40 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-emerald-400 border-l-emerald-500 bg-emerald-50 inline-block" />
         Borrador · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-red-400 bg-red-50/40 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-red-400 border-l-red-500 bg-red-50 inline-block" />
         Borrador · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
         <span
-          class="w-3.5 h-3.5 rounded-sm border border-l-4 border-amber-400 bg-amber-50 inline-block"
+          class="w-3.5 h-3.5 rounded-sm border border-l-[3px] border-amber-400 bg-amber-50 inline-block"
           style="background-image: repeating-linear-gradient(135deg, rgba(245,158,11,0.25) 0 3px, transparent 3px 6px);"
         />
         Conflicto
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
         <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-primary-400 bg-primary-50/40 inline-block" />
-        Vista previa (Borrador actual)
+        Vista previa
       </span>
     </div>
   </div>

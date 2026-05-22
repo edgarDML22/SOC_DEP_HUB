@@ -81,9 +81,16 @@ export const usePlantillasStore = defineStore('plantillas', () => {
     }
   }
 
+  // Actualiza el contador local sin refetch — llamado tras consolidar/publicar
+  function actualizarTotalActividades(idPlantilla, total) {
+    const p = plantillas.value.find(p => p.id_plantilla === idPlantilla)
+    if (p) p.total_actividades = total
+  }
+
   return {
     plantillas, plantillaActiva,
     isLoading, isSaving, isDeleting, error,
     fetchPlantillas, createPlantilla, updatePlantilla, deletePlantilla,
+    actualizarTotalActividades,
   }
 })

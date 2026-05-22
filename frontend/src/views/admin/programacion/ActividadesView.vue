@@ -1,20 +1,61 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { IconLayers, IconGrid } from '@/components/icons'
 import { usePlantillasStore } from '@/stores/programacion/plantillasStore'
+import { useWizardStore } from '@/stores/programacion/wizardStore'
 import PlantillasGestion from './PlantillasGestion.vue'
 import WizardProgramacionView from './WizardProgramacionView.vue'
 
-const activeTab = ref('plantillas')
+const activeTab   = ref('plantillas')
+const wizardReady = ref(false)
+
 const plantillasStore = usePlantillasStore()
-const plantillasRef = ref(null)
+const wizardStore     = useWizardStore()
+const plantillasRef   = ref(null)
 
 const tabs = [
   { name: 'plantillas', label: 'Gestión de Plantillas', icon: IconLayers },
   { name: 'wizard',     label: 'Gestión de Sesiones',   icon: IconGrid   },
 ]
 
-// Fetch único al montar el contenedor — no se repite al cambiar de pestaña
+async function initWizard(plantillaActiva) {
+  wizardStore.resetWizard()
+  wizardStore.setPlantillaActiva(plantillaActiva.id_plantilla)
+  try {
+    await Promise.all([
+      wizardStore.fetchDependencias(),
+      wizardStore.fetchActividadesConfirmadas(plantillaActiva.id_plantilla),
+    ])
+    await wizardStore.verificarDraftActivo()
+    wizardReady.value = true
+  } catch { /* errores manejados dentro del store */ }
+}
+
+async function selectTab(name) {
+  activeTab.value = name
+  if (name !== 'wizard') return
+  if (wizardReady.value) return   // ya inicializado para la plantilla actual
+
+  const plantillaActiva = plantillasStore.plantillaActiva
+  if (!plantillaActiva) return
+  await initWizard(plantillaActiva)
+}
+
+// Cuando la plantilla activa cambia (el usuario activó otra desde Gestión de Plantillas),
+// reinicia el wizard completo independientemente de en qué pestaña esté.
+// Los filtros del calendario se resetean SOLO aquí — no al cambiar de pestaña.
+watch(
+  () => plantillasStore.plantillaActiva?.id_plantilla,
+  (nuevoId, anteriorId) => {
+    if (!nuevoId || nuevoId === anteriorId) return
+    wizardStore.resetFiltros()
+    wizardReady.value = false
+    if (activeTab.value === 'wizard') {
+      initWizard(plantillasStore.plantillaActiva)
+    }
+  }
+)
+
 onMounted(() => plantillasStore.fetchPlantillas())
 </script>
 
@@ -33,7 +74,7 @@ onMounted(() => plantillasStore.fetchPlantillas())
             <button
               v-for="tab in tabs"
               :key="tab.name"
-              @click="activeTab = tab.name"
+              @click="selectTab(tab.name)"
               class="flex-1 py-2 px-3 text-sm text-center transition-all whitespace-nowrap flex items-center justify-center gap-1.5 focus:outline-none rounded-lg"
               :class="activeTab === tab.name
                 ? 'bg-blue-600 text-white font-extrabold shadow-sm'

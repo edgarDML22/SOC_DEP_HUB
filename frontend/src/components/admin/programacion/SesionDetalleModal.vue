@@ -20,9 +20,12 @@ const isOpen = computed(() =>
 const sesionOriginal = computed(() => {
   const { origen, index } = store.sesionEnDetalle
   if (origen === null || index === null) return null
-  const lista = origen === 'draft' ? store.draft.actividades : store.borradorLocal
-  return lista[index] ?? null
+  if (origen === 'confirmada') return store.actividadesConfirmadas[index] ?? null
+  if (origen === 'draft')      return store.draft.actividades[index]      ?? null
+  return store.borradorLocal[index] ?? null
 })
+
+const esConfirmada = computed(() => store.sesionEnDetalle.origen === 'confirmada')
 
 // ─── Modo lectura / edición ──────────────────────────────────────────────
 const modoEdicion = ref(false)
@@ -148,7 +151,8 @@ const headerTokens = computed(() => {
   }
 
   const inscripcion = !!sesionOriginal.value.requiere_inscripcion
-  const esBorrador  = store.sesionEnDetalle.origen === 'borrador'
+  const origen      = store.sesionEnDetalle.origen
+  const sublabel    = origen === 'confirmada' ? 'Confirmada' : origen === 'borrador' ? 'Borrador' : 'Draft'
 
   if (tieneConflicto.value) {
     return {
@@ -156,7 +160,7 @@ const headerTokens = computed(() => {
       badgeBg:    'bg-amber-400/25',
       badgeText:  'text-amber-50',
       label:      'Conflicto de horario',
-      sublabel:   esBorrador ? 'Borrador' : 'Confirmada',
+      sublabel,
     }
   }
 
@@ -166,7 +170,7 @@ const headerTokens = computed(() => {
       badgeBg:    'bg-rose-400/25',
       badgeText:  'text-rose-50',
       label:      'Clase cerrada · Con inscripción',
-      sublabel:   esBorrador ? 'Borrador' : 'Confirmada',
+      sublabel,
     }
   }
 
@@ -175,7 +179,7 @@ const headerTokens = computed(() => {
     badgeBg:    'bg-emerald-400/25',
     badgeText:  'text-emerald-50',
     label:      'Clase abierta · Libre',
-    sublabel:   esBorrador ? 'Borrador' : 'Confirmada',
+    sublabel,
   }
 })
 
@@ -186,11 +190,11 @@ function cancelarEdicion() {
   modoEdicion.value = false
 }
 
-function guardarCambios() {
+async function guardarCambios() {
   if (!puedeGuardar.value) return
   const { origen, index } = store.sesionEnDetalle
   const hidratado = hidratarNombres(form.value)
-  store.actualizarSesion(origen, index, hidratado)
+  await store.actualizarSesion(origen, index, hidratado)
   toastSuccess('Sesión actualizada')
   modoEdicion.value = false
 }

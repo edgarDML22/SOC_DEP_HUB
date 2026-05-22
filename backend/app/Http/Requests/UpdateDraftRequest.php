@@ -15,17 +15,16 @@ class UpdateDraftRequest extends FormRequest
     {
         return [
             'payload'                                    => 'required|array',
-            'payload.nombre_plantilla'                   => 'sometimes|string|max:100',
-            'payload.fecha_inicio'                       => 'sometimes|date_format:Y-m-d',
-            'payload.fecha_fin'                          => 'sometimes|date_format:Y-m-d|after_or_equal:payload.fecha_inicio',
-            'payload.actividades'                        => 'sometimes|array',
-            'payload.actividades.*.id_disciplina'        => 'required_with:payload.actividades|integer|exists:disciplinas,id_disciplina',
-            'payload.actividades.*.id_espacio'           => 'required_with:payload.actividades|integer|exists:espacios_fisicos,id_espacio',
-            'payload.actividades.*.id_instructor'        => 'required_with:payload.actividades|integer|exists:instructores,id_instructor',
-            'payload.actividades.*.dia_semana'           => 'required_with:payload.actividades|in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO',
-            'payload.actividades.*.hora_inicio'          => 'required_with:payload.actividades|date_format:H:i',
-            'payload.actividades.*.hora_fin'             => 'required_with:payload.actividades|date_format:H:i',
-            'payload.actividades.*.cupo_maximo'          => 'required_with:payload.actividades|integer|min:1|max:200',
+            'id_plantilla'                               => 'required|integer|exists:plantillas_programacion,id_plantilla',
+            // 'present' (no 'required') permite enviar array vacío al descartar
+            'payload.actividades'                        => 'present|array',
+            'payload.actividades.*.id_disciplina'        => 'required|integer|exists:disciplinas,id_disciplina',
+            'payload.actividades.*.id_espacio'           => 'required|integer|exists:espacios_fisicos,id_espacio',
+            'payload.actividades.*.id_instructor'        => 'required|integer|exists:instructores,id_instructor',
+            'payload.actividades.*.dia_semana'           => 'required|in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO',
+            'payload.actividades.*.hora_inicio'          => 'required|date_format:H:i',
+            'payload.actividades.*.hora_fin'             => 'required|date_format:H:i',
+            'payload.actividades.*.cupo_maximo'          => 'required|integer|min:1|max:200',
             'payload.actividades.*.requiere_inscripcion' => 'sometimes|boolean',
         ];
     }
