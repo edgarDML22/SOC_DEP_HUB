@@ -91,7 +91,9 @@ class TransitionTorneoStatusAction
         return [
             'success' => true,
             'id_torneo' => $torneo->id_torneo,
-            'estatus_torneo' => $torneo->estatus_torneo
+            'estatus_torneo' => $torneo->estatus_torneo,
+            'estado' => $torneo->estatus_torneo,
+            'motivo_cancelacion' => $torneo->motivo_cancelacion,
         ];
     }
 }

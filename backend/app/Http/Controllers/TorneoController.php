@@ -33,6 +33,7 @@ class TorneoController extends Controller
                 'cupo_minimo' => $t->cupo_minimo,
                 'modalidad' => $t->modalidad,
                 'genero' => $t->genero_requerido,
+                'motivo_cancelacion' => $t->motivo_cancelacion,
             ];
         });
 

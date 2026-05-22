@@ -41,6 +41,8 @@ use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
+use App\Http\Controllers\SocioAgendaController;
+use App\Http\Controllers\InstructorEncuentrosController;
 use App\Http\Controllers\PreRegisterController;
 use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
@@ -257,6 +259,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
+    Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
@@ -345,6 +348,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
 
     // TORNEOS: Hub del Socio (disponibles e historial)
+    Route::get('/v1/socio/agenda', [SocioAgendaController::class, 'index']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 

@@ -248,6 +248,10 @@ const router = createRouter({
           component: () => import('../views/instructor/InstructorAgendaView.vue'),
         },
         {
+          path: 'encuentros-torneo',
+          component: () => import('../views/instructor/InstructorEncuentrosView.vue'),
+        },
+        {
           path: 'sessions',
           component: () => import('../views/instructor/InstructorSessionsView.vue'),
         },
