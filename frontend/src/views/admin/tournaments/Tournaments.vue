@@ -23,6 +23,10 @@ const store = useTournamentStore()
 const { torneos, loading, error: errorMsg, filtros } = storeToRefs(store)
 const { toastSuccess, toastError, toastInfo } = useAlerts()
 
+// Obtener rol para mostrar opciones exclusivas
+const userData = JSON.parse(localStorage.getItem('user_data') || '{}')
+const esSubgerente = computed(() => userData.rol === 'subgerente')
+
 // ── FILTROS ────────────────────────────────────────────────────
 const STATUS_OPTS = [
   { label: 'Todos los estados', value: null },
@@ -123,7 +127,19 @@ const buildActions = (torneo) => {
     })
   }
 
-  return actions
+  if (esSubgerente.value) {
+    actions.push({
+      label: 'Validar Resultados',
+      icon: `<svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>`,
+      action: () => {
+        router.push({ path: '/admin/tournaments/resultados-pendientes', query: { torneo_id: torneo.id_torneo } })
+      }
+    })
+  }
+
+  return actions;
 }
 
 // ── INIT ───────────────────────────────────────────────────────

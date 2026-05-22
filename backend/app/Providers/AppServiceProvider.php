@@ -25,11 +25,10 @@ class AppServiceProvider extends ServiceProvider
         Sanctum::usePersonalAccessTokenModel(CachedPersonalAccessToken::class);
 
         Relation::enforceMorphMap([
-            'USER'     => 'App\Models\User',
-            'SOCIO'    => 'App\Models\SocioTitular',
-            'FAMILIAR' => 'App\Models\MiembrosFamiliares',
-            // Agrega el de invitados cuando implementes ese modelo:
-            // 'EXTERNO'  => 'App\Models\Invitados', 
+            'USER'         => 'App\\Models\\User',
+            'SOCIO'        => 'App\\Models\\SocioTitular',
+            'FAMILIAR'     => 'App\\Models\\MiembrosFamiliares',
+            'PARTICIPANTE' => 'App\\Models\\ParticipantesTorneo',
         ]);
     }
 }

@@ -8,6 +8,7 @@ use App\Jobs\GenerarQRParticipanteJob;
 use App\Models\Torneo;
 use App\Models\SocioTitular;
 use App\Models\MiembrosFamiliares;
+use App\Exceptions\TournamentFullException;
 
 class AprobarPreRegistroAction
 {
@@ -28,11 +29,27 @@ class AprobarPreRegistroAction
             $torneo = Torneo::find($preRegistro->id_torneo);
             $idCategoria = $torneo->id_categoria;
 
+            // Validar cupo máximo antes de aprobar
+            $confirmados = ParticipantesTorneo::where('id_torneo', $torneo->id_torneo)
+                ->where('estatus_inscripcion', 'CONFIRMADO')
+                ->count();
+
+            if ($confirmados >= $torneo->cupo_maximo) {
+                $preRegistro->estatus = 'RECHAZADO';
+                $preRegistro->motivo_rechazo = 'Cupo máximo del torneo alcanzado.';
+                $preRegistro->save();
+                throw new TournamentFullException();
+            }
+
             // Determinar tipo de participante
             $tipoEntidad = 'COMPETIDOR_EXTERNO';
             $referenciaId = 0;
             $participanteType = null;
             $participanteId = null;
+            // If still external, store reference to pre‑registro for name lookup
+            if ($tipoEntidad === 'COMPETIDOR_EXTERNO') {
+                $referenciaId = $preRegistro->id;
+            }
 
             // Buscar socio titular
             $socio = SocioTitular::where('correo_electronico', $datos['correo'])->first();
@@ -130,6 +147,23 @@ class AprobarPreRegistroAction
 
             /*
             |--------------------------------------------------------------------------
+            | VALIDAR CUPO MÁXIMO
+            |--------------------------------------------------------------------------
+            */
+
+            $confirmados = ParticipantesTorneo::where('id_torneo', $torneo->id_torneo)
+                ->where('estatus_inscripcion', 'CONFIRMADO')
+                ->count();
+
+            if ($confirmados >= $torneo->cupo_maximo) {
+                $preRegistro->estatus = 'RECHAZADO';
+                $preRegistro->motivo_rechazo = 'Cupo máximo del torneo alcanzado.';
+                $preRegistro->save();
+                throw new TournamentFullException();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
             | CREAR PARTICIPANTES
             |--------------------------------------------------------------------------
             */
@@ -146,12 +180,13 @@ class AprobarPreRegistroAction
                 */
 
                 $tipoEntidad = 'COMPETIDOR_EXTERNO';
-
                 $referenciaId = 0;
-
                 $participanteType = null;
-
                 $participanteId = null;
+                // For external participants, keep reference to the pre‑registro record
+                if ($tipoEntidad === 'COMPETIDOR_EXTERNO') {
+                    $referenciaId = $preRegistro->id;
+                }
 
                 // Buscar socio titular
                 $socio = SocioTitular::where(

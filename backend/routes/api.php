@@ -17,6 +17,7 @@ use App\Http\Controllers\TorneoController;
 use App\Http\Controllers\UpdateStatusTorneo;
 use App\Http\Controllers\CreateCategories;
 use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\ResultadoController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GuestPassController;
 use App\Http\Controllers\GuestStatusController;
@@ -41,11 +42,14 @@ use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\PreRegisterController;
+use App\Actions\Torneo\GenerarBracketAction;
+use App\Models\Torneo;
 use App\Http\Controllers\EquipoTorneoController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
+|----------------------------------------------------------------
 |
 | Aquí es donde registras las rutas API para tu aplicación.
 |
@@ -324,14 +328,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
         //SDH-268:VER TORNEO
         Route::get('/{id}', [TorneoController::class, 'show']);
+        //SDH-284 GENERAR EL BRACKET
         Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
     });
 
 
 
     Route::prefix('v1/encuentros')->group(function () {
-
-        //
+        Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
+        Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
+        Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);
     });
 
 
@@ -356,6 +362,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Descargar/visualizar documento del preregistro
     Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+    //RESULTADOS TORNEOS
+    Route::get('/v1/instructor/encuentros-torneo', [ResultadoController::class, 'misEncuentros']);
+
+    Route::get('/v1/subgerente/resultados-pendientes', [ResultadoController::class, 'resultadosPendientes']);
 
     //Torneos y equipos
     Route::get(

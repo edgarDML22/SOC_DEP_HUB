@@ -9,6 +9,10 @@ class ParticipantesTorneo extends Model
     protected $table = "participantes_torneo";
     protected $primaryKey = 'id_participante_torneo';
     public $timestamps = false;
+
+    // Append accessor so it appears in JSON responses
+    protected $appends = ['nombre_completo'];
+
     protected $fillable = [
         'id_categoria',
         'tipo_entidad',
@@ -31,11 +35,6 @@ class ParticipantesTorneo extends Model
         'id_equipo',
         'qr_codigo',
         'qr_estatus',
-        'id_categoria',
-        'tipo_entidad',
-        'referencia_id',
-        'fecha_inscripcion',
-        'estatus_participacion'
     ];
     public function participante()
     {
@@ -52,25 +51,89 @@ class ParticipantesTorneo extends Model
 
     public function equipo()
     {
-        return $this->belongsTo(EquiposTorneo::class, 'id_equipo');
+        return $this->belongsTo(EquiposTorneo::class, 'id_equipo', 'id_equipo_torneo');
+    }
+
+    /**
+     * Relación para cuando este participante ES el capitán/creador de un equipo.
+     * Permite eager loading: competidor1.capitanDeEquipo
+     */
+    public function capitanDeEquipo()
+    {
+        return $this->hasOne(EquiposTorneo::class, 'id_participante_torneo', 'id_participante_torneo');
     }
 
     // Accessors for polymorphic relationships
     public function getCorreoAttribute()
     {
-        if ($this->participante_type === SocioTitular::class && $this->participante) {
-            return $this->participante->correo_electronico;
-        } elseif ($this->participante_type === MiembrosFamiliares::class && $this->participante) {
-            return $this->participante->correo;
+        $id   = $this->participante_id;
+        $type = $this->participante_type;
+        if ($id && in_array($type, ['SOCIO', SocioTitular::class])) {
+            return SocioTitular::find($id)?->correo_electronico;
+        } elseif ($id && in_array($type, ['FAMILIAR', MiembrosFamiliares::class])) {
+            return MiembrosFamiliares::find($id)?->correo;
         }
         return null;
     }
 
     public function getNombreCompletoAttribute()
     {
-        if (in_array($this->participante_type, [SocioTitular::class, MiembrosFamiliares::class]) && $this->participante) {
-            return $this->participante->nombre_completo;
+        // ── 1. Capitán del equipo: usa relación eager-loaded si está disponible,
+        //       de lo contrario hace la query. Esto evita N+1 cuando el controlador
+        //       carga 'competidor1.capitanDeEquipo' por eager loading.
+        $equipoCapitan = $this->relationLoaded('capitanDeEquipo')
+            ? $this->capitanDeEquipo
+            : EquiposTorneo::where('id_participante_torneo', $this->id_participante_torneo)->first();
+
+        if ($equipoCapitan && $equipoCapitan->nombre_equipo) {
+            return $equipoCapitan->nombre_equipo;
         }
+
+        // ── 2. Miembro de equipo: usa relación eager-loaded si está disponible ──
+        if (!empty($this->id_equipo)) {
+            $equipo = $this->relationLoaded('equipo')
+                ? $this->equipo
+                : EquiposTorneo::where('id_equipo_torneo', $this->id_equipo)->first();
+
+            if ($equipo && $equipo->nombre_equipo) {
+                return $equipo->nombre_equipo;
+            }
+        }
+
+        $id   = $this->participante_id;
+        $type = $this->participante_type;
+
+        // Socio titular: buscar directo en socios_titulares
+        if ($id && in_array($type, ['SOCIO', SocioTitular::class])) {
+            return SocioTitular::find($id)?->nombre_completo;
+        }
+
+        // Miembro familiar: buscar directo en miembros_familiares
+        if ($id && in_array($type, ['FAMILIAR', MiembrosFamiliares::class])) {
+            return MiembrosFamiliares::find($id)?->nombre_completo;
+        }
+
+        // Competidor externo: buscar en pre_registros_torneo por referencia_id
+        if ($this->tipo_entidad === 'COMPETIDOR_EXTERNO') {
+            if ($this->referencia_id && $this->referencia_id > 0) {
+                $pre = PreRegistroTorneo::find($this->referencia_id);
+                if ($pre && isset($pre->datos_participante['nombre_completo'])) {
+                    return $pre->datos_participante['nombre_completo'];
+                }
+            }
+
+            // Fallback heurístico para registros antiguos con referencia_id = 0
+            $pre = PreRegistroTorneo::where('id_torneo', $this->id_torneo)
+                ->where('estatus', 'APROBADO')
+                ->where('tipo', 'INDIVIDUAL')
+                ->orderBy('id')
+                ->skip($this->id_interno)
+                ->first();
+            if ($pre && isset($pre->datos_participante['nombre_completo'])) {
+                return $pre->datos_participante['nombre_completo'];
+            }
+        }
+
         return 'Participante Externo';
     }
 }

@@ -56,9 +56,12 @@ class TorneoController extends Controller
             'disciplina',
             'categoria',
             'encuentros' => fn($q) => $q->orderBy('fase_bracket')->orderBy('numero_encuentro'),
-            'encuentros.competidor1',
-            'encuentros.competidor2',
-
+            'encuentros.competidor1.participante',
+            'encuentros.competidor1.equipo',
+            'encuentros.competidor1.capitanDeEquipo',
+            'encuentros.competidor2.participante',
+            'encuentros.competidor2.equipo',
+            'encuentros.competidor2.capitanDeEquipo',
         ])
 
             ->findOrFail($id);
@@ -177,6 +180,36 @@ class TorneoController extends Controller
                 "estado" => "EN_PLANIFICACION"
             ]
         ], 201);
+    }
+
+    /**
+     * Recupera el bracket de encuentros del torneo agrupado por fase.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function bracket(int $id)
+    {
+        $torneo = Torneo::findOrFail($id);
+
+        $encuentros = $torneo->encuentros()
+            ->with([
+                'competidor1.participante',
+                'competidor1.equipo',
+                'competidor1.capitanDeEquipo',
+                'competidor2.participante',
+                'competidor2.equipo',
+                'competidor2.capitanDeEquipo'
+            ])
+            ->orderBy('numero_encuentro', 'asc')
+            ->get();
+
+        $encuentrosAgrupados = $encuentros->groupBy('fase_bracket');
+
+        return response()->json([
+            'success' => true,
+            'data' => $encuentrosAgrupados
+        ], 200);
     }
 
 }
