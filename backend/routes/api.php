@@ -337,6 +337,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('v1/encuentros')->group(function () {
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
         Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
+        Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);
     });
 
 
