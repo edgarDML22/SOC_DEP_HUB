@@ -967,7 +967,20 @@ function descartarCelda() {
 
               <!-- Días -->
               <div class="mt-5">
-                <label class="block text-[10px] uppercase font-black tracking-widest text-slate-600 mb-2.5">Días de la semana</label>
+                <div class="flex items-center justify-between mb-2.5">
+                  <label class="block text-[10px] uppercase font-black tracking-widest text-slate-600">Días de la semana</label>
+                  <button
+                    v-if="form.dias.length > 0"
+                    type="button"
+                    @click="form.dias = []"
+                    class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Limpiar
+                  </button>
+                </div>
                 <div class="flex gap-1.5">
                   <button
                     v-for="dia in DIAS_SEMANA"
