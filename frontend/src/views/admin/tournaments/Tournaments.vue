@@ -52,11 +52,12 @@ const disciplineOpts = computed(() => {
 
 // Debounce para búsqueda
 let debounceTimer = null
-const searchQuery = ref('')
+const searchQuery = ref(filtros.value.search || '')
 watch(searchQuery, (val) => {
+  filtros.value.search = val
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
-    store.fetchTorneos({ search: val })
+    store.fetchTorneos()
   }, 300)
 })
 
@@ -65,9 +66,10 @@ watch([() => filtros.value.estatus, () => filtros.value.disciplina, () => filtro
   store.fetchTorneos()
 })
 
-const hasActiveFilters = computed(() => searchQuery.value || filtros.value.estatus || filtros.value.disciplina || filtros.value.tipo_acceso)
+const hasActiveFilters = computed(() => filtros.value.search || filtros.value.estatus || filtros.value.disciplina || filtros.value.tipo_acceso)
 const clearFilters = () => {
   searchQuery.value = ''
+  filtros.value.search = ''
   filtros.value.estatus = null
   filtros.value.disciplina = null
   filtros.value.tipo_acceso = null
@@ -140,6 +142,19 @@ const buildActions = (torneo) => {
   }
 
   return actions;
+}
+
+// ── EXPANSIÓN (torneos cancelados) ─────────────────────────────
+const expandedTorneoId = ref(null)
+
+const estatusTorneo = (torneo) => torneo.estado || torneo.estatus_torneo
+
+const isCancelado = (torneo) => estatusTorneo(torneo) === 'CANCELADO'
+
+const toggleExpand = (torneo) => {
+  if (!isCancelado(torneo)) return
+  const id = torneo.id_torneo
+  expandedTorneoId.value = expandedTorneoId.value === id ? null : id
 }
 
 // ── INIT ───────────────────────────────────────────────────────
@@ -293,27 +308,67 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100">
-            <tr v-for="torneo in torneos" :key="torneo.id_torneo" class="hover:bg-surface-50/70 transition-colors group">
-              <td class="px-5 py-3.5">
-                <div class="font-bold text-surface-900">{{ torneo.nombre_torneo }}</div>
-                <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
-              </td>
-              <td class="px-4 py-3.5 hidden md:table-cell text-surface-600 font-medium">
-                {{ torneo.disciplina || '—' }}
-              </td>
-              <td class="px-4 py-3.5 hidden lg:table-cell text-surface-600 font-medium">
-                {{ torneo.categoria || '—' }}
-              </td>
-              <td class="px-4 py-3.5 hidden sm:table-cell">
-                 <BadgeStatus v-if="torneo.tipo_acceso" :status="torneo.tipo_acceso" />
-              </td>
-              <td class="px-4 py-3.5">
-                <BadgeStatus v-if="torneo.estado || torneo.estatus_torneo" :status="torneo.estado || torneo.estatus_torneo" />
-              </td>
-              <td class="px-4 py-3.5 text-right">
-                <ActionMenu :items="buildActions(torneo)" :disabled="loading || isActionLoading" align="right" />
-              </td>
-            </tr>
+            <template v-for="torneo in torneos" :key="torneo.id_torneo">
+              <tr
+                class="hover:bg-surface-50/70 transition-colors group"
+                :class="{ 'cursor-pointer': isCancelado(torneo) }"
+                @click="toggleExpand(torneo)"
+              >
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <button
+                      v-if="isCancelado(torneo)"
+                      type="button"
+                      class="w-6 h-6 rounded-lg border border-surface-200 flex items-center justify-center text-surface-500 hover:text-primary-600 shrink-0"
+                      :aria-expanded="expandedTorneoId === torneo.id_torneo"
+                      @click.stop="toggleExpand(torneo)"
+                    >
+                      <svg
+                        class="w-3.5 h-3.5 transition-transform"
+                        :class="{ 'rotate-180': expandedTorneoId === torneo.id_torneo }"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                    <div>
+                      <div class="font-bold text-surface-900">{{ torneo.nombre_torneo }}</div>
+                      <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 py-3.5 hidden md:table-cell text-surface-600 font-medium">
+                  {{ torneo.disciplina || '—' }}
+                </td>
+                <td class="px-4 py-3.5 hidden lg:table-cell text-surface-600 font-medium">
+                  {{ torneo.categoria || '—' }}
+                </td>
+                <td class="px-4 py-3.5 hidden sm:table-cell">
+                  <BadgeStatus v-if="torneo.tipo_acceso" :status="torneo.tipo_acceso" />
+                </td>
+                <td class="px-4 py-3.5">
+                  <div class="flex flex-col items-start gap-1">
+                    <BadgeStatus v-if="estatusTorneo(torneo)" :status="estatusTorneo(torneo)" />
+                  </div>
+                </td>
+                <td class="px-4 py-3.5 text-right" @click.stop>
+                  <ActionMenu :items="buildActions(torneo)" :disabled="loading" align="right" />
+                </td>
+              </tr>
+              <tr
+                v-if="isCancelado(torneo) && expandedTorneoId === torneo.id_torneo"
+                class="bg-surface-50/80"
+              >
+                <td colspan="6" class="px-5 py-3 border-t border-surface-100">
+                  <p class="text-xs text-surface-500 font-medium leading-relaxed">
+                    {{ torneo.motivo_cancelacion || 'Sin motivo de cancelación registrado.' }}
+                  </p>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>

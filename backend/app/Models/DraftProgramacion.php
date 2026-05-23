@@ -13,12 +13,12 @@ class DraftProgramacion extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'id_gerente', // Actualizado según tu nueva columna
+        'id_gerente',
+        'id_plantilla',
         'payload',
     ];
 
     protected $casts = [
-        // El cast fundamental para que el JSON de Postgres se maneje como array en PHP
         'payload' => 'array',
     ];
 

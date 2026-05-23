@@ -94,7 +94,11 @@ return [
             'sslmode' => 'require',
             'timezone' => 'America/Mexico_City',
             'options' => [
-                PDO::ATTR_PERSISTENT => true,
+                // Neon usa PgBouncer en modo transaction, incompatible con prepared
+                // statements cacheados. PGSQL_ATTR_DISABLE_PREPARES envía cada query
+                // como texto plano sin cachear planes en el servidor, resolviendo
+                // "cached plan must not change result type" sin romper el type binding.
+                PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
                 PDO::ATTR_TIMEOUT => 10,
             ],
         ],

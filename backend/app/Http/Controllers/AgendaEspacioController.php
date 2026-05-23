@@ -40,7 +40,7 @@ class AgendaEspacioController extends Controller
             SELECT CAST(fecha_hora_inicio AS TIME), CAST(fecha_hora_fin AS TIME), 'torneo' AS tipo
             FROM   encuentros_torneo
             WHERE  id_espacio = ?
-              AND  DATE(fecha_hora_inicio) = ?
+              AND  CAST(fecha_hora_inicio AS DATE) = ?
               AND  fecha_hora_inicio IS NOT NULL
               AND  fecha_hora_fin IS NOT NULL
               AND  estatus_encuentro NOT IN ('CANCELADO', 'FINALIZADO')

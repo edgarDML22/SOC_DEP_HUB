@@ -9,6 +9,7 @@ use App\Actions\Torneo\GenerarBracketAction;
 use App\Actions\Torneo\AsignarHorariosAction;
 use App\Actions\Torneo\BloquearClasesTorneoAction;
 use App\Actions\Torneo\DesbloquearClasesTorneoAction;
+use App\Actions\Torneo\CancelarTorneoAction;
 
 class TransitionTorneoStatusAction
 {
@@ -68,11 +69,7 @@ class TransitionTorneoStatusAction
             $torneo->estatus_torneo = $nuevoEstatus;
 
             if ($nuevoEstatus === 'CANCELADO') {
-
                 $torneo->motivo_cancelacion = $motivoCancelacion;
-
-                // Task-23
-                // app(CancelarTorneoAction::class)->execute($torneo);
             }
 
             if ($nuevoEstatus === 'PROGRAMADO') {
@@ -88,10 +85,19 @@ class TransitionTorneoStatusAction
             $torneo->save();
         });
 
+        if ($nuevoEstatus === 'CANCELADO') {
+            app(CancelarTorneoAction::class)->ejecutarPostCancelacion(
+                $torneo->fresh(),
+                $motivoCancelacion
+            );
+        }
+
         return [
             'success' => true,
             'id_torneo' => $torneo->id_torneo,
-            'estatus_torneo' => $torneo->estatus_torneo
+            'estatus_torneo' => $torneo->estatus_torneo,
+            'estado' => $torneo->estatus_torneo,
+            'motivo_cancelacion' => $torneo->motivo_cancelacion,
         ];
     }
 }

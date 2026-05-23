@@ -334,79 +334,84 @@ onMounted(fetchSocios)
         </div>
 
         <!-- Tabla con datos -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Socio</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">
-                Acción</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">
-                Tipo</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">
-                Modalidad</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">
-                Género</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estatus
-                Cuenta</th>
-              <th
-                class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden xl:table-cell">
-                Estatus Penalización</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-100">
-            <tr v-for="socio in filteredSocios" :key="socio.id_socio"
-              v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
-              class="hover:bg-surface-50/70 transition-colors group">
-              <!-- Nombre + avatar -->
-              <td class="px-5 py-3.5 first:last:rounded-bl-2xl">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
-                           text-white font-black text-xs shrink-0 shadow-sm"
-                    :class="avatarGradient(socio.nombre_completo)">
-                    {{ initials(socio.nombre_completo) }}
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-slate-600">
+            <thead>
+              <tr class="bg-surface-50 border-b border-surface-200">
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Socio</th>
+                <th scope="col"
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden sm:table-cell">
+                  Acción</th>
+                <th scope="col"
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">
+                  Tipo</th>
+                <th scope="col"
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
+                  Modalidad</th>
+                <th scope="col"
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
+                  Género</th>
+                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
+                  Cuenta</th>
+                <th scope="col"
+                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden xl:table-cell">
+                  Estatus Penalización</th>
+                <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="(socio, idx) in filteredSocios" :key="socio.id_socio"
+                v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
+                class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group animate-row-in"
+                :style="{ animationDelay: `${idx * 30}ms` }">
+                <!-- Nombre + avatar -->
+                <td class="px-6 py-4 first:last:rounded-bl-2xl">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
+                             text-white font-black text-xs shrink-0 shadow-sm"
+                      :class="avatarGradient(socio.nombre_completo)">
+                      {{ initials(socio.nombre_completo) }}
+                    </div>
+                    <span class="font-semibold text-surface-900 truncate max-w-[180px]">
+                      {{ socio.nombre_completo }}
+                    </span>
                   </div>
-                  <span class="font-semibold text-surface-900 truncate max-w-[180px]">
-                    {{ socio.nombre_completo }}
+                </td>
+                <!-- Acción -->
+                <td class="px-6 py-4 hidden sm:table-cell">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
+                    {{ socio.numero_accion }}
                   </span>
-                </div>
-              </td>
-              <!-- Acción -->
-              <td class="px-4 py-3.5 hidden sm:table-cell">
-                <span class="text-xs font-bold text-surface-500 font-mono">#{{ socio.numero_accion }}</span>
-              </td>
-              <!-- Tipo -->
-              <td class="px-4 py-3.5 hidden md:table-cell">
-                <BadgeStatus :status="socio.tipo_socio" />
-              </td>
-              <!-- Modalidad -->
-              <td class="px-4 py-3.5 hidden lg:table-cell">
-                <BadgeStatus :status="socio.modalidad_plan" />
-              </td>
-              <!-- Género -->
-              <td class="px-4 py-3.5 hidden lg:table-cell">
-                <BadgeStatus :status="socio.genero" />
-              </td>
-              <!-- Estatus Cuenta -->
-              <td class="px-4 py-3.5" @click.stop>
-                <BadgeStatus :status="socio.estatus_cuenta" />
-              </td>
-              <!-- Estatus Penalización -->
-              <td class="px-4 py-3.5 hidden xl:table-cell" @click.stop>
-                <BadgeStatus :status="socio.estatus_penalizacion ?? 'SIN_PENALIZACION'" />
-              </td>
-              <!-- Menú acciones -->
-              <td class="px-4 py-3.5 text-right last:last:rounded-br-2xl" @click.stop>
-                <ActionMenu :items="buildMenuItems(socio)" align="right" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <!-- Tipo -->
+                <td class="px-6 py-4 hidden md:table-cell">
+                  <BadgeStatus :status="socio.tipo_socio" />
+                </td>
+                <!-- Modalidad -->
+                <td class="px-6 py-4 hidden lg:table-cell">
+                  <BadgeStatus :status="socio.modalidad_plan" />
+                </td>
+                <!-- Género -->
+                <td class="px-6 py-4 hidden lg:table-cell">
+                  <BadgeStatus :status="socio.genero" />
+                </td>
+                <!-- Estatus Cuenta -->
+                <td class="px-6 py-4" @click.stop>
+                  <BadgeStatus :status="socio.estatus_cuenta" />
+                </td>
+                <!-- Estatus Penalización -->
+                <td class="px-6 py-4 hidden xl:table-cell" @click.stop>
+                  <BadgeStatus :status="socio.estatus_penalizacion ?? 'SIN_PENALIZACION'" />
+                </td>
+                <!-- Menú acciones -->
+                <td class="px-6 py-4 text-right last:last:rounded-br-2xl" @click.stop>
+                  <ActionMenu :items="buildMenuItems(socio)" align="right" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div><!-- /max-w -->
@@ -500,3 +505,13 @@ onMounted(fetchSocios)
 
   </main>
 </template>
+
+<style scoped>
+.animate-row-in {
+  animation: rowIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+</style>

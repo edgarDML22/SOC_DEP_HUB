@@ -11,6 +11,7 @@ export const useTournamentStore = defineStore("tournament", () => {
     const error = ref(null);
     const pagination = ref({ page: 1, total: 0, perPage: 15 });
     const filtros = ref({
+        search: '',
         estatus: null,
         disciplina: null,
         categoria: null,
@@ -171,6 +172,9 @@ export const useTournamentStore = defineStore("tournament", () => {
             // Mutación optimista en el activo
             torneoActivo.value.estado = nuevoEstatus;
             torneoActivo.value.estatus_torneo = nuevoEstatus;
+            if (nuevoEstatus === 'CANCELADO' && motivo) {
+                torneoActivo.value.motivo_cancelacion = motivo;
+            }
             isActivo = true;
         }
 
@@ -179,6 +183,9 @@ export const useTournamentStore = defineStore("tournament", () => {
             // Mutación optimista en la lista
             torneos.value[index].estado = nuevoEstatus;
             torneos.value[index].estatus_torneo = nuevoEstatus;
+            if (nuevoEstatus === 'CANCELADO' && motivo) {
+                torneos.value[index].motivo_cancelacion = motivo;
+            }
         }
 
         try {

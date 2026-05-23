@@ -259,6 +259,10 @@ const router = createRouter({
           component: () => import('../views/instructor/InstructorAgendaView.vue'),
         },
         {
+          path: 'encuentros-torneo',
+          component: () => import('../views/instructor/InstructorEncuentrosView.vue'),
+        },
+        {
           path: 'sessions',
           component: () => import('../views/instructor/InstructorSessionsView.vue'),
         },
@@ -347,7 +351,9 @@ const router = createRouter({
         },
         {
           path: "activities",
-          component: () => import("@/views/admin/activities/Activities.vue"),
+          name: "admin-programacion",
+          component: () => import("@/views/admin/programacion/ActividadesView.vue"),
+          meta: { requiresAuth: true, allowedRoles: ["gerente", "subgerente"] },
         },
         {
           path: "spaces",

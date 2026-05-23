@@ -41,9 +41,15 @@ use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
+use App\Http\Controllers\SocioAgendaController;
+use App\Http\Controllers\InstructorEncuentrosController;
 use App\Http\Controllers\PreRegisterController;
+use App\Http\Controllers\PlantillaProgramacionController;
+use App\Http\Controllers\ProgramacionDependenciasController;
 use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
+use App\Http\Controllers\RefereeAvailabilityController;
+use App\Http\Controllers\MatchAssignmentController;
 use App\Http\Controllers\EquipoTorneoController;
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +60,19 @@ use App\Http\Controllers\EquipoTorneoController;
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+if (app()->environment('local')) {
+    Route::patch('/test-cancelar-torneo/{id}', function ($id) {
+        $torneo = \App\Models\Torneo::findOrFail($id);
+
+        app(\App\Actions\Torneo\CancelarTorneoAction::class)
+            ->execute($torneo, 'Prueba de cancelación');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Torneo cancelado (cola torneo-cancelacion)',
+        ]);
+    });
+}
 
 
 // ==========================================
@@ -258,6 +277,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
+    Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
@@ -330,11 +350,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [TorneoController::class, 'show']);
         //SDH-284 GENERAR EL BRACKET
         Route::get('/{id}/bracket', [TorneoController::class, 'bracket']);
+        
+        Route::get('/{id_torneo}/referees', [RefereeAvailabilityController::class, 'all']);
+        Route::get('/{id_torneo}/available-referees', [RefereeAvailabilityController::class, 'available']);
     });
 
 
 
     Route::prefix('v1/encuentros')->group(function () {
+        Route::patch('/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
         Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
         Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);
@@ -347,6 +371,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
 
     // TORNEOS: Hub del Socio (disponibles e historial)
+    Route::get('/v1/socio/agenda', [SocioAgendaController::class, 'index']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
@@ -366,6 +391,46 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructor/encuentros-torneo', [ResultadoController::class, 'misEncuentros']);
 
     Route::get('/v1/subgerente/resultados-pendientes', [ResultadoController::class, 'resultadosPendientes']);
+
+    // ==========================================
+    // MÓDULO DE PROGRAMACIÓN DE ACTIVIDADES (Sprint 5)
+    // ==========================================
+
+    // DRAFTS y PLANTILLAS (Wizard del Subgerente)
+    Route::prefix('v1/programacion')->group(function () {
+        Route::get('dependencias', [ProgramacionDependenciasController::class, 'index']);
+
+        Route::prefix('drafts')->group(function () {
+            Route::get('/activo',      [PlantillaProgramacionController::class, 'showDraftActivo']);
+            Route::put('/activo',      [PlantillaProgramacionController::class, 'updateDraftActivo']);
+            Route::post('/consolidar', [PlantillaProgramacionController::class, 'consolidar']);
+            Route::post('/publicar',   [PlantillaProgramacionController::class, 'publicar']);
+        });
+
+        Route::prefix('plantillas')->group(function () {
+            Route::get('/', [PlantillaProgramacionController::class, 'index']);
+            Route::post('/', [PlantillaProgramacionController::class, 'storePlantilla']);
+            Route::get('/{plantillaId}', [PlantillaProgramacionController::class, 'show']);
+            Route::patch('/{plantillaId}', [PlantillaProgramacionController::class, 'updatePlantilla']);
+            Route::delete('/{plantillaId}', [PlantillaProgramacionController::class, 'destroyPlantilla']);
+        });
+
+        Route::prefix('actividades')->group(function () {
+            Route::patch('/{id}', [PlantillaProgramacionController::class, 'updateActividad']);
+            Route::delete('/{id}', [PlantillaProgramacionController::class, 'destroyActividad']);
+        });
+        // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
+
+        // Task 25.5: Route::post('sesiones/generar', [\App\Http\Controllers\SesionActivaController::class, 'generarManual']);
+    });
+
+    // Task 30.1 y 31.5 — descomentar cuando existan los controllers:
+    // Route::prefix('v1/actividades')->group(function () {
+    //     Route::get('sesiones', [\App\Http\Controllers\InscripcionClaseController::class, 'indexSesiones']);
+    //     Route::get('sesiones/{id_sesion}/estado-inscripcion', [\App\Http\Controllers\InscripcionClaseController::class, 'estadoInscripcion']);
+    //     Route::post('sesiones/{id_sesion}/inscribir', [\App\Http\Controllers\InscripcionClaseController::class, 'inscribir']);
+    //     Route::delete('inscripciones/{id_inscripcion}', [\App\Http\Controllers\InscripcionClaseController::class, 'cancelar']);
+    // });
 
     //Torneos y equipos
     Route::get(

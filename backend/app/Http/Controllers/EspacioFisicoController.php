@@ -202,8 +202,12 @@ class EspacioFisicoController extends Controller
                WHERE ap.id_espacio = ? AND sa.estatus_sesion = 'EN_CURSO'
               ) AS sesiones_activas,
 
-              (SELECT COUNT(*) FROM actividades_plantilla
-               WHERE id_espacio = ?
+              (SELECT COUNT(*) FROM actividades_plantilla ap
+               INNER JOIN plantillas_programacion pp ON pp.id_plantilla = ap.id_plantilla
+               WHERE ap.id_espacio = ?
+                 AND pp.estatus_plantilla = 'ACTIVO'
+                 AND pp.deleted_at IS NULL
+                 AND ap.deleted_at IS NULL
               ) AS actividades_programadas,
 
               (SELECT COUNT(*) FROM encuentros_torneo
