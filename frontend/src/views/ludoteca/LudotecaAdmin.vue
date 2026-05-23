@@ -221,6 +221,10 @@ const calendarOptions = computed(() => ({
     height: 520,
     expandRows: true,
     nowIndicator: true,
+
+    slotEventOverlap: false,
+    eventMaxStack: 3,
+
     dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short', omitCommas: true },
     displayEventTime: false,
     slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
@@ -636,7 +640,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Vista de Semana: Calendario FullCalendar -->
-                <div v-else key="week" class="[&_.fc]:font-sans [&_.fc]:text-[0.65rem] [&_.fc]:[--fc-border-color:#f1f5f9] [&_.fc]:[--fc-today-bg-color:#f8fafc] [&_.fc-theme-standard_td]:border-[#f1f5f9]! [&_.fc-timegrid-slot]:h-[2.2rem] [&_.fc-timegrid-slot]:border-b-[#f8fafc]! [&_.fc-event]:rounded-xl! [&_.fc-event]:border-none! [&_.fc-event]:bg-linear-to-br! [&_.fc-event]:from-[#3b82f6] [&_.fc-event]:to-[#1d4ed8] [&_.fc-event]:shadow-lg! [&_.fc-event]:shadow-blue-500/30 [&_.fc-event]:mt-1! [&_.fc-event]:mx-1! [&_.fc-event-main]:flex! [&_.fc-event-main]:items-center! [&_.fc-event-main]:justify-center! [&_.fc-event-main]:text-center! [&_.fc-event-main]:font-bold! [&_.fc-event-main]:p-2! [&_.fc-col-header-cell]:bg-[#f8fafc] [&_.fc-col-header-cell]:py-3 [&_.fc-col-header-cell-cushion]:text-sm! [&_.fc-col-header-cell-cushion]:capitalize! [&_.fc-col-header-cell-cushion]:font-black! [&_.fc-col-header-cell-cushion]:text-surface-600! [&_.fc-timegrid-axis-cushion]:text-[0.7rem]! [&_.fc-timegrid-now-indicator-line]:border-[#ef4444]!">
+                <div v-else key="week" class="[&_.fc]:font-sans [&_.fc]:text-[0.65rem] [&_.fc]:[--fc-border-color:#f1f5f9] [&_.fc]:[--fc-today-bg-color:#f8fafc] [&_.fc-theme-standard_td]:border-[#f1f5f9]! [&_.fc-timegrid-slot]:h-[2.2rem] [&_.fc-timegrid-slot]:border-b-[#f8fafc]! [&_.fc-event]:rounded-xl! [&_.fc-event]:border-none! [&_.fc-event]:bg-linear-to-br! [&_.fc-event]:from-[#3b82f6] [&_.fc-event]:to-[#1d4ed8] [&_.fc-event]:shadow-lg! [&_.fc-event]:shadow-blue-500/30 [&_.fc-event]:mt-1! [&_.fc-event]:mx-[1px] [&_.fc-event-main]:flex! [&_.fc-event-main]:items-center! [&_.fc-event-main]:justify-center! [&_.fc-event-main]:text-center! [&_.fc-event-main]:font-bold! [&_.fc-event-main]:p-1! [&_.fc-col-header-cell]:bg-[#f8fafc] [&_.fc-col-header-cell]:py-3 [&_.fc-col-header-cell-cushion]:text-sm! [&_.fc-col-header-cell-cushion]:capitalize! [&_.fc-col-header-cell-cushion]:font-black! [&_.fc-col-header-cell-cushion]:text-surface-600! [&_.fc-timegrid-axis-cushion]:text-[0.7rem]! [&_.fc-timegrid-now-indicator-line]:border-[#ef4444]!">
                   <FullCalendar :key="calendarView" :options="calendarOptions" />
                 </div>
               </Transition>
