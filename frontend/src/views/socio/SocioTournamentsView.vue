@@ -5,6 +5,7 @@ import { useSocioTorneoStore } from '@/stores/socioTorneoStore';
 import { useAlerts } from '@/composables/useAlerts';
 import ModalSeleccionParticipante from '@/components/socio/ModalSeleccionParticipante.vue';
 import PartnerSelectionModal from '@/components/socio/PartnerSelectionModal.vue';
+import TeamInvitationModal from '@/components/socio/TeamInvitationModal.vue';
 import { IconArrowLeft, IconCalendar, IconTrophy, IconHistory, IconStar, IconBaby, IconGender } from '@/components/icons';
 
 const router = useRouter();
@@ -16,6 +17,9 @@ const selectedTorneo = ref(null);
 const isModalOpen = ref(false);
 const isPartnerModalOpen = ref(false);
 const teamToReassign = ref(null);
+
+const isTeamInvitationModalOpen = ref(false);
+const invitationTeamId = ref(null);
 
 const tabs = [
   { key: 'inscripcion', label: 'Inscripción' },
@@ -80,6 +84,22 @@ const handleInviteSent = () => {
   // Refresh list to update UI
   torneoStore.fetchDisponibles();
   closePartnerModal();
+};
+
+const openInvitationModal = (teamId) => {
+  console.debug('[UI] openInvitationModal called, teamId=', teamId);
+  invitationTeamId.value = teamId;
+  isTeamInvitationModalOpen.value = true;
+};
+
+const closeInvitationModal = () => {
+  isTeamInvitationModalOpen.value = false;
+  invitationTeamId.value = null;
+};
+
+const handleInvitationResponded = (decision) => {
+  // Re-fetch the history so it reflects the new status
+  torneoStore.fetchHistorial();
 };
 
 // Formatear fechas legibles
@@ -369,7 +389,7 @@ const getProgressBarColor = (pct) => {
                       <!-- Si el usuario actual es el Invitado (Socio B) -->
                       <div v-else class="text-center">
                         <p class="text-sm text-indigo-800 font-bold mb-2">¡Te han invitado a jugar este torneo!</p>
-                        <button @click="router.push(`/socio/invitations/${item.equipo.id_equipo}`)"
+                        <button @click="openInvitationModal(item.equipo.id_equipo)"
                           class="w-full bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
                           Ver y Responder Invitación
                         </button>
@@ -400,6 +420,14 @@ const getProgressBarColor = (pct) => {
     <PartnerSelectionModal v-if="isPartnerModalOpen" :isOpen="isPartnerModalOpen" :tournament="selectedTorneo"
       :category="selectedTorneo.categoria" :teamToReassign="teamToReassign" @close="closePartnerModal"
       @invite-sent="handleInviteSent" />
+
+    <!-- Team Invitation Modal -->
+    <TeamInvitationModal 
+      v-if="isTeamInvitationModalOpen" 
+      :isOpen="isTeamInvitationModalOpen" 
+      :teamId="invitationTeamId" 
+      @close="closeInvitationModal" 
+      @responded="handleInvitationResponded" />
   </div>
 </template>
 

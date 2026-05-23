@@ -94,10 +94,10 @@ class EquipoTorneoController extends Controller
             ->where(function ($query) use ($usuarioId, $companeroId) {
                 $query->where(function ($q) use ($usuarioId, $companeroId) {
                     $q->where('solicitante_id', $usuarioId)
-                      ->where('receptor_id', $companeroId);
+                        ->where('receptor_id', $companeroId);
                 })->orWhere(function ($q) use ($usuarioId, $companeroId) {
                     $q->where('solicitante_id', $companeroId)
-                      ->where('receptor_id', $usuarioId);
+                        ->where('receptor_id', $usuarioId);
                 });
             })
             ->exists();
@@ -176,17 +176,17 @@ class EquipoTorneoController extends Controller
             }
 
             $capitan = ParticipantesTorneo::create([
-                'id_categoria'          => $torneo->id_categoria,
-                'tipo_entidad'          => 'SOCIO_TITULAR',
-                'referencia_id'         => $usuarioId,
-                'siembra_ranking'       => $request->ranking_capitan,
-                'fecha_inscripcion'     => now(),
+                'id_categoria' => $torneo->id_categoria,
+                'tipo_entidad' => 'SOCIO_TITULAR',
+                'referencia_id' => $usuarioId,
+                'siembra_ranking' => $request->ranking_capitan,
+                'fecha_inscripcion' => now(),
                 'estatus_participacion' => 'ACTIVO',
-                'id_torneo'             => $id_torneo,
-                'participante_type'     => 'SOCIO',
-                'participante_id'       => $usuarioId,
-                'ranking_declarado'     => $request->ranking_capitan,
-                'estatus_inscripcion'   => 'CONFIRMADA',
+                'id_torneo' => $id_torneo,
+                'participante_type' => 'SOCIO',
+                'participante_id' => $usuarioId,
+                'ranking_declarado' => $request->ranking_capitan,
+                'estatus_inscripcion' => 'CONFIRMADA',
             ]);
             $capitan->refresh();
 
@@ -201,18 +201,18 @@ class EquipoTorneoController extends Controller
 
             $equipo = EquiposTorneo::create([
                 'id_participante_torneo' => $capitan->id_participante_torneo,
-                'id_categoria'           => $torneo->id_categoria,
-                'tipo_entidad'           => 'SOCIO_TITULAR',
-                'referencia_id'          => $usuarioId,
-                'id_interno'             => $proximoIdInterno,
-                'siembra_ranking'        => $request->ranking_capitan,
-                'posicion_actual'        => 0,
-                'puntos_torneo'          => 0,
-                'estatus_participacion'  => 'ACTIVO',
-                'fecha_registro'         => now(),
-                'id_torneo'              => $id_torneo,
-                'nombre_equipo'          => $request->nombre_equipo,
-                'estatus_equipo'         => 'PENDIENTE',
+                'id_categoria' => $torneo->id_categoria,
+                'tipo_entidad' => 'SOCIO_TITULAR',
+                'referencia_id' => $usuarioId,
+                'id_interno' => $proximoIdInterno,
+                'siembra_ranking' => $request->ranking_capitan,
+                'posicion_actual' => 0,
+                'puntos_torneo' => 0,
+                'estatus_participacion' => 'ACTIVO',
+                'fecha_registro' => now(),
+                'id_torneo' => $id_torneo,
+                'nombre_equipo' => $request->nombre_equipo,
+                'estatus_equipo' => 'PENDIENTE',
             ]);
 
             /*
@@ -232,24 +232,24 @@ class EquipoTorneoController extends Controller
             */
 
             ParticipantesTorneo::create([
-                'id_categoria'          => $torneo->id_categoria,
-                'tipo_entidad'          => 'SOCIO_TITULAR',
-                'referencia_id'         => $companeroId,
-                'siembra_ranking'       => $request->ranking_companero,
-                'fecha_inscripcion'     => now(),
+                'id_categoria' => $torneo->id_categoria,
+                'tipo_entidad' => 'SOCIO_TITULAR',
+                'referencia_id' => $companeroId,
+                'siembra_ranking' => $request->ranking_companero,
+                'fecha_inscripcion' => now(),
                 'estatus_participacion' => 'ACTIVO',
-                'id_torneo'             => $id_torneo,
-                'participante_type'     => 'SOCIO',
-                'participante_id'       => $companeroId,
-                'ranking_declarado'     => $request->ranking_companero,
-                'id_equipo'             => $equipo->id_equipo_torneo,
-                'estatus_inscripcion'   => 'LISTA_ESPERA',
+                'id_torneo' => $id_torneo,
+                'participante_type' => 'SOCIO',
+                'participante_id' => $companeroId,
+                'ranking_declarado' => $request->ranking_companero,
+                'id_equipo' => $equipo->id_equipo_torneo,
+                'estatus_inscripcion' => 'LISTA_ESPERA',
             ]);
 
             DB::commit();
 
             // Dispatch notificación al compañero sin bloquear el request
-            $capitanModel   = SocioTitular::find($usuarioId);
+            $capitanModel = SocioTitular::find($usuarioId);
             $companeroModel = SocioTitular::find($companeroId);
 
             if ($capitanModel && $companeroModel) {
@@ -315,7 +315,7 @@ class EquipoTorneoController extends Controller
         if ($request->decision === 'ACEPTAR') {
 
             $companero->update([
-                'estatus_inscripcion'   => 'CONFIRMADA',
+                'estatus_inscripcion' => 'CONFIRMADA',
                 'estatus_participacion' => 'ACTIVO',
             ]);
 
@@ -327,7 +327,7 @@ class EquipoTorneoController extends Controller
         if ($request->decision === 'RECHAZAR') {
 
             $companero->update([
-                'estatus_inscripcion'   => 'CANCELADA',
+                'estatus_inscripcion' => 'CANCELADA',
                 'estatus_participacion' => 'ELIMINADO',
             ]);
 
@@ -341,7 +341,7 @@ class EquipoTorneoController extends Controller
                 ->first();
 
             if ($capitanParticipante) {
-                $capitanModel   = SocioTitular::find($capitanParticipante->participante_id);
+                $capitanModel = SocioTitular::find($capitanParticipante->participante_id);
                 $companeroModel = SocioTitular::find($companero->participante_id);
 
                 if ($capitanModel && $companeroModel) {
@@ -393,17 +393,17 @@ class EquipoTorneoController extends Controller
         $rechazado->delete();
 
         ParticipantesTorneo::create([
-            'id_categoria'          => $rechazado->id_categoria,
-            'tipo_entidad'          => 'SOCIO_TITULAR',
-            'referencia_id'         => $request->id_nuevo_companero,
-            'siembra_ranking'       => $request->ranking_nuevo_companero,
-            'fecha_inscripcion'     => now(),
+            'id_categoria' => $rechazado->id_categoria,
+            'tipo_entidad' => 'SOCIO_TITULAR',
+            'referencia_id' => $request->id_nuevo_companero,
+            'siembra_ranking' => $request->ranking_nuevo_companero,
+            'fecha_inscripcion' => now(),
             'estatus_participacion' => 'ACTIVO',
-            'id_torneo'             => $rechazado->id_torneo,
-            'participante_type'     => 'SOCIO',
-            'participante_id'       => $request->id_nuevo_companero,
-            'id_equipo'             => $request->id_equipo,
-            'estatus_inscripcion'   => 'LISTA_ESPERA',
+            'id_torneo' => $rechazado->id_torneo,
+            'participante_type' => 'SOCIO',
+            'participante_id' => $request->id_nuevo_companero,
+            'id_equipo' => $request->id_equipo,
+            'estatus_inscripcion' => 'LISTA_ESPERA',
         ]);
 
         // Notificar al nuevo compañero sin bloquear el request
@@ -412,7 +412,7 @@ class EquipoTorneoController extends Controller
             ->first();
 
         if ($capitanParticipante) {
-            $capitanModel        = SocioTitular::find($capitanParticipante->participante_id);
+            $capitanModel = SocioTitular::find($capitanParticipante->participante_id);
             $nuevoCompaneroModel = SocioTitular::find($request->id_nuevo_companero);
 
             if ($capitanModel && $nuevoCompaneroModel) {

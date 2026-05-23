@@ -192,7 +192,7 @@ class SocioTournamentController extends Controller
                         ->first();
 
                     $nombreCompanero = 'Compañero';
-                    if ($companeroPart && $companeroPart->participante_type === 'App\\Models\\SocioTitular') {
+                    if ($companeroPart && $companeroPart->participante_type === 'SOCIO') {
                         $socioCompanero = SocioTitular::find($companeroPart->participante_id);
                         if ($socioCompanero) {
                             $nombreCompanero = $socioCompanero->nombre_completo;

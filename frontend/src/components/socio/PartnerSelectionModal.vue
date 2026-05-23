@@ -62,11 +62,9 @@ const checkEligibility = (friend) => {
     let isEligible = true;
 
     if (!props.category) {
-        return { isEligible, reason }; // If no category requirements, everyone is eligible
+        return { isEligible, reason }; 
     }
 
-    // Check gender: if category requires M or F, the friend must match exactly.
-    // If it's anything else (like MIXTO, AMBOS, etc.), any gender is accepted.
     const reqGender = props.category.genero_requerido;
     if (reqGender === 'M' || reqGender === 'F') {
         if (friend.genero !== reqGender) {
@@ -77,11 +75,10 @@ const checkEligibility = (friend) => {
         }
     }
 
-    // Check age
     const age = calculateAge(friend.fecha_nacimiento);
     if (age === null) {
         isEligible = false;
-        reason = 'Unknown age';
+        reason = 'Edad desconocida';
         return { isEligible, reason };
     }
 
@@ -90,13 +87,13 @@ const checkEligibility = (friend) => {
 
     if (minAge !== null && age < minAge) {
         isEligible = false;
-        reason = `Under age (Min ${minAge})`;
+        reason = `Menor de edad (Mín. ${minAge})`;
         return { isEligible, reason };
     }
 
     if (maxAge !== null && age > maxAge) {
         isEligible = false;
-        reason = `Over age (Max ${maxAge})`;
+        reason = `Mayor de edad (Máx. ${maxAge})`;
         return { isEligible, reason };
     }
 
@@ -113,6 +110,10 @@ const eligibleFriends = computed(() => {
             ineligibleReason: eligibility.reason
         };
     });
+});
+
+const hasEligibleFriends = computed(() => {
+    return eligibleFriends.value.some(f => f.isEligible);
 });
 
 const isFormValid = computed(() => {
@@ -163,7 +164,7 @@ const sendInvitation = async () => {
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             <!-- Header -->
             <div class="bg-gray-50 px-6 py-4 border-b flex items-center justify-between">
-                <h3 class="text-xl font-bold text-gray-800">Select Tournament Partner</h3>
+                <h3 class="text-xl font-bold text-gray-800">Seleccionar Compañero</h3>
                 <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -175,9 +176,9 @@ const sendInvitation = async () => {
             <!-- Body -->
             <div class="p-6 overflow-y-auto flex-1">
                 <p class="text-sm text-gray-600 mb-4">
-                    Category Requirements: {{ category?.genero_requerido || 'None' }}
+                    Requisitos de la Categoría: {{ category?.genero_requerido || 'Ninguno' }}
                     <span v-if="category?.edad_minima || category?.edad_maxima">
-                        ({{ category?.edad_minima || 0 }} - {{ category?.edad_maxima || 'No limit' }} years)
+                        ({{ category?.edad_minima || 0 }} - {{ category?.edad_maxima || 'Sin límite' }} años)
                     </span>
                 </p>
 
@@ -188,7 +189,12 @@ const sendInvitation = async () => {
 
                 <!-- Empty State -->
                 <div v-else-if="eligibleFriends.length === 0" class="text-center py-8 text-gray-500">
-                    You don't have any accepted friends to invite.
+                    No tienes amigos agregados para invitar.
+                </div>
+                
+                <!-- No Eligible Friends State -->
+                <div v-else-if="!hasEligibleFriends" class="text-center py-8 text-rose-500 font-medium bg-rose-50 rounded-lg border border-rose-100">
+                    Ninguno de tus amigos cumple los requisitos de esta categoría.
                 </div>
 
                 <!-- Friends List -->
@@ -214,11 +220,11 @@ const sendInvitation = async () => {
                         <div>
                             <span v-if="friend.isEligible"
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Eligible
+                                Elegible
                             </span>
                             <span v-else
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Ineligible: {{ friend.ineligibleReason }}
+                                No cumple: {{ friend.ineligibleReason }}
                             </span>
                         </div>
                     </div>
@@ -235,22 +241,22 @@ const sendInvitation = async () => {
 
                     <!-- Rankings Configuration -->
                     <div>
-                        <h4 class="font-medium text-gray-800 mb-3">Ranking Information</h4>
+                        <h4 class="font-medium text-gray-800 mb-3">Información de Ranking</h4>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Your Ranking</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tu Ranking</label>
                                 <input type="number" v-model="rankingCaptain" min="0" max="500"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Partner Ranking</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Ranking del Compañero</label>
                                 <input type="number" v-model="rankingPartner" min="0" max="500"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             </div>
                         </div>
                         <p v-if="rankingCaptain < 0 || rankingCaptain > 500 || rankingPartner < 0 || rankingPartner > 500"
                             class="text-sm text-red-600 mt-2">
-                            Rankings must be between 0 and 500.
+                            Los rankings deben estar entre 0 y 500.
                         </p>
                     </div>
                 </div>
@@ -260,7 +266,7 @@ const sendInvitation = async () => {
             <div class="bg-gray-50 px-6 py-4 border-t flex justify-end space-x-3">
                 <button @click="closeModal"
                     class="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
-                    Cancel
+                    Cancelar
                 </button>
                 <button @click="sendInvitation" :disabled="!isFormValid"
                     class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center justify-center min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed">
@@ -272,9 +278,9 @@ const sendInvitation = async () => {
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                             </path>
                         </svg>
-                        Sending...
+                        Enviando...
                     </span>
-                    <span v-else>Send Invitation</span>
+                    <span v-else>Enviar Invitación</span>
                 </button>
             </div>
 
