@@ -95,7 +95,7 @@ return [
             'timezone' => 'America/Mexico_City',
             'options' => [
                 // Neon usa PgBouncer en modo transaction, incompatible con prepared
-                // statements cacheados. PGSQL_ATTR_DISABLE_PREPARES envía cada query
+                // statements cacheados. PGSQL_ATTR_DISABLE_PREPARES envia cada query
                 // como texto plano sin cachear planes en el servidor, resolviendo
                 // "cached plan must not change result type" sin romper el type binding.
                 (defined('PDO::PGSQL_ATTR_DISABLE_PREPARES') ? PDO::PGSQL_ATTR_DISABLE_PREPARES : 1002) => true,
