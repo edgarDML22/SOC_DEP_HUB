@@ -13,9 +13,16 @@ const sesiones   = ref([])
 const isLoading  = ref(false)
 const loadError  = ref('')
 
-const activeView      = ref('tabla')
-const searchFilter    = ref('')
-const selectedEstatus = ref('TODOS')
+const activeView         = ref('tabla')
+const searchFilter       = ref('')
+const selectedEstatus    = ref('TODOS')
+const selectedCategoria  = ref('TODAS')
+const selectedDisciplina = ref('TODAS')
+const selectedInstructor = ref('TODOS')
+const selectedEspacio    = ref('TODOS')
+const selectedDia        = ref('TODOS')
+const horaDesde          = ref('')
+const horaHasta          = ref('')
 
 // ─── Carga de datos reales ───────────────────────────────────────────────────
 async function fetchSesiones() {
@@ -33,10 +40,23 @@ async function fetchSesiones() {
 
 onMounted(fetchSesiones)
 
-// Cuando se retiran sesiones desde PlantillasGestion, refrescar automáticamente
 watch(() => plantillasStore.sesionesRetiradas, (val) => {
   if (val > 0) fetchSesiones()
 })
+
+// ─── Opciones derivadas ─────────────────────────────────────────────────────
+const disciplinasUnicas = computed(() =>
+  [...new Set(sesiones.value.map(s => s.disciplina).filter(Boolean))].sort()
+)
+const instructoresUnicos = computed(() =>
+  [...new Set(sesiones.value.map(s => s.instructor).filter(Boolean))].sort()
+)
+const espaciosUnicos = computed(() =>
+  [...new Set(sesiones.value.map(s => s.espacio).filter(Boolean))].sort()
+)
+const categoriasUnicas = computed(() =>
+  [...new Set(sesiones.value.map(s => s.categoria).filter(Boolean))].sort()
+)
 
 // ─── Filtros de búsqueda ────────────────────────────────────────────────────
 const sesionesFiltradas = computed(() => {
@@ -46,19 +66,47 @@ const sesionesFiltradas = computed(() => {
       String(s.id_sesion).includes(term) ||
       (s.disciplina ?? '').toLowerCase().includes(term) ||
       (s.instructor  ?? '').toLowerCase().includes(term) ||
-      (s.espacio     ?? '').toLowerCase().includes(term)
-    const matchesEstatus = selectedEstatus.value === 'TODOS' || s.estatus_sesion === selectedEstatus.value
-    return matchesSearch && matchesEstatus
+      (s.espacio     ?? '').toLowerCase().includes(term) ||
+      (s.categoria   ?? '').toLowerCase().includes(term)
+
+    const matchesEstatus    = selectedEstatus.value === 'TODOS' || s.estatus_sesion === selectedEstatus.value
+    const matchesCategoria  = selectedCategoria.value === 'TODAS' || s.categoria === selectedCategoria.value
+    const matchesDisciplina = selectedDisciplina.value === 'TODAS' || s.disciplina === selectedDisciplina.value
+    const matchesInstructor = selectedInstructor.value === 'TODOS' || s.instructor === selectedInstructor.value
+    const matchesEspacio    = selectedEspacio.value === 'TODOS' || s.espacio === selectedEspacio.value
+    const matchesDia        = selectedDia.value === 'TODOS' || s.dia_semana === selectedDia.value
+
+    const horaSes = (s.hora_inicio ?? '').slice(0, 5)
+    const matchesHoraDesde = !horaDesde.value || horaSes >= horaDesde.value
+    const matchesHoraHasta = !horaHasta.value || horaSes <= horaHasta.value
+
+    return matchesSearch && matchesEstatus && matchesCategoria && matchesDisciplina
+        && matchesInstructor && matchesEspacio && matchesDia && matchesHoraDesde && matchesHoraHasta
   })
 })
 
 const hayFiltrosActivos = computed(() =>
-  searchFilter.value.trim() !== '' || selectedEstatus.value !== 'TODOS'
+  searchFilter.value.trim() !== '' ||
+  selectedEstatus.value !== 'TODOS' ||
+  selectedCategoria.value !== 'TODAS' ||
+  selectedDisciplina.value !== 'TODAS' ||
+  selectedInstructor.value !== 'TODOS' ||
+  selectedEspacio.value !== 'TODOS' ||
+  selectedDia.value !== 'TODOS' ||
+  horaDesde.value !== '' ||
+  horaHasta.value !== ''
 )
 
 function limpiarFiltros() {
-  searchFilter.value    = ''
-  selectedEstatus.value = 'TODOS'
+  searchFilter.value       = ''
+  selectedEstatus.value    = 'TODOS'
+  selectedCategoria.value  = 'TODAS'
+  selectedDisciplina.value = 'TODAS'
+  selectedInstructor.value = 'TODOS'
+  selectedEspacio.value    = 'TODOS'
+  selectedDia.value        = 'TODOS'
+  horaDesde.value          = ''
+  horaHasta.value          = ''
 }
 
 // ─── Modal de gestión de estatus ────────────────────────────────────────────
@@ -67,15 +115,52 @@ const sesionSeleccionada = ref(null)
 const tempEstatus        = ref('DISPONIBLE')
 const isSaving           = ref(false)
 
+// ─── Asistencia (lazy) ──────────────────────────────────────────────────────
+const asistencia        = ref([])
+const isLoadingAsistencia = ref(false)
+
+// Toggles colapsables por grupo
+const grupoExpandido = ref({ INSCRITO: true, ASISTENCIA: true, NO_SHOW: true })
+function toggleGrupo(key) { grupoExpandido.value[key] = !grupoExpandido.value[key] }
+
+// Agrupación por estatus
+const grupoInscritos = computed(() =>
+  asistencia.value.filter(i => i.estatus_inscripcion === 'CONFIRMADA')
+)
+const grupoAsistencia = computed(() =>
+  asistencia.value.filter(i => i.estatus_inscripcion === 'ASISTIO')
+)
+const grupoNoShow = computed(() =>
+  asistencia.value.filter(i => i.estatus_inscripcion === 'FALTA')
+)
+const totalInscritos = computed(() => asistencia.value.length)
+
+async function fetchAsistencia(id_sesion) {
+  isLoadingAsistencia.value = true
+  asistencia.value = []
+  try {
+    const { data } = await api.get(`/programacion/sesiones-activas/${id_sesion}/asistencia`)
+    asistencia.value = data.data ?? []
+  } catch {
+    asistencia.value = []
+  } finally {
+    isLoadingAsistencia.value = false
+  }
+}
+
 function abrirDetalle(sesion) {
   sesionSeleccionada.value = { ...sesion }
   tempEstatus.value        = sesion.estatus_sesion
+  asistencia.value         = []
+  grupoExpandido.value     = { INSCRITO: true, ASISTENCIA: true, NO_SHOW: true }
   showModal.value          = true
+  fetchAsistencia(sesion.id_sesion)
 }
 
 function cerrarModal() {
   showModal.value          = false
   sesionSeleccionada.value = null
+  asistencia.value         = []
 }
 
 async function guardarCambios() {
@@ -98,9 +183,54 @@ async function guardarCambios() {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const DIAS_LABEL = {
-  LUNES: 'Lunes', MARTES: 'Martes', MIERCOLES: 'Miércoles',
-  JUEVES: 'Jueves', VIERNES: 'Viernes', SABADO: 'Sábado', DOMINGO: 'Domingo',
+  LUNES: 'LUNES', MARTES: 'MARTES', MIERCOLES: 'MIÉRCOLES',
+  JUEVES: 'JUEVES', VIERNES: 'VIERNES', SABADO: 'SÁBADO', DOMINGO: 'DOMINGO',
 }
+
+const DIAS_COLORS = {
+  LUNES:     'bg-rose-50 text-rose-700 border-rose-200',
+  MARTES:    'bg-amber-50 text-amber-700 border-amber-200',
+  MIERCOLES: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  JUEVES:    'bg-sky-50 text-sky-700 border-sky-200',
+  VIERNES:   'bg-violet-50 text-violet-700 border-violet-200',
+  SABADO:    'bg-orange-50 text-orange-700 border-orange-200',
+  DOMINGO:   'bg-slate-100 text-slate-700 border-slate-200',
+}
+
+const ESTATUS_COLORS = {
+  DISPONIBLE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  EN_CURSO:   'bg-blue-50 text-blue-700 border-blue-200',
+  FINALIZADA: 'bg-slate-100 text-slate-600 border-slate-200',
+  CANCELADA:  'bg-red-50 text-red-700 border-red-200',
+}
+
+// Mapa estático con los nombres exactos de la BD → color + etiqueta legible
+const CATEGORIAS_MAP = {
+  'MENTE_CUERPO':              { color: 'bg-violet-50 text-violet-700 border-violet-200',   label: 'MENTE CUERPO' },
+  'DEPORTES_RAQUETA':          { color: 'bg-sky-50 text-sky-700 border-sky-200',             label: 'DEPORTES RAQUETA' },
+  'DEPORTES_EQUIPO':           { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'DEPORTES EQUIPO' },
+  'ACONDICIONAMIENTO_FISICO':  { color: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'ACONDICIONAMIENTO FÍSICO' },
+  'GIMNASIA':                  { color: 'bg-pink-50 text-pink-700 border-pink-200',          label: 'GIMNASIA' },
+  'ACUATICO':                  { color: 'bg-cyan-50 text-cyan-700 border-cyan-200',          label: 'ACUÁTICO' },
+  'INFANTIL':                  { color: 'bg-lime-50 text-lime-700 border-lime-200',          label: 'INFANTIL' },
+  'Artes Marciales Mixtas':    { color: 'bg-red-50 text-red-700 border-red-200',             label: 'ARTES MARCIALES MIXTAS' },
+  'Recreación':                { color: 'bg-orange-50 text-orange-700 border-orange-200',    label: 'RECREACIÓN' },
+}
+
+function categoriaColor(nombre) {
+  if (!nombre) return 'bg-slate-50 text-slate-500 border-slate-200'
+  return CATEGORIAS_MAP[nombre]?.color ?? 'bg-slate-50 text-slate-500 border-slate-200'
+}
+
+function formatCategoria(nombre) {
+  if (!nombre) return '—'
+  return CATEGORIAS_MAP[nombre]?.label ?? nombre.replace(/_/g, ' ').toUpperCase()
+}
+
+const HORAS_OPCIONES = Array.from({ length: 16 }, (_, i) => {
+  const h = String(i + 6).padStart(2, '0')
+  return `${h}:00`
+})
 
 function formatDate(d) {
   if (!d) return '—'
@@ -114,7 +244,7 @@ defineExpose({ fetchSesiones })
 <template>
   <div class="flex flex-col h-full bg-slate-50 font-sans min-h-0 relative">
 
-    <!-- ── Header (solo cuando hay sesiones o hay error/carga) ── -->
+    <!-- ══════════ HEADER ══════════ -->
     <div
       v-if="isLoading || loadError || sesiones.length > 0"
       class="px-6 py-4 bg-white border-b border-slate-200 shrink-0 shadow-sm"
@@ -126,36 +256,11 @@ defineExpose({ fetchSesiones })
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <!-- Búsqueda -->
-          <div class="relative w-48 md:w-60">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </span>
-            <input
-              v-model="searchFilter"
-              type="text"
-              placeholder="Buscar sesión, instructor..."
-              class="w-full pl-9 pr-4 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner"
-            />
-          </div>
-
-          <!-- Filtro de Estatus -->
-          <select
-            v-model="selectedEstatus"
-            class="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm transition-all"
-          >
-            <option value="TODOS">Todos los Estatus</option>
-            <option value="DISPONIBLE">Disponible</option>
-            <option value="CANCELADA">Cancelada</option>
-          </select>
-
-          <!-- Botón recargar -->
+          <!-- Recargar -->
           <button
             @click="fetchSesiones"
             :disabled="isLoading"
-            class="p-2 text-slate-500 hover:text-blue-600 bg-white border border-slate-200 hover:border-blue-300 rounded-xl transition-all focus:outline-none disabled:opacity-50"
+            class="p-2 text-slate-500 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-400 rounded-xl transition-all focus:outline-none disabled:opacity-50"
             title="Recargar sesiones"
           >
             <svg class="w-4 h-4" :class="isLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -163,12 +268,14 @@ defineExpose({ fetchSesiones })
             </svg>
           </button>
 
-          <!-- Switcher Tabla / Calendario -->
-          <div class="flex p-0.5 bg-slate-100 border border-slate-200 rounded-xl shadow-inner">
+          <!-- Switcher Tabla / Calendario (estilo oscuro) -->
+          <div class="flex p-1 bg-slate-900 rounded-2xl shadow-inner border border-slate-800">
             <button
               @click="activeView = 'tabla'"
-              class="py-1.5 px-3 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all"
-              :class="activeView === 'tabla' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'"
+              class="py-1.5 px-4 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all"
+              :class="activeView === 'tabla'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-300 hover:text-white'"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -177,8 +284,10 @@ defineExpose({ fetchSesiones })
             </button>
             <button
               @click="activeView = 'calendario'"
-              class="py-1.5 px-3 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all"
-              :class="activeView === 'calendario' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'"
+              class="py-1.5 px-4 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all"
+              :class="activeView === 'calendario'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-300 hover:text-white'"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" />
@@ -190,16 +299,16 @@ defineExpose({ fetchSesiones })
       </div>
     </div>
 
-    <!-- ── Contenido ── -->
+    <!-- ══════════ CONTENIDO ══════════ -->
     <div class="flex-1 overflow-hidden p-6 min-h-0">
 
-      <!-- ── SKELETON de carga ── -->
+      <!-- Skeleton -->
       <div v-if="isLoading" class="h-full flex flex-col gap-3">
         <div class="h-12 bg-slate-200 rounded-2xl animate-pulse" />
         <div v-for="i in 5" :key="i" class="h-14 bg-white border border-slate-200 rounded-2xl animate-pulse" :style="`opacity:${1 - i * 0.12}`" />
       </div>
 
-      <!-- ── ERROR de red ── -->
+      <!-- Error -->
       <div v-else-if="loadError" class="h-full flex items-center justify-center">
         <div class="text-center max-w-sm">
           <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
@@ -211,25 +320,19 @@ defineExpose({ fetchSesiones })
           <p class="text-xs text-slate-500 mb-4">{{ loadError }}</p>
           <button
             @click="fetchSesiones"
-            class="px-4 py-2 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+            class="px-4 py-2 text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-colors"
           >
             Reintentar
           </button>
         </div>
       </div>
 
-      <!-- ── EMPTY STATE: aún no hay ninguna programación publicada ── -->
+      <!-- Empty -->
       <div v-else-if="sesiones.length === 0" class="h-full flex items-center justify-center">
         <div class="w-full max-w-lg">
-
-          <!-- Tarjeta principal -->
           <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-
-            <!-- Banda superior decorativa -->
             <div class="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-purple-400" />
-
             <div class="p-8 text-center">
-              <!-- Icono ilustrado -->
               <div class="relative mx-auto mb-6 w-20 h-20">
                 <div class="absolute inset-0 rounded-2xl bg-slate-50 border border-slate-200 rotate-6" />
                 <div class="absolute inset-0 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center">
@@ -238,170 +341,271 @@ defineExpose({ fetchSesiones })
                   </svg>
                 </div>
               </div>
-
               <h3 class="text-xl font-black text-slate-800 mb-2 tracking-tight">Sin programación publicada</h3>
               <p class="text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
                 Aún no se han generado sesiones para esta semana. Publica una plantilla desde
                 <span class="font-bold text-slate-700">Gestión de Plantillas</span> para verlas aquí.
               </p>
             </div>
-
-            <!-- Separador -->
-            <div class="border-t border-slate-100 mx-6" />
-
-            <!-- Pasos en fila -->
-            <div class="p-6">
-              <p class="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-4 text-center">Cómo publicar una programación</p>
-              <div class="grid grid-cols-4 gap-3">
-                <div
-                  v-for="(paso, i) in [
-                    { icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Abre Gestión de Plantillas' },
-                    { icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', label: 'Activa una plantilla con bloques' },
-                    { icon: 'M5 13l4 4L19 7', label: 'Haz clic en Publicar y elige semana' },
-                    { icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', label: 'Las sesiones aparecen aquí' },
-                  ]"
-                  :key="i"
-                  class="flex flex-col items-center text-center gap-2"
-                >
-                  <div class="relative">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                      <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" :d="paso.icon" />
-                      </svg>
-                    </div>
-                    <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white text-[9px] font-black flex items-center justify-center">{{ i + 1 }}</span>
-                  </div>
-                  <p class="text-[10px] font-semibold text-slate-500 leading-tight">{{ paso.label }}</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Enlace para recargar -->
-          <div class="mt-4 text-center">
-            <button
-              @click="fetchSesiones"
-              class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Verificar nuevamente
-            </button>
           </div>
         </div>
       </div>
 
-      <!-- ── EMPTY STATE con filtros: hay sesiones pero los filtros no muestran nada ── -->
-      <template v-else-if="sesionesFiltradas.length === 0 && hayFiltrosActivos">
+      <!-- Contenido normal -->
+      <template v-else-if="sesiones.length > 0">
+
+        <!-- ══════════ VISTA TABLA ══════════ -->
         <div
           v-show="activeView === 'tabla'"
-          class="h-full flex flex-col bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
+          class="h-full overflow-hidden flex flex-col gap-4"
         >
-          <div class="flex-1 flex items-center justify-center flex-col gap-3 py-16">
+
+          <!-- ── BARRA DE FILTROS ── -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-2.5 shrink-0">
+
+            <!-- Fila 1: Buscador + Disciplina (alineados al fondo del label) -->
+            <div class="flex items-end gap-2.5">
+              <!-- Buscador (más ancho) -->
+              <div class="relative flex-1">
+                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 mb-0.5">Buscar</label>
+                <span class="absolute bottom-0 left-0 flex items-center pb-[9px] pl-3.5 pointer-events-none">
+                  <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input
+                  v-model="searchFilter"
+                  type="text"
+                  placeholder="Instructor, espacio, ID…"
+                  class="w-full pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all"
+                />
+              </div>
+              <!-- Disciplina (compacto) -->
+              <div class="flex flex-col gap-0.5 w-52 shrink-0">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Disciplina</label>
+                <select v-model="selectedDisciplina"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
+                  <option value="TODAS">Todas las disciplinas</option>
+                  <option v-for="d in disciplinasUnicas" :key="d" :value="d">{{ d }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Fila 2: Categoría + Instructor + Espacio + Día + Estatus + Hora -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+
+              <div class="flex flex-col gap-0.5">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoría</label>
+                <select v-model="selectedCategoria"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
+                  <option value="TODAS">Todas</option>
+                  <option v-for="c in categoriasUnicas" :key="c" :value="c">{{ formatCategoria(c) }}</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Instructor</label>
+                <select v-model="selectedInstructor"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
+                  <option value="TODOS">Todos</option>
+                  <option v-for="i in instructoresUnicos" :key="i" :value="i">{{ i }}</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Espacio</label>
+                <select v-model="selectedEspacio"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
+                  <option value="TODOS">Todos</option>
+                  <option v-for="e in espaciosUnicos" :key="e" :value="e">{{ e }}</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Día</label>
+                <select v-model="selectedDia"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
+                  <option value="TODOS">Todos</option>
+                  <option v-for="(label, key) in DIAS_LABEL" :key="key" :value="key">{{ label }}</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
+                <select v-model="selectedEstatus"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
+                  <option value="TODOS">Todos</option>
+                  <option value="DISPONIBLE">Disponible</option>
+                  <option value="EN_CURSO">En Curso</option>
+                  <option value="FINALIZADA">Finalizada</option>
+                  <option value="CANCELADA">Cancelada</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Rango Hora</label>
+                <div class="flex items-center gap-1">
+                  <select v-model="horaDesde"
+                    class="w-full min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all tabular-nums">
+                    <option value="">Desde</option>
+                    <option v-for="h in HORAS_OPCIONES" :key="h" :value="h">{{ h }}</option>
+                  </select>
+                  <span class="text-slate-400 text-[10px] font-black shrink-0">–</span>
+                  <select v-model="horaHasta"
+                    class="w-full min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all tabular-nums">
+                    <option value="">Hasta</option>
+                    <option v-for="h in HORAS_OPCIONES" :key="h" :value="h">{{ h }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <Transition enter-active-class="transition-all duration-200 ease-out"
+              enter-from-class="opacity-0" enter-to-class="opacity-100"
+              leave-active-class="transition-all duration-150 ease-in"
+              leave-from-class="opacity-100" leave-to-class="opacity-0">
+              <div v-if="hayFiltrosActivos" class="flex justify-end pt-0.5">
+                <button @click="limpiarFiltros"
+                  class="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                  Limpiar filtros
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- ── TABLA ── -->
+          <div v-if="sesionesFiltradas.length === 0" class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200 shadow-sm py-16 gap-3">
             <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
               <svg class="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
             <p class="text-sm font-extrabold text-slate-600">Sin resultados para los filtros actuales</p>
-            <p class="text-xs text-slate-400">Prueba cambiando el estatus o el término de búsqueda.</p>
-            <button
-              @click="limpiarFiltros"
-              class="mt-1 px-4 py-2 text-xs font-extrabold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors"
-            >
+            <p class="text-xs text-slate-400">Prueba ajustando los filtros o el término de búsqueda.</p>
+            <button @click="limpiarFiltros"
+              class="mt-1 px-4 py-2 text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-colors">
               Limpiar filtros
             </button>
           </div>
-        </div>
-      </template>
 
-      <!-- ── CONTENIDO NORMAL: hay sesiones y (opcionalmente) filtros activos ── -->
-      <template v-else-if="sesiones.length > 0">
+          <div v-else class="flex-1 overflow-hidden flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex-1 table-scroll">
+              <table class="w-full border-collapse text-left min-w-[1350px]">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-200 text-slate-800 text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+                    <th class="py-4 px-5">ID</th>
+                    <th class="py-4 px-4 text-center">Estatus</th>
+                    <th class="py-4 px-4 text-center">Tipo</th>
+                    <th class="py-4 px-4">Fecha</th>
+                    <th class="py-4 px-4">Disciplina</th>
+                    <th class="py-4 px-4">Categoría</th>
+                    <th class="py-4 px-4">Instructor</th>
+                    <th class="py-4 px-4">Espacio</th>
+                    <th class="py-4 px-4 text-center">Día</th>
+                    <th class="py-4 px-4 text-center">Hora Inicio</th>
+                    <th class="py-4 px-4 text-center">Hora Fin</th>
+                    <th class="py-4 px-4 text-center">Inscritos</th>
+                    <th class="py-4 px-5 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                  <tr
+                    v-for="s in sesionesFiltradas"
+                    :key="s.id_sesion"
+                    class="hover:bg-slate-50/60 transition-colors"
+                    :class="s.estatus_sesion === 'CANCELADA' ? 'bg-red-50/20' : ''"
+                  >
+                    <td class="py-3.5 px-5 font-mono font-bold text-slate-400">#{{ s.id_sesion }}</td>
 
-        <!-- VISTA TABLA -->
-        <div
-          v-show="activeView === 'tabla'"
-          class="h-full overflow-hidden flex flex-col bg-white rounded-3xl border border-slate-200 shadow-sm"
-        >
-          <div class="flex-1 overflow-auto">
-            <table class="w-full border-collapse text-left min-w-[1000px]">
-              <thead>
-                <tr class="bg-slate-50/70 border-b border-slate-200 text-slate-400 text-[10px] uppercase font-black tracking-wider sticky top-0 z-10">
-                  <th class="py-4 px-6">ID Sesión</th>
-                  <th class="py-4 px-4 text-center">Estatus</th>
-                  <th class="py-4 px-4">Fecha</th>
-                  <th class="py-4 px-4">Disciplina</th>
-                  <th class="py-4 px-4">Instructor</th>
-                  <th class="py-4 px-4">Espacio</th>
-                  <th class="py-4 px-4 text-center">Día</th>
-                  <th class="py-4 px-4 text-center">Hora inicio</th>
-                  <th class="py-4 px-4 text-center">Hora fin</th>
-                  <th class="py-4 px-4 text-center">Inscritos</th>
-                  <th class="py-4 px-6 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                <tr
-                  v-for="s in sesionesFiltradas"
-                  :key="s.id_sesion"
-                  class="hover:bg-slate-50/50 transition-colors"
-                  :class="s.estatus_sesion === 'CANCELADA' ? 'bg-red-50/20' : ''"
-                >
-                  <td class="py-4 px-6 font-mono font-bold text-slate-400">#{{ s.id_sesion }}</td>
-                  <td class="py-4 px-4 text-center">
-                    <span
-                      class="inline-flex px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-sm"
-                      :class="s.estatus_sesion === 'CANCELADA'
-                        ? 'bg-red-50 text-red-700 border-red-200'
-                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'"
-                    >
-                      {{ s.estatus_sesion }}
-                    </span>
-                  </td>
-                  <td class="py-4 px-4 text-slate-500 font-medium tabular-nums">{{ formatDate(s.fecha_sesion) }}</td>
-                  <td class="py-4 px-4 text-slate-800 font-extrabold">{{ s.disciplina ?? '—' }}</td>
-                  <td class="py-4 px-4 text-slate-600 font-bold">{{ s.instructor ?? '—' }}</td>
-                  <td class="py-4 px-4 text-slate-500 font-medium">{{ s.espacio ?? '—' }}</td>
-                  <td class="py-4 px-4 text-center">
-                    <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">
-                      {{ DIAS_LABEL[s.dia_semana] ?? s.dia_semana }}
-                    </span>
-                  </td>
-                  <td class="py-4 px-4 text-center tabular-nums">{{ (s.hora_inicio ?? '').slice(0,5) }}</td>
-                  <td class="py-4 px-4 text-center tabular-nums">{{ (s.hora_fin ?? '').slice(0,5) }}</td>
-                  <td class="py-4 px-4 text-center font-bold">
-                    <span class="px-2 py-1 rounded-md bg-slate-100 text-slate-700 font-extrabold shadow-inner tabular-nums">
-                      {{ s.cantidad_inscritos ?? 0 }}
-                    </span>
-                  </td>
-                  <td class="py-4 px-6 text-right">
-                    <button
-                      @click="abrirDetalle(s)"
-                      class="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-extrabold text-slate-600 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                      </svg>
-                      Gestionar
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    <td class="py-3.5 px-4 text-center">
+                      <span
+                        class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                        :class="ESTATUS_COLORS[s.estatus_sesion] ?? 'bg-slate-50 text-slate-600 border-slate-200'"
+                      >
+                        {{ s.estatus_sesion }}
+                      </span>
+                    </td>
+
+                    <td class="py-3.5 px-4 text-center">
+                      <span
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                        :class="s.requiere_inscripcion
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'"
+                      >
+                        <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                          :class="s.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500'" />
+                        {{ s.requiere_inscripcion ? 'CERRADA' : 'ABIERTA' }}
+                      </span>
+                    </td>
+
+                    <td class="py-3.5 px-4 text-slate-500 font-medium tabular-nums">{{ formatDate(s.fecha_sesion) }}</td>
+
+                    <td class="py-3.5 px-4 text-slate-800 font-extrabold">{{ s.disciplina ?? '—' }}</td>
+
+                    <td class="py-3.5 px-4">
+                      <span
+                        v-if="s.categoria"
+                        class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border tracking-wide"
+                        :class="categoriaColor(s.categoria)"
+                      >
+                        {{ formatCategoria(s.categoria) }}
+                      </span>
+                      <span v-else class="text-slate-300 text-[10px] font-bold">—</span>
+                    </td>
+
+                    <td class="py-3.5 px-4 text-slate-600 font-bold">{{ s.instructor ?? '—' }}</td>
+                    <td class="py-3.5 px-4 text-slate-500 font-medium">{{ s.espacio ?? '—' }}</td>
+
+                    <td class="py-3.5 px-4 text-center">
+                      <span
+                        class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border"
+                        :class="DIAS_COLORS[s.dia_semana] ?? 'bg-slate-50 text-slate-600 border-slate-200'"
+                      >
+                        {{ DIAS_LABEL[s.dia_semana] ?? s.dia_semana }}
+                      </span>
+                    </td>
+
+                    <td class="py-3.5 px-4 text-center tabular-nums text-slate-700 font-bold">{{ (s.hora_inicio ?? '').slice(0,5) }}</td>
+                    <td class="py-3.5 px-4 text-center tabular-nums text-slate-700 font-bold">{{ (s.hora_fin ?? '').slice(0,5) }}</td>
+
+                    <td class="py-3.5 px-4 text-center">
+                      <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-extrabold tabular-nums">
+                        {{ s.cantidad_inscritos ?? 0 }}
+                      </span>
+                    </td>
+
+                    <td class="py-3.5 px-5 text-right">
+                      <button
+                        @click="abrirDetalle(s)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-extrabold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                        </svg>
+                        Gestionar
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-bold shrink-0">
+              <span>Mostrando {{ sesionesFiltradas.length }} de {{ sesiones.length }} sesiones</span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Datos en vivo
+              </span>
+            </div>
           </div>
-          <!-- Footer -->
-          <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-bold shrink-0">
-            <span>Mostrando {{ sesionesFiltradas.length }} de {{ sesiones.length }} sesiones</span>
-            <span class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Datos en vivo
-            </span>
-          </div>
         </div>
 
-        <!-- VISTA CALENDARIO -->
+        <!-- ══════════ VISTA CALENDARIO ══════════ -->
         <div v-show="activeView === 'calendario'" class="h-full bg-white rounded-3xl border border-slate-200 shadow-sm p-4">
           <CalendarioPublicadas
             :sesiones="sesionesFiltradas"
@@ -412,122 +616,348 @@ defineExpose({ fetchSesiones })
       </template>
     </div>
 
-    <!-- ══════════ MODAL DE DETALLE & OPERACIÓN (Teleport) ══════════ -->
+    <!-- ══════════ MODAL DE GESTIÓN ══════════ -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0" enter-to-class="opacity-100"
+        enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100"
         leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0"
+        leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95"
       >
         <div
           v-if="showModal"
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="cerrarModal"
         >
-          <!-- Contenido del Modal -->
-          <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 transform scale-100">
+          <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
 
-            <!-- Encabezado dinámico según estatus temporal -->
+            <!-- ── Encabezado ── -->
             <div
-              class="px-6 py-5 text-white relative transition-colors duration-300"
+              class="px-7 pt-6 pb-5 text-white relative"
               :class="tempEstatus === 'CANCELADA'
-                ? 'bg-gradient-to-br from-rose-500 to-red-700'
-                : 'bg-gradient-to-br from-blue-600 to-indigo-700'"
+                ? 'bg-linear-to-br from-rose-500 to-red-700'
+                : 'bg-linear-to-br from-slate-800 to-slate-900'"
             >
               <button
                 @click="cerrarModal"
-                class="absolute top-4 right-4 text-white/80 hover:text-white bg-black/10 hover:bg-black/20 p-1.5 rounded-full transition-colors focus:outline-none"
+                class="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors focus:outline-none"
               >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
-                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner shrink-0">
+                  <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.246.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
-                <div>
-                  <p class="text-white/70 text-[9px] uppercase font-black tracking-widest leading-none">Sesión Publicada</p>
-                  <h3 class="text-white text-lg font-black mt-1">{{ sesionSeleccionada?.disciplina }}</h3>
+                <div class="flex-1 min-w-0">
+                  <p class="text-white/60 text-[10px] uppercase font-black tracking-widest mb-0.5">Gestión de Sesión</p>
+                  <h3 class="text-white text-xl font-black leading-tight truncate">{{ sesionSeleccionada?.disciplina }}</h3>
+                  <div class="flex items-center gap-2 mt-1.5">
+                    <span
+                      class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                      :class="categoriaColor(sesionSeleccionada?.categoria)"
+                    >{{ formatCategoria(sesionSeleccionada?.categoria) }}</span>
+                    <span class="text-white/50 text-[10px]">·</span>
+                    <span class="text-white/70 text-[11px] font-semibold">#{{ sesionSeleccionada?.id_sesion }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Cuerpo del Modal -->
-            <div class="p-6 space-y-5">
+            <!-- ── Cuerpo ── -->
+            <div class="p-6 space-y-4">
 
-              <!-- Información de la sesión -->
-              <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
-                <div>
-                  <span class="text-slate-400 font-extrabold uppercase text-[9px] tracking-wider block">ID Sesión</span>
-                  <span class="text-slate-800 font-mono font-bold">#{{ sesionSeleccionada?.id_sesion }}</span>
-                </div>
-                <div>
-                  <span class="text-slate-400 font-extrabold uppercase text-[9px] tracking-wider block">Categoría</span>
-                  <span class="text-slate-800 font-bold">{{ sesionSeleccionada?.categoria }}</span>
-                </div>
-                <div class="col-span-2 border-t border-slate-200/50 pt-2.5">
-                  <span class="text-slate-400 font-extrabold uppercase text-[9px] tracking-wider block">Fecha & Horario</span>
-                  <span class="text-slate-800 font-bold">
-                    {{ DIAS_LABEL[sesionSeleccionada?.dia_semana] ?? sesionSeleccionada?.dia_semana }}
-                    {{ formatDate(sesionSeleccionada?.fecha_sesion) }} ·
-                    {{ (sesionSeleccionada?.hora_inicio ?? '').slice(0,5) }}–{{ (sesionSeleccionada?.hora_fin ?? '').slice(0,5) }}
-                  </span>
-                </div>
-                <div class="col-span-2 border-t border-slate-200/50 pt-2.5">
-                  <span class="text-slate-400 font-extrabold uppercase text-[9px] tracking-wider block">Instructor & Espacio</span>
-                  <span class="text-slate-700 font-bold block">Prof: {{ sesionSeleccionada?.instructor }}</span>
-                  <span class="text-slate-500 font-medium block">Sala: {{ sesionSeleccionada?.espacio }}</span>
-                </div>
-              </div>
+              <!-- Info grid 2×2 -->
+              <div class="grid grid-cols-2 gap-3">
 
-              <!-- Cantidad de Inscritos (READ ONLY) -->
-              <div>
-                <label class="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-2">Cantidad de Inscritos (Lectura)</label>
-                <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl">
-                  <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                <!-- Fecha -->
+                <div class="flex items-start gap-2.5 bg-slate-50 border border-slate-100 rounded-2xl p-3">
+                  <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <div>
-                    <span class="text-xs font-black block">Alumnos registrados</span>
-                    <span class="text-[10px] opacity-90">Hay <strong class="text-sm font-black">{{ sesionSeleccionada?.cantidad_inscritos ?? 0 }}</strong> usuarios inscritos a esta sesión actualmente.</span>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Fecha</p>
+                    <p class="text-sm font-extrabold text-slate-800 leading-tight">{{ formatDate(sesionSeleccionada?.fecha_sesion) }}</p>
+                    <p class="text-[10px] font-semibold text-slate-500 mt-0.5">{{ DIAS_LABEL[sesionSeleccionada?.dia_semana] ?? sesionSeleccionada?.dia_semana }}</p>
+                  </div>
+                </div>
+
+                <!-- Horario -->
+                <div class="flex items-start gap-2.5 bg-slate-50 border border-slate-100 rounded-2xl p-3">
+                  <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Horario</p>
+                    <p class="text-sm font-extrabold text-slate-800 leading-tight tabular-nums">
+                      {{ (sesionSeleccionada?.hora_inicio ?? '').slice(0,5) }}
+                    </p>
+                    <p class="text-[10px] font-semibold text-slate-500 mt-0.5 tabular-nums">
+                      hasta {{ (sesionSeleccionada?.hora_fin ?? '').slice(0,5) }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Inscritos -->
+                <div class="flex items-start gap-2.5 bg-slate-50 border border-slate-100 rounded-2xl p-3">
+                  <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 7a3 3 0 116 0 3 3 0 01-6 0zM17 10a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Inscritos</p>
+                    <p class="text-2xl font-black text-slate-800 leading-none tabular-nums">{{ sesionSeleccionada?.cantidad_inscritos ?? 0 }}</p>
+                    <p class="text-[10px] font-semibold text-slate-500 mt-0.5">alumnos</p>
+                  </div>
+                </div>
+
+                <!-- Tipo de clase -->
+                <div
+                  class="flex items-start gap-2.5 border rounded-2xl p-3"
+                  :class="sesionSeleccionada?.requiere_inscripcion
+                    ? 'bg-red-50/60 border-red-100'
+                    : 'bg-emerald-50/60 border-emerald-100'"
+                >
+                  <div
+                    class="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-sm"
+                    :class="sesionSeleccionada?.requiere_inscripcion
+                      ? 'bg-white border-red-200'
+                      : 'bg-white border-emerald-200'"
+                  >
+                    <svg class="w-4 h-4" :class="sesionSeleccionada?.requiere_inscripcion ? 'text-red-500' : 'text-emerald-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path v-if="!sesionSeleccionada?.requiere_inscripcion" stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                      <path v-else stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 11V7a2 2 0 114 0v4" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-0.5"
+                      :class="sesionSeleccionada?.requiere_inscripcion ? 'text-red-400' : 'text-emerald-400'">
+                      Tipo de clase
+                    </p>
+                    <p class="text-sm font-black leading-tight"
+                      :class="sesionSeleccionada?.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
+                      {{ sesionSeleccionada?.requiere_inscripcion ? 'CERRADA' : 'ABIERTA' }}
+                    </p>
+                    <p class="text-[10px] font-semibold mt-0.5"
+                      :class="sesionSeleccionada?.requiere_inscripcion ? 'text-red-500' : 'text-emerald-500'">
+                      {{ sesionSeleccionada?.requiere_inscripcion ? 'Requiere inscripción' : 'Acceso libre' }}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <!-- Estatus (UPDATE SEGMENTED CONTROL) -->
+              <!-- Instructor + Espacio -->
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+                  <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Instructor</p>
+                    <p class="text-sm font-bold text-slate-800 truncate">{{ sesionSeleccionada?.instructor ?? '—' }}</p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+                  <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Espacio</p>
+                    <p class="text-sm font-bold text-slate-800 truncate">{{ sesionSeleccionada?.espacio ?? '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lista de asistencia (lazy + colapsable por grupos) -->
               <div>
-                <label class="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-2">Estatus de la Actividad</label>
-                <div class="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 gap-1.5">
-                  <button
-                    type="button"
-                    @click="tempEstatus = 'DISPONIBLE'"
-                    class="flex-1 py-3 text-xs font-black rounded-xl border transition-all flex items-center justify-center gap-1.5 focus:outline-none"
-                    :class="tempEstatus === 'DISPONIBLE'
-                      ? 'bg-emerald-600 border-emerald-500 text-white shadow-sm font-extrabold'
-                      : 'border-transparent text-slate-500 hover:bg-white/60 hover:text-slate-700 font-bold'"
-                  >
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <!-- Header con total -->
+                <div class="flex items-center justify-between mb-2.5">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Lista de asistencia</p>
+                  <span v-if="!isLoadingAsistencia"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black tracking-wider">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 7a3 3 0 116 0 3 3 0 01-6 0z" />
+                    </svg>
+                    TOTAL {{ totalInscritos }}
+                  </span>
+                </div>
+
+                <!-- Skeleton -->
+                <div v-if="isLoadingAsistencia" class="space-y-2">
+                  <div v-for="i in 3" :key="i" class="h-11 bg-slate-100 rounded-xl animate-pulse" :style="`opacity:${1 - i * 0.25}`" />
+                </div>
+
+                <!-- Sin inscritos (solo aplica a abiertas; en cerradas se permite mostrar grupos vacíos también) -->
+                <div v-else-if="totalInscritos === 0"
+                  class="flex flex-col items-center justify-center gap-2 py-6 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <svg class="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                  <p class="text-xs font-bold text-slate-400">Ningún socio registrado en esta sesión</p>
+                </div>
+
+                <!-- Grupos -->
+                <div v-else class="space-y-2">
+
+                  <!-- ─── INSCRITO (solo para ABIERTAS = !requiere_inscripcion=false significa abierta... ojo: requiere_inscripcion=true es CERRADA) ─── -->
+                  <!-- Para ABIERTAS mostramos los 3 grupos. Para CERRADAS solo ASISTENCIA. -->
+                  <!-- (ABIERTA = !s.requiere_inscripcion) -->
+
+                  <!-- INSCRITO (azul) -->
+                  <div v-if="!sesionSeleccionada?.requiere_inscripcion"
+                    class="rounded-2xl border border-blue-100 overflow-hidden">
+                    <button type="button" @click="toggleGrupo('INSCRITO')"
+                      class="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50/60 hover:bg-blue-50 transition-colors text-left">
+                      <div class="w-7 h-7 rounded-lg bg-white border border-blue-200 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <span class="flex-1 text-[11px] font-black uppercase tracking-wider text-blue-700">Inscrito</span>
+                      <span class="inline-flex items-center justify-center min-w-[26px] h-5 px-1.5 rounded-full bg-blue-600 text-white text-[10px] font-black tabular-nums">
+                        {{ grupoInscritos.length }}
+                      </span>
+                      <svg class="w-3.5 h-3.5 text-blue-500 shrink-0 transition-transform duration-150"
+                        :class="grupoExpandido.INSCRITO ? 'rotate-90' : ''"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </button>
+                    <div v-if="grupoExpandido.INSCRITO" class="bg-white max-h-44 overflow-y-auto divide-y divide-slate-50">
+                      <div v-if="grupoInscritos.length === 0" class="px-3.5 py-3 text-[11px] font-bold text-slate-400 text-center">
+                        Sin socios en este grupo
+                      </div>
+                      <div v-for="ins in grupoInscritos" :key="ins.id_inscripcion"
+                        class="flex items-center gap-2.5 px-3.5 py-2 hover:bg-blue-50/40 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                          {{ (ins.nombre_completo ?? '?').charAt(0).toUpperCase() }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-[11px] font-bold text-slate-700 truncate">{{ ins.nombre_completo ?? '—' }}</p>
+                          <p class="text-[9px] font-semibold text-slate-400 font-mono">Acción #{{ ins.numero_accion ?? '—' }}</p>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shrink-0"
+                          :class="ins.tipo_usuario === 'SOCIO' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'">
+                          {{ ins.tipo_usuario }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ASISTENCIA (verde) — siempre visible -->
+                  <div class="rounded-2xl border border-emerald-100 overflow-hidden">
+                    <button type="button" @click="toggleGrupo('ASISTENCIA')"
+                      class="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-50/60 hover:bg-emerald-50 transition-colors text-left">
+                      <div class="w-7 h-7 rounded-lg bg-white border border-emerald-200 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span class="flex-1 text-[11px] font-black uppercase tracking-wider text-emerald-700">Asistencia</span>
+                      <span class="inline-flex items-center justify-center min-w-[26px] h-5 px-1.5 rounded-full bg-emerald-600 text-white text-[10px] font-black tabular-nums">
+                        {{ grupoAsistencia.length }}
+                      </span>
+                      <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0 transition-transform duration-150"
+                        :class="grupoExpandido.ASISTENCIA ? 'rotate-90' : ''"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </button>
+                    <div v-if="grupoExpandido.ASISTENCIA" class="bg-white max-h-44 overflow-y-auto divide-y divide-slate-50">
+                      <div v-if="grupoAsistencia.length === 0" class="px-3.5 py-3 text-[11px] font-bold text-slate-400 text-center">
+                        Sin socios en este grupo
+                      </div>
+                      <div v-for="ins in grupoAsistencia" :key="ins.id_inscripcion"
+                        class="flex items-center gap-2.5 px-3.5 py-2 hover:bg-emerald-50/40 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                          {{ (ins.nombre_completo ?? '?').charAt(0).toUpperCase() }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-[11px] font-bold text-slate-700 truncate">{{ ins.nombre_completo ?? '—' }}</p>
+                          <p class="text-[9px] font-semibold text-slate-400 font-mono">Acción #{{ ins.numero_accion ?? '—' }}</p>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shrink-0"
+                          :class="ins.tipo_usuario === 'SOCIO' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'">
+                          {{ ins.tipo_usuario }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- NO SHOW (rojo) — solo ABIERTAS -->
+                  <div v-if="!sesionSeleccionada?.requiere_inscripcion"
+                    class="rounded-2xl border border-red-100 overflow-hidden">
+                    <button type="button" @click="toggleGrupo('NO_SHOW')"
+                      class="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-red-50/60 hover:bg-red-50 transition-colors text-left">
+                      <div class="w-7 h-7 rounded-lg bg-white border border-red-200 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span class="flex-1 text-[11px] font-black uppercase tracking-wider text-red-700">No Show</span>
+                      <span class="inline-flex items-center justify-center min-w-[26px] h-5 px-1.5 rounded-full bg-red-600 text-white text-[10px] font-black tabular-nums">
+                        {{ grupoNoShow.length }}
+                      </span>
+                      <svg class="w-3.5 h-3.5 text-red-500 shrink-0 transition-transform duration-150"
+                        :class="grupoExpandido.NO_SHOW ? 'rotate-90' : ''"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </button>
+                    <div v-if="grupoExpandido.NO_SHOW" class="bg-white max-h-44 overflow-y-auto divide-y divide-slate-50">
+                      <div v-if="grupoNoShow.length === 0" class="px-3.5 py-3 text-[11px] font-bold text-slate-400 text-center">
+                        Sin socios en este grupo
+                      </div>
+                      <div v-for="ins in grupoNoShow" :key="ins.id_inscripcion"
+                        class="flex items-center gap-2.5 px-3.5 py-2 hover:bg-red-50/40 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                          {{ (ins.nombre_completo ?? '?').charAt(0).toUpperCase() }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-[11px] font-bold text-slate-700 truncate">{{ ins.nombre_completo ?? '—' }}</p>
+                          <p class="text-[9px] font-semibold text-slate-400 font-mono">Acción #{{ ins.numero_accion ?? '—' }}</p>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shrink-0"
+                          :class="ins.tipo_usuario === 'SOCIO' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'">
+                          {{ ins.tipo_usuario }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Estatus selector -->
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Cambiar estatus</p>
+                <div class="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 gap-1">
+                  <button type="button" @click="tempEstatus = 'DISPONIBLE'"
+                    class="flex-1 py-2.5 text-[11px] font-black rounded-xl border transition-all flex items-center justify-center gap-1.5 focus:outline-none"
+                    :class="tempEstatus === 'DISPONIBLE' ? 'bg-emerald-600 border-emerald-500 text-white shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/60 hover:text-slate-700'">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     DISPONIBLE
                   </button>
-
-                  <button
-                    type="button"
-                    @click="tempEstatus = 'CANCELADA'"
-                    class="flex-1 py-3 text-xs font-black rounded-xl border transition-all flex items-center justify-center gap-1.5 focus:outline-none"
-                    :class="tempEstatus === 'CANCELADA'
-                      ? 'bg-red-600 border-red-500 text-white shadow-sm font-extrabold'
-                      : 'border-transparent text-slate-500 hover:bg-white/60 hover:text-slate-700 font-bold'"
-                  >
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <button type="button" @click="tempEstatus = 'CANCELADA'"
+                    class="flex-1 py-2.5 text-[11px] font-black rounded-xl border transition-all flex items-center justify-center gap-1.5 focus:outline-none"
+                    :class="tempEstatus === 'CANCELADA' ? 'bg-red-600 border-red-500 text-white shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/60 hover:text-slate-700'">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     CANCELADA
@@ -537,28 +967,30 @@ defineExpose({ fetchSesiones })
 
             </div>
 
-            <!-- Footer del Modal -->
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+            <!-- ── Footer ── -->
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60">
               <button
                 type="button"
                 @click="cerrarModal"
                 :disabled="isSaving"
-                class="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-xl transition-all disabled:opacity-50"
+                class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
               >
-                Cerrar
+                Cancelar
               </button>
-
               <button
                 type="button"
                 @click="guardarCambios"
                 :disabled="isSaving"
-                class="px-5 py-2.5 text-xs font-black text-white bg-slate-800 hover:bg-slate-900 active:scale-95 rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                class="px-6 py-2.5 text-xs font-black text-white bg-slate-900 hover:bg-slate-800 active:scale-95 rounded-xl transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
               >
                 <svg v-if="isSaving" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                 </svg>
-                <span>Guardar cambios</span>
+                <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Guardar cambios
               </button>
             </div>
 
@@ -575,4 +1007,14 @@ defineExpose({ fetchSesiones })
 .overflow-auto::-webkit-scrollbar-track { background: transparent; }
 .overflow-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 .overflow-auto::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Scroll horizontal nativo con rueda del ratón */
+.table-scroll {
+  overflow: auto;
+  overscroll-behavior-x: contain;
+}
+.table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 3px; }
+.table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 </style>

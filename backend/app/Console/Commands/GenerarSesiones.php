@@ -36,7 +36,7 @@ class GenerarSesiones extends Command
         $idPlantilla = $this->option('plantilla');
 
         $query = PlantillaProgramacion::withoutGlobalScopes()
-            ->where('estatus_plantilla', 'ACTIVO')
+            ->where('estatus_plantilla', true)
             ->with(['actividades' => fn($q) => $q->where('estatus', 'ACTIVO')]);
 
         if ($idPlantilla) {

@@ -18,6 +18,12 @@ class PlantillaProgramacion extends Model
         'fecha_inicio',
         'fecha_fin',
         'estatus_plantilla',
+        'publicada',
+    ];
+
+    protected $casts = [
+        'estatus_plantilla' => 'boolean',
+        'publicada'         => 'boolean',
     ];
 
     public function actividades()

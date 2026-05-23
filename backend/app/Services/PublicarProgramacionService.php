@@ -70,7 +70,8 @@ class PublicarProgramacionService
             $domingo = $rango['domingo']->toDateString();
 
             $plantilla->update([
-                'estatus_plantilla' => 'ACTIVO',
+                'estatus_plantilla' => true,
+                'publicada'         => true,
                 'fecha_inicio'      => $lunes,
                 'fecha_fin'         => $domingo,
             ]);
@@ -268,7 +269,8 @@ class PublicarProgramacionService
     private function resetearPlantilla(PlantillaProgramacion $plantilla): void
     {
         $plantilla->update([
-            'estatus_plantilla' => 'INACTIVO',
+            'estatus_plantilla' => false,
+            'publicada'         => false,
             'fecha_inicio'      => null,
             'fecha_fin'         => null,
         ]);

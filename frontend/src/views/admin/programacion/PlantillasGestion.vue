@@ -182,7 +182,7 @@ async function submitCreate() {
 // ─── Modal: Edición ───────────────────────────────────────────────────────────
 const showEditModal  = ref(false)
 const editTarget     = ref(null)
-const editForm       = ref({ nombre_plantilla: '', fecha_inicio: '', fecha_fin: '', estatus_plantilla: '' })
+const editForm       = ref({ nombre_plantilla: '', fecha_inicio: '', fecha_fin: '', estatus_plantilla: false })
 const editErrors     = ref({})
 const saveSuccess    = ref(false)
 
@@ -208,14 +208,14 @@ function closeEdit() {
 // plantilla activa distinta a la que se está editando
 const otherActivePlantilla = computed(() =>
   store.plantillas.find(
-    p => p.estatus_plantilla === 'ACTIVO' && p.id_plantilla !== editTarget.value?.id_plantilla
+    p => p.estatus_plantilla === true && p.id_plantilla !== editTarget.value?.id_plantilla
   ) ?? null
 )
 
 // intento de pasar de INACTIVO → ACTIVO cuando ya existe otra activa
 const blockActivation = computed(() =>
-  editForm.value.estatus_plantilla === 'ACTIVO' &&
-  editTarget.value?.estatus_plantilla !== 'ACTIVO' &&
+  editForm.value.estatus_plantilla === true &&
+  editTarget.value?.estatus_plantilla !== true &&
   otherActivePlantilla.value !== null
 )
 
@@ -309,7 +309,7 @@ function closeDeleteError() {
 }
 
 const deleteConfirmed = computed(() => deleteConfirmInput.value === 'ELIMINAR')
-const isActiveTarget  = computed(() => deleteTarget.value?.estatus_plantilla === 'ACTIVO')
+const isActiveTarget  = computed(() => deleteTarget.value?.estatus_plantilla === true)
 
 async function submitDelete() {
   if (!deleteConfirmed.value || isActiveTarget.value) return
@@ -379,11 +379,11 @@ defineExpose({ openCreate })
             <td class="px-6 py-4">
               <span
                 class="inline-flex items-center font-bold rounded-full border uppercase whitespace-nowrap text-xs tracking-wide px-3 py-1"
-                :class="p.estatus_plantilla === 'ACTIVO'
+                :class="p.estatus_plantilla
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-slate-100 text-slate-500 border-slate-200'"
               >
-                {{ p.estatus_plantilla === 'ACTIVO' ? 'Activo' : 'Inactivo' }}
+                {{ p.estatus_plantilla ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
             <td class="px-6 py-4 text-right">
@@ -397,9 +397,9 @@ defineExpose({ openCreate })
                   Editar
                 </button>
 
-                <!-- Indicador "Publicada" cuando ya tiene fechas asignadas, o botón Publicar si no -->
+                <!-- Indicador "Publicada" o botón Publicar -->
                 <span
-                  v-if="p.estatus_plantilla === 'ACTIVO' && p.fecha_inicio"
+                  v-if="p.publicada"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg cursor-default"
                   title="Esta programación ya fue publicada"
                 >
@@ -410,13 +410,13 @@ defineExpose({ openCreate })
                 </span>
                 <button
                   v-else
-                  @click="p.estatus_plantilla === 'ACTIVO' && (p.total_actividades ?? 0) > 0 ? openPublish(p) : null"
-                  :disabled="p.estatus_plantilla !== 'ACTIVO' || (p.total_actividades ?? 0) === 0"
+                  @click="!p.publicada && p.estatus_plantilla && (p.total_actividades ?? 0) > 0 ? openPublish(p) : null"
+                  :disabled="p.publicada || !p.estatus_plantilla || (p.total_actividades ?? 0) === 0"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors focus:outline-none"
-                  :class="p.estatus_plantilla === 'ACTIVO' && (p.total_actividades ?? 0) > 0
+                  :class="p.estatus_plantilla && (p.total_actividades ?? 0) > 0
                     ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-95'
                     : 'text-slate-300 bg-slate-50 border-slate-200 cursor-not-allowed'"
-                  :title="p.estatus_plantilla !== 'ACTIVO'
+                  :title="!p.estatus_plantilla
                     ? 'La plantilla debe estar Activa para publicarse'
                     : (p.total_actividades ?? 0) === 0
                       ? 'Sin actividades para publicar'
@@ -428,9 +428,9 @@ defineExpose({ openCreate })
                   Publicar
                 </button>
 
-                <!-- Retirar: solo visible cuando la plantilla tiene sesiones publicadas (fecha_inicio != null) -->
+                <!-- Retirar: solo visible cuando la plantilla está publicada -->
                 <button
-                  v-if="p.estatus_plantilla === 'ACTIVO' && p.fecha_inicio"
+                  v-if="p.publicada"
                   @click="openUnpublish(p)"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 active:scale-95"
                   title="Retirar las sesiones publicadas"
@@ -444,10 +444,10 @@ defineExpose({ openCreate })
                 <!-- Eliminar (siempre visible; el modal muestra el bloqueo si está ACTIVO) -->
                 <button
                   @click="openDelete(p)"
-                  :class="p.estatus_plantilla === 'ACTIVO'
+                  :class="p.estatus_plantilla
                     ? 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1'
                     : 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 active:scale-95'"
-                  :title="p.estatus_plantilla === 'ACTIVO' ? 'Plantilla en producción – ver detalles' : 'Eliminar plantilla'"
+                  :title="p.estatus_plantilla ? 'Plantilla en producción – ver detalles' : 'Eliminar plantilla'"
                 >
                   <IconTrash class="w-3.5 h-3.5" />
                   Eliminar
@@ -682,10 +682,10 @@ defineExpose({ openCreate })
                   <!-- Botón ACTIVO — deshabilitado si hay otra plantilla activa -->
                   <button
                     type="button"
-                    @click="!blockActivation && (editForm.estatus_plantilla = 'ACTIVO')"
+                    @click="!blockActivation && (editForm.estatus_plantilla = true)"
                     :class="[
                       'flex-1 py-2 px-3 text-xs font-extrabold rounded-lg transition-all',
-                      editForm.estatus_plantilla === 'ACTIVO'
+                      editForm.estatus_plantilla === true
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : blockActivation
                           ? 'text-slate-300 cursor-not-allowed'
@@ -697,10 +697,10 @@ defineExpose({ openCreate })
                   <!-- Botón INACTIVO -->
                   <button
                     type="button"
-                    @click="editForm.estatus_plantilla = 'INACTIVO'"
+                    @click="editForm.estatus_plantilla = false"
                     :class="[
                       'flex-1 py-2 px-3 text-xs font-extrabold rounded-lg transition-all',
-                      editForm.estatus_plantilla === 'INACTIVO'
+                      editForm.estatus_plantilla === false
                         ? 'bg-slate-600 text-white shadow-sm'
                         : 'text-slate-500 hover:bg-white/60'
                     ]"
