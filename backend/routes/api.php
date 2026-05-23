@@ -50,7 +50,7 @@ use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
 use App\Http\Controllers\RefereeAvailabilityController;
 use App\Http\Controllers\MatchAssignmentController;
-
+use App\Http\Controllers\EquipoTorneoController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -431,6 +431,27 @@ Route::middleware('auth:sanctum')->group(function () {
     //     Route::post('sesiones/{id_sesion}/inscribir', [\App\Http\Controllers\InscripcionClaseController::class, 'inscribir']);
     //     Route::delete('inscripciones/{id_inscripcion}', [\App\Http\Controllers\InscripcionClaseController::class, 'cancelar']);
     // });
+
+    //Torneos y equipos
+    Route::get(
+        '/v1/equipos/{id_equipo}',
+        [EquipoTorneoController::class, 'show']
+    );
+
+    Route::post(
+        '/v1/torneos/{id_torneo}/equipos',
+        [EquipoTorneoController::class, 'crearEquipo']
+    );
+
+    Route::patch(
+        '/v1/torneos/{id_torneo}/equipos/{id_equipo}/responder',
+        [EquipoTorneoController::class, 'responderInvitacion']
+    );
+
+    Route::patch(
+        '/v1/equipos/reasignar',
+        [EquipoTorneoController::class, 'reasignarCompanero']
+    );
 
 });
 

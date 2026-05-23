@@ -117,6 +117,11 @@ const router = createRouter({
           component: () => import("@/views/socio/SocioTournamentsView.vue"),
         },
         {
+          path: "invitations/:id_equipo",
+          name: "socio-team-invitation",
+          component: () => import("@/views/socio/SocioTeamInvitationView.vue"),
+        },
+        {
           path: "socio-ludoteca",
           name: "socio-ludoteca",
           redirect: { name: "ludoteca-list" },
