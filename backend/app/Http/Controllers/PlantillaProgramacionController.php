@@ -9,12 +9,14 @@ use App\Models\ActividadPlantilla;
 use App\Models\DraftProgramacion;
 use App\Models\PlantillaProgramacion;
 use App\Services\PublicarProgramacionService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PlantillaProgramacionController extends Controller
 {
@@ -444,8 +446,10 @@ class PlantillaProgramacionController extends Controller
             ], 422);
         }
 
-        // Regla 2: Verificación de producción mediante EXISTS indexado
-        $tieneHistorial = DB::table('sesiones_activas')
+        // Regla 2: Bloquear si existe al menos una sesión vinculada a esta plantilla.
+        // Se omite el filtro deleted_at de actividades_plantilla para no saltarse
+        // sesiones cuya actividad haya sido soft-deleted previamente.
+        $tieneSesiones = DB::table('sesiones_activas')
             ->whereExists(function ($query) use ($id) {
                 $query->select(DB::raw(1))
                     ->from('actividades_plantilla')
@@ -454,27 +458,21 @@ class PlantillaProgramacionController extends Controller
             })
             ->exists();
 
-        if ($tieneHistorial) {
-            // Escenario B: Soft Delete — preserva datos históricos para BI
-            DB::transaction(function () use ($plantilla) {
-                ActividadPlantilla::where('id_plantilla', $plantilla->id_plantilla)->delete();
-                $plantilla->delete();
-            });
-
+        if ($tieneSesiones) {
             return response()->json([
-                'message'  => 'La programación histórica ha sido archivada de forma segura sin afectar los reportes estadísticos.',
-                'scenario' => 'soft',
-            ], 200);
+                'message' => 'No se puede eliminar esta plantilla porque tiene sesiones activas vinculadas. Usa la acción "Retirar" para eliminar las sesiones primero.',
+            ], 422);
         }
 
-        // Escenario A: Hard Delete — borrador limpio que nunca fue a producción
+        // Sin sesiones vinculadas: eliminar físicamente
         DB::transaction(function () use ($plantilla) {
             ActividadPlantilla::where('id_plantilla', $plantilla->id_plantilla)->forceDelete();
+            DraftProgramacion::where('id_plantilla', $plantilla->id_plantilla)->delete();
             $plantilla->forceDelete();
         });
 
         return response()->json([
-            'message'  => 'La plantilla borrador y sus bloques temporales han sido eliminados físicamente del sistema.',
+            'message'  => 'La plantilla y sus bloques de actividad han sido eliminados del sistema.',
             'scenario' => 'hard',
         ], 200);
     }
@@ -598,7 +596,7 @@ class PlantillaProgramacionController extends Controller
 
         // Generar QR en base64
         $siteUrl = 'https://britania-web.vercel.app/login';
-        $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)->generate($siteUrl);
+        $qrCodeSvg = QrCode::size(150)->generate($siteUrl);
         $base64Qr = base64_encode($qrCodeSvg);
 
         // Cargar logotipo del club en base64
@@ -609,7 +607,7 @@ class PlantillaProgramacionController extends Controller
         }
 
         // Cargar la vista Blade de DomPDF
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.programacion', [
+        $pdf = Pdf::loadView('pdf.programacion', [
             'plantilla' => $plantilla,
             'matutino' => $matutinoGrouped,
             'vespertino' => $vespertinoGrouped,

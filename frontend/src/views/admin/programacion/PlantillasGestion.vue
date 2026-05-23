@@ -286,6 +286,11 @@ const showDeleteModal     = ref(false)
 const deleteTarget        = ref(null)
 const deleteConfirmInput  = ref('')
 
+// Modal de error bloqueante (reemplaza el toast cuando el backend devuelve 422)
+const showDeleteErrorModal = ref(false)
+const deleteErrorTitle     = ref('')
+const deleteErrorMessage   = ref('')
+
 function openDelete(p) {
   deleteTarget.value       = p
   deleteConfirmInput.value = ''
@@ -295,6 +300,12 @@ function openDelete(p) {
 function closeDelete() {
   showDeleteModal.value = false
   deleteTarget.value    = null
+}
+
+function closeDeleteError() {
+  showDeleteErrorModal.value = false
+  deleteErrorTitle.value     = ''
+  deleteErrorMessage.value   = ''
 }
 
 const deleteConfirmed = computed(() => deleteConfirmInput.value === 'ELIMINAR')
@@ -307,8 +318,16 @@ async function submitDelete() {
     toastSuccess(result?.message ?? 'Plantilla eliminada.')
     closeDelete()
   } catch (e) {
-    toastError(e?.response?.data?.message ?? 'Error al eliminar la plantilla.')
+    const status  = e?.response?.status
+    const message = e?.response?.data?.message ?? 'Ocurrió un error al intentar eliminar la plantilla.'
     closeDelete()
+    if (status === 422) {
+      deleteErrorTitle.value     = 'No se puede eliminar esta plantilla'
+      deleteErrorMessage.value   = message
+      showDeleteErrorModal.value = true
+    } else {
+      toastError(message)
+    }
   }
 }
 
@@ -1079,6 +1098,59 @@ defineExpose({ openCreate })
                 class="px-6 py-2.5 text-sm font-extrabold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {{ store.isSaving ? 'Retirando...' : 'Retirar sesiones' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- MODAL: ERROR DE ELIMINACIÓN BLOQUEADA                                 -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showDeleteErrorModal"
+          class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+          @click.self="closeDeleteError"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+
+            <!-- Header rojo -->
+            <div class="flex items-center gap-3 p-6 border-b border-red-100 bg-red-50">
+              <div class="p-2.5 bg-red-100 rounded-xl shrink-0">
+                <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-[10px] uppercase font-black tracking-widest text-red-400">Acción bloqueada</p>
+                <h3 class="text-base font-black text-red-800 leading-tight">{{ deleteErrorTitle }}</h3>
+              </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+              <p class="text-sm font-semibold text-slate-700 leading-relaxed">{{ deleteErrorMessage }}</p>
+
+              <div class="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <svg class="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-xs font-semibold text-red-700 leading-relaxed">
+                  Usa la acción <strong>"Retirar"</strong> para eliminar las sesiones activas vinculadas y después intenta eliminar nuevamente.
+                </p>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-6 border-t border-slate-100 bg-white flex justify-end">
+              <button
+                @click="closeDeleteError"
+                class="px-6 py-2.5 text-sm font-extrabold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-all active:scale-95"
+              >
+                Aceptar
               </button>
             </div>
           </div>
