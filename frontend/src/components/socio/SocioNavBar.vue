@@ -106,6 +106,7 @@ const tituloNotif = (notif) => {
   if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return '¡Solicitud aceptada!'
   if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')  return 'Solicitud rechazada'
   if (notif.data?.tipo === 'SOLICITUD_ENVIADA')    return 'Nueva solicitud de amistad'
+  if (notif.data?.tipo === 'INVITACION_EQUIPO')    return 'Invitación a torneo'
   return 'Notificación'
 }
 
@@ -117,12 +118,20 @@ const subtituloNotif = (notif) => {
   if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return `El socio ${nombre} ha aceptado tu solicitud.`
   if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')  return `El socio ${nombre} ha rechazado tu solicitud.`
   if (notif.data?.tipo === 'SOLICITUD_ENVIADA')    return `Has recibido una solicitud de amistad de ${nombre}.`
+  if (notif.data?.tipo === 'INVITACION_EQUIPO') {
+    const capitan = notif.data?.nombre_capitan ?? 'Un socio'
+    return `${capitan} te ha invitado a jugar en su equipo.`
+  }
   return ''
 }
 
 // Helper: ¿es una notificación de amistad?
 const esTipoAmistad = (tipo) =>
   ['SOLICITUD_ENVIADA', 'SOLICITUD_ACEPTADA', 'SOLICITUD_RECHAZADA'].includes(tipo)
+
+// Helper: ¿es notificación de torneo?
+const esTipoTorneo = (tipo) =>
+  ['INVITACION_EQUIPO'].includes(tipo)
 
 const iconoNotif = (tipo) => {
   if (tipo === 'CUENTA_MOROSA') {
@@ -159,6 +168,11 @@ const iconoNotif = (tipo) => {
   if (tipo === 'SOLICITUD_ENVIADA') {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
       <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+    </svg>`
+  }
+  if (tipo === 'INVITACION_EQUIPO') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
     </svg>`
   }
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
@@ -458,6 +472,8 @@ onUnmounted(() => {
                 class="px-7 py-6 text-white relative overflow-hidden"
                 :class="esTipoAmistad(notifSeleccionada.data?.tipo)
                   ? 'bg-linear-to-br from-blue-500 to-indigo-600'
+                  : esTipoTorneo(notifSeleccionada.data?.tipo)
+                    ? 'bg-linear-to-br from-purple-500 to-fuchsia-600'
                   : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
                     ? 'bg-linear-to-br from-green-500 to-emerald-500'
                     : 'bg-linear-to-br from-red-500 to-orange-500'"
@@ -469,6 +485,10 @@ onUnmounted(() => {
                     <svg v-if="esTipoAmistad(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                       <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <!-- Ícono torneo -->
+                    <svg v-else-if="esTipoTorneo(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
                     </svg>
                     <!-- Ícono sanción -->
                     <svg v-else-if="notifSeleccionada.data?.tipo !== 'SANCION_LEVANTADA'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
@@ -485,14 +505,16 @@ onUnmounted(() => {
                     <p class="text-[10px] font-black uppercase tracking-widest text-white/70 mb-0.5">
                       {{ esTipoAmistad(notifSeleccionada.data?.tipo)
                         ? 'Comunidad · Amigos'
-                        : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                          ? 'Penalización Levantada'
-                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
-                            ? 'Estado de Cuenta'
-                            : 'Penalización Asignada' }}
+                        : esTipoTorneo(notifSeleccionada.data?.tipo)
+                          ? 'Torneos'
+                          : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                            ? 'Penalización Levantada'
+                            : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                              ? 'Estado de Cuenta'
+                              : 'Penalización Asignada' }}
                     </p>
                     <h3 class="text-lg font-black leading-tight">
-                      {{ esTipoAmistad(notifSeleccionada.data?.tipo)
+                      {{ (esTipoAmistad(notifSeleccionada.data?.tipo) || esTipoTorneo(notifSeleccionada.data?.tipo))
                         ? tituloNotif(notifSeleccionada)
                         : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
                           ? 'Cuenta sin restricciones'
@@ -520,6 +542,21 @@ onUnmounted(() => {
                 </div>
               </div>
 
+              <!-- Cuerpo — variante torneo -->
+              <div v-else-if="esTipoTorneo(notifSeleccionada.data?.tipo)" class="px-7 py-6 space-y-4">
+                <p class="text-sm font-semibold text-surface-700 leading-relaxed">
+                  {{ subtituloNotif(notifSeleccionada) }}
+                </p>
+                <div class="flex items-start gap-3 bg-purple-50 rounded-2xl border border-purple-100 p-4">
+                  <svg class="w-5 h-5 text-purple-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+                  </svg>
+                  <p class="text-xs font-semibold text-purple-800 leading-relaxed">
+                    Dirígete a la sección de Torneos (pestaña Historial) para aceptar o rechazar la invitación a este equipo.
+                  </p>
+                </div>
+              </div>
+
               <!-- Cuerpo — variante morosidad -->
               <div v-else-if="notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'" class="px-7 py-6 space-y-4">
                 <p class="text-sm font-semibold text-surface-700 leading-relaxed">
@@ -536,7 +573,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Cuerpo — variante sanción -->
-              <div v-else-if="notifSeleccionada.data?.tipo !== 'SANCION_LEVANTADA' && notifSeleccionada.data?.tipo !== 'CUENTA_MOROSA'" class="px-7 py-6 space-y-4">
+              <div v-else-if="notifSeleccionada.data?.tipo !== 'SANCION_LEVANTADA' && notifSeleccionada.data?.tipo !== 'CUENTA_MOROSA' && !esTipoTorneo(notifSeleccionada.data?.tipo)" class="px-7 py-6 space-y-4">
                 <p class="text-sm font-semibold text-surface-700 leading-relaxed">
                   La administración del club ha registrado una penalización en tu cuenta para el/los siguiente(s) servicio(s):
                   <span class="font-black text-surface-900"> {{ labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}</span>.
@@ -592,7 +629,12 @@ onUnmounted(() => {
               </div>
 
               <!-- Pie -->
-              <div class="px-7 py-4 border-t border-surface-100 flex justify-end">
+              <div class="px-7 py-4 border-t border-surface-100 flex justify-end gap-3">
+                <button v-if="esTipoTorneo(notifSeleccionada.data?.tipo)"
+                  @click="router.push('/socio/tournaments'); cerrarDetalle();"
+                  class="px-6 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-black hover:bg-purple-700 active:scale-95 transition-all">
+                  Ir a Torneos
+                </button>
                 <button @click="cerrarDetalle"
                   class="px-6 py-2.5 rounded-xl bg-surface-900 text-white text-sm font-black hover:bg-surface-800 active:scale-95 transition-all">
                   Entendido
