@@ -7,12 +7,13 @@ import PlantillasGestion from './PlantillasGestion.vue'
 import WizardProgramacionView from './WizardProgramacionView.vue'
 import SesionesPublicadas from './SesionesPublicadas.vue'
 
-const activeTab   = ref('plantillas')
-const wizardReady = ref(false)
+const activeTab      = ref('plantillas')
+const wizardReady    = ref(false)
 
 const plantillasStore = usePlantillasStore()
 const wizardStore     = useWizardStore()
 const plantillasRef   = ref(null)
+const sesionesRef     = ref(null)
 
 const tabs = [
   { name: 'plantillas', label: 'Gestión de Plantillas', icon: IconLayers },
@@ -54,6 +55,17 @@ watch(
     wizardReady.value = false
     if (activeTab.value === 'wizard') {
       initWizard(plantillasStore.plantillaActiva)
+    }
+  }
+)
+
+// Al publicar desde PlantillasGestion: ir a pestaña publicadas y refrescar las sesiones
+watch(
+  () => plantillasStore.sesionesPublicadas,
+  (val) => {
+    if (val > 0) {
+      activeTab.value = 'publicadas'
+      sesionesRef.value?.fetchSesiones()
     }
   }
 )
@@ -124,7 +136,7 @@ onMounted(() => plantillasStore.fetchPlantillas())
 
       <!-- Sesiones Publicadas tab: full-bleed, no padding, no scroll -->
       <div v-show="activeTab === 'publicadas'" class="h-full overflow-hidden">
-        <SesionesPublicadas />
+        <SesionesPublicadas ref="sesionesRef" />
       </div>
     </div>
   </div>

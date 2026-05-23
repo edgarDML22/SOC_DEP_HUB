@@ -46,6 +46,7 @@ use App\Http\Controllers\InstructorEncuentrosController;
 use App\Http\Controllers\PreRegisterController;
 use App\Http\Controllers\PlantillaProgramacionController;
 use App\Http\Controllers\ProgramacionDependenciasController;
+use App\Http\Controllers\SesionActivaController;
 use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
 use App\Http\Controllers\RefereeAvailabilityController;
@@ -413,6 +414,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{plantillaId}', [PlantillaProgramacionController::class, 'show']);
             Route::patch('/{plantillaId}', [PlantillaProgramacionController::class, 'updatePlantilla']);
             Route::delete('/{plantillaId}', [PlantillaProgramacionController::class, 'destroyPlantilla']);
+            Route::post('/{plantillaId}/publicar', [PlantillaProgramacionController::class, 'publicarPlantilla']);
+            Route::delete('/{plantillaId}/sesiones', [PlantillaProgramacionController::class, 'despublicarSesiones']);
         });
 
         Route::prefix('actividades')->group(function () {
@@ -421,7 +424,9 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
 
-        // Task 25.5: Route::post('sesiones/generar', [\App\Http\Controllers\SesionActivaController::class, 'generarManual']);
+        Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
+
+        // Task 25.5: Route::post('sesiones/generar', [SesionActivaController::class, 'generarManual']);
     });
 
     // Task 30.1 y 31.5 — descomentar cuando existan los controllers:

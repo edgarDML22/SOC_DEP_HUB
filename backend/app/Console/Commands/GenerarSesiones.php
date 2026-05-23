@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\PlantillaProgramacion;
 use App\Models\SesionActiva;
+use App\Services\PublicarProgramacionService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Console\Command;
@@ -11,32 +12,26 @@ use Illuminate\Console\Command;
 class GenerarSesiones extends Command
 {
     protected $signature = 'programacion:generar-sesiones
-                            {--desde= : Fecha de inicio (Y-m-d). Por defecto: hoy}
-                            {--hasta= : Fecha de fin (Y-m-d). Por defecto: hoy + 14 días}
+                            {--desde= : Fecha de inicio (Y-m-d). Por defecto: próximo lunes}
+                            {--hasta= : Fecha de fin (Y-m-d). Por defecto: próximo domingo}
                             {--plantilla= : ID de plantilla específica. Por defecto: todas las ACTIVO}';
 
     protected $description = 'Proyecta sesiones_activas a partir de actividades_plantilla para un rango de fechas';
 
-    // Mapa de dia_semana (texto) → número ISO (1=Lunes … 7=Domingo)
-    private const DIA_ISO = [
-        'LUNES'     => 1,
-        'MARTES'    => 2,
-        'MIERCOLES' => 3,
-        'JUEVES'    => 4,
-        'VIERNES'   => 5,
-        'SABADO'    => 6,
-        'DOMINGO'   => 7,
-    ];
+    public function __construct(private readonly PublicarProgramacionService $service)
+    {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
         $desde = $this->option('desde')
-            ? Carbon::parse($this->option('desde'))
-            : Carbon::today('America/Mexico_City');
+            ? Carbon::createFromFormat('Y-m-d', $this->option('desde'))->startOfDay()
+            : Carbon::today('America/Mexico_City')->next(Carbon::MONDAY)->startOfDay();
 
         $hasta = $this->option('hasta')
-            ? Carbon::parse($this->option('hasta'))
-            : Carbon::today('America/Mexico_City')->addDays(14);
+            ? Carbon::createFromFormat('Y-m-d', $this->option('hasta'))->endOfDay()
+            : $desde->copy()->addDays(6)->endOfDay();
 
         $idPlantilla = $this->option('plantilla');
 
@@ -55,44 +50,40 @@ class GenerarSesiones extends Command
             return self::SUCCESS;
         }
 
+        // Trae todas las sesiones ya existentes en el rango con una sola query,
+        // evitando el N+1 del loop .exists() anterior.
+        $existentes = SesionActiva::withoutGlobalScopes()
+            ->whereBetween('fecha_sesion', [$desde->toDateString(), $hasta->toDateString()])
+            ->pluck('fecha_sesion', 'id_actividad_plantilla')
+            ->all();
+
         $totalInsertadas = 0;
         $periodo = CarbonPeriod::create($desde, $hasta);
 
         foreach ($plantillas as $plantilla) {
-            foreach ($plantilla->actividades as $actividad) {
-                $diaISO = self::DIA_ISO[$actividad->dia_semana] ?? null;
-                if ($diaISO === null) {
-                    $this->warn("dia_semana desconocido: {$actividad->dia_semana} (actividad {$actividad->id_actividad_plantilla})");
-                    continue;
-                }
+            // Reutiliza proyectarSesiones() del Service para cada semana del período.
+            // Si el rango abarca varias semanas, itera semana a semana para que el
+            // cálculo de fecha real por dia_semana sea correcto en cada una.
+            foreach ($this->semanasDentro($periodo) as $rango) {
+                $rows = $this->service->proyectarSesiones($plantilla->actividades, $rango);
 
-                $sesiones = [];
-                foreach ($periodo as $fecha) {
-                    if ($fecha->dayOfWeekIso !== $diaISO) {
-                        continue;
+                // Filtra duplicados en memoria usando el set de existentes ya cargado.
+                $rows = array_filter($rows, function (array $row) use ($existentes): bool {
+                    $key = $row['id_actividad_plantilla'];
+                    return !isset($existentes[$key])
+                        || $existentes[$key] !== $row['fecha_sesion'];
+                });
+
+                $rows = array_values($rows);
+
+                if (!empty($rows)) {
+                    SesionActiva::insert($rows);
+                    $totalInsertadas += count($rows);
+
+                    // Agrega las recién insertadas al set para evitar colisiones inter-semana.
+                    foreach ($rows as $row) {
+                        $existentes[$row['id_actividad_plantilla']] = $row['fecha_sesion'];
                     }
-
-                    $fechaStr = $fecha->toDateString();
-
-                    // Evitar duplicados: si la sesión ya existe para esa actividad + fecha, saltar
-                    $existe = SesionActiva::withoutGlobalScopes()
-                        ->where('id_actividad_plantilla', $actividad->id_actividad_plantilla)
-                        ->where('fecha_sesion', $fechaStr)
-                        ->exists();
-
-                    if (!$existe) {
-                        $sesiones[] = [
-                            'id_actividad_plantilla' => $actividad->id_actividad_plantilla,
-                            'fecha_sesion'           => $fechaStr,
-                            'estatus_sesion'         => 'DISPONIBLE',
-                            'cantidad_inscritos'     => 0,
-                        ];
-                    }
-                }
-
-                if (!empty($sesiones)) {
-                    SesionActiva::insert($sesiones);
-                    $totalInsertadas += count($sesiones);
                 }
             }
         }
@@ -100,5 +91,22 @@ class GenerarSesiones extends Command
         $this->info("Sesiones generadas: {$totalInsertadas} (rango {$desde->toDateString()} → {$hasta->toDateString()})");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Divide un CarbonPeriod en rangos semana-a-semana (lunes–domingo).
+     * Permite que proyectarSesiones() opere con la semana correcta en cada iteración.
+     *
+     * @return iterable<array{lunes: Carbon, domingo: Carbon}>
+     */
+    private function semanasDentro(CarbonPeriod $periodo): iterable
+    {
+        $cursor = $periodo->getStartDate()->copy()->startOfWeek(Carbon::MONDAY);
+        $fin    = $periodo->getEndDate()->copy();
+
+        while ($cursor->lte($fin)) {
+            yield $this->service->calcularRangoSemana($cursor->toDateString());
+            $cursor->addWeek();
+        }
     }
 }

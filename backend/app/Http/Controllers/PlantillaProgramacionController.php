@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PublicarDraftRequest;
+use App\Http\Requests\PublicarPlantillaRequest;
 use App\Http\Requests\UpdateDraftRequest;
 use App\Models\ActividadPlantilla;
 use App\Models\DraftProgramacion;
 use App\Models\PlantillaProgramacion;
+use App\Services\PublicarProgramacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -194,6 +196,37 @@ class PlantillaProgramacionController extends Controller
         ], 201);
     }
 
+    // POST /api/v1/programacion/plantillas/{plantillaId}/publicar
+    // Thin controller: delega toda la lógica al Service.
+    // El id_plantilla viene de la URL; semana_inicio viene del body (validado por el Request).
+    // Las excepciones (ConflictoSemanaException, ModelNotFoundException) burbujean
+    // al Handler de Laravel y renderizan su propio JSON sin código adicional aquí.
+    public function publicarPlantilla(PublicarPlantillaRequest $request, PublicarProgramacionService $service, int $plantillaId): JsonResponse
+    {
+        $resultado = $service->publicar(
+            $plantillaId,
+            $request->string('semana_inicio')->toString(),
+        );
+
+        return response()->json([
+            'message' => 'Programación publicada correctamente.',
+            'data'    => $resultado,
+        ], 201);
+    }
+
+    // DELETE /api/v1/programacion/plantillas/{plantillaId}/sesiones
+    // Despublica una plantilla: elimina sus sesiones_activas y resetea fechas.
+    // Respeta la ventana de 30 minutos: fuera de ella bloquea si hay actividad registrada.
+    public function despublicarSesiones(PublicarProgramacionService $service, int $plantillaId): JsonResponse
+    {
+        $resultado = $service->despublicar($plantillaId);
+
+        return response()->json([
+            'message' => 'Programación despublicada correctamente.',
+            'data'    => $resultado,
+        ], 200);
+    }
+
     // GET /api/v1/programacion/plantillas
     public function index(): JsonResponse
     {
@@ -374,12 +407,6 @@ class PlantillaProgramacionController extends Controller
             'fecha_fin'         => 'sometimes|nullable|date|after_or_equal:fecha_inicio',
             'estatus_plantilla' => 'sometimes|in:ACTIVO,INACTIVO',
         ]);
-
-        // Al pasar a INACTIVO, limpiar fechas de SOLO esta plantilla
-        if (isset($data['estatus_plantilla']) && $data['estatus_plantilla'] === 'INACTIVO') {
-            $data['fecha_inicio'] = null;
-            $data['fecha_fin']    = null;
-        }
 
         $plantilla->update($data);
 

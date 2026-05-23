@@ -11,7 +11,7 @@ class SesionActiva extends Model
     protected $primaryKey = 'id_sesion';
     public $timestamps = false;
 
-    // Para reportes históricos o Jobs de background: SesionActiva::withoutGlobalScopes()->...
+    // Para reportes históricos o comandos de automatización: SesionActiva::withoutGlobalScopes()->...
     protected static function booted(): void
     {
         static::addGlobalScope(new FuturasActivasScope());
@@ -22,8 +22,16 @@ class SesionActiva extends Model
         'id_actividad_plantilla',
         'id_espacio',
         'fecha_sesion',
+        'estatus_sesion',
+        'cantidad_inscritos',
+        'fecha_publicacion',
         'id_instructor_sustituto',
+        'lista_asistencia_enviada',
     ];
+
+    // -------------------------------------------------------------------------
+    // Relaciones
+    // -------------------------------------------------------------------------
 
     public function actividadPlantilla()
     {
@@ -32,7 +40,39 @@ class SesionActiva extends Model
 
     public function inscripcionesClase()
     {
-        // Clase, FK, PK
         return $this->hasMany(InscripcionClase::class, 'id_sesion', 'id_sesion');
+    }
+
+    // -------------------------------------------------------------------------
+    // Atributos dinámicos
+    // -------------------------------------------------------------------------
+
+    /**
+     * Indica si el cupo de la sesión está lleno.
+     *
+     * Requiere que la relación actividadPlantilla esté cargada (eager load)
+     * para evitar N+1. Si no está cargada, devuelve false de forma segura.
+     *
+     * Uso: $sesion->es_cupo_lleno  (acceso como propiedad)
+     */
+    public function getEsCupoLlenoAttribute(): bool
+    {
+        $actividad = $this->actividadPlantilla;
+
+        if (!$actividad || $actividad->cupo_maximo === null) {
+            return false;
+        }
+
+        return $this->cantidad_inscritos >= $actividad->cupo_maximo;
+    }
+
+    /**
+     * Indica si la sesión finalizó sin que se enviara la lista de asistencia.
+     *
+     * Útil para alertas en el dashboard del subgerente.
+     */
+    public function getAsistenciaPendienteAttribute(): bool
+    {
+        return $this->estatus_sesion === 'FINALIZADA' && !$this->lista_asistencia_enviada;
     }
 }
