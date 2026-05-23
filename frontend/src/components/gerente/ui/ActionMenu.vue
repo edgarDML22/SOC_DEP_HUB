@@ -155,9 +155,11 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
             class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
                    transition-colors text-left
                    disabled:opacity-40 disabled:cursor-not-allowed"
-            :class="item.destructive
-              ? 'text-red-600 hover:bg-red-50'
-              : 'text-surface-700 hover:bg-surface-50'"
+            :class="item.customClass
+              ? item.customClass
+              : item.destructive
+                ? 'text-red-600 hover:bg-red-50'
+                : 'text-surface-700 hover:bg-surface-50'"
             type="button"
           >
             <!-- Icono opcional (HTML/SVG raw o slot) -->

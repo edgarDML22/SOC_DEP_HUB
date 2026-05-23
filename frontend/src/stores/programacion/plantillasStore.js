@@ -133,6 +133,25 @@ export const usePlantillasStore = defineStore('plantillas', () => {
     }
   }
 
+  // ─── Exportar PDF ───────────────────────────────────────────────────────────
+  async function exportarPdf(idPlantilla) {
+    isSaving.value = true
+    try {
+      const response = await api.get(`/programacion/plantillas/${idPlantilla}/exportar-pdf`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Plantilla_Programacion_${idPlantilla}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   // ─── Despublicar plantilla (eliminar sesiones activas) ───────────────────
   // DELETE /programacion/plantillas/{id}/sesiones
   // Retorna { sesiones_eliminadas }
@@ -159,7 +178,7 @@ export const usePlantillasStore = defineStore('plantillas', () => {
     plantillas, plantillaActiva,
     isLoading, isSaving, isDeleting, error,
     fetchPlantillas, createPlantilla, updatePlantilla, deletePlantilla,
-    actualizarTotalActividades, publicarPlantilla, despublicarPlantilla,
+    actualizarTotalActividades, publicarPlantilla, despublicarPlantilla, exportarPdf,
     sesionesRetiradas, sesionesPublicadas,
   }
 })
