@@ -2,15 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AgendaUnificadaService;
 use App\Models\EncuentrosTorneo;
 use App\Models\MiembrosFamiliares;
 use App\Models\ParticipantesTorneo;
 use App\Models\SocioTitular;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class SocioAgendaController extends Controller
 {
+    public function __construct(private AgendaUnificadaService $agendaService) {}
+
+    // US-28 / SDH-348,349,350: Agenda unificada del socio (reservas + clases)
+    public function miAgenda(Request $request): JsonResponse
+    {
+        $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d|after_or_equal:desde',
+        ]);
+
+        $idSocio = $request->user()->user_id;
+
+        $tz    = 'America/Mexico_City';
+        $desde = $request->desde ?? Carbon::now($tz)->toDateString();
+        $hasta = $request->hasta ?? Carbon::now($tz)->addDays(7)->toDateString();
+
+        $resultado = $this->agendaService->obtenerAgenda($idSocio, $desde, $hasta);
+
+        return response()->json(['data' => $resultado], 200);
+    }
+
     /**
      * Encuentros de torneo del socio y su familia.
      * Filtrado en backend: excluye estatus_encuentro CANCELADO/BYE y torneos CANCELADO.

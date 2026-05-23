@@ -373,6 +373,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // TORNEOS: Hub del Socio (disponibles e historial)
     Route::get('/v1/socio/agenda', [SocioAgendaController::class, 'index']);
+    // US-28 / SDH-348,349,350: Agenda unificada del socio (reservas + clases)
+    Route::get('/v1/socio/mi-agenda', [SocioAgendaController::class, 'miAgenda']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
