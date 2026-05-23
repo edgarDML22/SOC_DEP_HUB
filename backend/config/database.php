@@ -98,7 +98,7 @@ return [
                 // statements cacheados. PGSQL_ATTR_DISABLE_PREPARES envía cada query
                 // como texto plano sin cachear planes en el servidor, resolviendo
                 // "cached plan must not change result type" sin romper el type binding.
-                PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
+                (defined('PDO::PGSQL_ATTR_DISABLE_PREPARES') ? PDO::PGSQL_ATTR_DISABLE_PREPARES : 1002) => true,
                 PDO::ATTR_TIMEOUT => 10,
             ],
         ],

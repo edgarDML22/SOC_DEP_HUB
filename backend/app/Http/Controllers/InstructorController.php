@@ -164,6 +164,10 @@ class InstructorController extends Controller
             ->where('id_instructor', $instructorId)
             ->where('id_disciplina', 26)
             ->exists();
+        $turnoHoy = DB::table('turnos_ludoteca')
+            ->where('id_instructor', $instructorId)
+            ->where('fecha', Carbon::now('America/Mexico_City')->toDateString())
+            ->exists();
         return response()->json([
             'success' => true,
             'data' => [
@@ -176,6 +180,7 @@ class InstructorController extends Controller
                 'fecha_afiliacion' => $instructor->fecha_afiliacion,
                 'rol' => 'Instructor',
                 'tieneLudoteca' => $tieneLudoteca,
+                'turno_ludoteca_hoy' => $turnoHoy,
             ]
         ], 200);
     }

@@ -150,12 +150,11 @@ class AdminLudotecaController extends Controller
             );
 
         // filtro fechas
-        if ($request->fecha_inicio && $request->fecha_fin) {
-
-            $historial->whereBetween('l.hora_ingreso', [
-                $request->fecha_inicio . ' 00:00:00',
-                $request->fecha_fin . ' 23:59:59'
-            ]);
+        if ($request->fecha_inicio) {
+            $historial->where('l.hora_ingreso', '>=', $request->fecha_inicio . ' 00:00:00');
+        }
+        if ($request->fecha_fin) {
+            $historial->where('l.hora_ingreso', '<=', $request->fecha_fin . ' 23:59:59');
         }
 
         // filtro socio

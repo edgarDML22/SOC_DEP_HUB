@@ -416,17 +416,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{plantillaId}', [PlantillaProgramacionController::class, 'destroyPlantilla']);
             Route::post('/{plantillaId}/publicar', [PlantillaProgramacionController::class, 'publicarPlantilla']);
             Route::delete('/{plantillaId}/sesiones', [PlantillaProgramacionController::class, 'despublicarSesiones']);
+            Route::get('/{plantillaId}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
         });
 
         Route::prefix('actividades')->group(function () {
             Route::patch('/{id}', [PlantillaProgramacionController::class, 'updateActividad']);
             Route::delete('/{id}', [PlantillaProgramacionController::class, 'destroyActividad']);
         });
-        // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
 
         Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
 
-        // Task 25.5: Route::post('sesiones/generar', [SesionActivaController::class, 'generarManual']);
+        
     });
 
     // Task 30.1 y 31.5 — descomentar cuando existan los controllers:

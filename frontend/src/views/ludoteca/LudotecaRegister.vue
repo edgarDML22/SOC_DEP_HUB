@@ -10,18 +10,15 @@ import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
-import { IconFilter, IconChevronDown, IconCalendar, IconStar, IconUser, IconHourglass, IconAlertCircle } from '@/components/icons'
+import { IconFilter, IconChevronDown, IconCalendar, IconStar, IconHourglass, IconAlertCircle } from '@/components/icons'
 import { useformat } from '@/utils/formatters'
-
-// FullCalendar o similar no es necesario aquí, solo una tabla
-import DatePicker from "primevue/datepicker";
 
 const router = useRouter()
 const store = useAdminLudotecaStore()
 const { formatText, dateFormat } = useformat();
 
-const { record, sociosConMenores, loading, listFilters } = storeToRefs(store)
-const { fetchRecord, fetchSociosConMenores } = store
+const { record, loading, listFilters } = storeToRefs(store)
+const { fetchRecord } = store
 
 // ── FILTROS ────────────────────────────────────────────────────
 const OPT_CALIFICACION = [
@@ -57,11 +54,11 @@ const loadData = async (silent = false) => {
     const params = {}
     const f = listFilters.value
 
-    if (f.dateRange && f.dateRange[0] && f.dateRange[1]) {
-        // Formatear fechas YYYY-MM-DD
-        const formatDate = (d) => d.toISOString().split('T')[0]
-        params.fecha_inicio = formatDate(f.dateRange[0])
-        params.fecha_fin = formatDate(f.dateRange[1])
+    if (f.fecha_inicio) {
+        params.fecha_inicio = f.fecha_inicio
+    }
+    if (f.fecha_fin) {
+        params.fecha_fin = f.fecha_fin
     }
 
     await fetchRecord(params, true)
@@ -69,16 +66,16 @@ const loadData = async (silent = false) => {
 }
 
 onMounted(async () => {
-    await Promise.all([
-        fetchRecord({}, true),
-        fetchSociosConMenores()
-    ])
+    await fetchRecord({}, true)
 })
 
-// Solo el rango de fechas gatilla una nueva petición al servidor
-watch(() => listFilters.value.dateRange, () => {
-    loadData(true)
-})
+// Las fechas gatillan una nueva petición al servidor
+watch(
+    [() => listFilters.value.fecha_inicio, () => listFilters.value.fecha_fin],
+    () => {
+        loadData(true)
+    }
+)
 
 const filteredRecord = computed(() => {
     let r = record.value
@@ -91,10 +88,6 @@ const filteredRecord = computed(() => {
             i.nombre_titular?.toLowerCase().includes(q) ||
             String(i.numero_accion ?? '').includes(q)
         )
-    }
-
-    if (f.socio) {
-        r = r.filter(i => i.id_socio === f.socio)
     }
 
     if (f.calificacion) {
@@ -121,14 +114,14 @@ const filteredRecord = computed(() => {
 })
 
 const hasActiveFilters = computed(() =>
-    listFilters.value.search || listFilters.value.dateRange || listFilters.value.socio ||
+    listFilters.value.search || listFilters.value.fecha_inicio || listFilters.value.fecha_fin ||
     listFilters.value.calificacion || listFilters.value.estatus || listFilters.value.tiempo
 )
 
 const clearFilters = () => {
     listFilters.value.search = ''
-    listFilters.value.dateRange = null
-    listFilters.value.socio = null
+    listFilters.value.fecha_inicio = ''
+    listFilters.value.fecha_fin = ''
     listFilters.value.calificacion = null
     listFilters.value.estatus = null
     listFilters.value.tiempo = null
@@ -191,39 +184,26 @@ const buildMenuItems = (item) => [
 
         <!-- BARRA DE FILTROS -->
         <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-            <div class="flex flex-col lg:flex-row gap-4">
-                <div class="flex-1">
-                    <SearchInput v-model="listFilters.search" placeholder="Buscar por menor, titular o acción…" />
-                </div>
-                <div class="lg:w-72">
-                    <div class="relative group">
-                        <IconCalendar
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 z-10" />
-                        <DatePicker v-model="listFilters.dateRange" selectionMode="range" :manualInput="false"
-                            placeholder="Rango de fechas" class="w-full"
-                            inputClass="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
-                            showIcon="false" />
-                    </div>
-                </div>
+            <div class="flex flex-col gap-2">
+                <SearchInput v-model="listFilters.search" placeholder="Buscar por menor, titular o acción…" />
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <!-- Socio -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <!-- Desde -->
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Socio
-                        Titular</label>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Desde</label>
                     <div class="relative">
-                        <IconUser
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="listFilters.socio"
-                            class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
-                            <option :value="null">Todos los socios</option>
-                            <option v-for="s in sociosConMenores" :key="s.id_socio" :value="s.id_socio">
-                                {{ s.nombre_completo }} (#{{ s.numero_accion }})
-                            </option>
-                        </select>
-                        <IconChevronDown
-                            class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        <input type="date" v-model="listFilters.fecha_inicio" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
+                    </div>
+                </div>
+
+                <!-- Hasta -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hasta</label>
+                    <div class="relative">
+                        <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        <input type="date" v-model="listFilters.fecha_fin" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
                     </div>
                 </div>
 
@@ -327,7 +307,7 @@ const buildMenuItems = (item) => [
                                 Menor</th>
                             <th scope="col"
                                 class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Titular</th>
+                                Titular / Acción</th>
                             <th scope="col"
                                 class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
                                 Ingreso / Egreso</th>
@@ -363,13 +343,8 @@ const buildMenuItems = (item) => [
 
                             <!-- Titular -->
                             <td class="px-6 py-4">
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-medium text-surface-700">{{ item.nombre_titular
-                                    }}</span>
-                                    <span
-                                        class="text-[10px] font-medium text-surface-400 uppercase tracking-wider">Acción
-                                        #{{ item.numero_accion }}</span>
-                                </div>
+                                <div class="font-bold text-slate-800">{{ item.nombre_titular }}</div>
+                                <div class="text-slate-500 text-xs mt-0.5">{{ item.numero_accion }}</div>
                             </td>
 
                             <!-- Ingreso / Egreso -->
