@@ -328,14 +328,7 @@ function getHourTimeLabel(hIdx) {
 
 // ─── Indicador de hora actual ─────────────────────────────────────────────
 const now = new Date()
-const currentMinutes = now.getHours() * 60 + now.getMinutes()
-const currentTimeTopPx = computed(() => {
-  const offsetMin = currentMinutes - HORA_INICIO * 60
-  if (offsetMin < 0 || offsetMin > TOTAL_HORAS * 60) return null
-  return (offsetMin / SLOT_MIN) * SLOT_PX
-})
 const todayDia = DIAS[now.getDay() === 0 ? 6 : now.getDay() - 1]
-const todayIdx = computed(() => DIAS.indexOf(todayDia))
 
 const timezoneLabel = computed(() => {
   const offsetMinutes = new Date().getTimezoneOffset()
@@ -399,33 +392,23 @@ const motivoVacio = computed(() => {
           :style="{ gridTemplateColumns: '64px repeat(7, minmax(0, 1fr))' }"
         >
           <!-- Top-left: Timezone label -->
-          <div class="h-20 flex flex-col items-end justify-end pb-2 pr-3 border-r border-slate-100">
+          <div class="h-14 flex items-center justify-end pr-3 border-r border-slate-100">
             <span class="text-[10px] font-semibold text-slate-600 tracking-wider">
               {{ timezoneLabel }}
             </span>
           </div>
-          <!-- Day names & dates -->
+          <!-- Day names -->
           <div
             v-for="dayObj in weekDays"
             :key="dayObj.dia"
-            class="h-20 border-l border-slate-100 flex flex-col items-center justify-center gap-1"
+            class="h-14 border-l border-slate-100 flex items-center justify-center"
           >
             <span
               :class="[
-                'text-[11px] font-bold uppercase tracking-wider',
-                dayObj.dia === todayDia ? 'text-primary-600' : 'text-slate-700'
+                'text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-all duration-150',
+                dayObj.dia === todayDia ? 'bg-primary-50 text-primary-600 font-extrabold shadow-sm' : 'text-slate-700'
               ]"
             >{{ DIAS_LABEL[dayObj.dia] }}</span>
-            <div
-              :class="[
-                'w-9 h-9 rounded-full flex items-center justify-center text-[15px] transition-colors duration-150',
-                dayObj.dia === todayDia
-                  ? 'bg-primary-600 text-white font-bold shadow-sm'
-                  : 'text-slate-800 font-semibold hover:bg-slate-100'
-              ]"
-            >
-              {{ dayObj.fecha }}
-            </div>
           </div>
         </div>
 
@@ -492,20 +475,7 @@ const motivoVacio = computed(() => {
             </button>
           </template>
 
-          <!-- LÍNEA DE HORA ACTUAL -->
-          <template v-if="currentTimeTopPx !== null && todayIdx !== -1">
-            <div
-              class="pointer-events-none z-20 absolute left-0 right-0 flex items-center"
-              :style="{
-                gridColumn: todayIdx + 2,
-                top: currentTimeTopPx + 'px',
-                height: '1px'
-              }"
-            >
-              <div class="w-2 h-2 rounded-full bg-red-500 -ml-1 shadow-sm shrink-0 z-30" />
-              <div class="flex-1 h-0.5 bg-red-500" />
-            </div>
-          </template>
+          <!-- LÍNEA DE HORA ACTUAL (REMOVIDA) -->
 
           <!-- BLOQUES DE SESIÓN -->
           <template v-for="(dia, diaIdx) in DIAS" :key="'sess-' + dia">

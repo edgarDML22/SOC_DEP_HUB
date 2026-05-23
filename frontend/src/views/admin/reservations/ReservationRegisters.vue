@@ -5,6 +5,7 @@ import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import { IconFilter, IconChevronDown, IconCalendar } from '@/components/icons'
+import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 
 const store = useReservacionAdminStore()
 
@@ -84,8 +85,12 @@ const sortedReservaciones = computed(() => {
     })
 })
 
-const openAcompanantesModal = (acompanantesData) => {
+const selectedReserva = ref(null)
+
+const openAcompanantesModal = (reserva) => {
+    selectedReserva.value = reserva
     try {
+        const acompanantesData = reserva.acompanantes_draft
         if (typeof acompanantesData === 'string') {
             selectedAcompanantes.value = JSON.parse(acompanantesData || '[]')
         } else {
@@ -101,7 +106,19 @@ const openAcompanantesModal = (acompanantesData) => {
 const closeAcompanantesModal = () => {
     isModalOpen.value = false
     selectedAcompanantes.value = []
+    selectedReserva.value = null
 }
+
+const buildMenuItems = (reserva) => [
+    {
+        label: 'Ver acompañantes',
+        icon: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+               </svg>`,
+        action: () => openAcompanantesModal(reserva),
+    }
+]
 
 const getBadgeColor = (tipo) => {
     switch (tipo?.toLowerCase()) {
@@ -305,15 +322,7 @@ const exportColumns = [
                             </span>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button v-if="reserva.modalidad === 'ACOMPANANTES'" 
-                                    @click="openAcompanantesModal(reserva.acompanantes_draft)"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                                Ver Acompañantes
-                            </button>
+                            <ActionMenu :items="buildMenuItems(reserva)" align="right" />
                         </td>
                     </tr>
                 </tbody>
@@ -334,7 +343,9 @@ const exportColumns = [
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                                     </svg>
                                 </div>
-                                <h3 class="text-lg font-black text-slate-800">Detalle de Acompañantes</h3>
+                                <h3 class="text-lg font-black text-slate-800">
+                                    {{ selectedReserva?.modalidad === 'INDIVIDUAL' ? 'Información de Reserva' : 'Detalle de Acompañantes' }}
+                                </h3>
                             </div>
                             <button @click="closeAcompanantesModal" class="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,7 +356,17 @@ const exportColumns = [
                         
                         <!-- Contenido del Modal -->
                         <div class="p-5 overflow-y-auto bg-slate-50/50 flex-1">
-                            <div v-if="selectedAcompanantes.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+                            <div v-if="selectedReserva?.modalidad === 'INDIVIDUAL'" class="flex flex-col items-center justify-center py-10 text-center">
+                                <div class="p-3 bg-amber-50 rounded-2xl mb-4 text-amber-500">
+                                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                </div>
+                                <h4 class="text-base font-black text-slate-800">Modalidad Individual</h4>
+                                <p class="text-slate-500 font-medium mt-2 text-sm max-w-xs">Esta reservación fue realizada bajo la modalidad individual, por lo que no cuenta con acompañantes.</p>
+                            </div>
+                            
+                            <div v-else-if="selectedAcompanantes.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
                                 <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                                 </svg>

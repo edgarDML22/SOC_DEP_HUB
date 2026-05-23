@@ -1331,14 +1331,23 @@ function descartarCelda() {
                       </span>
                       <button
                         type="button"
-                        @click.stop="store.eliminarDeBorradorLocal(s._originalIdx)"
-                        class="w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 border"
-                        :class="sesionBorradorEnConflicto(s) === 'confirmada'
-                          ? 'bg-white/20 hover:bg-red-500 text-white hover:text-white border-white/30'
-                          : sesionBorradorEnConflicto(s) === 'borrador'
-                            ? 'bg-white/80 hover:bg-red-100 text-amber-400 hover:text-red-500 border-amber-200'
-                            : 'bg-white/80 hover:bg-red-100 text-slate-300 hover:text-red-500 border-slate-100'"
-                        title="Quitar del borrador"
+                        @click.stop="sesionResaltadaEnPanel(s) || !hayFiltroHeader ? store.abrirDetalleSesion('borrador', s._originalIdx) : null"
+                        :disabled="hayFiltroHeader && !sesionResaltadaEnPanel(s)"
+                        :class="[
+                          'w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 border',
+                          sesionBorradorEnConflicto(s) === 'confirmada'
+                            ? 'bg-white/20 hover:bg-white/40 text-white border-white/30'
+                            : sesionBorradorEnConflicto(s) === 'borrador'
+                              ? 'bg-white/80 hover:bg-amber-100 text-amber-500 hover:text-amber-700 border-amber-200'
+                              : hayFiltroHeader && sesionResaltadaEnPanel(s)
+                                ? 'bg-white/80 hover:bg-primary-100 text-primary-500 hover:text-primary-700 border-primary-200'
+                                : hayFiltroHeader
+                                  ? 'bg-transparent text-slate-200 border-slate-100 cursor-not-allowed'
+                                  : s.requiere_inscripcion
+                                    ? 'bg-white/80 hover:bg-red-100 text-slate-400 hover:text-red-600 border-slate-100'
+                                    : 'bg-white/80 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 border-slate-100'
+                        ]"
+                        title="Ver detalle"
                       >
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />

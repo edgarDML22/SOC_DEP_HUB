@@ -120,14 +120,7 @@ function clasesBloque(b) {
 
 // ─── Indicador de hora actual ─────────────────────────────────────────────
 const now = new Date()
-const currentMinutes = now.getHours() * 60 + now.getMinutes()
-const currentTimeTopPx = computed(() => {
-  const offsetMin = currentMinutes - HORA_INICIO * 60
-  if (offsetMin < 0 || offsetMin > TOTAL_HORAS * 60) return null
-  return (offsetMin / SLOT_MIN) * SLOT_PX
-})
 const todayDia = DIAS[now.getDay() === 0 ? 6 : now.getDay() - 1]
-const todayIdx = computed(() => DIAS.indexOf(todayDia))
 
 const timezoneLabel = computed(() => {
   const offsetMinutes = new Date().getTimezoneOffset()
@@ -256,20 +249,7 @@ function formatGutterHour(h) {
             </div>
           </template>
 
-          <!-- LÍNEA DE HORA ACTUAL -->
-          <template v-if="currentTimeTopPx !== null && todayIdx !== -1">
-            <div
-              class="pointer-events-none z-20 absolute left-0 right-0 flex items-center"
-              :style="{
-                gridColumn: todayIdx + 2,
-                top: currentTimeTopPx + 'px',
-                height: '1px'
-              }"
-            >
-              <div class="w-2 h-2 rounded-full bg-red-500 -ml-1 shadow-sm shrink-0 z-30" />
-              <div class="flex-1 h-0.5 bg-red-500" />
-            </div>
-          </template>
+          <!-- LÍNEA DE HORA ACTUAL (REMOVIDA) -->
 
           <!-- BLOQUES DE SESIÓN -->
           <template v-for="(dia, diaIdx) in DIAS" :key="'sess-' + dia">

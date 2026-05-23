@@ -41,8 +41,8 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     const listFilters = ref({
         search: '',
-        dateRange: null,
-        socio: null,
+        fecha_inicio: '',
+        fecha_fin: '',
         calificacion: null,
         estatus: null,
         tiempo: null
