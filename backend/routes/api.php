@@ -384,13 +384,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{plantillaId}', [PlantillaProgramacionController::class, 'show']);
             Route::patch('/{plantillaId}', [PlantillaProgramacionController::class, 'updatePlantilla']);
             Route::delete('/{plantillaId}', [PlantillaProgramacionController::class, 'destroyPlantilla']);
+            Route::get('/{plantillaId}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
         });
 
         Route::prefix('actividades')->group(function () {
             Route::patch('/{id}', [PlantillaProgramacionController::class, 'updateActividad']);
             Route::delete('/{id}', [PlantillaProgramacionController::class, 'destroyActividad']);
         });
-        // Task 36.2: Route::get('plantillas/{id}/exportar-pdf', [PlantillaProgramacionController::class, 'exportarPdf']);
 
         // Task 25.5: Route::post('sesiones/generar', [\App\Http\Controllers\SesionActivaController::class, 'generarManual']);
     });

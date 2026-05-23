@@ -531,4 +531,102 @@ class PlantillaProgramacionController extends Controller
 
         return response()->json(['message' => 'Actividad eliminada correctamente.'], 200);
     }
+
+    // GET /api/v1/programacion/plantillas/{id}/exportar-pdf
+    // Genera un archivo PDF estilizado con la programación semanal agrupada por turnos y disciplinas.
+    public function exportarPdf(int $id)
+    {
+        $plantilla = PlantillaProgramacion::withoutGlobalScopes()->with([
+            'actividades' => function ($query) {
+                $query->where('estatus', 'ACTIVO')
+                    ->with([
+                        'espacioFisico',
+                        'disciplina',
+                        'instructor',
+                    ]);
+            },
+        ])->findOrFail($id);
+
+        $actividades = $plantilla->actividades;
+
+        // Categorizar en Matutino y Vespertino
+        $matutino = [];
+        $vespertino = [];
+
+        foreach ($actividades as $act) {
+            $horaInicio = $act->hora_inicio; // e.g. "08:00:00"
+            $hour = (int) explode(':', $horaInicio)[0];
+            
+            // Si inicia antes de las 12:00, es Matutino. A partir de las 12:00 es Vespertino.
+            if ($hour < 12) {
+                $matutino[] = $act;
+            } else {
+                $vespertino[] = $act;
+            }
+        }
+
+        // Agrupar y ordenar por disciplina alfabéticamente
+        $matutinoGrouped = $this->groupAndSortActividades($matutino);
+        $vespertinoGrouped = $this->groupAndSortActividades($vespertino);
+
+        // Generar QR en base64
+        $siteUrl = 'https://britania-web.vercel.app/login';
+        $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)->generate($siteUrl);
+        $base64Qr = base64_encode($qrCodeSvg);
+
+        // Cargar logotipo del club en base64
+        $logoPath = resource_path('LogoSocDep.png');
+        $base64Logo = '';
+        if (file_exists($logoPath)) {
+            $base64Logo = base64_encode(file_get_contents($logoPath));
+        }
+
+        // Cargar la vista Blade de DomPDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.programacion', [
+            'plantilla' => $plantilla,
+            'matutino' => $matutinoGrouped,
+            'vespertino' => $vespertinoGrouped,
+            'base64Logo' => $base64Logo,
+            'base64Qr' => $base64Qr,
+        ]);
+        $pdf->getDomPDF()->set_option('isRemoteEnabled', true);
+
+        return $pdf->download("programacion_{$plantilla->nombre_plantilla}.pdf");
+    }
+
+    private function groupAndSortActividades(array $actividades): array
+    {
+        $grouped = [];
+        foreach ($actividades as $act) {
+            $disciplinaName = $act->disciplina ? $act->disciplina->nombre_disciplina : 'Sin Disciplina';
+            if (!isset($grouped[$disciplinaName])) {
+                $grouped[$disciplinaName] = [
+                    'nombre' => $disciplinaName,
+                    'actividades' => []
+                ];
+            }
+            $grouped[$disciplinaName]['actividades'][] = $act;
+        }
+
+        // Ordenar disciplinas alfabéticamente
+        ksort($grouped);
+
+        // Dentro de cada disciplina, ordenar las actividades por día de la semana y luego por hora de inicio
+        $diaOrder = [
+            'LUNES' => 0, 'MARTES' => 1, 'MIERCOLES' => 2, 'JUEVES' => 3, 'VIERNES' => 4, 'SABADO' => 5, 'DOMINGO' => 6
+        ];
+
+        foreach ($grouped as &$group) {
+            usort($group['actividades'], function($a, $b) use ($diaOrder) {
+                $orderA = $diaOrder[$a->dia_semana] ?? 7;
+                $orderB = $diaOrder[$b->dia_semana] ?? 7;
+                if ($orderA !== $orderB) {
+                    return $orderA - $orderB;
+                }
+                return strcmp($a->hora_inicio, $b->hora_inicio);
+            });
+        }
+
+        return $grouped;
+    }
 }
