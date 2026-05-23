@@ -11,7 +11,7 @@ class PlantillasProgramacionSeeder extends Seeder
     {
         PlantillaProgramacion::updateOrCreate(
             ['nombre_plantilla' => 'Programación Base Disciplinas 2026'], 
-            ['estatus_plantilla' => 'ACTIVO'] 
+            ['estatus_plantilla' => true]
         );
 
         $this->command->info("Plantilla creada exitosamente.");

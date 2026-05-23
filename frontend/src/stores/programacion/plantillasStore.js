@@ -11,7 +11,7 @@ export const usePlantillasStore = defineStore('plantillas', () => {
 
   // Plantilla activa en este momento (usada por el Wizard)
   const plantillaActiva = computed(() =>
-    plantillas.value.find(p => p.estatus_plantilla === 'ACTIVO') ?? null
+    plantillas.value.find(p => p.estatus_plantilla === true) ?? null
   )
 
   // Incrementado cada vez que se retiran sesiones — SesionesPublicadas lo observa para refrescar
@@ -52,6 +52,8 @@ export const usePlantillasStore = defineStore('plantillas', () => {
       const existing = plantillas.value.find(p => p.id_plantilla === id)
       if (existing) {
         updated.total_actividades = existing.total_actividades ?? 0
+        // Preservar publicada — el PATCH no modifica este campo nunca
+        if (!('publicada' in updated)) updated.publicada = existing.publicada ?? false
         // Si el payload no incluyó fechas (solo cambió estatus u otro campo),
         // conservar las fechas actuales en lugar de las que devuelva la API.
         if (!('fecha_inicio' in clean)) updated.fecha_inicio = existing.fecha_inicio
@@ -112,7 +114,8 @@ export const usePlantillasStore = defineStore('plantillas', () => {
       )
       const p = plantillas.value.find(p => p.id_plantilla === idPlantilla)
       if (p) {
-        p.estatus_plantilla = 'ACTIVO'
+        p.estatus_plantilla = true
+        p.publicada         = true
         // Mantener el rango más amplio si ya hay fechas previas (publicación de 2 semanas)
         const nuevaInicio = data?.data?.semana_inicio
         const nuevaFin    = data?.data?.semana_fin
@@ -130,6 +133,25 @@ export const usePlantillasStore = defineStore('plantillas', () => {
     }
   }
 
+  // ─── Exportar PDF ───────────────────────────────────────────────────────────
+  async function exportarPdf(idPlantilla) {
+    isSaving.value = true
+    try {
+      const response = await api.get(`/programacion/plantillas/${idPlantilla}/exportar-pdf`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Plantilla_Programacion_${idPlantilla}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   // ─── Despublicar plantilla (eliminar sesiones activas) ───────────────────
   // DELETE /programacion/plantillas/{id}/sesiones
   // Retorna { sesiones_eliminadas }
@@ -140,9 +162,10 @@ export const usePlantillasStore = defineStore('plantillas', () => {
       // Resetea estatus y fechas en el estado local sin refetch
       const p = plantillas.value.find(p => p.id_plantilla === idPlantilla)
       if (p) {
-        p.estatus_plantilla = 'INACTIVO'
+        p.estatus_plantilla = false
+        p.publicada    = false
         p.fecha_inicio = null
-        p.fecha_fin = null
+        p.fecha_fin    = null
       }
       sesionesRetiradas.value++
       return data
@@ -155,7 +178,7 @@ export const usePlantillasStore = defineStore('plantillas', () => {
     plantillas, plantillaActiva,
     isLoading, isSaving, isDeleting, error,
     fetchPlantillas, createPlantilla, updatePlantilla, deletePlantilla,
-    actualizarTotalActividades, publicarPlantilla, despublicarPlantilla,
+    actualizarTotalActividades, publicarPlantilla, despublicarPlantilla, exportarPdf,
     sesionesRetiradas, sesionesPublicadas,
   }
 })

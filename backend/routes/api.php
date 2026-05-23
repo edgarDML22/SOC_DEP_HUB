@@ -428,6 +428,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
+        Route::patch('sesiones-activas/{id}', [SesionActivaController::class, 'update']);
+        Route::get('sesiones-activas/{id}/asistencia', [SesionActivaController::class, 'asistencia']);
 
         
     });

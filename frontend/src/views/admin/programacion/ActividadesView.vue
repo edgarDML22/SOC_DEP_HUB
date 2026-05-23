@@ -36,6 +36,10 @@ async function initWizard(plantillaActiva) {
 
 async function selectTab(name) {
   activeTab.value = name
+  if (name === 'plantillas') {
+    plantillasStore.fetchPlantillas()
+    return
+  }
   if (name !== 'wizard') return
   if (wizardReady.value) return   // ya inicializado para la plantilla actual
 

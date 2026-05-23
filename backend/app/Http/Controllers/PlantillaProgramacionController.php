@@ -160,7 +160,7 @@ class PlantillaProgramacionController extends Controller
                 'nombre_plantilla'  => $payload['nombre_plantilla'] ?? 'Plantilla sin nombre',
                 'fecha_inicio'      => $payload['fecha_inicio'] ?? null,
                 'fecha_fin'         => $payload['fecha_fin'] ?? null,
-                'estatus_plantilla' => 'ACTIVO',
+                'estatus_plantilla' => true,
             ]);
 
             $rows = array_map(fn($a) => [
@@ -241,7 +241,8 @@ class PlantillaProgramacionController extends Controller
                 'nombre_plantilla'  => $p->nombre_plantilla,
                 'fecha_inicio'      => $p->fecha_inicio,
                 'fecha_fin'         => $p->fecha_fin,
-                'estatus_plantilla' => $p->estatus_plantilla,
+                'estatus_plantilla' => (bool) $p->estatus_plantilla,
+                'publicada'         => (bool) $p->publicada,
                 'total_actividades' => $p->actividades_count,
             ]);
 
@@ -407,7 +408,7 @@ class PlantillaProgramacionController extends Controller
             'nombre_plantilla'  => 'sometimes|string|max:255',
             'fecha_inicio'      => 'sometimes|nullable|date',
             'fecha_fin'         => 'sometimes|nullable|date|after_or_equal:fecha_inicio',
-            'estatus_plantilla' => 'sometimes|in:ACTIVO,INACTIVO',
+            'estatus_plantilla' => 'sometimes|boolean',
         ]);
 
         $plantilla->update($data);
@@ -428,7 +429,7 @@ class PlantillaProgramacionController extends Controller
             'nombre_plantilla'  => $data['nombre_plantilla'],
             'fecha_inicio'      => $data['fecha_inicio'],
             'fecha_fin'         => $data['fecha_fin'],
-            'estatus_plantilla' => 'INACTIVO',
+            'estatus_plantilla' => false,
         ]);
 
         return response()->json(['data' => $plantilla], 201);
@@ -439,8 +440,8 @@ class PlantillaProgramacionController extends Controller
     {
         $plantilla = PlantillaProgramacion::withoutGlobalScopes()->findOrFail($id);
 
-        // Regla 1: Bloqueo absoluto si está ACTIVO
-        if ($plantilla->estatus_plantilla === 'ACTIVO') {
+        // Regla 1: Bloqueo absoluto si está activa
+        if ($plantilla->estatus_plantilla === true) {
             return response()->json([
                 'message' => 'No se puede eliminar una programación que se encuentra actualmente ACTIVA.',
             ], 422);
@@ -519,7 +520,8 @@ class PlantillaProgramacionController extends Controller
                 'nombre_plantilla'  => $plantilla->nombre_plantilla,
                 'fecha_inicio'      => $plantilla->fecha_inicio,
                 'fecha_fin'         => $plantilla->fecha_fin,
-                'estatus_plantilla' => $plantilla->estatus_plantilla,
+                'estatus_plantilla' => (bool) $plantilla->estatus_plantilla,
+                'publicada'         => (bool) $plantilla->publicada,
                 'actividades'       => $actividades,
             ],
         ], 200);

@@ -139,7 +139,7 @@ class DisciplinaController extends Controller
         //actividades programadas
         $actividades = ActividadPlantilla::where('id_disciplina', $id_disciplina)
             ->whereHas('plantilla', function ($query) {
-                $query->where('estatus_plantilla', 'ACTIVO');
+                $query->where('estatus_plantilla', true);
             })
             ->count();
 
