@@ -80,6 +80,7 @@ class ProfileController extends Controller
                         'retrasos_acumulados_ludoteca' => $perfil->retrasos_ludoteca ?? 0,
                         'qr_payload' => $qrPayload,
                         'qr_image_url' => $qrImageUrl,
+                        'foto_perfil' => $this->getFotoPerfilUrl($perfil->id_socio),
                     ]
                 ]);
                 break;
@@ -226,12 +227,67 @@ class ProfileController extends Controller
         ]);
 
         $socio = SocioTitular::find($usuario->user_id);
-
+ 
         if ($socio) {
             $socio->update($validated);
             return response()->json(['success' => true, 'message' => 'Perfil actualizado correctamente']);
         }
-
+ 
         return response()->json(['success' => false, 'message' => 'Error al actualizar'], 500);
+    }
+
+    public function uploadPhoto(Request $request)
+    {
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+        if ($usuario->rol !== 'socio_titular') {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $request->validate([
+            'foto_perfil' => 'required|image|max:2048',
+        ]);
+
+        $idSocio = $usuario->user_id;
+
+        // Eliminar cualquier foto de perfil anterior para evitar duplicados con otras extensiones (búsqueda dinámica)
+        $files = \Illuminate\Support\Facades\Storage::disk('public')->files('perfiles');
+        foreach ($files as $f) {
+            if (preg_match('/^perfiles\/socio_' . $idSocio . '\.[a-zA-Z0-9]+$/i', $f)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($f);
+            }
+        }
+
+        // Guardar la nueva foto
+        $file = $request->file('foto_perfil');
+        $ext = $file->getClientOriginalExtension();
+        $filename = "socio_{$idSocio}.{$ext}";
+        
+        $path = $file->storeAs('perfiles', $filename, 'public');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto de perfil actualizada correctamente',
+            'foto_perfil' => $this->getFotoPerfilUrl($idSocio)
+        ]);
+    }
+
+    private function getFotoPerfilUrl($idSocio)
+    {
+        $files = \Illuminate\Support\Facades\Storage::disk('public')->files('perfiles');
+        foreach ($files as $f) {
+            if (preg_match('/^perfiles\/socio_' . $idSocio . '\.([a-zA-Z0-9]+)$/i', $f, $matches)) {
+                $baseUrl = request()->getSchemeAndHttpHost();
+                return $baseUrl . '/storage/' . $f . '?t=' . time();
+            }
+        }
+        return null;
     }
 }

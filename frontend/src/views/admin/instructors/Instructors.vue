@@ -36,7 +36,12 @@ const disciplinasList = ref([])
 const fetchDisciplinas = async () => {
   try {
     const res = await api.get('/disciplinas/all')
-    if (res.data?.success) disciplinasList.value = res.data.data
+    if (res.data?.success) {
+      const list = res.data.data || []
+      disciplinasList.value = [...list].sort((a, b) =>
+        (a.nombre_disciplina || '').localeCompare(b.nombre_disciplina || '', 'es', { sensitivity: 'base' })
+      )
+    }
   } catch (e) {
     console.error('Error cargando disciplinas:', e)
   }

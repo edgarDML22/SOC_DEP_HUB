@@ -10,15 +10,28 @@ class TorneoController extends Controller
 {
     public function index(Request $request)
     {
-        $torneos = Torneo::with(['disciplina', 'categoria'])
+        $relations = ['disciplina', 'categoria'];
+        if ($request->has('with_encuentros')) {
+            $relations[] = 'encuentros';
+            $relations[] = 'encuentros.competidor1.participante';
+            $relations[] = 'encuentros.competidor1.equipo';
+            $relations[] = 'encuentros.competidor1.capitanDeEquipo';
+            $relations[] = 'encuentros.competidor2.participante';
+            $relations[] = 'encuentros.competidor2.equipo';
+            $relations[] = 'encuentros.competidor2.capitanDeEquipo';
+        }
+
+        $perPage = $request->input('per_page', 15);
+
+        $torneos = Torneo::with($relations)
             ->when($request->estatus, fn($q, $v) => $q->where('estatus_torneo', $v))
             ->when($request->nombre_disciplina, fn($q, $v) => $q->whereHas('disciplina', fn($d) => $d->where('nombre_disciplina', $v)))
             ->when($request->nombre_categoria, fn($q, $v) => $q->whereHas('categoria', fn($c) => $c->where('nombre_categoria', $v)))
             ->when($request->tipo_acceso, fn($q, $v) => $q->where('tipo_acceso', $v))
-            ->paginate(15);
+            ->paginate($perPage);
 
-        $torneos->getCollection()->transform(function ($t) {
-            return [
+        $torneos->getCollection()->transform(function ($t) use ($request) {
+            $data = [
                 'id' => $t->id_torneo,
                 'id_torneo' => $t->id_torneo,
                 'nombre_torneo' => $t->nombre_torneo,
@@ -35,6 +48,28 @@ class TorneoController extends Controller
                 'genero' => $t->genero_requerido,
                 'motivo_cancelacion' => $t->motivo_cancelacion,
             ];
+
+            if ($request->has('with_encuentros')) {
+                $data['_encuentros'] = $t->encuentros->map(function ($e) {
+                    return [
+                        'id_encuentro' => $e->id_encuentro,
+                        'id_torneo' => $e->id_torneo,
+                        'fase_bracket' => $e->fase_bracket || $e->fase || 'N/A',
+                        'fase' => $e->fase_bracket || $e->fase || 'N/A',
+                        'numero_encuentro' => $e->numero_encuentro,
+                        'es_bye' => $e->es_bye,
+                        'fecha_hora_inicio' => $e->fecha_hora_inicio,
+                        'fecha_hora_fin' => $e->fecha_hora_fin,
+                        'id_espacio' => $e->id_espacio,
+                        'id_arbitro_asignado' => $e->id_arbitro_asignado,
+                        'estatus_encuentro' => $e->estatus_encuentro,
+                        'competidor1' => $e->competidor1,
+                        'competidor2' => $e->competidor2,
+                    ];
+                });
+            }
+
+            return $data;
         });
 
         if ($torneos->isEmpty()) {

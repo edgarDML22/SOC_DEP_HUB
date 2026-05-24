@@ -47,6 +47,7 @@ use App\Http\Controllers\PreRegisterController;
 use App\Http\Controllers\PlantillaProgramacionController;
 use App\Http\Controllers\ProgramacionDependenciasController;
 use App\Http\Controllers\SesionActivaController;
+use App\Http\Controllers\InscripcionClaseController;
 use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
 use App\Http\Controllers\RefereeAvailabilityController;
@@ -232,6 +233,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
+    Route::post('/v1/profile/upload-photo', [ProfileController::class, 'uploadPhoto']);
 
     Route::get(
         '/v1/ludoteca/encuesta/{idHistorial}',
@@ -373,6 +375,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // TORNEOS: Hub del Socio (disponibles e historial)
     Route::get('/v1/socio/agenda', [SocioAgendaController::class, 'index']);
+    // US-28 / SDH-348,349,350: Agenda unificada del socio (reservas + clases)
+    Route::get('/v1/socio/mi-agenda', [SocioAgendaController::class, 'miAgenda']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
@@ -432,13 +436,14 @@ Route::middleware('auth:sanctum')->group(function () {
         
     });
 
-    // Task 30.1 y 31.5 — descomentar cuando existan los controllers:
-    // Route::prefix('v1/actividades')->group(function () {
-    //     Route::get('sesiones', [\App\Http\Controllers\InscripcionClaseController::class, 'indexSesiones']);
-    //     Route::get('sesiones/{id_sesion}/estado-inscripcion', [\App\Http\Controllers\InscripcionClaseController::class, 'estadoInscripcion']);
-    //     Route::post('sesiones/{id_sesion}/inscribir', [\App\Http\Controllers\InscripcionClaseController::class, 'inscribir']);
-    //     Route::delete('inscripciones/{id_inscripcion}', [\App\Http\Controllers\InscripcionClaseController::class, 'cancelar']);
-    // });
+    // SDH-308: Actividades Programadas e Inscripciones
+    Route::prefix('v1/actividades')->group(function () {
+        Route::get('sesiones', [InscripcionClaseController::class, 'indexSesiones']);
+        Route::get('mis-inscripciones', [InscripcionClaseController::class, 'misInscripciones']);
+        Route::get('sesiones/{id_sesion}/estado-inscripcion', [InscripcionClaseController::class, 'estadoInscripcion']);
+        Route::post('sesiones/{id_sesion}/inscribir', [InscripcionClaseController::class, 'inscribir']);
+        Route::delete('inscripciones/{id_inscripcion}', [InscripcionClaseController::class, 'cancelar']);
+    });
 
 });
 

@@ -241,6 +241,14 @@ class SocioController extends Controller
             ->get()
             ->map(function ($item) {
                 $item->foto_perfil = null;
+                $files = \Illuminate\Support\Facades\Storage::disk('public')->files('perfiles');
+                foreach ($files as $f) {
+                    if (preg_match('/^perfiles\/socio_' . $item->id . '\.([a-zA-Z0-9]+)$/i', $f, $matches)) {
+                        $baseUrl = request()->getSchemeAndHttpHost();
+                        $item->foto_perfil = $baseUrl . '/storage/' . $f . '?t=' . time();
+                        break;
+                    }
+                }
                 $item->tipo_perfil = 'socio_titular';
                 return $item;
             });

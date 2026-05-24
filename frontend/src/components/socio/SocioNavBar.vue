@@ -310,13 +310,20 @@ onUnmounted(() => {
 
           <!-- Avatar / dropdown perfil -->
           <div class="relative" ref="profileDropdown">
-            <button class="w-10 h-10 bg-primary-600 outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
-              {{ profileStore.userInitials }}
+            <button class="w-10 h-10 overflow-hidden bg-primary-600 outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
+              <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto" class="w-full h-full object-cover" />
+              <span v-else>{{ profileStore.userInitials }}</span>
             </button>
             <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
-              <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100">
-                <span class="block text-xs font-medium text-surface-500 uppercase tracking-wider mb-1">Mi Cuenta</span>
-                <strong class="block text-sm font-bold text-surface-900">{{ profileStore.userInitials }} (Socio)</strong>
+              <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg overflow-hidden bg-primary-600 flex items-center justify-center shrink-0 text-white text-xs font-bold shadow-sm">
+                  <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto" class="w-full h-full object-cover" />
+                  <span v-else>{{ profileStore.userInitials }}</span>
+                </div>
+                <div class="min-w-0">
+                  <span class="block text-[10px] font-medium text-surface-500 uppercase tracking-wider">Mi Cuenta</span>
+                  <strong class="block text-xs font-bold text-surface-900 truncate">{{ profileStore.fullName }}</strong>
+                </div>
               </div>
               <router-link to="/socio/profile" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">
                 <IconUser class="w-[18px] h-[18px]" /> Mi Perfil

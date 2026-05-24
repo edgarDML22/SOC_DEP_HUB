@@ -563,6 +563,8 @@ class PlantillaProgramacionController extends Controller
     // Genera un archivo PDF estilizado con la programación semanal agrupada por turnos y disciplinas.
     public function exportarPdf(int $id)
     {
+        ini_set('memory_limit', '512M'); // Aumentar memoria para soportar imágenes grandes y alta resolución en Dompdf
+
         $plantilla = PlantillaProgramacion::withoutGlobalScopes()->with([
             'actividades' => function ($query) {
                 $query->where('estatus', 'ACTIVO')
@@ -608,17 +610,35 @@ class PlantillaProgramacionController extends Controller
             $base64Logo = base64_encode(file_get_contents($logoPath));
         }
 
-        // Cargar la vista Blade de DomPDF
-        $pdf = Pdf::loadView('pdf.programacion', [
-            'plantilla' => $plantilla,
-            'matutino' => $matutinoGrouped,
-            'vespertino' => $vespertinoGrouped,
-            'base64Logo' => $base64Logo,
-            'base64Qr' => $base64Qr,
-        ]);
-        $pdf->getDomPDF()->set_option('isRemoteEnabled', true);
+        // Sincronizar y copiar la portada desde frontend assets al public del backend para que DomPDF la lea localmente
+        $portadaSrcPath = base_path('../frontend/src/assets/Programacion_disciplinas.png');
+        $portadaDestPath = public_path('Programacion_disciplinas.png');
+        if (file_exists($portadaSrcPath)) {
+            if (!file_exists($portadaDestPath) || filemtime($portadaSrcPath) > filemtime($portadaDestPath)) {
+                copy($portadaSrcPath, $portadaDestPath);
+            }
+        }
 
-        return $pdf->download("programacion_{$plantilla->nombre_plantilla}.pdf");
+        // Configurar la resolución a 1920x1080 horizontal en espacio de puntos de DOMPDF (1440 x 810 pt @ 96 DPI)
+        // Y cargamos la vista con la configuración ya establecida.
+        $pdf = Pdf::setPaper([0, 0, 1440, 810])
+            ->setOption(['isRemoteEnabled' => true])
+            ->loadView('pdf.programacion', [
+                'plantilla' => $plantilla,
+                'matutino' => $matutinoGrouped,
+                'vespertino' => $vespertinoGrouped,
+                'base64Logo' => $base64Logo,
+                'base64Qr' => $base64Qr,
+                'base64Portada' => '',
+            ]);
+
+        // Sanitizar el nombre de la plantilla para usarlo como nombre de archivo
+        $nombreArchivo = $plantilla->nombre_plantilla;
+        $nombreArchivo = str_replace(' ', '_', $nombreArchivo);          // Espacios → guión bajo
+        $nombreArchivo = preg_replace('/[^A-Za-z0-9_\-]/', '', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombreArchivo)); // Quitar acentos y caracteres especiales
+        $nombreArchivo = trim($nombreArchivo, '_');
+
+        return $pdf->download("{$nombreArchivo}.pdf");
     }
 
     private function groupAndSortActividades(array $actividades): array

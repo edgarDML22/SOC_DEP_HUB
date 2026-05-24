@@ -20,12 +20,17 @@ const props = defineProps({
   name: {
     type: String,
     default: ''
+  },
+  icon: {
+    type: String,
+    default: ''
   }
 });
 
 const iconComponent = computed(() => {
-  if (!props.name) return IconDefault;
-  const n = props.name.toLowerCase();
+  const iconToUse = props.icon || props.name;
+  if (!iconToUse) return IconDefault;
+  const n = iconToUse.toLowerCase();
   
   if (n.includes('basquetbol') || n.includes('baloncesto') || n.includes('basketball')) return IconBasquetbol;
   if (n.includes('frontenis')) return IconFrontenis;

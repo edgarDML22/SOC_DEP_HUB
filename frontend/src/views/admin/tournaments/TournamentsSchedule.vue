@@ -386,34 +386,39 @@ const getEventCardStyle = (event) => {
   
   if (hasConflicto) {
     return {
-      backgroundColor: '#f59e0b', // bg-amber-500
-      borderColor: '#d97706', // border-amber-650
-      color: '#ffffff', // text-white
+      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      border: '1px solid #d97706',
+      borderLeft: '4px solid #b45309',
+      color: '#ffffff',
     }
   }
   
   if (isFinalizado) {
     return {
-      backgroundColor: '#f43f5e', // bg-rose-500
-      borderColor: '#e11d48', // border-rose-650
-      color: '#ffffff', // text-white
+      background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+      border: '1px solid #e11d48',
+      borderLeft: '4px solid #be123c',
+      color: '#ffffff',
     }
   }
   
   const tColor = scheduleStore.getTournamentColor(ext.id_torneo)
   if (isAssigned) {
+    const bg1 = tColor.gradient ? tColor.gradient[0] : tColor.bg
+    const bg2 = tColor.gradient ? tColor.gradient[1] : tColor.bg
     return {
-      backgroundColor: tColor.bg,
-      borderColor: tColor.gradient ? tColor.gradient[1] : tColor.bg,
+      background: `linear-gradient(135deg, ${bg1}, ${bg2})`,
+      border: `1px solid ${bg2}`,
+      borderLeft: `4px solid ${bg2}`,
       color: '#ffffff',
     }
   } else {
-    // Unassigned: slate gray
+    // Unassigned: slate gray dashed with 4px left border
     return {
-      backgroundColor: '#f8fafc', // bg-slate-50
-      borderColor: '#cbd5e1', // border-slate-300
-      borderStyle: 'dashed',
-      color: '#475569', // text-slate-600
+      background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+      border: '1px dashed #cbd5e1',
+      borderLeft: '4px dashed #94a3b8',
+      color: '#475569',
     }
   }
 }
@@ -735,12 +740,21 @@ onMounted(async () => {
                 <FullCalendar ref="calendarRef" :options="detailCalendarOptions">
                   <!-- Day Header Slot -->
                   <template #dayHeaderContent="arg">
-                    <div class="flex flex-col items-center py-1 select-none">
-                      <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">
+                    <div class="flex flex-col items-center py-1 select-none gap-0.5">
+                      <span
+                        :class="[
+                          'text-[9px] font-extrabold uppercase tracking-wider',
+                          isToday(arg.date) ? 'text-primary-600' : 'text-surface-500'
+                        ]"
+                      >
                         {{ formatWeekdayAbbreviation(arg.date) }}
                       </span>
-                      <div class="mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-xs transition-all font-bold"
-                           :class="isToday(arg.date) ? 'bg-primary-600 text-white font-black shadow-sm' : 'text-surface-700'">
+                      <div
+                        class="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors duration-150 font-extrabold shadow-xs"
+                        :class="isToday(arg.date)
+                          ? 'bg-primary-600 text-white font-black shadow-sm'
+                          : 'text-surface-700 hover:bg-surface-100'"
+                      >
                         {{ arg.date.getDate() }}
                       </div>
                     </div>
@@ -847,12 +861,21 @@ onMounted(async () => {
             <FullCalendar :options="overviewCalendarOptions">
               <!-- Day Header Slot -->
               <template #dayHeaderContent="arg">
-                <div class="flex flex-col items-center py-1 select-none">
-                  <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">
+                <div class="flex flex-col items-center py-1.5 select-none gap-1">
+                  <span
+                    :class="[
+                      'text-[10px] font-extrabold uppercase tracking-wider',
+                      isToday(arg.date) ? 'text-primary-600' : 'text-slate-700'
+                    ]"
+                  >
                     {{ formatWeekdayAbbreviation(arg.date) }}
                   </span>
-                  <div class="mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-xs transition-all font-bold"
-                       :class="isToday(arg.date) ? 'bg-primary-600 text-white font-black shadow-sm' : 'text-surface-700'">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors duration-150 font-extrabold"
+                    :class="isToday(arg.date)
+                      ? 'bg-primary-600 text-white font-black shadow-sm'
+                      : 'text-slate-800 hover:bg-slate-100'"
+                  >
                     {{ arg.date.getDate() }}
                   </div>
                 </div>
@@ -867,11 +890,12 @@ onMounted(async () => {
 
               <!-- Event Content Slot -->
               <template #eventContent="arg">
-                <div class="w-full h-full p-1 rounded-lg border flex flex-col justify-between overflow-hidden transition-all text-[8px] leading-tight font-bold cursor-pointer hover:scale-[1.01] hover:shadow-sm"
+                <div class="w-full h-full p-1.5 rounded-lg border flex flex-col justify-between overflow-hidden transition-all text-[8.5px] leading-tight font-bold cursor-pointer hover:scale-[1.01] hover:shadow-sm"
                      :style="{
-                       backgroundColor: getRgbaFromHex(scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg, 0.12),
-                       borderColor: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg,
-                       color: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg
+                       background: `linear-gradient(135deg, ${scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg}, ${scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient ? scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient[1] : scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg})`,
+                       borderColor: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient ? scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient[1] : scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg,
+                       borderLeft: `4px solid ${scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient ? scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient[1] : scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg}`,
+                       color: '#ffffff'
                      }">
                   <div class="space-y-0.5 min-w-0">
                     <p class="text-[7px] font-black uppercase tracking-wider opacity-85 truncate">

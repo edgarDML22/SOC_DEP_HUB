@@ -198,7 +198,7 @@ const saveChanges = async () => {
                                                 :class="selectedDisciplines.includes(d.id_disciplina) 
                                                     ? 'bg-white/20 text-white' 
                                                     : 'bg-surface-100 text-surface-400 group-hover:bg-white/20 group-hover:text-white'">
-                                                <DisciplineIcon :name="d.nombre_disciplina"
+                                                <DisciplineIcon :name="d.nombre_disciplina" :icon="d.icono"
                                                     class="w-10 h-10 transition-all duration-300"
                                                     :class="selectedDisciplines.includes(d.id_disciplina) ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'" />
                                             </div>
