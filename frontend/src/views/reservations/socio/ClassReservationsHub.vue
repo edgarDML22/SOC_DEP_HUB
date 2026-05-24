@@ -1,8 +1,13 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useActividadesStore } from '@/stores/actividadesStore';
+import ActividadesAbiertas from './ActividadesAbiertas.vue';
+import ActividadesCerradas from './ActividadesCerradas.vue';
+import MisInscripcionesClases from './MisInscripcionesClases.vue';
 
 const router = useRouter();
+const store = useActividadesStore();
 
 const activeView = ref('mis-inscripciones');
 
@@ -13,11 +18,24 @@ const tabs = [
     icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
   },
   {
-    key: 'inscripcion',
-    label: 'Inscripción',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    key: 'actividades-abiertas',
+    label: 'Actividades Abiertas',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>`,
+  },
+  {
+    key: 'actividades-cerradas',
+    label: 'Actividades Cerradas',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
   },
 ];
+
+// Cargar datos al montar
+onMounted(async () => {
+  await Promise.all([
+    store.fetchSesiones(),
+    store.fetchMisInscripciones(),
+  ]);
+});
 </script>
 
 <template>
@@ -45,6 +63,7 @@ const tabs = [
         <button
           v-for="tab in tabs"
           :key="tab.key"
+          :id="`tab-actividades-${tab.key}`"
           @click="activeView = tab.key"
           class="flex-1 py-3 px-4 text-sm md:text-base text-center transition-all whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none"
           :class="activeView === tab.key
@@ -57,41 +76,11 @@ const tabs = [
       </div>
     </div>
 
-    <!-- Área de Contenido -->
-    <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8">
-      <div class="max-w-7xl mx-auto">
-        <!-- Placeholder Inscripción -->
-        <div v-if="activeView === 'inscripcion'"
-          class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm">
-          <div class="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center text-primary-400 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
-          <p class="text-surface-900 font-bold text-lg">Inscripción a Clases</p>
-          <p class="text-surface-500 font-medium text-sm text-center max-w-xs mt-1">
-            Próximamente podrás inscribirte a las clases y actividades programadas del club.
-          </p>
-        </div>
-
-        <!-- Placeholder Mis Inscripciones -->
-        <div v-else
-          class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm">
-          <div class="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center text-primary-400 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-              <line x1="16" x2="16" y1="2" y2="6"/>
-              <line x1="8" x2="8" y1="2" y2="6"/>
-              <line x1="3" x2="21" y1="10" y2="10"/>
-              <path d="m9 16 2 2 4-4"/>
-            </svg>
-          </div>
-          <p class="text-surface-900 font-bold text-lg">Mis Inscripciones</p>
-          <p class="text-surface-500 font-medium text-sm text-center max-w-xs mt-1">
-            Aquí verás el historial de todas tus clases y actividades inscritas.
-          </p>
-        </div>
-      </div>
+    <!-- Área de Contenido — v-show para preservar estado y evitar re-mounts -->
+    <div class="w-full">
+      <MisInscripcionesClases v-show="activeView === 'mis-inscripciones'" />
+      <ActividadesAbiertas    v-show="activeView === 'actividades-abiertas'" />
+      <ActividadesCerradas    v-show="activeView === 'actividades-cerradas'" />
     </div>
 
   </div>
