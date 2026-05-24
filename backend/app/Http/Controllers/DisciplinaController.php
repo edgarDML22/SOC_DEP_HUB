@@ -14,9 +14,14 @@ class DisciplinaController extends Controller
 {
     public function index(): JsonResponse
     {
+        $disciplinas = Disciplina::with(['categorias'])->get();
+        $icons = $this->getDisciplinesIcons();
+        foreach ($disciplinas as $d) {
+            $d->icono = $icons[$d->id_disciplina] ?? null;
+        }
         return response()->json([
             'success' => true,
-            'data' => Disciplina::with(['categorias'])->get()
+            'data' => $disciplinas
         ]);
     }
 
@@ -26,19 +31,30 @@ class DisciplinaController extends Controller
             'nombre_disciplina' => 'required|string',
             'categorias_ids' => 'required|array',
             'categorias_ids.*' => 'exists:categorias,id_categoria',
-            'estatus' => 'nullable|string'
+            'estatus' => 'nullable|string',
+            'icono' => 'nullable|string'
         ]);
 
-        $disciplina = Disciplina::create($data);
+        $disciplina = Disciplina::create([
+            'nombre_disciplina' => $data['nombre_disciplina'],
+            'estatus' => $data['estatus'] ?? 'ACTIVO',
+        ]);
 
         if (isset($data['categorias_ids'])) {
             $disciplina->categorias()->sync($data['categorias_ids']);
         }
 
+        if (!empty($data['icono'])) {
+            $this->saveDisciplineIcon($disciplina->id_disciplina, $data['icono']);
+        }
+
+        $disciplina = Disciplina::with(['categorias'])->find($disciplina->id_disciplina);
+        $disciplina->icono = $data['icono'] ?? null;
+
         return response()->json([
             'success' => true,
             'message' => 'Disciplina creada correctamente',
-            'data' => $disciplina->load('categorias')
+            'data' => $disciplina
         ]);
     }
 
@@ -48,6 +64,8 @@ class DisciplinaController extends Controller
         if (!$disciplina) {
             return response()->json(['success' => false, 'message' => 'Disciplina no encontrada'], 404);
         }
+        $icons = $this->getDisciplinesIcons();
+        $disciplina->icono = $icons[$disciplina->id_disciplina] ?? null;
         return response()->json(['success' => true, 'data' => $disciplina]);
     }
 
@@ -63,7 +81,8 @@ class DisciplinaController extends Controller
             'nombre_disciplina' => 'sometimes|string',
             'categorias_ids'    => 'sometimes|array',
             'categorias_ids.*'  => 'exists:categorias,id_categoria',
-            'nuevo_estatus'     => 'sometimes|in:ACTIVO,PAUSA,CANCELADO'
+            'nuevo_estatus'     => 'sometimes|in:ACTIVO,PAUSA,CANCELADO',
+            'icono'             => 'sometimes|nullable|string'
         ]);
 
         // 1. Actualizar Nombre
@@ -96,12 +115,20 @@ class DisciplinaController extends Controller
             $disciplina->estatus = $nuevo;
         }
 
+        if (array_key_exists('icono', $data)) {
+            $this->saveDisciplineIcon($id, $data['icono']);
+        }
+
         $disciplina->save();
+
+        $disciplina = Disciplina::with(['categorias', 'instructores'])->find($id);
+        $icons = $this->getDisciplinesIcons();
+        $disciplina->icono = $icons[$id] ?? null;
 
         return response()->json([
             'success' => true,
             'message' => 'Disciplina actualizada correctamente',
-            'data'    => $disciplina->load(['categorias', 'instructores'])
+            'data'    => $disciplina
         ]);
     }
 
@@ -170,5 +197,31 @@ class DisciplinaController extends Controller
             'success' => true,
             'message' => 'Disciplina cancelada correctamente'
         ]);
+    }
+
+    private function getDisciplinesIcons(): array
+    {
+        $path = storage_path('app/disciplines_icons.json');
+        if (file_exists($path)) {
+            return json_decode(file_get_contents($path), true) ?: [];
+        }
+        return [];
+    }
+
+    private function saveDisciplineIcon($id_disciplina, $icon): void
+    {
+        $path = storage_path('app/disciplines_icons.json');
+        $icons = $this->getDisciplinesIcons();
+        if (empty($icon)) {
+            unset($icons[$id_disciplina]);
+        } else {
+            $icons[$id_disciplina] = $icon;
+        }
+        
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        file_put_contents($path, json_encode($icons, JSON_PRETTY_PRINT));
     }
 }

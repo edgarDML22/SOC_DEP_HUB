@@ -95,6 +95,7 @@ function hidratarNombres(parcial) {
   return {
     ...parcial,
     _disciplina_nombre: d?.nombre_disciplina ?? parcial._disciplina_nombre ?? '',
+    _disciplina_icono:  d?.icono             ?? parcial._disciplina_icono  ?? '',
     _espacio_nombre:    e?.nombre_espacio    ?? parcial._espacio_nombre    ?? '',
     _instructor_nombre: i?.nombre_completo   ?? parcial._instructor_nombre ?? '',
   }
@@ -283,7 +284,7 @@ const horasFin = computed(() =>
                 <div class="flex items-center gap-4 min-w-0">
                   <!-- Ícono disciplina en círculo -->
                   <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 shadow-inner">
-                    <DisciplineIcon :name="form._disciplina_nombre ?? ''" class="w-7 h-7 text-white" />
+                    <DisciplineIcon :name="form._disciplina_nombre ?? ''" :icon="form._disciplina_icono" class="w-7 h-7 text-white" />
                   </div>
                   <div class="min-w-0">
                     <!-- Nombre disciplina — protagonista -->
@@ -418,7 +419,7 @@ const horasFin = computed(() =>
                   <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Disciplina</p>
                   <div class="flex items-center gap-3">
                     <span class="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-                      <DisciplineIcon :name="form._disciplina_nombre ?? ''" class="w-5 h-5" />
+                      <DisciplineIcon :name="form._disciplina_nombre ?? ''" :icon="form._disciplina_icono" class="w-5 h-5" />
                     </span>
                     <p class="text-base font-extrabold text-slate-800 truncate leading-tight">{{ form._disciplina_nombre || '—' }}</p>
                   </div>

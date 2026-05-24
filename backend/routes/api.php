@@ -232,6 +232,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
+    Route::post('/v1/profile/upload-photo', [ProfileController::class, 'uploadPhoto']);
 
     Route::get(
         '/v1/ludoteca/encuesta/{idHistorial}',

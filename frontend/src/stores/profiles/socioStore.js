@@ -7,7 +7,7 @@ export const useProfileStore = defineStore("profile", () => {
   // 1. Extraemos todo el comportamiento base del composable
   const {
     profileData, isLoading, error, fullName, userInitials, formatText,
-    fetchProfile: fetchProfileBase, updateProfile, logout, getSupportLink
+    fetchProfile: fetchProfileBase, updateProfile, uploadPhoto, logout, getSupportLink
   } = useProfileLogic();
 
   // Wrapper: después de cargar el perfil, propaga qr_payload y qr_image_url al qrStore
@@ -162,6 +162,8 @@ export const useProfileStore = defineStore("profile", () => {
     return `Última actualización hace ${diffDays} días`;
   });
 
+  const fotoPerfil = computed(() => profileData.value?.foto_perfil || null);
+
   // 3. RETURN: Retornamos las variables locales combinadas con las del composable
   return {
     profileData,
@@ -192,6 +194,8 @@ export const useProfileStore = defineStore("profile", () => {
     isReservationsBlocked,
     fetchProfile,
     updateProfile,
+    uploadPhoto,
+    fotoPerfil,
     tienePlanFamiliar,
     logout,
     getSupportLink,
