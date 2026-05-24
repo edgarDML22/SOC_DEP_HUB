@@ -32,7 +32,9 @@ api.interceptors.response.use(
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_data");
 
-      router.push("/login");
+      if (router.currentRoute.value.path !== "/login") {
+        router.push("/login");
+      }
     }
     return Promise.reject(error);
   },

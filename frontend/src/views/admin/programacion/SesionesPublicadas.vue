@@ -291,6 +291,11 @@ function formatDate(d) {
   return `${day}/${m}/${y}`
 }
 
+function formatTipoUsuario(tipo) {
+  if (!tipo) return '—'
+  return tipo.replace(/_/g, ' ')
+}
+
 // Tokens de color para el badge de estatus dentro del header del modal
 const ESTATUS_MODAL_BADGE = {
   DISPONIBLE: 'bg-emerald-500/20 text-emerald-100 border-emerald-400/30',
@@ -732,7 +737,7 @@ defineExpose({ fetchSesiones })
                 ? 'bg-linear-to-br from-rose-500 to-red-700'
                 : sesionSeleccionada?.requiere_inscripcion
                   ? 'bg-linear-to-br from-violet-600 to-purple-800'
-                  : 'bg-linear-to-br from-slate-800 to-slate-900'"
+                  : 'bg-linear-to-br from-emerald-500 to-teal-700'"
             >
               <button
                 @click="cerrarModal"
@@ -938,13 +943,11 @@ defineExpose({ fetchSesiones })
                 <!-- Grupos -->
                 <div v-else class="space-y-2">
 
-                  <!-- ─── INSCRITO (solo para ABIERTAS = !requiere_inscripcion=false significa abierta... ojo: requiere_inscripcion=true es CERRADA) ─── -->
-                  <!-- Para ABIERTAS mostramos los 3 grupos. Para CERRADAS solo ASISTENCIA. -->
-                  <!-- (ABIERTA = !s.requiere_inscripcion) -->
+                  <!-- CERRADA (requiere_inscripcion=true): muestra INSCRITO + ASISTENCIA + NO SHOW -->
+                  <!-- ABIERTA  (requiere_inscripcion=false): muestra INSCRITO + ASISTENCIA -->
 
-                  <!-- INSCRITO (azul) -->
-                  <div v-if="!sesionSeleccionada?.requiere_inscripcion"
-                    class="rounded-2xl border border-blue-100 overflow-hidden">
+                  <!-- INSCRITO (azul) — siempre visible -->
+                  <div class="rounded-2xl border border-blue-100 overflow-hidden">
                     <button type="button" @click="toggleGrupo('INSCRITO')"
                       class="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50/60 hover:bg-blue-50 transition-colors text-left">
                       <div class="w-7 h-7 rounded-lg bg-white border border-blue-200 flex items-center justify-center shrink-0">
@@ -981,7 +984,7 @@ defineExpose({ fetchSesiones })
                             : ins.tipo_usuario === 'MIEMBRO_FAMILIAR'
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-teal-50 text-teal-700 border-teal-200'">
-                          {{ ins.tipo_usuario === 'SOCIO_TITULAR' ? 'SOCIO' : ins.tipo_usuario === 'MIEMBRO_FAMILIAR' ? 'FAMILIAR' : ins.tipo_usuario }}
+                          {{ formatTipoUsuario(ins.tipo_usuario) }}
                         </span>
                       </div>
                     </div>
@@ -1025,14 +1028,14 @@ defineExpose({ fetchSesiones })
                             : ins.tipo_usuario === 'MIEMBRO_FAMILIAR'
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-teal-50 text-teal-700 border-teal-200'">
-                          {{ ins.tipo_usuario === 'SOCIO_TITULAR' ? 'SOCIO' : ins.tipo_usuario === 'MIEMBRO_FAMILIAR' ? 'FAMILIAR' : ins.tipo_usuario }}
+                          {{ formatTipoUsuario(ins.tipo_usuario) }}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- NO SHOW (rojo) — solo ABIERTAS -->
-                  <div v-if="!sesionSeleccionada?.requiere_inscripcion"
+                  <!-- NO SHOW (rojo) — solo CERRADAS -->
+                  <div v-if="sesionSeleccionada?.requiere_inscripcion"
                     class="rounded-2xl border border-red-100 overflow-hidden">
                     <button type="button" @click="toggleGrupo('NO_SHOW')"
                       class="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-red-50/60 hover:bg-red-50 transition-colors text-left">
@@ -1070,7 +1073,7 @@ defineExpose({ fetchSesiones })
                             : ins.tipo_usuario === 'MIEMBRO_FAMILIAR'
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-teal-50 text-teal-700 border-teal-200'">
-                          {{ ins.tipo_usuario === 'SOCIO_TITULAR' ? 'SOCIO' : ins.tipo_usuario === 'MIEMBRO_FAMILIAR' ? 'FAMILIAR' : ins.tipo_usuario }}
+                          {{ formatTipoUsuario(ins.tipo_usuario) }}
                         </span>
                       </div>
                     </div>

@@ -107,7 +107,8 @@ export function useProfileLogic(endpointUrl = '/profile') {
     };
 
     const logout = () => {
-        // Fire-and-forget: no esperamos al servidor para limpiar la sesión local
+        localStorage.clear();
+
         api.post("/auth/logout").catch(() => { });
 
         profileData.value = null;
@@ -121,7 +122,6 @@ export function useProfileLogic(endpointUrl = '/profile') {
         useQrStore().reset();
         useBootstrapStore().reset();
 
-        localStorage.clear();
         router.push("/login");
     };
 
