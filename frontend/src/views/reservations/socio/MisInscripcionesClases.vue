@@ -28,10 +28,10 @@ function formatFecha(f) {
 
 const estatusBadge = {
   CONFIRMADA: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Confirmada' },
-  PENDIENTE:  { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Pendiente' },
+  PENDIENTE:  { bg: 'bg-blue-50',     text: 'text-blue-600',    label: 'Pendiente' },
   CANCELADA:  { bg: 'bg-surface-100', text: 'text-surface-500', label: 'Cancelada' },
   LISTA:      { bg: 'bg-blue-100',    text: 'text-blue-700',    label: 'Lista' },
-  ESPERA:     { bg: 'bg-orange-100',  text: 'text-orange-700',  label: 'Lista de espera' },
+  ESPERA:     { bg: 'bg-blue-100',    text: 'text-blue-700',    label: 'Lista de espera' },
 }
 
 function getBadge(estatus) {
@@ -110,10 +110,10 @@ const cancelables = ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA']
               class="w-full sm:w-1.5 h-1.5 sm:h-auto sm:self-stretch rounded-t-2xl sm:rounded-t-none sm:rounded-l-2xl shrink-0"
               :class="{
                 'bg-emerald-500': inscripcion.estatus_inscripcion === 'CONFIRMADA',
-                'bg-amber-400':   inscripcion.estatus_inscripcion === 'PENDIENTE',
+                'bg-blue-400':    inscripcion.estatus_inscripcion === 'PENDIENTE',
                 'bg-surface-300': inscripcion.estatus_inscripcion === 'CANCELADA',
                 'bg-blue-500':    inscripcion.estatus_inscripcion === 'LISTA',
-                'bg-orange-400':  inscripcion.estatus_inscripcion === 'ESPERA',
+                'bg-blue-400':    inscripcion.estatus_inscripcion === 'ESPERA',
               }"
             />
 
@@ -129,8 +129,8 @@ const cancelables = ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA']
                   <!-- Badge tipo -->
                   <span class="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full"
                     :class="inscripcion.requiere_inscripcion
-                      ? 'bg-red-100 text-red-600'
-                      : 'bg-emerald-100 text-emerald-700'">
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-blue-100 text-blue-700'">
                     {{ inscripcion.tipo_clase }}
                   </span>
                 </div>

@@ -122,7 +122,7 @@ function formatFecha(f) {
 
       <!-- Empty state -->
       <div
-        v-else-if="store.sesionesTipoAbierta.length === 0"
+        v-else-if="store.sesionesTipoCerrada.length === 0"
         class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm"
       >
         <div class="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center text-primary-400 mb-4">
@@ -130,11 +130,11 @@ function formatFecha(f) {
             <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </svg>
         </div>
-        <p class="text-surface-900 font-bold text-lg">Sin actividades abiertas</p>
+        <p class="text-surface-900 font-bold text-lg">Sin actividades cerradas</p>
         <p class="text-surface-500 font-medium text-sm text-center max-w-xs mt-1">
           {{ store.filtroDisciplinaId || store.filtroHora
             ? 'No hay resultados con los filtros actuales. Intenta ajustarlos.'
-            : 'No hay actividades abiertas programadas para los próximos días.' }}
+            : 'No hay actividades cerradas programadas para los próximos días.' }}
         </p>
         <button
           v-if="store.filtroDisciplinaId || store.filtroHora"
@@ -148,7 +148,7 @@ function formatFecha(f) {
       <!-- Grid de sesiones -->
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="sesion in store.sesionesTipoAbierta"
+          v-for="sesion in store.sesionesTipoCerrada"
           :key="sesion.id_sesion"
           class="bg-white rounded-3xl border border-surface-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col"
         >

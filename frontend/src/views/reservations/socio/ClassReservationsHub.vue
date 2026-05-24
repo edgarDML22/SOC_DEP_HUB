@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useActividadesStore } from '@/stores/actividadesStore';
 import ActividadesAbiertas from './ActividadesAbiertas.vue';
+import ActividadesCerradas from './ActividadesCerradas.vue';
 import MisInscripcionesClases from './MisInscripcionesClases.vue';
 
 const router = useRouter();
@@ -20,6 +21,11 @@ const tabs = [
     key: 'actividades-abiertas',
     label: 'Actividades Abiertas',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>`,
+  },
+  {
+    key: 'actividades-cerradas',
+    label: 'Actividades Cerradas',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
   },
 ];
 
@@ -74,6 +80,7 @@ onMounted(async () => {
     <div class="w-full">
       <MisInscripcionesClases v-show="activeView === 'mis-inscripciones'" />
       <ActividadesAbiertas    v-show="activeView === 'actividades-abiertas'" />
+      <ActividadesCerradas    v-show="activeView === 'actividades-cerradas'" />
     </div>
 
   </div>

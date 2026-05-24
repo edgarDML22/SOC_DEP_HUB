@@ -23,8 +23,15 @@ export const useAgendaStore = defineStore('agenda', () => {
     loadingSocio.value = true
     errorSocio.value = null
     try {
-      const res = await api.get('/socio/agenda')
-      encuentrosSocio.value = res.data?.data ?? []
+      const res = await api.get('/socio/mi-agenda')
+      // El nuevo endpoint devuelve { proxima_actividad, agenda: [ {fecha, items} ] }
+      // Aplanamos los items para que el frontend siga iterando sobre una lista de eventos
+      const groupedAgenda = res.data?.data?.agenda || []
+      const flatItems = []
+      groupedAgenda.forEach(group => {
+        group.items.forEach(item => flatItems.push(item))
+      })
+      encuentrosSocio.value = flatItems
     } catch (err) {
       console.error('Error fetching socio agenda:', err)
       errorSocio.value = err.response?.data?.message || 'Error al cargar la agenda.'

@@ -41,6 +41,11 @@ export const useActividadesStore = defineStore('actividades', () => {
     return sesionesFiltradas.value.filter(s => !s.requiere_inscripcion)
   })
 
+  /** Solo sesiones CERRADAS (requiere_inscripcion = true), filtradas */
+  const sesionesTipoCerrada = computed(() => {
+    return sesionesFiltradas.value.filter(s => s.requiere_inscripcion)
+  })
+
   /** Lista de disciplinas únicas para el selector de filtros */
   const disciplinasDisponibles = computed(() => {
     const mapa = new Map()
@@ -173,6 +178,7 @@ export const useActividadesStore = defineStore('actividades', () => {
     todasLasSesiones,
     sesionesFiltradas,
     sesionesTipoAbierta,
+    sesionesTipoCerrada,
     disciplinasDisponibles,
     horasDisponibles,
     // acciones

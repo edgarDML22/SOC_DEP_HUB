@@ -49,7 +49,7 @@ class InscripcionClaseController extends Controller
 
         $query = SesionActiva::withoutGlobalScopes()
             ->whereBetween('fecha_sesion', [$hoy, $fin])
-            ->whereIn('estatus_sesion', ['PUBLICADA', 'ACTIVA'])
+            ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO'])
             ->with([
                 'actividadPlantilla:id_actividad_plantilla,id_plantilla,id_disciplina,id_espacio,id_instructor,hora_inicio,hora_fin,cupo_maximo,requiere_inscripcion',
                 'actividadPlantilla.disciplina:id_disciplina,nombre_disciplina',
@@ -57,11 +57,15 @@ class InscripcionClaseController extends Controller
                 'actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
                 'actividadPlantilla.plantilla:id_plantilla,nombre_plantilla,fecha_inicio,fecha_fin,estatus_plantilla',
             ])
-            // Solo sesiones cuya plantilla esté vigente hoy
-            ->whereHas('actividadPlantilla.plantilla', function ($q) use ($hoy) {
-                $q->where('fecha_inicio', '<=', $hoy)
-                  ->where('fecha_fin', '>=', $hoy)
-                  ->where('estatus_plantilla', 'ACTIVO');
+            // Solo sesiones cuya plantilla esté activa y su rango de fechas
+            // se solape con el rango de búsqueda (hoy → fin)
+            ->whereHas('actividadPlantilla.plantilla', function ($q) use ($hoy, $fin) {
+                $q->where('estatus_plantilla', true)
+                  ->where(function ($sub) use ($hoy, $fin) {
+                      // Solapamiento: plantilla.inicio <= fin_busqueda AND plantilla.fin >= hoy
+                      $sub->where('fecha_inicio', '<=', $fin)
+                          ->where('fecha_fin', '>=', $hoy);
+                  });
             });
 
         // Filtro opcional por disciplina
@@ -219,7 +223,7 @@ class InscripcionClaseController extends Controller
             return response()->json(['message' => 'La sesión no existe.'], 404);
         }
 
-        if (!in_array($sesion->estatus_sesion, ['PUBLICADA', 'ACTIVA'], true)) {
+        if (!in_array($sesion->estatus_sesion, ['DISPONIBLE', 'LLENO'], true)) {
             return response()->json(['message' => 'Esta sesión no está disponible para inscripción.'], 422);
         }
 
@@ -234,8 +238,8 @@ class InscripcionClaseController extends Controller
             return response()->json(['message' => 'Rol no autorizado para inscripción.'], 403);
         }
 
-        if (!$socio || $socio->estatus_cuenta !== 'ACTIVO') {
-            return response()->json(['message' => 'Tu cuenta no está activa para inscribirte a actividades.'], 403);
+        if (!$socio || $socio->estatus_cuenta !== 'AL_CORRIENTE') {
+            return response()->json(['message' => 'Tu cuenta no está al corriente para inscribirte a actividades.'], 403);
         }
 
         // ── 3. Verificar inscripción duplicada ────────────────────────────────
@@ -263,7 +267,7 @@ class InscripcionClaseController extends Controller
 
         // ── 5. Crear inscripción + incrementar contador en una transacción ────
         $inscripcion = DB::transaction(function () use ($sesion, $userId, $rol) {
-            $tipoUsuario = $rol === 'socio_titular' ? 'SOCIO_TITULAR' : 'MIEMBRO_FAMILIAR';
+            $tipoUsuario = $rol === 'socio_titular' ? 'socio_titular' : 'miembro_familiar';
 
             $inscripcion = InscripcionClase::create([
                 'id_sesion'           => $sesion->id_sesion,
