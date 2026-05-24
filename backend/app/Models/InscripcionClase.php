@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\SesionActiva;
 
 class InscripcionClase extends Model
 {
     protected $table = "inscripciones_clases";
     protected $primaryKey = 'id_inscripcion';
     public $timestamps = false;
+    //
 
     protected $fillable = [
         'id_sesion',
@@ -19,17 +21,6 @@ class InscripcionClase extends Model
         'bloqueo_temporal',
     ];
 
-    protected $casts = [
-        'bloqueo_temporal' => 'boolean',
-    ];
-
-    // ── Relaciones ────────────────────────────────────────────────────────────
-
-    /**
-     * Sesión a la que pertenece esta inscripción.
-     * Usar withoutGlobalScopes() cuando se necesite el historial completo
-     * (fuera del rango de FuturasActivasScope).
-     */
     public function sesion()
     {
         return $this->belongsTo(SesionActiva::class, 'id_sesion', 'id_sesion');
