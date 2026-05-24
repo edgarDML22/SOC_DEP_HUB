@@ -241,9 +241,20 @@ const DIAS_COLORS = {
 
 const ESTATUS_COLORS = {
   DISPONIBLE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  EN_CURSO:   'bg-blue-50 text-blue-700 border-blue-200',
-  FINALIZADA: 'bg-slate-100 text-slate-600 border-slate-200',
+  EN_CURSO:   'bg-orange-50 text-orange-700 border-orange-200',
+  FINALIZADA: 'bg-blue-50 text-blue-700 border-blue-200',
   CANCELADA:  'bg-red-50 text-red-700 border-red-200',
+}
+
+const ESTATUS_LABELS = {
+  DISPONIBLE: 'DISPONIBLE',
+  EN_CURSO:   'EN CURSO',
+  FINALIZADA: 'FINALIZADA',
+  CANCELADA:  'CANCELADA',
+}
+
+function formatEstatus(val) {
+  return ESTATUS_LABELS[val] ?? val
 }
 
 // Mapa estático con los nombres exactos de la BD → color + etiqueta legible
@@ -283,8 +294,8 @@ function formatDate(d) {
 // Tokens de color para el badge de estatus dentro del header del modal
 const ESTATUS_MODAL_BADGE = {
   DISPONIBLE: 'bg-emerald-500/20 text-emerald-100 border-emerald-400/30',
-  EN_CURSO:   'bg-blue-500/20 text-blue-100 border-blue-400/30',
-  FINALIZADA: 'bg-slate-500/20 text-slate-200 border-slate-400/30',
+  EN_CURSO:   'bg-orange-500/20 text-orange-100 border-orange-400/30',
+  FINALIZADA: 'bg-blue-500/20 text-blue-100 border-blue-400/30',
   CANCELADA:  'bg-red-500/20 text-red-100 border-red-400/30',
 }
 
@@ -585,7 +596,7 @@ defineExpose({ fetchSesiones })
                         class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
                         :class="ESTATUS_COLORS[s.estatus_sesion] ?? 'bg-slate-50 text-slate-600 border-slate-200'"
                       >
-                        {{ s.estatus_sesion }}
+                        {{ formatEstatus(s.estatus_sesion) }}
                       </span>
                     </td>
 
@@ -752,7 +763,7 @@ defineExpose({ fetchSesiones })
                       :class="ESTATUS_MODAL_BADGE[sesionSeleccionada?.estatus_sesion] ?? 'bg-white/10 text-white/70 border-white/20'"
                     >
                       <span class="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-                      {{ sesionSeleccionada?.estatus_sesion ?? '—' }}
+                      {{ formatEstatus(sesionSeleccionada?.estatus_sesion) ?? '—' }}
                     </span>
                     <span class="text-white/40 text-[11px] font-mono">#{{ sesionSeleccionada?.id_sesion }}</span>
                   </div>
