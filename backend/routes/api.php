@@ -424,6 +424,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [PlantillaProgramacionController::class, 'destroyActividad']);
         });
 
+        Route::get('sesiones-activas/opciones', [SesionActivaController::class, 'opciones']);
         Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
         Route::patch('sesiones-activas/{id}', [SesionActivaController::class, 'update']);
         Route::get('sesiones-activas/{id}/asistencia', [SesionActivaController::class, 'asistencia']);

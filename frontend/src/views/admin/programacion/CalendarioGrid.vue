@@ -184,15 +184,15 @@ function clasesBloque(b, conflictoTipo) {
   if (esConfirmada) {
     return cerrada
       ? {
-          bg: 'bg-gradient-to-br from-rose-500 to-red-700',
-          borderColor: 'border-red-700',
-          borderStyle: 'border border-red-700 border-l-4 border-l-red-800',
+          bg: 'bg-linear-to-br from-violet-500 to-purple-700',
+          borderColor: 'border-purple-700',
+          borderStyle: 'border border-purple-700 border-l-4 border-l-purple-800',
           text: 'text-white font-extrabold',
-          sub:  'text-rose-100 font-semibold',
+          sub:  'text-violet-100 font-semibold',
           stripeBg: null,
         }
       : {
-          bg: 'bg-gradient-to-br from-emerald-500 to-teal-700',
+          bg: 'bg-linear-to-br from-emerald-500 to-teal-700',
           borderColor: 'border-teal-700',
           borderStyle: 'border border-teal-700 border-l-4 border-l-teal-800',
           text: 'text-white font-extrabold',
@@ -204,11 +204,11 @@ function clasesBloque(b, conflictoTipo) {
   // Draft persistido o borrador local: fondo muy claro, borde punteado
   return cerrada
     ? {
-        bg: 'bg-red-50',
-        borderColor: 'border-red-400',
-        borderStyle: 'border border-dashed border-red-400 border-l-4 border-l-red-500',
-        text: 'text-red-700 font-extrabold',
-        sub:  'text-red-600 font-medium',
+        bg: 'bg-violet-50',
+        borderColor: 'border-violet-400',
+        borderStyle: 'border border-dashed border-violet-400 border-l-4 border-l-violet-500',
+        text: 'text-violet-700 font-extrabold',
+        sub:  'text-violet-600 font-medium',
         stripeBg: null,
       }
     : {
@@ -509,7 +509,7 @@ const motivoVacio = computed(() => {
                 <p
                   :class="['text-[11px] font-bold truncate leading-tight flex items-center gap-1.5', clasesBloque(b, tipoConflicto(b)).text]"
                 >
-                  <span v-if="b._origen === 'preview'" :class="['w-1.5 h-1.5 rounded-full shrink-0', b.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500']" />
+                  <span v-if="b._origen === 'preview'" :class="['w-1.5 h-1.5 rounded-full shrink-0', b.requiere_inscripcion ? 'bg-violet-400' : 'bg-emerald-500']" />
                   {{ b._disciplina_nombre || 'Nueva Sesión' }}
                 </p>
                 <p
@@ -586,8 +586,8 @@ const motivoVacio = computed(() => {
         Confirmada · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-red-800 border border-red-700 inline-block"
-          style="background: linear-gradient(to bottom right, #f43f5e, #b91c1c);" />
+        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-purple-800 border border-purple-700 inline-block"
+          style="background: linear-gradient(to bottom right, #8b5cf6, #7e22ce);" />
         Confirmada · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
@@ -595,7 +595,7 @@ const motivoVacio = computed(() => {
         Borrador · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-red-400 border-l-red-500 bg-red-50 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-violet-400 border-l-violet-500 bg-violet-50 inline-block" />
         Borrador · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">

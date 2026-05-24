@@ -94,18 +94,22 @@ const labelServicio = (estatus) => {
 
 const formatFecha = (iso) => {
   if (!iso) return null
-  const d = new Date(iso)
+  // Date-only strings (YYYY-MM-DD) are UTC midnight — add T12:00 to keep local date correct
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso
+  const d = new Date(normalized)
   if (isNaN(d.getTime())) return null
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const tituloNotif = (notif) => {
-  if (notif.data?.tipo === 'CUENTA_MOROSA')        return 'Adeudo Pendiente'
-  if (notif.data?.tipo === 'SANCION_ASIGNADA')     return 'Penalización asignada'
-  if (notif.data?.tipo === 'SANCION_LEVANTADA')    return 'Penalización levantada'
-  if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return '¡Solicitud aceptada!'
-  if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')  return 'Solicitud rechazada'
-  if (notif.data?.tipo === 'SOLICITUD_ENVIADA')    return 'Nueva solicitud de amistad'
+  if (notif.data?.tipo === 'CUENTA_MOROSA')               return 'Adeudo Pendiente'
+  if (notif.data?.tipo === 'SANCION_ASIGNADA')            return 'Penalización asignada'
+  if (notif.data?.tipo === 'SANCION_LEVANTADA')           return 'Penalización levantada'
+  if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')          return '¡Solicitud aceptada!'
+  if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')         return 'Solicitud rechazada'
+  if (notif.data?.tipo === 'SOLICITUD_ENVIADA')           return 'Nueva solicitud de amistad'
+  if (notif.data?.tipo === 'SESION_CANCELADA')            return 'Sesión cancelada'
+  if (notif.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR') return 'Sesión cancelada'
   return 'Notificación'
 }
 
@@ -117,6 +121,16 @@ const subtituloNotif = (notif) => {
   if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return `El socio ${nombre} ha aceptado tu solicitud.`
   if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')  return `El socio ${nombre} ha rechazado tu solicitud.`
   if (notif.data?.tipo === 'SOLICITUD_ENVIADA')    return `Has recibido una solicitud de amistad de ${nombre}.`
+  if (notif.data?.tipo === 'SESION_CANCELADA') {
+    const d = notif.data
+    const hora = d.hora_inicio ? d.hora_inicio.slice(0, 5) : ''
+    return [d.disciplina, hora].filter(Boolean).join(' · ')
+  }
+  if (notif.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR') {
+    const d = notif.data
+    const hora = d.hora_inicio ? d.hora_inicio.slice(0, 5) : ''
+    return [d.disciplina, hora].filter(Boolean).join(' · ')
+  }
   return ''
 }
 
@@ -161,10 +175,20 @@ const iconoNotif = (tipo) => {
       <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
     </svg>`
   }
+  if (tipo === 'SESION_CANCELADA' || tipo === 'SESION_CANCELADA_INSTRUCTOR') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="9" y1="14" x2="15" y2="20"/><line x1="15" y1="14" x2="9" y2="20"/>
+    </svg>`
+  }
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
   </svg>`
 }
+
+const esTipoSesionCancelada = (tipo) =>
+  ['SESION_CANCELADA', 'SESION_CANCELADA_INSTRUCTOR'].includes(tipo)
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
@@ -451,22 +475,30 @@ onUnmounted(() => {
             enter-to-class="opacity-100 scale-100 translate-y-0"
           >
             <div v-if="notifSeleccionada"
-              class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden"
+              class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
-              <!-- Cabecera coloreada — roja para sanción, verde para liberación -->
+              <!-- Cabecera coloreada — roja para sanción, verde para liberación, violeta para sesión -->
               <div
                 class="px-7 py-6 text-white relative overflow-hidden"
-                :class="esTipoAmistad(notifSeleccionada.data?.tipo)
-                  ? 'bg-linear-to-br from-blue-500 to-indigo-600'
-                  : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                    ? 'bg-linear-to-br from-green-500 to-emerald-500'
-                    : 'bg-linear-to-br from-red-500 to-orange-500'"
+                :class="esTipoSesionCancelada(notifSeleccionada.data?.tipo)
+                  ? 'bg-linear-to-br from-violet-600 to-purple-800'
+                  : esTipoAmistad(notifSeleccionada.data?.tipo)
+                    ? 'bg-linear-to-br from-blue-500 to-indigo-600'
+                    : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                      ? 'bg-linear-to-br from-green-500 to-emerald-500'
+                      : 'bg-linear-to-br from-red-500 to-orange-500'"
               >
                 <div class="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"/>
                 <div class="relative z-10 flex items-start gap-4">
                   <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                    <!-- Ícono sesión cancelada -->
+                    <svg v-if="esTipoSesionCancelada(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                      <line x1="9" y1="14" x2="15" y2="20"/><line x1="15" y1="14" x2="9" y2="20"/>
+                    </svg>
                     <!-- Ícono amistad -->
-                    <svg v-if="esTipoAmistad(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
+                    <svg v-else-if="esTipoAmistad(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                       <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
@@ -483,22 +515,26 @@ onUnmounted(() => {
                   </div>
                   <div>
                     <p class="text-[10px] font-black uppercase tracking-widest text-white/70 mb-0.5">
-                      {{ esTipoAmistad(notifSeleccionada.data?.tipo)
-                        ? 'Comunidad · Amigos'
-                        : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                          ? 'Penalización Levantada'
-                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
-                            ? 'Estado de Cuenta'
-                            : 'Penalización Asignada' }}
+                      {{ esTipoSesionCancelada(notifSeleccionada.data?.tipo)
+                        ? 'Programación · Sesiones'
+                        : esTipoAmistad(notifSeleccionada.data?.tipo)
+                          ? 'Comunidad · Amigos'
+                          : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                            ? 'Penalización Levantada'
+                            : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                              ? 'Estado de Cuenta'
+                              : 'Penalización Asignada' }}
                     </p>
                     <h3 class="text-lg font-black leading-tight">
-                      {{ esTipoAmistad(notifSeleccionada.data?.tipo)
-                        ? tituloNotif(notifSeleccionada)
-                        : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                          ? 'Cuenta sin restricciones'
-                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
-                            ? 'Adeudo Pendiente'
-                            : labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}
+                      {{ esTipoSesionCancelada(notifSeleccionada.data?.tipo)
+                        ? notifSeleccionada.data?.disciplina ?? 'Sesión cancelada'
+                        : esTipoAmistad(notifSeleccionada.data?.tipo)
+                          ? tituloNotif(notifSeleccionada)
+                          : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                            ? 'Cuenta sin restricciones'
+                            : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                              ? 'Adeudo Pendiente'
+                              : labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}
                     </h3>
                   </div>
                 </div>
@@ -531,6 +567,108 @@ onUnmounted(() => {
                   </svg>
                   <p class="text-xs font-semibold text-red-800 leading-relaxed">
                     Atención: Los socios con estatus MOROSO no pueden reservar nuevos espacios o clases.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Cuerpo — variante sesión cancelada (socio e instructor) -->
+              <div v-else-if="esTipoSesionCancelada(notifSeleccionada.data?.tipo)" class="px-7 py-6 space-y-4">
+                <!-- Mensaje intro -->
+                <p class="text-sm font-semibold text-surface-600 leading-relaxed">
+                  {{ notifSeleccionada.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR'
+                    ? 'La administración ha cancelado la siguiente sesión que tenías programada. Por favor, no te presentes al club.'
+                    : 'La administración ha cancelado la siguiente sesión. Pedimos una sincera disculpa por los inconvenientes.' }}
+                </p>
+
+                <!-- Tarjeta de detalles -->
+                <div class="bg-violet-50 rounded-2xl border border-violet-100 overflow-hidden">
+                  <div class="px-4 py-2.5 bg-violet-100/60 border-b border-violet-100">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-violet-600">Detalle de la sesión</p>
+                  </div>
+                  <div class="divide-y divide-violet-100/70">
+
+                    <!-- Disciplina -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Disciplina</p>
+                        <p class="text-sm font-black text-surface-900 truncate">{{ notifSeleccionada.data?.disciplina ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Instructor (solo para socios) -->
+                    <div v-if="notifSeleccionada.data?.instructor" class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Instructor</p>
+                        <p class="text-sm font-black text-surface-900 truncate">{{ notifSeleccionada.data.instructor }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Espacio -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Espacio</p>
+                        <p class="text-sm font-black text-surface-900 truncate">{{ notifSeleccionada.data?.espacio ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Fecha</p>
+                        <p class="text-sm font-black text-surface-900">{{ formatFecha(notifSeleccionada.data?.fecha_sesion) ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Horario -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Horario</p>
+                        <p class="text-sm font-black text-surface-900">
+                          {{ notifSeleccionada.data?.hora_inicio ? notifSeleccionada.data.hora_inicio.slice(0,5) : '—' }}
+                          –
+                          {{ notifSeleccionada.data?.hora_fin ? notifSeleccionada.data.hora_fin.slice(0,5) : '—' }}
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Nota informativa -->
+                <div class="flex items-start gap-3 bg-violet-50 rounded-2xl border border-violet-200 p-4">
+                  <svg class="w-4 h-4 text-violet-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                  </svg>
+                  <p class="text-xs font-semibold text-violet-800 leading-relaxed">
+                    {{ notifSeleccionada.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR'
+                      ? 'Si tienes dudas, comunícate directamente con la gerencia del club.'
+                      : 'Si tienes alguna duda, acude a las oficinas de Administración del club. Agradecemos tu comprensión.' }}
                   </p>
                 </div>
               </div>

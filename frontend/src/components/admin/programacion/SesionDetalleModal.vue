@@ -132,8 +132,12 @@ const formErrors = computed(() => {
   if (form.value.hora_inicio && form.value.hora_fin && form.value.hora_inicio >= form.value.hora_fin) {
     e.hora_fin = 'Debe ser mayor a la hora de inicio'
   }
-  if (!form.value.cupo_maximo || form.value.cupo_maximo < 1) e.cupo_maximo = 'Cupo mínimo 1'
-  else if (form.value.cupo_maximo > 40) e.cupo_maximo = 'Cupo máximo 40'
+  if (form.value.requiere_inscripcion) {
+    if (!form.value.cupo_maximo || form.value.cupo_maximo < 1) e.cupo_maximo = 'Mínimo 1 para clase cerrada'
+    else if (form.value.cupo_maximo > 40) e.cupo_maximo = 'Cupo máximo 40'
+  } else if (form.value.cupo_maximo && form.value.cupo_maximo > 40) {
+    e.cupo_maximo = 'Cupo máximo 40'
+  }
   return e
 })
 
@@ -168,9 +172,9 @@ const headerTokens = computed(() => {
 
   if (inscripcion) {
     return {
-      gradient:   'from-rose-500 to-red-700',
-      badgeBg:    'bg-rose-400/25',
-      badgeText:  'text-rose-50',
+      gradient:   'from-violet-500 to-purple-700',
+      badgeBg:    'bg-violet-400/25',
+      badgeText:  'text-violet-50',
       label:      'Clase cerrada · Con inscripción',
       sublabel,
     }
@@ -195,7 +199,10 @@ function cancelarEdicion() {
 async function guardarCambios() {
   if (!puedeGuardar.value) return
   const { origen, index } = store.sesionEnDetalle
-  const hidratado = hidratarNombres(form.value)
+  const hidratado = hidratarNombres({
+    ...form.value,
+    cupo_maximo: (form.value.cupo_maximo > 0) ? form.value.cupo_maximo : null,
+  })
   await store.actualizarSesion(origen, index, hidratado)
   toastSuccess('Sesión actualizada')
   modoEdicion.value = false
@@ -435,7 +442,7 @@ const horasFin = computed(() =>
                     </span>
                     <div class="min-w-0">
                       <p class="text-base font-extrabold text-slate-800 truncate leading-tight">{{ form._espacio_nombre || '—' }}</p>
-                      <p class="text-xs font-bold text-slate-400 mt-0.5">Cupo máx: {{ form.cupo_maximo }}</p>
+                      <p class="text-xs font-bold text-slate-400 mt-0.5">Cupo máx: {{ form.cupo_maximo ?? 'Sin límite' }}</p>
                     </div>
                   </div>
                 </div>
@@ -453,11 +460,11 @@ const horasFin = computed(() =>
                     :class="[
                       'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-black',
                       form.requiere_inscripcion
-                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        ? 'bg-violet-50 text-violet-700 border border-violet-200'
                         : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     ]"
                   >
-                    <span :class="['w-2 h-2 rounded-full', form.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500']" />
+                    <span :class="['w-2 h-2 rounded-full', form.requiere_inscripcion ? 'bg-violet-500' : 'bg-emerald-500']" />
                     {{ form.requiere_inscripcion ? 'Cerrada (con inscripción)' : 'Abierta (libre)' }}
                   </span>
                 </div>
@@ -552,10 +559,14 @@ const horasFin = computed(() =>
                 <!-- Cupo + tipo -->
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-[10px] uppercase font-black tracking-widest text-slate-600 mb-1.5">Cupo máx.</label>
+                    <label class="block text-[10px] uppercase font-black tracking-widest text-slate-600 mb-1.5">
+                      Cupo máx.
+                      <span v-if="!form.requiere_inscripcion" class="normal-case font-semibold text-slate-400 tracking-normal ml-1">(opcional)</span>
+                    </label>
                     <input
                       v-model.number="form.cupo_maximo"
                       type="number" min="1" max="40"
+                      :placeholder="form.requiere_inscripcion ? 'Requerido' : 'Sin límite'"
                       :class="[
                         'w-full px-3 py-3 rounded-xl border text-sm font-bold transition-all duration-150',
                         formErrors.cupo_maximo ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-800'
@@ -582,7 +593,7 @@ const horasFin = computed(() =>
                         :class="[
                           'flex-1 py-2.5 rounded-lg text-xs font-black transition-all duration-150',
                           form.requiere_inscripcion
-                            ? 'bg-red-500 text-white shadow-sm'
+                            ? 'bg-violet-600 text-white shadow-sm'
                             : 'text-slate-500 hover:text-slate-700'
                         ]"
                       >Cerrada</button>

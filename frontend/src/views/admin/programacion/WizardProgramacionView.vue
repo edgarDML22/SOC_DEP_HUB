@@ -156,8 +156,12 @@ function validarForm() {
   if (form.value.hora_inicio && form.value.hora_fin && form.value.hora_inicio >= form.value.hora_fin) {
     e.hora_fin = 'Debe ser mayor a la hora inicio'
   }
-  if (!form.value.cupo_maximo || form.value.cupo_maximo < 1) e.cupo_maximo = 'Mínimo 1'
-  else if (form.value.cupo_maximo > 40) e.cupo_maximo = 'Máximo 40'
+  if (form.value.requiere_inscripcion) {
+    if (!form.value.cupo_maximo || form.value.cupo_maximo < 1) e.cupo_maximo = 'Mínimo 1 para clase cerrada'
+    else if (form.value.cupo_maximo > 40) e.cupo_maximo = 'Máximo 40'
+  } else if (form.value.cupo_maximo && form.value.cupo_maximo > 40) {
+    e.cupo_maximo = 'Máximo 40'
+  }
   return e
 }
 
@@ -320,7 +324,7 @@ function handleAgregar() {
     dias:                 [...form.value.dias],
     hora_inicio:          form.value.hora_inicio,
     hora_fin:             form.value.hora_fin,
-    cupo_maximo:          form.value.cupo_maximo,
+    cupo_maximo:          (form.value.cupo_maximo > 0) ? form.value.cupo_maximo : null,
     requiere_inscripcion: form.value.requiere_inscripcion,
     _espacio_nombre:      espacio?.nombre_espacio       ?? '',
     _disciplina_nombre:   disciplina?.nombre_disciplina ?? '',
@@ -888,7 +892,7 @@ function descartarCelda() {
               v-model="seccionCrear"
               title="Nueva sesión"
               hint="Creación rápida"
-              :dot-class="form.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500'"
+              :dot-class="form.requiere_inscripcion ? 'bg-violet-500' : 'bg-emerald-500'"
             >
               <template #icon>
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1020,7 +1024,10 @@ function descartarCelda() {
               <!-- Cupo + tipo de clase -->
               <div class="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                  <label class="block text-[10px] uppercase font-black tracking-widest text-slate-600 mb-1.5">Cupo máx.</label>
+                  <label class="block text-[10px] uppercase font-black tracking-widest text-slate-600 mb-1.5">
+                    Cupo máx.
+                    <span v-if="!form.requiere_inscripcion" class="normal-case font-semibold text-slate-400 tracking-normal ml-1">(opcional)</span>
+                  </label>
                   <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <IconGuests :class="['w-4 h-4', formErrors.cupo_maximo ? 'text-red-400' : 'text-slate-400']" />
@@ -1028,6 +1035,7 @@ function descartarCelda() {
                     <input
                       v-model.number="form.cupo_maximo"
                       type="number" min="1" max="40"
+                      :placeholder="form.requiere_inscripcion ? 'Requerido' : 'Sin límite'"
                       :class="[
                         'w-full pl-9 pr-3 py-3 rounded-xl border text-sm font-bold transition-all duration-150',
                         formErrors.cupo_maximo ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-800'
@@ -1055,7 +1063,7 @@ function descartarCelda() {
                       :class="[
                         'flex-1 py-2 rounded-lg text-xs font-black transition-all duration-150',
                         form.requiere_inscripcion
-                          ? 'bg-red-500 text-white shadow-sm'
+                          ? 'bg-violet-600 text-white shadow-sm'
                           : 'text-slate-500 hover:text-slate-700'
                       ]"
                     >Cerrada</button>
@@ -1290,7 +1298,7 @@ function descartarCelda() {
                               ? 'border-slate-100 bg-slate-50/50 opacity-40'
                               // Prioridad 3: estado normal
                               : s.requiere_inscripcion
-                                ? 'border-red-100 bg-red-50/50'
+                                ? 'border-violet-100 bg-violet-50/50'
                                 : 'border-emerald-100 bg-emerald-50/50'
                       ]"
                     >
@@ -1304,7 +1312,7 @@ function descartarCelda() {
                                 ? 'text-slate-400'
                                 : hayFiltroHeader && sesionResaltadaEnPanel(s)
                                   ? 'text-primary-700'
-                                  : s.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
+                                  : s.requiere_inscripcion ? 'text-violet-700' : 'text-emerald-700'">
                           {{ DIAS_LABEL[s.dia_semana] }} · {{ s.hora_inicio }}–{{ s.hora_fin }}
                         </p>
                         <p class="text-[11px] font-semibold truncate"
@@ -1344,7 +1352,7 @@ function descartarCelda() {
                                 : hayFiltroHeader
                                   ? 'bg-transparent text-slate-200 border-slate-100 cursor-not-allowed'
                                   : s.requiere_inscripcion
-                                    ? 'bg-white/80 hover:bg-red-100 text-slate-400 hover:text-red-600 border-slate-100'
+                                    ? 'bg-white/80 hover:bg-violet-100 text-slate-400 hover:text-violet-600 border-slate-100'
                                     : 'bg-white/80 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 border-slate-100'
                         ]"
                         title="Ver detalle"
@@ -1538,7 +1546,7 @@ function descartarCelda() {
                               ? 'border-slate-100 bg-slate-50/50 opacity-40'
                               // Prioridad 3: estado normal
                               : s.requiere_inscripcion
-                                ? 'border-red-100 bg-red-50/40'
+                                ? 'border-violet-100 bg-violet-50/40'
                                 : 'border-emerald-100 bg-emerald-50/40'
                       ]"
                     >
@@ -1552,7 +1560,7 @@ function descartarCelda() {
                                 ? 'text-slate-400'
                                 : hayFiltroHeader && sesionResaltadaEnPanel(s)
                                   ? 'text-primary-700'
-                                  : s.requiere_inscripcion ? 'text-red-700' : 'text-emerald-700'">
+                                  : s.requiere_inscripcion ? 'text-violet-700' : 'text-emerald-700'">
                           {{ DIAS_LABEL[s.dia_semana] }} · {{ s.hora_inicio }}–{{ s.hora_fin }}
                         </p>
                         <p class="text-[11px] font-semibold truncate"
@@ -1715,7 +1723,7 @@ function descartarCelda() {
                       :class="[
                         'flex items-center gap-2 p-2 rounded-lg border text-xs font-semibold',
                         s.requiere_inscripcion
-                          ? 'border-red-100 bg-red-50/50 text-red-700'
+                          ? 'border-violet-100 bg-violet-50/50 text-violet-700'
                           : 'border-emerald-100 bg-emerald-50/50 text-emerald-700'
                       ]"
                     >

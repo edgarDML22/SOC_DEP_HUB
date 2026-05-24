@@ -540,7 +540,7 @@ class PlantillaProgramacionController extends Controller
             'dia_semana'           => 'sometimes|string|in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO',
             'hora_inicio'          => 'sometimes|date_format:H:i',
             'hora_fin'             => 'sometimes|date_format:H:i|after:hora_inicio',
-            'cupo_maximo'          => 'sometimes|integer|min:1|max:40',
+            'cupo_maximo'          => 'sometimes|nullable|integer|min:1|max:40',
             'requiere_inscripcion' => 'sometimes|boolean',
         ]);
 
