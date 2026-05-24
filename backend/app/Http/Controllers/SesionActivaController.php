@@ -220,6 +220,7 @@ class SesionActivaController extends Controller
         $inscritos = DB::table('inscripciones_clases as ic')
             ->leftJoin('socios_titulares as st', 'ic.id_usuario', '=', 'st.id_socio')
             ->where('ic.id_sesion', $id)
+            ->whereIn('ic.estatus_inscripcion', ['CONFIRMADA', 'ASISTIO', 'FALTA'])
             ->select(
                 'ic.id_inscripcion',
                 'ic.tipo_usuario',

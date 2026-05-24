@@ -178,10 +178,18 @@ const getSlotStatus = (horaInicio) => {
     });
 
     if (bloque) {
+        // Bloque 2 — conflicto con la agenda personal del socio
         if (bloque.tipo === 'conflicto_personal') {
             return { blocked: true, reason: 'PERSONAL', label: 'Tu Agenda' };
         }
-        return { blocked: true, reason: 'OCCUPIED', label: 'Ocupado' };
+        // Bloque 1 — actividad del club en este espacio
+        if (bloque.tipo === 'sesion') {
+            return { blocked: true, reason: 'CLUB', label: 'Sesión Club' };
+        }
+        if (bloque.tipo === 'torneo') {
+            return { blocked: true, reason: 'CLUB', label: 'Torneo Club' };
+        }
+        return { blocked: true, reason: 'CLUB', label: 'Club' };
     }
 
     return { blocked: false };
@@ -423,37 +431,42 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                 <!-- PASO 3: HORARIOS (NEW GRID) -->
                 <div v-if="pasoActual === '3'" class="flex flex-col w-full">
                     <!-- Selector de duración -->
-                    <div
-                        class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-5 bg-surface-50/80 border border-surface-200 p-5 rounded-4xl shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-10 h-10 bg-white rounded-xl shadow-sm border border-surface-100 flex items-center justify-center text-primary-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="font-bold text-surface-900 text-sm leading-tight">Duración de reserva</div>
-                                <div class="text-xs text-surface-500 font-medium mt-0.5">Define cuánto tiempo jugarás
-                                </div>
-                            </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 px-1">
+                        <div class="flex items-center gap-2.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-surface-400 shrink-0" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            <span class="text-sm font-semibold text-surface-700">Duración</span>
                         </div>
-                        <div class="flex p-1 bg-surface-200/50 rounded-xl w-full md:w-auto overflow-hidden">
-                            <button @click="formDuration = 60"
-                                :class="formDuration === 60 ? 'bg-white shadow border border-surface-100 font-bold text-primary-700' : 'text-surface-500 font-bold hover:bg-white/50'"
-                                class="flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm transition-all focus:outline-none">1
-                                hr</button>
-                            <button @click="formDuration = 90"
-                                :class="formDuration === 90 ? 'bg-white shadow border border-surface-100 font-bold text-primary-700' : 'text-surface-500 font-bold hover:bg-white/50'"
-                                class="flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm transition-all focus:outline-none">1.5
-                                hrs</button>
-                            <button @click="formDuration = 120"
-                                :class="formDuration === 120 ? 'bg-white shadow border border-surface-100 font-bold text-primary-700' : 'text-surface-500 font-bold hover:bg-white/50'"
-                                class="flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm transition-all focus:outline-none">2
-                                hrs</button>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button
+                                v-for="opcion in [{ mins: 60, label: '1 hora' }, { mins: 120, label: '2 horas' }]"
+                                :key="opcion.mins"
+                                @click="formDuration = opcion.mins"
+                                class="flex-1 sm:flex-none sm:w-28 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none border"
+                                :class="formDuration === opcion.mins
+                                    ? 'bg-primary-600 border-primary-600 text-white shadow-sm'
+                                    : 'bg-white border-surface-200 text-surface-600 hover:border-surface-300 hover:bg-surface-50'">
+                                {{ opcion.label }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Leyenda de colores -->
+                    <div class="flex flex-wrap items-center gap-3 mb-8 text-xs font-semibold text-surface-600">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-full bg-surface-300 opacity-60 shrink-0"></span>
+                            Pasado
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-full bg-red-300 shrink-0"></span>
+                            Ocupado por el Club
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shrink-0"></span>
+                            En tu Agenda
                         </div>
                     </div>
 
@@ -506,18 +519,26 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                                     :disabled="getSlotStatus(hora).blocked"
                                     class="py-3.5 px-2 border-2 rounded-2xl text-center font-bold transition-all focus:outline-none relative overflow-hidden group"
                                     :class="{
+                                        // Seleccionado
                                         'bg-primary-600 border-primary-600 text-white shadow-lg -translate-y-1': horaInicioTemp === hora,
+                                        // Disponible
                                         'bg-white border-surface-200 text-surface-700 hover:border-primary-400 hover:text-primary-700 hover:-translate-y-0.5 hover:shadow-sm active:scale-95 cursor-pointer': horaInicioTemp !== hora && !getSlotStatus(hora).blocked,
-                                        'bg-surface-100/50 border-surface-200 text-surface-300 opacity-40 cursor-not-allowed hidden-hover': getSlotStatus(hora).reason === 'PAST',
-                                        'bg-surface-100/50 border-surface-200 text-surface-400 opacity-70 cursor-not-allowed hidden-hover line-through decoration-surface-400 decoration-2': getSlotStatus(hora).reason === 'OCCUPIED',
-                                        'bg-orange-50 border-orange-200 text-orange-600 opacity-80 cursor-not-allowed hidden-hover': getSlotStatus(hora).reason === 'PERSONAL'
+                                        // GRIS — hora pasada
+                                        'bg-surface-100 border-surface-300 text-surface-400 opacity-70 cursor-not-allowed': getSlotStatus(hora).reason === 'PAST',
+                                        // COLOR 1 (salmón) — Bloque 1: actividad del club en este espacio
+                                        'bg-red-50 border-red-200 text-red-400 opacity-80 cursor-not-allowed line-through decoration-red-300 decoration-2': getSlotStatus(hora).reason === 'CLUB',
+                                        // COLOR 2 (ámbar) — Bloque 2: conflicto con agenda personal
+                                        'bg-amber-50 border-amber-200 opacity-80 cursor-not-allowed': getSlotStatus(hora).reason === 'PERSONAL'
                                     }">
-                                    {{ formatearHora(hora) }}
+                                    <span :class="{
+                                        'text-amber-500': getSlotStatus(hora).reason === 'PERSONAL'
+                                    }">{{ formatearHora(hora) }}</span>
                                     <span v-if="getSlotStatus(hora).blocked"
-                                        class="absolute text-[9px] uppercase tracking-wider bottom-0.5 left-0 w-full text-center font-bold leading-none no-underline"
+                                        class="absolute text-[9px] uppercase tracking-wider bottom-0.5 left-0 w-full text-center font-bold leading-none"
                                         :class="{
-                                            'text-surface-400': getSlotStatus(hora).reason === 'PAST' || getSlotStatus(hora).reason === 'OCCUPIED',
-                                            'text-orange-600': getSlotStatus(hora).reason === 'PERSONAL'
+                                            'text-surface-400': getSlotStatus(hora).reason === 'PAST',
+                                            'text-red-400': getSlotStatus(hora).reason === 'CLUB',
+                                            'text-amber-500': getSlotStatus(hora).reason === 'PERSONAL'
                                         }">
                                         {{ getSlotStatus(hora).label }}
                                     </span>
