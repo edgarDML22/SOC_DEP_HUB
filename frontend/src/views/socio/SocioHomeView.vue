@@ -1,14 +1,20 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAgendaStore } from '@/stores/agendaStore'
 import api from '@/services/api'
 import QrCredentialModal from '@/components/socio/QrCredentialModal.vue'
 
 import { IconCalendar, IconTrophy, IconGuests, IconClock, IconBaby } from '@/components/icons';
 
 const profileStore = useProfileStore();
+const agendaStore = useAgendaStore();
 const router = useRouter();
+
+onMounted(() => {
+  agendaStore.fetchSocioAgenda();
+});
 
 const qrPayload    = ref('');
 const isQrModalOpen = ref(false);
@@ -86,12 +92,32 @@ const handleClick = async (action) => {
         <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="relative z-10 flex-1">
-          <div class="flex items-center gap-3 mb-4">
-            <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
-              Próxima Reserva
-            </span>
+          <div v-if="agendaStore.proximaActividad">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+                {{ agendaStore.proximaActividad.tipo.replace('_', ' ') }}
+              </span>
+              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+                Próxima actividad
+              </span>
+            </div>
+            <div class="flex items-center gap-3 mb-2 text-white">
+              <IconTrophy v-if="agendaStore.proximaActividad.tipo.toLowerCase().includes('torneo')" class="w-7 h-7 md:w-9 md:h-9 shrink-0 drop-shadow-md" />
+              <IconCalendar v-else class="w-7 h-7 md:w-9 md:h-9 shrink-0 drop-shadow-md" />
+              <h3 class="text-2xl md:text-3xl font-bold tracking-tight line-clamp-1 m-0">{{ agendaStore.proximaActividad.titulo }}</h3>
+            </div>
+            <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
+               {{ agendaStore.proximaActividad.fecha }} • {{ agendaStore.proximaActividad.hora_inicio }}{{ agendaStore.proximaActividad.hora_fin ? ' - ' + agendaStore.proximaActividad.hora_fin : '' }}
+               <br />
+               {{ agendaStore.proximaActividad.espacio }}
+            </p>
           </div>
-          <div>
+          <div v-else>
+            <div class="flex items-center gap-3 mb-4">
+              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+                Próxima Reserva
+              </span>
+            </div>
             <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">Cero reservas activas</h3>
             <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
               Elige el espacio que necesites y reserva tu horario.
