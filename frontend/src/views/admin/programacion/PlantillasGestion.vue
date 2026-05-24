@@ -395,14 +395,14 @@ defineExpose({ openCreate })
       <TableSkeleton v-if="store.isLoading" :rows="4" :columns="5" :has-avatar="false" />
 
       <table v-else class="w-full text-sm text-left">
-        <thead class="bg-surface-50 border-b border-surface-200">
+        <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
           <tr>
-            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Nombre de Plantilla</th>
-            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Fecha Inicio</th>
-            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Fecha Fin</th>
-            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Actividades</th>
-            <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus</th>
-            <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">Acciones</th>
+            <th class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Nombre de Plantilla</th>
+            <th class="px-6 py-4 text-left font-extrabold">Fecha Inicio</th>
+            <th class="px-6 py-4 text-left font-extrabold">Fecha Fin</th>
+            <th class="px-6 py-4 text-left font-extrabold">Actividades</th>
+            <th class="px-6 py-4 text-left font-extrabold">Estatus</th>
+            <th class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-surface-100">

@@ -297,14 +297,14 @@ onMounted(() => {
 
         <!-- Tabla con datos -->
         <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Torneo</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">Disciplina</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">Categoría</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">Acceso</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estado</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones</th>
+          <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+            <tr>
+              <th class="px-5 py-3.5 text-left font-extrabold rounded-tl-2xl">Torneo</th>
+              <th class="px-4 py-3.5 text-left font-extrabold hidden md:table-cell">Disciplina</th>
+              <th class="px-4 py-3.5 text-left font-extrabold hidden lg:table-cell">Categoría</th>
+              <th class="px-4 py-3.5 text-left font-extrabold hidden sm:table-cell">Acceso</th>
+              <th class="px-4 py-3.5 text-left font-extrabold">Estado</th>
+              <th class="px-4 py-3.5 text-right font-extrabold rounded-tr-2xl">Acciones</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100">

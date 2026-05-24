@@ -412,19 +412,13 @@ const handleDeleteGuest = async () => {
         <!-- Tabla -->
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-50 border-b border-surface-200">
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Invitado
-                </th>
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Contacto
-                </th>
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
-                  Invitado</th>
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Daily
-                  Pass
-                </th>
-                <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">
-                  Acciones</th>
+            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+              <tr>
+                <th class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Invitado</th>
+                <th class="px-6 py-4 text-left font-extrabold">Contacto</th>
+                <th class="px-6 py-4 text-left font-extrabold">Estatus Invitado</th>
+                <th class="px-6 py-4 text-left font-extrabold">Daily Pass</th>
+                <th class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">

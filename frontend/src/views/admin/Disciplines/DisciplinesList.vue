@@ -328,57 +328,56 @@ onMounted(() => {
           filtros</button>
       </div>
 
-      <!-- LISTA DE CARDS HORIZONTALES -->
-      <TransitionGroup v-else tag="div" class="flex flex-col gap-4"
-        enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0 -translate-y-2"
-        enter-to-class="opacity-100 translate-y-0" leave-active-class="transition-all duration-200 ease-in absolute"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-for="discipline in filteredDisciplines" :key="discipline.id_disciplina" class="bg-white rounded-2xl border border-surface-200 shadow-sm
-                 hover:shadow-md hover:border-surface-300
-                 transition-all duration-200 group flex">
-          <!-- Franja de color de categoría -->
-          <div class="w-1.5 shrink-0 rounded-l-2xl"
-            :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').left" />
-
-          <!-- Ícono disciplina coloreado por categoría -->
-          <div class="flex items-center justify-center px-5 py-4 shrink-0">
-            <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm
-                     group-hover:scale-105 transition-transform duration-200"
-              :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
-              <DisciplineIcon :name="discipline.nombre_disciplina" :icon="discipline.icono" class="w-7 h-7" />
-            </div>
-          </div>
-
-          <!-- Contenido principal -->
-          <div class="flex-1 min-w-0 py-4 pr-4">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-
-                <!-- Nombre -->
-                <h3 class="text-sm font-black text-surface-900 truncate leading-tight">
-                  {{ discipline.nombre_disciplina }}
-                </h3>
-
-                <!-- Categoría + Estatus pills -->
-                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-                  <span class="text-[10px] font-bold tracking-wider text-indigo-600
-                               bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-                    {{ formatCategoryEnum(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
+      <!-- TABLA -->
+      <div v-else class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-x-auto min-h-96">
+        <table class="w-full text-sm text-left text-slate-600">
+          <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+            <tr>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Disciplina</th>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Categoría</th>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold">Estatus</th>
+              <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-100">
+            <tr v-for="discipline in filteredDisciplines" :key="discipline.id_disciplina"
+              class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+              
+              <!-- Disciplina y Color -->
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-1.5 h-10 shrink-0 rounded-full"
+                    :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').left" />
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0"
+                    :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
+                    <DisciplineIcon :name="discipline.nombre_disciplina" :icon="discipline.icono" class="w-5 h-5" />
+                  </div>
+                  <span class="font-bold text-surface-900 leading-tight">
+                    {{ discipline.nombre_disciplina }}
                   </span>
-                  <BadgeStatus :status="discipline.estatus" size="sm" />
                 </div>
+              </td>
 
+              <!-- Categoría -->
+              <td class="px-6 py-4 hidden md:table-cell">
+                <span class="text-[10px] font-bold tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 uppercase">
+                  {{ formatCategoryEnum(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
+                </span>
+              </td>
 
-              </div>
+              <!-- Estatus -->
+              <td class="px-6 py-4">
+                <BadgeStatus :status="discipline.estatus" size="sm" />
+              </td>
 
-              <!-- Botón + menú -->
-              <div class="flex items-center gap-2 shrink-0">
+              <!-- Acciones -->
+              <td class="px-6 py-4 text-right">
                 <ActionMenu :items="buildMenuItems(discipline)" align="right" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </TransitionGroup>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
     </div>
 

@@ -893,6 +893,7 @@ function descartarCelda() {
               title="Nueva sesión"
               hint="Creación rápida"
               :dot-class="form.requiere_inscripcion ? 'bg-violet-500' : 'bg-emerald-500'"
+              icon-tone="primary"
             >
               <template #icon>
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1150,7 +1151,8 @@ function descartarCelda() {
               title="Borradores"
               hint="Sin Confirmar"
               :badge="store.borradorLocal.length || null"
-              badge-tone="primary"
+              badge-tone="amber"
+              icon-tone="amber"
             >
               <template #icon>
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1396,6 +1398,7 @@ function descartarCelda() {
               hint="Guardadas en BD"
               :badge="store.actividadesConfirmadas.length || null"
               badge-tone="emerald"
+              icon-tone="emerald"
             >
               <template #icon>
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -340,23 +340,14 @@ onMounted(async () => {
         <!-- Tabla con datos -->
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-50 border-b border-surface-200">
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Instructor
-                </th>
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
-                </th>
-                <th
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">
-                  Disciplinas</th>
-                <th
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
-                  Horario</th>
-                <th
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
-                  Afiliación</th>
-                <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones
-                </th>
+            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+              <tr>
+                <th class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Instructor</th>
+                <th class="px-6 py-4 text-left font-extrabold">Estatus</th>
+                <th class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Disciplinas</th>
+                <th class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Horario</th>
+                <th class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Afiliación</th>
+                <th class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">

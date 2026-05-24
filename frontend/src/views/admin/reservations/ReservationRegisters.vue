@@ -85,6 +85,23 @@ const sortedReservaciones = computed(() => {
     })
 })
 
+const currentPage = ref(1)
+const itemsPerPage = ref(15)
+
+const lastPage = computed(() => {
+    return Math.max(1, Math.ceil(sortedReservaciones.value.length / itemsPerPage.value))
+})
+
+const paginatedReservaciones = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value
+    const end = start + itemsPerPage.value
+    return sortedReservaciones.value.slice(start, end)
+})
+
+watch(sortedReservaciones, () => {
+    currentPage.value = 1
+})
+
 const selectedReserva = ref(null)
 
 const openAcompanantesModal = (reserva) => {
@@ -275,29 +292,30 @@ const exportColumns = [
         </div>
 
         <!-- Data Table -->
-        <div class="overflow-x-auto rounded-2xl border border-surface-200 shadow-sm bg-white">
+        <div class="rounded-2xl border border-surface-200 shadow-sm bg-white overflow-hidden min-h-96 flex flex-col">
+            <div class="overflow-x-auto flex-1">
             
             <!-- SKELETON -->
             <TableSkeleton v-if="store.loading.reservaciones" :rows="6" :columns="5" :has-avatar="false" />
 
             <table v-else class="w-full text-sm text-left text-slate-600">
-                <thead class="bg-surface-50 border-b border-surface-200">
+                <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
                     <tr>
-                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Titular / Acción</th>
-                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Espacio / Disciplina</th>
-                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Modalidad</th>
-                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Fecha / Hora</th>
-                        <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus</th>
-                        <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">Acciones</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Titular / Acción</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Espacio / Disciplina</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Modalidad</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Fecha / Hora</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Estatus</th>
+                        <th scope="col" class="px-6 py-4 text-right font-extrabold">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="sortedReservaciones.length === 0" class="bg-white border-b border-surface-100">
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                    <tr v-if="paginatedReservaciones.length === 0" class="bg-white border-b border-surface-100">
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 font-medium">
                             No se encontraron reservaciones con los filtros actuales.
                         </td>
                     </tr>
-                    <tr v-else v-for="reserva in sortedReservaciones" :key="reserva.id_reserva" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors">
+                    <tr v-else v-for="reserva in paginatedReservaciones" :key="reserva.id_reserva" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors">
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-800">{{ reserva.nombre_titular }}</div>
                             <div class="text-slate-500 text-xs mt-0.5">{{ reserva.numero_accion }}</div>
@@ -327,6 +345,37 @@ const exportColumns = [
                     </tr>
                 </tbody>
             </table>
+            </div>
+
+            <!-- Paginación -->
+            <div v-if="!store.loading.reservaciones && sortedReservaciones.length > 0" class="px-6 py-3 bg-slate-900 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400 font-bold shrink-0 mt-auto">
+                <span class="tabular-nums text-slate-300">
+                    {{ sortedReservaciones.length }} {{ sortedReservaciones.length === 1 ? 'registro' : 'registros' }}
+                    <span class="text-slate-600 mx-1">·</span>
+                    página <span class="text-white">{{ currentPage }}</span> de <span class="text-white">{{ lastPage }}</span>
+                </span>
+                <div class="flex items-center gap-2">
+                    <button
+                        @click="currentPage--"
+                        :disabled="currentPage <= 1"
+                        class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <span class="tabular-nums text-white font-black">{{ currentPage }}</span>
+                    <button
+                        @click="currentPage++"
+                        :disabled="currentPage >= lastPage"
+                        class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Teleport Modal para Acompañantes -->

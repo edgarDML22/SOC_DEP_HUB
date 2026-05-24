@@ -250,14 +250,14 @@ const buildMenuItems = (miembro) => [
 
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm text-left text-slate-600">
-            <thead>
-              <tr class="bg-surface-50 border-b border-surface-200">
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Nombre</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Correo</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Género</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Parentesco</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Edad</th>
-                <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones</th>
+            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+              <tr>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Nombre</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold">Correo</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold">Género</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold">Parentesco</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold">Edad</th>
+                <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">

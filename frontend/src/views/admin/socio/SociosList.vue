@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSocioStore } from '@/stores/admin/socioStore'
 import { storeToRefs } from 'pinia'
@@ -70,6 +70,23 @@ const filteredSocios = computed(() => {
 
   // Ordenar alfabéticamente por nombre
   return [...r].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
+})
+
+const currentPage = ref(1)
+const itemsPerPage = ref(15)
+
+const lastPage = computed(() => {
+  return Math.max(1, Math.ceil(filteredSocios.value.length / itemsPerPage.value))
+})
+
+const paginatedSocios = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredSocios.value.slice(start, end)
+})
+
+watch(filteredSocios, () => {
+  currentPage.value = 1
 })
 
 const hasActiveFilters = computed(() =>
@@ -306,7 +323,7 @@ onMounted(fetchSocios)
       </div>
 
       <!-- TABLA -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96 flex flex-col">
 
         <!-- Estado: cargando -->
         <TableSkeleton v-if="isLoading" :rows="6" :columns="6" :has-avatar="true" />
@@ -334,34 +351,22 @@ onMounted(fetchSocios)
         </div>
 
         <!-- Tabla con datos -->
-        <div v-else class="overflow-x-auto">
+        <div v-else class="overflow-x-auto flex-1">
           <table class="w-full text-sm text-left text-slate-600">
-            <thead>
-              <tr class="bg-surface-50 border-b border-surface-200">
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Socio</th>
-                <th scope="col"
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden sm:table-cell">
-                  Acción</th>
-                <th scope="col"
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">
-                  Tipo</th>
-                <th scope="col"
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
-                  Modalidad</th>
-                <th scope="col"
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
-                  Género</th>
-                <th scope="col" class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
-                  Cuenta</th>
-                <th scope="col"
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden xl:table-cell">
-                  Estatus Penalización</th>
-                <th scope="col" class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones
-                </th>
+            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+              <tr>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Socio</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold hidden sm:table-cell">Acción</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Tipo</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Modalidad</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Género</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold">Estatus Cuenta</th>
+                <th scope="col" class="px-6 py-4 text-left font-extrabold hidden xl:table-cell">Estatus Penalización</th>
+                <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">
-              <tr v-for="(socio, idx) in filteredSocios" :key="socio.id_socio"
+              <tr v-for="(socio, idx) in paginatedSocios" :key="socio.id_socio"
                 v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
                 class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group animate-row-in"
                 :style="{ animationDelay: `${idx * 30}ms` }">
@@ -411,6 +416,36 @@ onMounted(fetchSocios)
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Paginación -->
+        <div v-if="!isLoading && filteredSocios.length > 0" class="px-6 py-3 bg-slate-900 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400 font-bold rounded-b-2xl mt-auto">
+          <span class="tabular-nums text-slate-300">
+            {{ filteredSocios.length }} {{ filteredSocios.length === 1 ? 'socio' : 'socios' }}
+            <span class="text-slate-600 mx-1">·</span>
+            página <span class="text-white">{{ currentPage }}</span> de <span class="text-white">{{ lastPage }}</span>
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              @click="currentPage--"
+              :disabled="currentPage <= 1"
+              class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <span class="tabular-nums text-white font-black">{{ currentPage }}</span>
+            <button
+              @click="currentPage++"
+              :disabled="currentPage >= lastPage"
+              class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

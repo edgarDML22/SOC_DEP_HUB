@@ -113,6 +113,23 @@ const filteredRecord = computed(() => {
     return r
 })
 
+const currentPage = ref(1)
+const itemsPerPage = ref(15)
+
+const lastPage = computed(() => {
+    return Math.max(1, Math.ceil(filteredRecord.value.length / itemsPerPage.value))
+})
+
+const paginatedRecord = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value
+    const end = start + itemsPerPage.value
+    return filteredRecord.value.slice(start, end)
+})
+
+watch(filteredRecord, () => {
+    currentPage.value = 1
+})
+
 const hasActiveFilters = computed(() =>
     listFilters.value.search || listFilters.value.fecha_inicio || listFilters.value.fecha_fin ||
     listFilters.value.calificacion || listFilters.value.estatus || listFilters.value.tiempo
@@ -278,7 +295,9 @@ const buildMenuItems = (item) => [
         </div>
 
         <!-- TABLA -->
-        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-[400px] relative">
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-[400px] relative flex flex-col">
+            
+            <div class="flex-1 overflow-x-auto flex flex-col">
 
             <!-- SKELETON -->
             <TableSkeleton v-if="loading.record && !isFiltering" :rows="8" :columns="6" :has-avatar="true" />
@@ -298,35 +317,21 @@ const buildMenuItems = (item) => [
             </div>
 
             <!-- Table -->
-            <div v-else class="overflow-x-auto">
+            <div v-else class="flex-1">
                 <table class="w-full text-sm text-left text-slate-600">
-                    <thead>
-                        <tr class="bg-surface-50 border-b border-surface-200">
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Menor</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Titular / Acción</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Ingreso / Egreso</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Tiempo</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Calif.</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Estatus Final</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Acciones</th>
+                    <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Menor</th>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Titular / Acción</th>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Ingreso / Egreso</th>
+                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Tiempo</th>
+                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Calif.</th>
+                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Estatus Final</th>
+                            <th scope="col" class="px-6 py-4 text-right font-extrabold">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100">
-                        <tr v-for="item in filteredRecord" :key="item.id_historial"
+                        <tr v-for="item in paginatedRecord" :key="item.id_historial"
                             class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group cursor-pointer"
                             @click="router.push(`/admin/ludoteca/record/${item.id_historial}`)">
 
@@ -392,6 +397,37 @@ const buildMenuItems = (item) => [
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <!-- Paginación -->
+            <div v-if="!loading.record && filteredRecord.length > 0" class="px-6 py-3 bg-slate-900 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400 font-bold shrink-0 mt-auto">
+                <span class="tabular-nums text-slate-300">
+                    {{ filteredRecord.length }} {{ filteredRecord.length === 1 ? 'registro' : 'registros' }}
+                    <span class="text-slate-600 mx-1">·</span>
+                    página <span class="text-white">{{ currentPage }}</span> de <span class="text-white">{{ lastPage }}</span>
+                </span>
+                <div class="flex items-center gap-2">
+                    <button
+                        @click="currentPage--"
+                        :disabled="currentPage <= 1"
+                        class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <span class="tabular-nums text-white font-black">{{ currentPage }}</span>
+                    <button
+                        @click="currentPage++"
+                        :disabled="currentPage >= lastPage"
+                        class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
