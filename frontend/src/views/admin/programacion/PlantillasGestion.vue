@@ -346,8 +346,7 @@ function getMenuItems(p) {
         } catch (e) {
           toastError('Error al generar el PDF')
         }
-      },
-      customClass: 'text-purple-600 hover:bg-purple-50'
+      }
     })
   }
 
