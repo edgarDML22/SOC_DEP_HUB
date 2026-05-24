@@ -155,17 +155,42 @@ class AgendaUnificadaService
     {
         $hoy = Carbon::today('America/Mexico_City')->toDateString();
 
-        // 1. Obtener IDs de familiares
-        $familyIds = \App\Models\MiembrosFamiliares::where('socio_id', $idSocio)->pluck('id_miembro')->toArray();
+        // 1. Obtener información del socio y sus familiares
+        $socio = \App\Models\SocioTitular::find($idSocio);
+        $familiares = \App\Models\MiembrosFamiliares::where('socio_id', $idSocio)->get();
+        $familyIds = $familiares->pluck('id_miembro')->toArray();
 
-        // 2. Obtener IDs de participantes (tabla participantes_torneo) para este socio y su familia
-        $participanteIds = \App\Models\ParticipantesTorneo::where(function($q) use ($idSocio, $familyIds) {
+        // 2. Extraer correos para buscar en equipos (PreRegistroTorneo JSON)
+        $emails = array_filter(array_merge(
+            [$socio->correo_electronico ?? ''],
+            $familiares->pluck('correo')->toArray()
+        ));
+
+        $preRegistroIds = [];
+        if (!empty($emails)) {
+            $preRegistroIds = \App\Models\PreRegistroTorneo::where('tipo', 'EQUIPO')
+                ->where(function($q) use ($emails) {
+                    foreach ($emails as $email) {
+                        $q->orWhereJsonContains('datos_participante->integrantes', [['correo' => $email]]);
+                    }
+                })->pluck('id')->toArray();
+        }
+
+        // 3. Obtener IDs de participantes (tabla participantes_torneo) para este socio, familia y equipos
+        $participanteIds = \App\Models\ParticipantesTorneo::where(function($q) use ($idSocio, $familyIds, $preRegistroIds) {
             $q->where(function($q2) use ($idSocio) {
                 $q2->where('participante_type', 'SOCIO')->where('participante_id', $idSocio);
             });
+            
             if (!empty($familyIds)) {
                 $q->orWhere(function($q2) use ($familyIds) {
                     $q2->where('participante_type', 'FAMILIAR')->whereIn('participante_id', $familyIds);
+                });
+            }
+
+            if (!empty($preRegistroIds)) {
+                $q->orWhere(function($q2) use ($preRegistroIds) {
+                    $q2->where('tipo_entidad', 'COMPETIDOR_EXTERNO')->whereIn('referencia_id', $preRegistroIds);
                 });
             }
         })->pluck('id_participante_torneo')->toArray();
@@ -173,9 +198,15 @@ class AgendaUnificadaService
         // 3. Buscar encuentros donde el competidor 1 o 2 sea uno de esos participantes
         return \App\Models\EncuentrosTorneo::where(function($q) use ($participanteIds) {
                 $q->where(function($q2) use ($participanteIds) {
-                    $q2->where('competidor_1_type', 'PARTICIPANTE')->whereIn('competidor_1_id', $participanteIds);
+                    $q2->where(function($q3) {
+                        $q3->where('competidor_1_type', 'PARTICIPANTE')
+                           ->orWhereNull('competidor_1_type');
+                    })->whereIn('competidor_1_id', $participanteIds);
                 })->orWhere(function($q2) use ($participanteIds) {
-                    $q2->where('competidor_2_type', 'PARTICIPANTE')->whereIn('competidor_2_id', $participanteIds);
+                    $q2->where(function($q3) {
+                        $q3->where('competidor_2_type', 'PARTICIPANTE')
+                           ->orWhereNull('competidor_2_type');
+                    })->whereIn('competidor_2_id', $participanteIds);
                 });
             })
             ->whereNotNull('fecha_hora_inicio')
