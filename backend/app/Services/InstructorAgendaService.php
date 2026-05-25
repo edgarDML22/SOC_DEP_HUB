@@ -70,7 +70,11 @@ class InstructorAgendaService
             ->where(function ($q) use ($idInstructor) {
                 $q->whereHas('actividadPlantilla', function ($ap) use ($idInstructor) {
                     $ap->where('id_instructor', $idInstructor)
-                       ->whereHas('plantilla', fn($p) => $p->where('publicada', true));
+                       ->whereHas('plantilla', fn($p) =>
+                           $p->where('publicada', true)
+                             ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+                             ->whereColumn('plantillas_programacion.fecha_fin',    '>=', 'sesiones_activas.fecha_sesion')
+                       );
                 })
                 ->orWhere('id_instructor_sustituto', $idInstructor);
             })
@@ -120,6 +124,7 @@ class InstructorAgendaService
             return [
                 'id_sesion'   => $sesion->id_sesion,
                 'tipo'        => $tipo,
+                'disciplina'  => $plantilla?->disciplina?->nombre_disciplina,
                 'titulo'      => $plantilla?->disciplina?->nombre_disciplina ?? 'Sesión',
                 'fecha'       => $sesion->fecha_sesion,
                 'hora_inicio' => substr($plantilla?->hora_inicio ?? '', 0, 5),

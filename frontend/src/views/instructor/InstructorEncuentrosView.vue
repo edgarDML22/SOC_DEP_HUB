@@ -108,6 +108,15 @@ const hayEncuentros = computed(() => encuentros.value.length > 0);
       <!-- ── Encabezado ───────────────────────────────────── -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-surface-200 pb-5">
         <div>
+          <button
+            @click="$router.push('/instructor/home')"
+            class="flex items-center gap-2 text-surface-500 hover:text-primary-600 font-medium text-sm transition-colors mb-4 focus:outline-none w-fit group"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            Volver
+          </button>
           <div class="flex items-center gap-3 mb-1">
             <!-- Icon -->
             <div class="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
