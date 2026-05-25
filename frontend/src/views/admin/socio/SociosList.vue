@@ -15,6 +15,9 @@ import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import PenalizacionModal from '@/components/admin/socio/PenalizacionModal.vue'
 import { IconFilter, IconChevronDown, IconAlertCircle, IconWarning } from '@/components/icons'
 import EstatusCuentaModal from '@/components/admin/socio/EstatusCuentaModal.vue'
+import api from '@/services/api'
+import BaseChart from '@/components/admin/BaseChart.vue'
+import CollapsibleSection from '@/components/gerente/ui/CollapsibleSection.vue'
 
 const router = useRouter()
 const socioStore = useSocioStore()
@@ -207,6 +210,103 @@ const openEstatus = (socio) => {
   showEstatusModal.value = true
 }
 
+// ── SOCIOS BI & ANALYTICS ─────────────────────────────────────
+const isStatsOpen = ref(false)
+const isDemographicsLoading = ref(true)
+const demographicsData = ref(null)
+
+const fetchDemographics = async () => {
+  try {
+    isDemographicsLoading.value = true
+    const res = await api.get('/admin/bi/socios')
+    if (res.data && res.data.success) {
+      demographicsData.value = res.data.data
+    }
+  } catch (error) {
+    console.error("Error cargando demografía de socios:", error)
+  } finally {
+    isDemographicsLoading.value = false
+  }
+}
+
+watch(isStatsOpen, (isOpen) => {
+  if (isOpen && !demographicsData.value) {
+    fetchDemographics()
+  }
+})
+
+// Gráfica A: Segmentación (Dona)
+const chartTipoMembresia = computed(() => {
+  if (!demographicsData.value?.tipo_membresia) return null
+  return {
+    labels: demographicsData.value.tipo_membresia.labels,
+    datasets: [{
+      data: demographicsData.value.tipo_membresia.data,
+      backgroundColor: ['rgba(99, 102, 241, 0.85)', 'rgba(20, 184, 166, 0.85)'], // Indigo, Teal
+      borderWidth: 2,
+      borderColor: '#ffffff'
+    }]
+  }
+})
+
+// Gráfica B: Planes (Doughnut/Pie)
+const chartModalidadPlan = computed(() => {
+  if (!demographicsData.value?.modalidad_plan) return null
+  return {
+    labels: demographicsData.value.modalidad_plan.labels,
+    datasets: [{
+      data: demographicsData.value.modalidad_plan.data,
+      backgroundColor: ['rgba(249, 115, 22, 0.85)', 'rgba(217, 70, 239, 0.85)'], // Orange, Fuchsia
+      borderWidth: 2,
+      borderColor: '#ffffff'
+    }]
+  }
+})
+
+// Gráfica C: Demografía (Barras Agrupadas)
+const chartDemografia = computed(() => {
+  if (!demographicsData.value?.demografia) return null
+  const rangos = ['Menores 18', '18-29', '30-49', '50-64', '65+']
+  
+  const dataM = rangos.map(r => {
+    const item = demographicsData.value.demografia.find(d => d.rango_edad === r && d.genero === 'M')
+    return item ? parseInt(item.total) : 0
+  })
+  
+  const dataF = rangos.map(r => {
+    const item = demographicsData.value.demografia.find(d => d.rango_edad === r && d.genero === 'F')
+    return item ? parseInt(item.total) : 0
+  })
+
+  return {
+    labels: rangos,
+    datasets: [
+      {
+        label: 'Masculino',
+        data: dataM,
+        backgroundColor: 'rgba(59, 130, 246, 0.85)', // Blue-500
+        borderRadius: 4
+      },
+      {
+        label: 'Femenino',
+        data: dataF,
+        backgroundColor: 'rgba(244, 63, 94, 0.85)',  // Rose-500
+        borderRadius: 4
+      }
+    ]
+  }
+})
+
+const optionsDemografia = {
+  plugins: { legend: { display: true } },
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: { stepSize: 1 }
+    }
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────
 onMounted(fetchSocios)
 </script>
@@ -232,6 +332,51 @@ onMounted(fetchSocios)
             { label: 'Estatus', field: 'estatus_cuenta' }
           ]" />
       </AdminPageHeader>
+
+      <!-- SECCIÓN COLAPSABLE: ESTADÍSTICAS DEMOGRÁFICAS -->
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <CollapsibleSection v-model="isStatsOpen" title="Panel de Estadísticas Demográficas" hint="Composición demográfica y tipos de planes de socios titulares activos" iconTone="primary">
+          <template #icon>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+            </svg>
+          </template>
+
+          <div class="py-4">
+            <div v-if="isDemographicsLoading" class="flex flex-col items-center justify-center py-10">
+              <LoadingSpinner />
+              <span class="text-xs font-bold text-surface-400 mt-2">Cargando datos demográficos…</span>
+            </div>
+            
+            <div v-else-if="demographicsData" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Gráfico A: Segmentación de Membresías -->
+              <div class="bg-surface-50 border border-surface-200 rounded-2xl p-5 flex flex-col h-[280px] hover:shadow-md transition-all duration-300">
+                <h4 class="text-xs font-black text-surface-900 mb-4 uppercase tracking-wider">Accionistas vs Rentistas</h4>
+                <div class="flex-1 min-h-0 flex items-center justify-center">
+                  <BaseChart v-if="chartTipoMembresia" type="doughnut" :data="chartTipoMembresia" :options="{ plugins: { legend: { position: 'bottom' } } }" />
+                </div>
+              </div>
+
+              <!-- Gráfico B: Modalidad de Planes -->
+              <div class="bg-surface-50 border border-surface-200 rounded-2xl p-5 flex flex-col h-[280px] hover:shadow-md transition-all duration-300">
+                <h4 class="text-xs font-black text-surface-900 mb-4 uppercase tracking-wider">Planes Individuales vs Familiares</h4>
+                <div class="flex-1 min-h-0 flex items-center justify-center">
+                  <BaseChart v-if="chartModalidadPlan" type="pie" :data="chartModalidadPlan" :options="{ plugins: { legend: { position: 'bottom' } } }" />
+                </div>
+              </div>
+
+              <!-- Gráfico C: Distribución Demográfica -->
+              <div class="bg-surface-50 border border-surface-200 rounded-2xl p-5 flex flex-col h-[280px] hover:shadow-md transition-all duration-300">
+                <h4 class="text-xs font-black text-surface-900 mb-4 uppercase tracking-wider">Distribución por Edad y Género</h4>
+                <div class="flex-1 min-h-0">
+                  <BaseChart v-if="chartDemografia" type="bar" :data="chartDemografia" :options="optionsDemografia" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+      </div>
 
       <!-- BARRA DE FILTROS -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">

@@ -36,6 +36,7 @@ use App\Http\Controllers\CategoriaDisciplinaController;
 use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\BIController;
 use App\Http\Controllers\ReservationAdminController;
 use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\BootstrapController;
@@ -231,6 +232,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // SDH 226: Obtener filtros de metadatos para reservaciones
     Route::get('/v1/reservations/admin/filters-meta', [ReservationAdminController::class, 'filterMeta']);
     Route::get('/v1/reservations/admin/stats', [ReservationAdminController::class, 'getStats']);
+
+    // BI (Business Intelligence) Global Routes
+    Route::get('/v1/admin/bi/dashboard', [BIController::class, 'getDashboardStats']);
+    Route::get('/v1/admin/bi/socios', [BIController::class, 'getSocioDemographics']);
+    Route::get('/v1/admin/bi/reports/academic', [BIController::class, 'getAcademicPerformanceStats']);
+    Route::get('/v1/admin/bi/reports/spaces', [BIController::class, 'getSpacesStats']);
+    Route::get('/v1/admin/bi/reports/auditoria', [BIController::class, 'getAuditoriaStats']);
+    Route::get('/v1/admin/bi/reports/tournaments', [BIController::class, 'getTournamentsStats']);
 
     //Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
