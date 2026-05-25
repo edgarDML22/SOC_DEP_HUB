@@ -218,7 +218,7 @@ class SesionActivaController extends Controller
         SesionActiva::withoutGlobalScopes()->findOrFail($id);
 
         $inscripciones = \App\Models\InscripcionClase::where('id_sesion', $id)
-            ->whereNotIn('estatus_inscripcion', ['CANCELADA', 'FALTA'])
+            ->whereIn('estatus_inscripcion', ['CONFIRMADA', 'ASISTIO', 'FALTA'])
             ->with([
                 'socio:id_socio,nombre_completo,numero_accion',
                 'miembroFamiliar:id_miembro,nombre_completo,socio_id',

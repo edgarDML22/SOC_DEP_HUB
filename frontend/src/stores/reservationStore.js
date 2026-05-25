@@ -91,9 +91,15 @@ export const useReservationStore = defineStore("reservation", () => {
 
     if (bloqueConflicto) {
       if (bloqueConflicto.tipo === 'conflicto_personal') {
-        return "Tienes un conflicto con tu agenda personal (clase o torneo) en este horario.";
+        return "Este horario se empalma con una actividad de tu agenda (clase, torneo o reservación propia).";
       }
-      return "El espacio seleccionado ya está ocupado en este horario por otra reservación.";
+      if (bloqueConflicto.tipo === 'sesion') {
+        return "El club tiene una sesión programada en este espacio y horario.";
+      }
+      if (bloqueConflicto.tipo === 'torneo') {
+        return "El club tiene un encuentro de torneo programado en este espacio y horario.";
+      }
+      return "El espacio ya está ocupado por otra reservación en este horario.";
     }
 
     return null;

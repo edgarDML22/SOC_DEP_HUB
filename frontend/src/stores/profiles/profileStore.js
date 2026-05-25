@@ -107,22 +107,9 @@ export function useProfileLogic(endpointUrl = '/profile') {
     };
 
     const logout = () => {
-        localStorage.clear();
-
         api.post("/auth/logout").catch(() => { });
-
-        profileData.value = null;
-        profilePromise = null;
-
-        useFriendStore().reset();
-        useFamilyStore().$reset();
-        useGuestStore().$reset();
-        useNotificacionesStore().reset();
-        useReservationStore().resetearReserva();
-        useQrStore().reset();
-        useBootstrapStore().reset();
-
-        router.push("/login");
+        localStorage.clear();
+        window.location.href = "/login";
     };
 
     const getSupportLink = async () => {
