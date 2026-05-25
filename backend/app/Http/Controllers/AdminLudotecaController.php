@@ -10,6 +10,8 @@ use App\Models\RegistrosLudoteca;
 use App\Models\HistorialLudoteca;
 use App\Models\MiembrosFamiliares;
 use App\Models\SocioTitular;
+use App\Services\InstructorAgendaService;
+use Carbon\Carbon;
 
 class AdminLudotecaController extends Controller
 {
@@ -397,6 +399,36 @@ class AdminLudotecaController extends Controller
         ]);
     }
 
+    public function destroy($id)
+    {
+        $turno = TurnosLudoteca::find($id);
+        if (!$turno) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Turno no encontrado.'
+            ], 404);
+        }
 
+        $turno->delete();
 
+        return response()->json([
+            'success' => true,
+            'message' => 'Turno eliminado exitosamente.'
+        ]);
+    }
+
+    public function getInstructorAgenda(Request $request, $id, InstructorAgendaService $agendaService)
+    {
+        $tz    = 'America/Mexico_City';
+        $hoy   = Carbon::now($tz)->toDateString();
+        $desde = $request->query('desde', $hoy);
+        $hasta = $request->query('hasta', Carbon::now($tz)->addDays(7)->toDateString());
+
+        $data = $agendaService->obtenerAgenda($id, $desde, $hasta);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
 }
