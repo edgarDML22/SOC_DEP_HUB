@@ -11,6 +11,7 @@ const router = useRouter();
 const store = useActividadesStore();
 const bootstrapStore = useBootstrapStore();
 
+// activeView controla qué subvista se muestra — lógica sin cambios
 const activeView = ref('mis-inscripciones');
 
 const tabs = [
@@ -31,7 +32,7 @@ const tabs = [
   },
 ];
 
-// Cargar datos al montar
+// Cargar datos al montar — sin cambios
 onMounted(async () => {
   await Promise.all([
     store.fetchSesiones(),
@@ -43,10 +44,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="w-full font-sans bg-slate-50 text-slate-800 min-h-screen relative overflow-hidden pb-12">
-    <!-- Luces de fondo (Glows adaptados a Light Mode) -->
-    <div class="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-200/20 blur-[150px] pointer-events-none" />
-    <div class="absolute top-[10%] right-[-15%] w-[500px] h-[500px] rounded-full bg-violet-200/20 blur-[130px] pointer-events-none" />
+  <div class="w-full font-sans bg-slate-50 text-slate-800 min-h-screen relative pb-12">
 
     <!-- Contenedor del Layout -->
     <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-6 md:pt-8 relative z-10">
@@ -62,37 +60,35 @@ onMounted(async () => {
         Volver al Panel
       </button>
 
-      <!-- Encabezado Premium -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 p-6 rounded-3xl border border-slate-200 bg-white/80 backdrop-blur-xl shadow-lg relative">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-50/30 to-violet-50/30 rounded-3xl pointer-events-none" />
-        <div class="relative z-10 space-y-1.5">
-          <span class="text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200/50">
-            Wellness Club Hub
-          </span>
-          <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-none m-0 pt-1">
+      <!-- Encabezado — eliminados glows decorativos, simplificado a blanco limpio -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 p-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="space-y-1">
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-none m-0">
             Actividades Programadas
           </h2>
-          <p class="text-sm text-slate-500 font-semibold">
-            Planifica tus disciplinas favoritas, inscribe familiares o invita amigos.
+          <p class="text-sm text-slate-400 font-medium">
+            Planifica tus disciplinas, inscribe familiares o invita amigos.
           </p>
         </div>
-        
-        <!-- Status Stats Mini -->
-        <div class="flex items-center gap-3 md:gap-4 shrink-0 relative z-10">
-          <div class="bg-white rounded-3xl border border-slate-200 p-4 min-w-[110px] sm:min-w-[120px] flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300">
-            <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Inscripciones</span>
-            <span class="text-2xl md:text-3xl font-black text-blue-600 leading-none">{{ store.misInscripciones.length }}</span>
+
+        <!-- Stats Mini — sin gradiente, solo borde y tipografía -->
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 min-w-[100px] flex flex-col items-center text-center">
+            <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1">Inscripciones</span>
+            <!-- store.misInscripciones.length — reactive, sin cambios -->
+            <span class="text-2xl font-black text-blue-600 leading-none">{{ store.misInscripciones.length }}</span>
           </div>
-          <div class="bg-white rounded-3xl border border-slate-200 p-4 min-w-[110px] sm:min-w-[120px] flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md hover:border-emerald-350 transition-all duration-300">
-            <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Clases Hoy</span>
-            <span class="text-2xl md:text-3xl font-black text-emerald-650 leading-none">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 min-w-[100px] flex flex-col items-center text-center">
+            <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1">Clases Hoy</span>
+            <!-- store.sesiones.filter() — reactive, sin cambios -->
+            <span class="text-2xl font-black text-emerald-600 leading-none">
               {{ store.sesiones.filter(s => s.fecha_sesion === new Date().toISOString().split('T')[0]).length }}
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Segmented Control (Pills) — Mismos estilos que el de Reservaciones -->
+      <!-- Segmented Control — activeView binding y @click sin cambios -->
       <div class="flex p-1.5 bg-surface-100 rounded-2xl w-full max-w-2xl mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200 mb-6">
         <button
           v-for="tab in tabs"
@@ -104,13 +100,13 @@ onMounted(async () => {
             ? 'bg-primary-600 text-white font-extrabold rounded-xl shadow-md transform scale-[1.02]'
             : 'text-surface-500 font-bold hover:bg-white/60 hover:text-surface-700 rounded-xl'"
         >
-          <span v-html="tab.icon" class="flex-shrink-0"></span>
+          <span v-html="tab.icon" class="shrink-0"></span>
           {{ tab.label }}
         </button>
       </div>
     </div>
 
-    <!-- Área de Contenido — v-show para preservar estado y evitar re-mounts -->
+    <!-- Área de Contenido — v-show para preservar estado, sin cambios -->
     <div class="w-full relative z-10">
       <MisInscripcionesClases v-show="activeView === 'mis-inscripciones'" />
       <ActividadesAbiertas    v-show="activeView === 'actividades-abiertas'" />
@@ -121,7 +117,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* Scrollbar ultra fino */
 .scrollbar-thin::-webkit-scrollbar {
   height: 3px;
 }
@@ -129,7 +124,7 @@ onMounted(async () => {
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: #e2e8f0;
   border-radius: 9px;
 }
 </style>
