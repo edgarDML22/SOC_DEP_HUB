@@ -34,9 +34,35 @@ export const useActividadesStore = defineStore('actividades', () => {
   /** Todas las sesiones sin filtrar */
   const todasLasSesiones = computed(() => sesiones.value)
 
+  function getAhoraMexico() {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Mexico_City',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+    const parts = formatter.formatToParts(new Date())
+    const pv = {}
+    parts.forEach(p => { pv[p.type] = p.value })
+    return new Date(`${pv.year}-${pv.month}-${pv.day}T${pv.hour}:${pv.minute}:${pv.second}`)
+  }
+
   /** Sesiones filtradas por todos los filtros activos, ordenadas por hora de inicio y fecha */
   const sesionesFiltradas = computed(() => {
+    const ahoraMexico = getAhoraMexico()
+
     const list = sesiones.value.filter(s => {
+      // 1. Filtrar las que ya empezaron o pasaron hoy
+      if (s.fecha_sesion && s.hora_inicio) {
+        const fechaHoraSesion = new Date(`${s.fecha_sesion}T${s.hora_inicio}`)
+        if (fechaHoraSesion < ahoraMexico) return false
+      }
+
+      // 2. Filtros normales
       const matchDisciplina  = !filtroDisciplinaId.value
         || s.disciplina?.id === filtroDisciplinaId.value
       const matchInstructor  = !filtroInstructorId.value
@@ -48,13 +74,13 @@ export const useActividadesStore = defineStore('actividades', () => {
       return matchDisciplina && matchInstructor && matchDia && matchHora
     })
 
-    // Ordenar por hora_inicio ASC, y si es igual por fecha_sesion ASC
+    // Ordenar por fecha_sesion ASC, y si es igual por hora_inicio ASC
     return [...list].sort((a, b) => {
-      const timeA = a.hora_inicio || '00:00:00'
-      const timeB = b.hora_inicio || '00:00:00'
       const dateA = a.fecha_sesion || ''
       const dateB = b.fecha_sesion || ''
-      return timeA.localeCompare(timeB) || dateA.localeCompare(dateB)
+      const timeA = a.hora_inicio || '00:00:00'
+      const timeB = b.hora_inicio || '00:00:00'
+      return dateA.localeCompare(dateB) || timeA.localeCompare(timeB)
     })
   })
 

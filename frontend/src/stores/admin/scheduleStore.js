@@ -173,7 +173,8 @@ export const useScheduleStore = defineStore("schedule", () => {
     /**
      * Obtiene los encuentros de un torneo específico.
      */
-    const fetchEncuentrosTorneo = async (idTorneo) => {
+    const fetchEncuentrosTorneo = async (idTorneo, force = false) => {
+        if (torneoSeleccionado.value?.id_torneo === idTorneo && encuentros.value.length > 0 && !force) return;
         loadingStates.value.encuentros = true;
         error.value = null;
         try {
@@ -218,7 +219,8 @@ export const useScheduleStore = defineStore("schedule", () => {
     /**
      * Obtiene TODOS los árbitros/instructores designados para un torneo (sin filtro horario).
      */
-    const fetchArbitrosTorneo = async (idTorneo) => {
+    const fetchArbitrosTorneo = async (idTorneo, force = false) => {
+        if (arbitrosTotales.value.length > 0 && torneoSeleccionado.value?.id_torneo === idTorneo && !force) return;
         loadingStates.value.arbitros = true;
         try {
             const res = await api.get(`/torneos/${idTorneo}/referees`);
@@ -308,7 +310,8 @@ export const useScheduleStore = defineStore("schedule", () => {
     /**
      * Obtiene lista ligera de todos los torneos con sus encuentros para la vista general.
      */
-    const fetchTodosLosTorneos = async () => {
+    const fetchTodosLosTorneos = async (force = false) => {
+        if (todosLosTorneos.value.length > 0 && !force) return;
         loadingStates.value.torneos = true;
         error.value = null;
         try {
