@@ -217,19 +217,42 @@ class SesionActivaController extends Controller
     {
         SesionActiva::withoutGlobalScopes()->findOrFail($id);
 
-        $inscritos = DB::table('inscripciones_clases as ic')
-            ->leftJoin('socios_titulares as st', 'ic.id_usuario', '=', 'st.id_socio')
-            ->where('ic.id_sesion', $id)
-            ->select(
-                'ic.id_inscripcion',
-                'ic.tipo_usuario',
-                'ic.estatus_inscripcion',
-                'ic.fecha_transaccion',
-                'st.nombre_completo',
-                'st.numero_accion',
-            )
-            ->orderBy('ic.fecha_transaccion')
+        $inscripciones = \App\Models\InscripcionClase::where('id_sesion', $id)
+            ->whereNotIn('estatus_inscripcion', ['CANCELADA', 'FALTA'])
+            ->with([
+                'socio:id_socio,nombre_completo,numero_accion',
+                'miembroFamiliar:id_miembro,nombre_completo,socio_id',
+                'paseInvitado.invitado:id_invitado,nombre_invitado,socio_id',
+            ])
+            ->orderBy('fecha_transaccion')
             ->get();
+
+        $inscritos = $inscripciones->map(function ($ic) {
+            $nombre = '—';
+            $accion = '—';
+
+            if ($ic->tipo_usuario === 'socio_titular' && $ic->socio) {
+                $nombre = $ic->socio->nombre_completo;
+                $accion = $ic->socio->numero_accion;
+            } elseif ($ic->tipo_usuario === 'miembro_familiar' && $ic->miembroFamiliar) {
+                $nombre = $ic->miembroFamiliar->nombre_completo;
+                $socio = \App\Models\SocioTitular::find($ic->miembroFamiliar->socio_id);
+                $accion = $socio ? $socio->numero_accion : '—';
+            } elseif ($ic->tipo_usuario === 'invitado' && $ic->paseInvitado?->invitado) {
+                $nombre = $ic->paseInvitado->invitado->nombre_invitado;
+                $socio = \App\Models\SocioTitular::find($ic->paseInvitado->invitado->socio_id);
+                $accion = $socio ? $socio->numero_accion : '—';
+            }
+
+            return [
+                'id_inscripcion'      => $ic->id_inscripcion,
+                'tipo_usuario'        => strtoupper($ic->tipo_usuario),
+                'estatus_inscripcion' => $ic->estatus_inscripcion,
+                'fecha_transaccion'   => $ic->fecha_transaccion,
+                'nombre_completo'     => $nombre,
+                'numero_accion'       => $accion,
+            ];
+        });
 
         return response()->json(['data' => $inscritos], 200);
     }

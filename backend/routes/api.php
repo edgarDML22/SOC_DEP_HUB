@@ -439,6 +439,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // SDH-308: Actividades Programadas e Inscripciones
     Route::prefix('v1/actividades')->group(function () {
         Route::get('sesiones', [InscripcionClaseController::class, 'indexSesiones']);
+        Route::get('instructores', [InscripcionClaseController::class, 'listarInstructores']); // para filtros
         Route::get('mis-inscripciones', [InscripcionClaseController::class, 'misInscripciones']);
         Route::get('sesiones/{id_sesion}/estado-inscripcion', [InscripcionClaseController::class, 'estadoInscripcion']);
         Route::post('sesiones/{id_sesion}/inscribir', [InscripcionClaseController::class, 'inscribir']);
