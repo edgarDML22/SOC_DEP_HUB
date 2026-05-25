@@ -388,6 +388,7 @@ const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
       </div>
 
     </div>
+  </div>
 
     <!-- Modal de Inscripción — selectedSesionInscripcion / inscripcionTipo sin cambios -->
     <Teleport to="body">
