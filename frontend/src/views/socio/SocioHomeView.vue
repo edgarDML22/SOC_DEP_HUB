@@ -244,16 +244,16 @@ const getProgressBarColor = (pct) => {
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconClock class="w-7 h-7 md:w-8 md:h-8" />
             </div>
-            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Actividades<br>Programadas</span>
+            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Actividades<br>Programadas</span>
           </router-link>
 
           <!-- ── RESERVACIONES ── -->
-          <div class="flex flex-col gap-1.5">
+          <div class="flex flex-col gap-1.5 h-full">
             <!-- Tarjeta activa -->
             <router-link
               v-if="!profileStore.isAccountInactive && !profileStore.isReservationsBlocked"
               to="/socio/reservations"
-              class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out"
+              class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 w-full flex-1 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out"
             >
               <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
                 <IconCalendar class="w-7 h-7 md:w-8 md:h-8" />
@@ -263,7 +263,7 @@ const getProgressBarColor = (pct) => {
             <!-- Tarjeta deshabilitada -->
             <div
               v-else
-              class="bg-surface-100 rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center cursor-not-allowed opacity-60 select-none"
+              class="bg-surface-100 rounded-3xl border border-surface-200 p-5 md:p-6 w-full flex-1 flex flex-col items-center justify-center text-center cursor-not-allowed opacity-60 select-none"
             >
               <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-surface-200 text-surface-400 flex items-center justify-center mb-4 mt-2">
                 <IconCalendar class="w-7 h-7 md:w-8 md:h-8" />
@@ -283,7 +283,7 @@ const getProgressBarColor = (pct) => {
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconTrophy class="w-7 h-7 md:w-8 md:h-8" />
             </div>
-            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Consultar<br>Torneos</span>
+            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Consultar<br>Torneos</span>
           </router-link>
 
           <!-- ── COMUNIDAD (sin restricción) ── -->
@@ -292,26 +292,26 @@ const getProgressBarColor = (pct) => {
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconGuests class="w-7 h-7 md:w-8 md:h-8" />
             </div>
-            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Gestionar<br>Comunidad</span>
+            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Gestionar<br>Comunidad</span>
           </router-link>
 
           <!-- ── ACCESO LUDOTECA ── -->
-          <div class="flex flex-col gap-1.5">
+          <div class="flex flex-col gap-1.5 h-full">
             <!-- Tarjeta activa -->
             <router-link
               v-if="!profileStore.isAccountInactive && !profileStore.isLudotecaBlocked"
               to="/socio/socio-ludoteca/ludoteca-list"
-              class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out"
+              class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 w-full flex-1 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out"
             >
               <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
                 <IconBaby class="w-7 h-7 md:w-8 md:h-8" />
               </div>
-              <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Acceso<br>Ludoteca</span>
+              <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Acceso<br>Ludoteca</span>
             </router-link>
             <!-- Tarjeta deshabilitada -->
             <div
               v-else
-              class="bg-surface-100 rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center cursor-not-allowed opacity-60 select-none"
+              class="bg-surface-100 rounded-3xl border border-surface-200 p-5 md:p-6 w-full flex-1 flex flex-col items-center justify-center text-center cursor-not-allowed opacity-60 select-none"
             >
               <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-surface-200 text-surface-400 flex items-center justify-center mb-4 mt-2">
                 <IconBaby class="w-7 h-7 md:w-8 md:h-8" />
@@ -331,7 +331,7 @@ const getProgressBarColor = (pct) => {
             <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
               <IconClock class="w-7 h-7 md:w-8 md:h-8" />
             </div>
-            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-tight">Consultar<br>Historial</span>
+            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Consultar<br>Historial</span>
           </router-link>
 
         </div>
