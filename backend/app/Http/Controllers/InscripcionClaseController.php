@@ -55,11 +55,9 @@ class InscripcionClaseController extends Controller
             ->whereBetween('fecha_sesion', [$hoy, $fin])
             ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO'])
             ->with([
-                'actividadPlantilla:id_actividad_plantilla,id_plantilla,id_disciplina,id_espacio,id_instructor,hora_inicio,hora_fin,cupo_maximo,requiere_inscripcion,dia_semana',
-                'actividadPlantilla.disciplina:id_disciplina,nombre_disciplina',
-                'actividadPlantilla.instructor:id_instructor,nombre_completo',
-                'actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
-                'actividadPlantilla.plantilla:id_plantilla,nombre_plantilla,fecha_inicio,fecha_fin,estatus_plantilla',
+                'disciplina:id_disciplina,nombre_disciplina',
+                'instructorPrincipal:id_instructor,nombre_completo',
+                'espacio:id_espacio,nombre_espacio',
             ])
             ->whereHas('actividadPlantilla.plantilla', function ($q) {
                 $q->where('estatus_plantilla', true)
@@ -71,50 +69,36 @@ class InscripcionClaseController extends Controller
         // ── Filtros opcionales ────────────────────────────────────────────────
 
         if ($request->filled('disciplina_id')) {
-            $query->whereHas('actividadPlantilla', fn($q) =>
-                $q->where('id_disciplina', $request->integer('disciplina_id'))
-            );
+            $query->where('id_disciplina', $request->integer('disciplina_id'));
         }
 
         if ($request->filled('instructor_id')) {
-            $query->whereHas('actividadPlantilla', fn($q) =>
-                $q->where('id_instructor', $request->integer('instructor_id'))
-            );
+            $query->where('id_instructor', $request->integer('instructor_id'));
         }
 
         // Filtro por día de semana: LUNES, MARTES, ... DOMINGO
         if ($request->filled('day_of_week')) {
-            $dia = strtoupper($request->string('day_of_week'));
-            $query->whereHas('actividadPlantilla', fn($q) =>
-                $q->where('dia_semana', $dia)
-            );
+            $query->where('dia_semana', strtoupper($request->string('day_of_week')));
         }
 
         if ($request->filled('hora')) {
-            $query->whereHas('actividadPlantilla', fn($q) =>
-                $q->where('hora_inicio', 'like', $request->string('hora') . '%')
-            );
+            $query->where('hora_inicio', 'like', $request->string('hora') . '%');
         }
 
         $ahora = Carbon::now($tz);
 
         $sesiones = $query->orderBy('fecha_sesion')->get()
             ->filter(function ($s) use ($ahora) {
-                $act = $s->actividadPlantilla;
-                if (!$act) return false;
-                
-                // Combina fecha_sesion y hora_inicio
-                $fechaHora = Carbon::parse("{$s->fecha_sesion} {$act->hora_inicio}", 'America/Mexico_City');
-                
-                // Si la fecha y hora de inicio de la sesión ya pasaron (menor que ahora), no la mostramos
+                if (!$s->hora_inicio) return false;
+                $fechaHora = Carbon::parse("{$s->fecha_sesion} {$s->hora_inicio}", 'America/Mexico_City');
                 return $fechaHora->greaterThanOrEqualTo($ahora);
             })
             ->map(function ($s) {
-                $act = $s->actividadPlantilla;
+                $requiereInscripcion = (bool) $s->requiere_inscripcion;
 
                 $disponible = null;
-                if ($act && $act->requiere_inscripcion && $act->cupo_maximo !== null) {
-                    $disponible = max(0, $act->cupo_maximo - $s->cantidad_inscritos);
+                if ($requiereInscripcion && $s->cupo_maximo !== null) {
+                    $disponible = max(0, $s->cupo_maximo - $s->cantidad_inscritos);
                 }
 
                 return [
@@ -123,23 +107,23 @@ class InscripcionClaseController extends Controller
                     'estatus_sesion'       => $s->estatus_sesion,
                     'cantidad_inscritos'   => $s->cantidad_inscritos,
                     'es_cupo_lleno'        => $s->es_cupo_lleno,
-                    'hora_inicio'          => $act ? substr($act->hora_inicio, 0, 5) : null,
-                    'hora_fin'             => $act ? substr($act->hora_fin, 0, 5) : null,
-                    'cupo_maximo'          => $act?->cupo_maximo,
+                    'hora_inicio'          => $s->hora_inicio ? substr($s->hora_inicio, 0, 5) : null,
+                    'hora_fin'             => $s->hora_fin ? substr($s->hora_fin, 0, 5) : null,
+                    'cupo_maximo'          => $s->cupo_maximo,
                     'disponible'           => $disponible,
-                    'requiere_inscripcion' => (bool) ($act?->requiere_inscripcion ?? false),
-                    'tipo_clase'           => ($act?->requiere_inscripcion) ? 'Cerrada' : 'Abierta',
-                    'nombre_actividad'     => $act?->disciplina?->nombre_disciplina ?? 'Actividad',
-                    'dia_semana'           => $act?->dia_semana,
+                    'requiere_inscripcion' => $requiereInscripcion,
+                    'tipo_clase'           => $requiereInscripcion ? 'Cerrada' : 'Abierta',
+                    'nombre_actividad'     => $s->disciplina?->nombre_disciplina ?? 'Actividad',
+                    'dia_semana'           => $s->dia_semana,
                     'disciplina'           => [
-                        'id'     => $act?->disciplina?->id_disciplina,
-                        'nombre' => $act?->disciplina?->nombre_disciplina,
+                        'id'     => $s->disciplina?->id_disciplina,
+                        'nombre' => $s->disciplina?->nombre_disciplina,
                     ],
                     'instructor'           => [
-                        'id'     => $act?->instructor?->id_instructor,
-                        'nombre' => $act?->instructor?->nombre_completo,
+                        'id'     => $s->instructorPrincipal?->id_instructor,
+                        'nombre' => $s->instructorPrincipal?->nombre_completo,
                     ],
-                    'espacio'              => $act?->espacioFisico?->nombre_espacio,
+                    'espacio'              => $s->espacio?->nombre_espacio,
                 ];
             })
             ->values();
@@ -164,9 +148,8 @@ class InscripcionClaseController extends Controller
         $instructorIds = SesionActiva::withoutGlobalScopes()
             ->whereBetween('fecha_sesion', [$hoy, $fin])
             ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO'])
-            ->join('actividades_plantilla', 'sesiones_activas.id_actividad_plantilla', '=', 'actividades_plantilla.id_actividad_plantilla')
-            ->whereNull('actividades_plantilla.deleted_at')
-            ->pluck('actividades_plantilla.id_instructor')
+            ->whereNotNull('id_instructor')
+            ->pluck('id_instructor')
             ->unique()
             ->filter()
             ->values();
@@ -223,20 +206,30 @@ class InscripcionClaseController extends Controller
 
         $inscripciones = $query->with([
                 'sesion' => fn($q) => $q->withoutGlobalScopes()
-                    ->select(['id_sesion', 'id_actividad_plantilla', 'fecha_sesion', 'estatus_sesion']),
-                'sesion.actividadPlantilla' => fn($q) => $q->withTrashed()
-                    ->select(['id_actividad_plantilla', 'id_disciplina', 'id_instructor', 'id_espacio', 'hora_inicio', 'hora_fin', 'requiere_inscripcion']),
-                'sesion.actividadPlantilla.disciplina:id_disciplina,nombre_disciplina',
-                'sesion.actividadPlantilla.instructor:id_instructor,nombre_completo',
-                'sesion.actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
+                    ->select([
+                        'id_sesion',
+                        'id_disciplina',
+                        'id_espacio',
+                        'id_instructor',
+                        'fecha_sesion',
+                        'estatus_sesion',
+                        'hora_inicio',
+                        'hora_fin',
+                        'requiere_inscripcion',
+                    ])
+                    ->with([
+                        'disciplina:id_disciplina,nombre_disciplina',
+                        'espacio:id_espacio,nombre_espacio',
+                        'instructorPrincipal:id_instructor,nombre_completo',
+                    ]),
                 'miembroFamiliar:id_miembro,nombre_completo,parentesco',
                 'paseInvitado.invitado:id_invitado,nombre_invitado',
             ])
             ->orderByDesc('fecha_transaccion')
             ->get()
             ->map(function ($i) {
-                $sesion = $i->sesion;
-                $act    = $sesion?->actividadPlantilla;
+                $sesion              = $i->sesion;
+                $requiereInscripcion = (bool) $sesion?->requiere_inscripcion;
 
                 return [
                     'id_inscripcion'       => $i->id_inscripcion,
@@ -244,7 +237,6 @@ class InscripcionClaseController extends Controller
                     'estatus_inscripcion'  => $i->estatus_inscripcion,
                     'fecha_transaccion'    => $i->fecha_transaccion,
                     'tipo_usuario'         => ($i->id_usuario < 0) ? 'invitado' : $i->tipo_usuario,
-                    // Familiar/invitado — nullable
                     'familiar'             => $i->miembroFamiliar ? [
                         'id'         => $i->miembroFamiliar->id_miembro,
                         'nombre'     => $i->miembroFamiliar->nombre_completo,
@@ -256,14 +248,14 @@ class InscripcionClaseController extends Controller
                     ] : null,
                     'fecha_sesion'         => $sesion?->fecha_sesion,
                     'estatus_sesion'       => $sesion?->estatus_sesion,
-                    'hora_inicio'          => $act ? substr($act->hora_inicio, 0, 5) : null,
-                    'hora_fin'             => $act ? substr($act->hora_fin, 0, 5) : null,
-                    'nombre_actividad'     => $act?->disciplina?->nombre_disciplina ?? 'Actividad',
-                    'disciplina'           => $act?->disciplina?->nombre_disciplina,
-                    'instructor'           => $act?->instructor?->nombre_completo,
-                    'espacio'              => $act?->espacioFisico?->nombre_espacio,
-                    'requiere_inscripcion' => (bool) ($act?->requiere_inscripcion ?? false),
-                    'tipo_clase'           => ($act?->requiere_inscripcion) ? 'Cerrada' : 'Abierta',
+                    'hora_inicio'          => $sesion?->hora_inicio ? substr($sesion->hora_inicio, 0, 5) : null,
+                    'hora_fin'             => $sesion?->hora_fin ? substr($sesion->hora_fin, 0, 5) : null,
+                    'nombre_actividad'     => $sesion?->disciplina?->nombre_disciplina ?? 'Actividad',
+                    'disciplina'           => $sesion?->disciplina?->nombre_disciplina,
+                    'instructor'           => $sesion?->instructorPrincipal?->nombre_completo,
+                    'espacio'              => $sesion?->espacio?->nombre_espacio,
+                    'requiere_inscripcion' => $requiereInscripcion,
+                    'tipo_clase'           => $requiereInscripcion ? 'Cerrada' : 'Abierta',
                 ];
             });
 
@@ -321,10 +313,8 @@ class InscripcionClaseController extends Controller
         $idMiembroFamiliar = $request->input('id_miembro_familiar');
         $idPaseInvitado    = $request->input('id_pase_invitado');
 
-        // ── 1. Cargar sesión ──────────────────────────────────────────────────
-        $sesion = SesionActiva::withoutGlobalScopes()
-            ->with(['actividadPlantilla:id_actividad_plantilla,id_disciplina,cupo_maximo,requiere_inscripcion,hora_inicio,hora_fin'])
-            ->find($id_sesion);
+        // ── 1. Cargar sesión — todo desde el snapshot, sin JOIN a actividadPlantilla ──
+        $sesion = SesionActiva::withoutGlobalScopes()->find($id_sesion);
 
         if (!$sesion) {
             return response()->json(['message' => 'La sesión no existe.'], 404);
@@ -407,37 +397,35 @@ class InscripcionClaseController extends Controller
         }
 
         // ── 5. Validar colisión de horarios en su agenda ──────────────────────
-        $nuevoInicio = $sesion->actividadPlantilla?->hora_inicio;
-        $nuevoFin    = $sesion->actividadPlantilla?->hora_fin;
+        $nuevoInicio = $sesion->hora_inicio;
+        $nuevoFin    = $sesion->hora_fin;
         $fechaSesion = $sesion->fecha_sesion;
 
         if ($nuevoInicio && $nuevoFin) {
             $colisiones = InscripcionClase::where('id_usuario', $subjectId)
                 ->whereNotIn('estatus_inscripcion', ['CANCELADA', 'FALTA'])
-                ->whereHas('sesion', function ($query) use ($fechaSesion) {
-                    $query->withoutGlobalScopes()->where('fecha_sesion', $fechaSesion);
-                })
-                ->with(['sesion.actividadPlantilla:id_actividad_plantilla,hora_inicio,hora_fin'])
+                ->whereHas('sesion', fn($q) =>
+                    $q->withoutGlobalScopes()->where('fecha_sesion', $fechaSesion)
+                )
+                ->with(['sesion' => fn($q) =>
+                    $q->withoutGlobalScopes()->select(['id_sesion', 'hora_inicio', 'hora_fin'])
+                ])
                 ->get();
 
             foreach ($colisiones as $colision) {
-                $actColision = $colision->sesion?->actividadPlantilla;
-                if ($actColision) {
-                    $existInicio = $actColision->hora_inicio;
-                    $existFin    = $actColision->hora_fin;
+                $existInicio = $colision->sesion?->hora_inicio;
+                $existFin    = $colision->sesion?->hora_fin;
 
-                    if ($existInicio < $nuevoFin && $nuevoInicio < $existFin) {
-                        return response()->json([
-                            'message' => 'No puedes inscribirte a esta sesión porque coincide en horario con otra clase en tu agenda (' . substr($existInicio, 0, 5) . ' - ' . substr($existFin, 0, 5) . ').'
-                        ], 422);
-                    }
+                if ($existInicio && $existFin && $existInicio < $nuevoFin && $nuevoInicio < $existFin) {
+                    return response()->json([
+                        'message' => 'No puedes inscribirte a esta sesión porque coincide en horario con otra clase en tu agenda (' . substr($existInicio, 0, 5) . ' - ' . substr($existFin, 0, 5) . ').'
+                    ], 422);
                 }
             }
         }
 
-        // ── 6. Validar cupo ────────────────────────────────────────────────────
-        $actividad = $sesion->actividadPlantilla;
-        if ($actividad && $actividad->requiere_inscripcion && $sesion->es_cupo_lleno) {
+        // ── 6. Validar cupo — leído directo del snapshot ──────────────────────
+        if ($sesion->requiere_inscripcion && $sesion->es_cupo_lleno) {
             return response()->json(['message' => 'La actividad ha alcanzado el límite máximo de participantes.'], 422);
         }
 
@@ -536,17 +524,17 @@ class InscripcionClaseController extends Controller
             return response()->json(['message' => 'No tienes autorización para cancelar esta inscripción.'], 403);
         }
 
-        // ── Cargar sesión con su actividad para calcular tiempo y tipo ─────────
+        // ── Cargar sesión — hora_inicio y requiere_inscripcion desde el snapshot ──
         $sesion = SesionActiva::withoutGlobalScopes()
-            ->with('actividadPlantilla:id_actividad_plantilla,hora_inicio,requiere_inscripcion')
+            ->select(['id_sesion', 'fecha_sesion', 'hora_inicio', 'requiere_inscripcion'])
             ->find($inscripcion->id_sesion);
 
         // ── Calcular minutos restantes ─────────────────────────────────────────
         $minutosRestantes = PHP_INT_MAX; // default seguro si no hay sesión
 
-        if ($sesion && $sesion->actividadPlantilla) {
+        if ($sesion && $sesion->hora_inicio) {
             $fechaHoraInicio = Carbon::parse(
-                $sesion->fecha_sesion . ' ' . $sesion->actividadPlantilla->hora_inicio,
+                $sesion->fecha_sesion . ' ' . $sesion->hora_inicio,
                 'America/Mexico_City'
             );
             $minutosRestantes = Carbon::now('America/Mexico_City')
@@ -554,7 +542,7 @@ class InscripcionClaseController extends Controller
         }
 
         // ── Determinar si aplica penalización ─────────────────────────────────
-        $esCerrada    = (bool) ($sesion?->actividadPlantilla?->requiere_inscripcion ?? false);
+        $esCerrada    = (bool) ($sesion?->requiere_inscripcion ?? false);
         $esInvitado   = $inscripcion->id_usuario < 0;
         $hayPenalizacion = $esCerrada && !$esInvitado && $minutosRestantes < 120;
 

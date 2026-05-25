@@ -28,11 +28,10 @@ class AgendaEspacioController extends Controller
 
             UNION ALL
 
-            SELECT ap.hora_inicio, ap.hora_fin, 'sesion' AS tipo
+            SELECT sa.hora_inicio, sa.hora_fin, 'sesion' AS tipo
             FROM   sesiones_activas sa
-            JOIN   actividades_plantilla ap ON ap.id_actividad_plantilla = sa.id_actividad_plantilla
             WHERE  sa.fecha_sesion = ?
-              AND  ap.id_espacio   = ?
+              AND  sa.id_espacio   = ?
               AND  sa.estatus_sesion NOT IN ('CANCELADA', 'FINALIZADA')
 
             -- PASO 3: Encuentros de torneo en este espacio
@@ -56,10 +55,9 @@ class AgendaEspacioController extends Controller
 
             UNION ALL
 
-            SELECT ap.hora_inicio, ap.hora_fin, 'conflicto_personal' AS tipo
+            SELECT sa.hora_inicio, sa.hora_fin, 'conflicto_personal' AS tipo
             FROM   inscripciones_clases ic
-            JOIN   sesiones_activas sa  ON sa.id_sesion = ic.id_sesion
-            JOIN   actividades_plantilla ap ON ap.id_actividad_plantilla = sa.id_actividad_plantilla
+            JOIN   sesiones_activas sa ON sa.id_sesion = ic.id_sesion
             WHERE  ic.id_usuario = ?
               AND  ic.tipo_usuario = 'socio_titular'
               AND  sa.fecha_sesion = ?

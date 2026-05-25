@@ -30,12 +30,13 @@ class NotificarCancelacionSesionJob implements ShouldQueue
     {
         Log::info("NotificarCancelacionSesionJob: iniciando para sesión {$this->idSesion}");
 
+        // hora_inicio, hora_fin, id_disciplina, id_espacio, id_instructor — snapshot.
+        // Solo se eager-load las relaciones de display (nombre de disciplina, espacio, instructor).
         $sesion = SesionActiva::with([
-            'actividadPlantilla:id_actividad_plantilla,id_disciplina,id_espacio,id_instructor,dia_semana,hora_inicio,hora_fin',
-            'actividadPlantilla.disciplina:id_disciplina,nombre_disciplina',
-            'actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
-            'actividadPlantilla.instructor:id_instructor,nombre_completo,correo_electronico',
-            'actividadPlantilla.instructor.usuario',
+            'disciplina:id_disciplina,nombre_disciplina',
+            'espacio:id_espacio,nombre_espacio',
+            'instructorPrincipal:id_instructor,nombre_completo,correo_electronico',
+            'instructorPrincipal.usuario',
         ])->withoutGlobalScopes()->findOrFail($this->idSesion);
 
         $inscritos = DB::select("
@@ -86,11 +87,11 @@ class NotificarCancelacionSesionJob implements ShouldQueue
                     $socio->notifyNow(new SesionCanceladaSocioNotification(
                         idSesion:    $sesion->id_sesion,
                         fechaSesion: $sesion->fecha_sesion,
-                        disciplina:  $sesion->actividadPlantilla?->disciplina?->nombre_disciplina,
-                        instructor:  $sesion->actividadPlantilla?->instructor?->nombre_completo,
-                        espacio:     $sesion->actividadPlantilla?->espacioFisico?->nombre_espacio,
-                        horaInicio:  $sesion->actividadPlantilla?->hora_inicio,
-                        horaFin:     $sesion->actividadPlantilla?->hora_fin,
+                        disciplina:  $sesion->disciplina?->nombre_disciplina,
+                        instructor:  $sesion->instructorPrincipal?->nombre_completo,
+                        espacio:     $sesion->espacio?->nombre_espacio,
+                        horaInicio:  $sesion->hora_inicio,
+                        horaFin:     $sesion->hora_fin,
                     ));
                     $sociosNotificados[] = $inscrito->id_socio;
                 }
@@ -122,17 +123,17 @@ class NotificarCancelacionSesionJob implements ShouldQueue
         }
 
         // ── Notificación in-app al Usuario del Instructor ─────────────────
-        $instructor      = $sesion->actividadPlantilla?->instructor;
+        $instructor        = $sesion->instructorPrincipal;
         $usuarioInstructor = $instructor?->usuario;
 
         if ($usuarioInstructor) {
             $usuarioInstructor->notifyNow(new SesionCanceladaInstructorNotification(
                 idSesion:    $sesion->id_sesion,
                 fechaSesion: $sesion->fecha_sesion,
-                disciplina:  $sesion->actividadPlantilla?->disciplina?->nombre_disciplina,
-                espacio:     $sesion->actividadPlantilla?->espacioFisico?->nombre_espacio,
-                horaInicio:  $sesion->actividadPlantilla?->hora_inicio,
-                horaFin:     $sesion->actividadPlantilla?->hora_fin,
+                disciplina:  $sesion->disciplina?->nombre_disciplina,
+                espacio:     $sesion->espacio?->nombre_espacio,
+                horaInicio:  $sesion->hora_inicio,
+                horaFin:     $sesion->hora_fin,
             ));
         }
 

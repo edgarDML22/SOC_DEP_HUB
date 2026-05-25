@@ -16,7 +16,6 @@ class Session extends Model
     protected $fillable = [
         'id_actividad_plantilla',
         'fecha_sesion',
-        'id_instructor_sustituto',
         'capacidad_maxima',
         'estatus_sesion',
     ];
