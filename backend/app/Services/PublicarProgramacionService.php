@@ -157,10 +157,19 @@ class PublicarProgramacionService
             $fechaSesion = $lunes->copy()->addDays($diaISO - 1)->toDateString();
 
             $row = [
-                'id_actividad_plantilla' => $actividad->id_actividad_plantilla,
-                'fecha_sesion'           => $fechaSesion,
-                'estatus_sesion'         => 'DISPONIBLE',
-                'cantidad_inscritos'     => 0,
+                'id_actividad_plantilla'  => $actividad->id_actividad_plantilla,
+                'fecha_sesion'            => $fechaSesion,
+                'estatus_sesion'          => 'DISPONIBLE',
+                'cantidad_inscritos'      => 0,
+                // Snapshot — se copian para preservar historial ante ediciones futuras de la plantilla
+                'id_disciplina'           => $actividad->id_disciplina,
+                'id_espacio'              => $actividad->id_espacio,
+                'id_instructor'           => $actividad->id_instructor,
+                'cupo_maximo'             => $actividad->cupo_maximo,
+                'hora_inicio'             => $actividad->hora_inicio,
+                'hora_fin'                => $actividad->hora_fin,
+                'requiere_inscripcion'    => (bool) $actividad->requiere_inscripcion,
+                'dia_semana'              => $actividad->dia_semana,
             ];
 
             // Incluir fecha_publicacion solo si la columna ya existe en la BD.

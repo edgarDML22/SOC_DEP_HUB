@@ -22,7 +22,6 @@ const emit = defineEmits(['select-sesion'])
 // ─── Filtro lateral por disciplina (multi-select, máximo 3) ──────────────────
 const panelAbierto = ref(true)
 
-// Usa el catálogo global si está disponible; fallback a las de la página actual
 const disciplinasUnicas = computed(() => {
   if (props.todasLasDisciplinas.length > 0) return props.todasLasDisciplinas
   const seen = new Set()
@@ -32,10 +31,7 @@ const disciplinasUnicas = computed(() => {
   return [...seen].sort()
 })
 
-// Array de disciplinas activas (máx 3). Vacío por defecto = "Ninguna".
-// Se usa array en lugar de Set para garantizar reactividad en Vue 3.
 const disciplinasActivas = ref([])
-
 const MAX_DISCIPLINAS = 3
 
 function estaActiva(nombre) {
@@ -53,14 +49,66 @@ function toggleDisciplina(nombre) {
 
 function limpiarFiltros() {
   disciplinasActivas.value = []
+  filtroBusqueda.value  = ''
+  filtroEstatus.value   = ''
+  filtroEspacio.value   = ''
+  diaSeleccionado.value = null
 }
 
 const limitAlcanzado = computed(() => disciplinasActivas.value.length >= MAX_DISCIPLINAS)
 
-// Sin disciplinas seleccionadas → no se muestra nada (estado "Ninguna")
+// ─── Filtros superiores del calendario ───────────────────────────────────────
+const diaSeleccionado = ref(null)   // string LUNES|MARTES|… o null
+const filtroBusqueda  = ref('')
+const filtroEstatus   = ref('')
+const filtroEspacio   = ref('')
+
+function toggleDia(dia) {
+  diaSeleccionado.value = diaSeleccionado.value === dia ? null : dia
+}
+
+// Espacios únicos derivados de las sesiones recibidas (para el dropdown)
+const espaciosUnicos = computed(() =>
+  [...new Set(props.sesiones.map(s => s.espacio).filter(Boolean))].sort()
+)
+
+const hayFiltrosActivos = computed(() =>
+  disciplinasActivas.value.length > 0 ||
+  filtroBusqueda.value.trim() !== '' ||
+  filtroEstatus.value !== '' ||
+  filtroEspacio.value !== '' ||
+  diaSeleccionado.value !== null
+)
+
+// ─── Computed principal: filtrado acumulativo ─────────────────────────────────
+// diaSeleccionado NO filtra el array (solo controla opacidad visual de columnas).
 const sesionesFiltradas = computed(() => {
-  if (disciplinasActivas.value.length === 0) return []
-  return props.sesiones.filter(s => disciplinasActivas.value.includes(s.disciplina))
+  const hayDisciplinas = disciplinasActivas.value.length > 0
+  if (!hayDisciplinas) return []                    // sin disciplina seleccionada → nada
+
+  const buscar  = filtroBusqueda.value.trim().toLowerCase()
+  const estatus = filtroEstatus.value
+  const espacio = filtroEspacio.value
+
+  return props.sesiones.filter(s => {
+    // 1. Disciplinas (panel lateral)
+    if (!disciplinasActivas.value.includes(s.disciplina)) return false
+
+    // 2. Texto libre: ID de sesión o nombre de instructor
+    if (buscar) {
+      const idMatch       = String(s.id_sesion ?? '').includes(buscar)
+      const instrMatch    = (s.instructor ?? '').toLowerCase().includes(buscar)
+      if (!idMatch && !instrMatch) return false
+    }
+
+    // 3. Estatus
+    if (estatus && s.estatus_sesion !== estatus) return false
+
+    // 4. Espacio
+    if (espacio && s.espacio !== espacio) return false
+
+    return true
+  })
 })
 
 // ─── Constantes de layout ─────────────────────────────────────────────────────
@@ -139,11 +187,10 @@ const layoutPorDia = computed(() => {
   return out
 })
 
-// ─── Matriz cromática por estado operativo (5 estados, metálico con degradados) ─
-// Prioridad: CANCELADA > EN_CURSO > FINALIZADA > tipo(ABIERTA/CERRADA)+DISPONIBLE
+// ─── Matriz cromática por estado operativo ────────────────────────────────────
 function clasesBloque(b) {
-  const estatus  = b.estatus_sesion
-  const cerrada  = !!b.requiere_inscripcion
+  const estatus = b.estatus_sesion
+  const cerrada = !!b.requiere_inscripcion
 
   if (estatus === 'CANCELADA') {
     return {
@@ -153,7 +200,6 @@ function clasesBloque(b) {
       sub:         'text-red-100 font-semibold',
     }
   }
-
   if (estatus === 'EN_CURSO') {
     return {
       bg:          'bg-linear-to-br from-orange-400 to-amber-600',
@@ -162,7 +208,6 @@ function clasesBloque(b) {
       sub:         'text-amber-100 font-semibold',
     }
   }
-
   if (estatus === 'FINALIZADA') {
     return {
       bg:          'bg-linear-to-br from-blue-500 to-indigo-700',
@@ -171,8 +216,6 @@ function clasesBloque(b) {
       sub:         'text-blue-100 font-semibold',
     }
   }
-
-  // DISPONIBLE — diferencia por tipo de clase
   if (cerrada) {
     return {
       bg:          'bg-linear-to-br from-violet-500 to-purple-700',
@@ -181,7 +224,6 @@ function clasesBloque(b) {
       sub:         'text-violet-100 font-semibold',
     }
   }
-
   return {
     bg:          'bg-linear-to-br from-emerald-500 to-teal-700',
     borderStyle: 'border border-teal-700 border-l-4 border-l-teal-800',
@@ -202,10 +244,10 @@ const timezoneLabel = computed(() => {
 })
 
 const weekDays = computed(() => {
-  const current         = new Date()
-  const currentDay      = current.getDay()
+  const current          = new Date()
+  const currentDay       = current.getDay()
   const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1
-  const monday          = new Date(current)
+  const monday           = new Date(current)
   monday.setDate(current.getDate() - distanceToMonday)
 
   return DIAS.map((dia, index) => {
@@ -221,6 +263,14 @@ function formatGutterHour(h) {
   if (num === 12) return '12 PM'
   if (num === 0)  return '12 AM'
   return num < 12 ? `${num} AM` : `${num - 12} PM`
+}
+
+// ─── Clases de opacidad por columna (dimming) ─────────────────────────────────
+// Solo actúa cuando hay un día seleccionado; la columna no seleccionada se atenúa.
+// No afecta el array de sesiones — las tarjetas siguen en su columna correcta.
+function opacidadColumna(dia) {
+  if (diaSeleccionado.value === null) return ''
+  return diaSeleccionado.value === dia ? '' : 'opacity-30'
 }
 </script>
 
@@ -280,18 +330,18 @@ function formatGutterHour(h) {
           @click="limpiarFiltros"
           :class="[
             'w-full text-left px-2.5 py-2 rounded-xl text-[11px] font-bold transition-all border flex items-center gap-2',
-            disciplinasActivas.length === 0
+            !hayFiltrosActivos
               ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
           ]"
         >
           <span class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 border border-slate-200 bg-white">
-            <svg class="w-3.5 h-3.5" :class="disciplinasActivas.length === 0 ? 'text-slate-900' : 'text-slate-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="w-3.5 h-3.5" :class="!hayFiltrosActivos ? 'text-slate-900' : 'text-slate-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           </span>
           <span class="truncate">Ninguna</span>
-          <svg v-if="disciplinasActivas.length === 0" class="w-3 h-3 shrink-0 ml-auto text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+          <svg v-if="!hayFiltrosActivos" class="w-3 h-3 shrink-0 ml-auto text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
         </button>
@@ -313,7 +363,6 @@ function formatGutterHour(h) {
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
           ]"
         >
-          <!-- Icono de disciplina sobre fondo circular blanco -->
           <span
             class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow-sm"
             :class="estaActiva(disc) ? 'bg-white' : 'bg-white border border-slate-200'"
@@ -336,7 +385,7 @@ function formatGutterHour(h) {
 
         <!-- Botón limpiar filtros -->
         <button
-          v-if="disciplinasActivas.length > 0"
+          v-if="hayFiltrosActivos"
           type="button"
           @click="limpiarFiltros"
           class="mt-auto self-end text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors py-1"
@@ -346,12 +395,79 @@ function formatGutterHour(h) {
       </div>
     </div>
 
-    <!-- ══════════ ÁREA DERECHA: GRID + LEYENDA ══════════ -->
-    <div class="flex flex-col flex-1 gap-3 min-h-0 min-w-0">
+    <!-- ══════════ ÁREA DERECHA: FILTROS SLIM + GRID + LEYENDA ══════════ -->
+    <div class="flex flex-col flex-1 gap-2 min-h-0 min-w-0">
+
+      <!-- ══════════ BARRA DE FILTROS SLIM ══════════ -->
+      <div class="flex items-center gap-2 shrink-0 bg-white border border-slate-200 rounded-2xl shadow-sm px-3 py-2">
+
+        <!-- Búsqueda: instructor o ID -->
+        <div class="relative flex-1 min-w-0">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none">
+            <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            v-model.trim="filtroBusqueda"
+            type="text"
+            placeholder="Buscar instructor o ID de sesión..."
+            class="w-full pl-7 pr-3 py-1.5 text-[11px] font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
+          />
+        </div>
+
+        <!-- Separador vertical -->
+        <div class="w-px h-5 bg-slate-200 shrink-0" />
+
+        <!-- Selector de Estatus -->
+        <select
+          v-model="filtroEstatus"
+          class="select-slim py-1.5 pl-2 pr-6 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all appearance-none shrink-0"
+        >
+          <option value="">Todos los estatus</option>
+          <option value="DISPONIBLE">Disponible</option>
+          <option value="EN_CURSO">En Curso</option>
+          <option value="FINALIZADA">Finalizada</option>
+          <option value="CANCELADA">Cancelada</option>
+        </select>
+
+        <!-- Separador vertical -->
+        <div class="w-px h-5 bg-slate-200 shrink-0" />
+
+        <!-- Selector de Espacio -->
+        <select
+          v-model="filtroEspacio"
+          class="select-slim py-1.5 pl-2 pr-6 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all appearance-none shrink-0 max-w-[160px]"
+        >
+          <option value="">Todos los espacios</option>
+          <option v-for="esp in espaciosUnicos" :key="esp" :value="esp">{{ esp }}</option>
+        </select>
+
+        <!-- Indicador de filtros activos -->
+        <Transition
+          enter-active-class="transition-all duration-150 ease-out"
+          enter-from-class="opacity-0 scale-90"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition-all duration-100 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-90"
+        >
+          <span
+            v-if="filtroBusqueda || filtroEstatus || filtroEspacio"
+            class="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-black"
+          >
+            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Filtros
+          </span>
+        </Transition>
+      </div>
 
       <!-- ══════════ CALENDAR GRID ══════════ -->
       <div class="flex-1 min-h-0 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm calendar-scrollbar relative">
-        <!-- Overlay de carga del dataset completo -->
+
+        <!-- Overlay de carga -->
         <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100"
           leave-active-class="transition-opacity duration-150" leave-from-class="opacity-100" leave-to-class="opacity-0">
           <div v-if="isLoading" class="absolute inset-0 z-30 bg-white/70 backdrop-blur-[2px] flex items-center justify-center rounded-2xl pointer-events-none">
@@ -369,18 +485,35 @@ function formatGutterHour(h) {
             class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-200 grid"
             :style="{ gridTemplateColumns: '64px repeat(7, minmax(0, 1fr))' }"
           >
+            <!-- Gutter de zona horaria -->
             <div class="h-20 flex flex-col items-end justify-end pb-2 pr-3 border-r border-slate-100">
               <span class="text-[10px] font-semibold text-slate-600 tracking-wider">{{ timezoneLabel }}</span>
             </div>
+
+            <!-- Cabeceras de día — clic para filtrar columna -->
             <div
               v-for="dayObj in weekDays"
               :key="dayObj.dia"
-              class="h-20 border-l border-slate-100 flex flex-col items-center justify-center gap-1"
+              class="h-20 border-l border-slate-100 flex flex-col items-center justify-center gap-1 cursor-pointer select-none transition-opacity duration-200"
+              :class="opacidadColumna(dayObj.dia)"
+              @click="toggleDia(dayObj.dia)"
+              :title="diaSeleccionado === dayObj.dia ? 'Quitar filtro de día' : `Enfocar ${DIAS_LABEL[dayObj.dia]}`"
             >
-              <span :class="['text-[11px] font-bold uppercase tracking-wider', dayObj.dia === todayDia ? 'text-primary-600' : 'text-slate-700']">
+              <span :class="[
+                'text-[11px] font-bold uppercase tracking-wider transition-colors duration-150',
+                dayObj.dia === todayDia ? 'text-primary-600' : 'text-slate-700'
+              ]">
                 {{ DIAS_LABEL[dayObj.dia] }}
               </span>
-              <div :class="['w-9 h-9 rounded-full flex items-center justify-center text-[15px] transition-colors duration-150', dayObj.dia === todayDia ? 'bg-primary-600 text-white font-bold shadow-sm' : 'text-slate-800 font-semibold hover:bg-slate-100']">
+              <!-- Burbuja de fecha: activa (seleccionada) → bg-slate-900; hoy → bg-primary; normal → hover:bg-slate-100 -->
+              <div :class="[
+                'w-9 h-9 rounded-full flex items-center justify-center text-[15px] transition-all duration-150',
+                diaSeleccionado === dayObj.dia
+                  ? 'bg-slate-900 text-white font-bold shadow-md ring-2 ring-slate-900/20'
+                  : dayObj.dia === todayDia
+                    ? 'bg-primary-600 text-white font-bold shadow-sm'
+                    : 'text-slate-800 font-semibold hover:bg-slate-100'
+              ]">
                 {{ dayObj.fecha }}
               </div>
             </div>
@@ -412,15 +545,16 @@ function formatGutterHour(h) {
               </span>
             </div>
 
-            <!-- Columnas de día — fondo -->
+            <!-- Columnas de día — fondo con dimming por día seleccionado -->
             <template v-for="(dia, diaIdx) in DIAS" :key="'col-' + dia">
               <div
                 v-for="hIdx in TOTAL_HORAS"
                 :key="`bg-${dia}-${hIdx}`"
                 :class="[
-                  'w-full h-full border-l border-l-slate-100 border-t border-t-slate-100 text-left align-top select-none',
+                  'w-full h-full border-l border-l-slate-100 border-t border-t-slate-100 text-left align-top select-none transition-opacity duration-200',
                   hIdx === TOTAL_HORAS ? 'border-b border-b-slate-100' : '',
                   dia === todayDia ? 'bg-slate-50/50' : '',
+                  opacidadColumna(dia),
                 ]"
                 :style="{
                   gridColumn: diaIdx + 2,
@@ -431,7 +565,7 @@ function formatGutterHour(h) {
               </div>
             </template>
 
-            <!-- Bloques de sesión -->
+            <!-- Bloques de sesión — también con dimming -->
             <template v-for="(dia, diaIdx) in DIAS" :key="'sess-' + dia">
               <button
                 v-for="b in layoutPorDia[dia]"
@@ -445,10 +579,11 @@ function formatGutterHour(h) {
                   marginLeft: `calc(${(100 / b._totalLanes) * b._lane}% + 3px)`,
                 }"
                 :class="[
-                  'relative z-10 rounded-xl overflow-hidden text-left transition-all duration-150 my-0.5',
+                  'relative z-10 rounded-xl overflow-hidden text-left transition-all duration-200 my-0.5',
                   'hover:shadow-md hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-[0.98]',
                   clasesBloque(b).bg,
                   clasesBloque(b).borderStyle,
+                  opacidadColumna(dia),
                 ]"
               >
                 <div class="pl-2.5 pr-2 py-2 h-full flex flex-col justify-between overflow-hidden">
@@ -457,7 +592,6 @@ function formatGutterHour(h) {
                       <p :class="['text-[11px] font-bold truncate leading-tight', clasesBloque(b).text]">
                         {{ b.disciplina }}
                       </p>
-                      <!-- Badge estado compacto para no-DISPONIBLE -->
                       <span
                         v-if="b.estatus_sesion !== 'DISPONIBLE'"
                         class="px-1 py-0.5 rounded text-[7px] font-black bg-black/20 text-white uppercase tracking-wide shrink-0"
@@ -475,7 +609,6 @@ function formatGutterHour(h) {
                   <div class="flex items-center justify-between text-[9px] font-bold border-t border-white/10 pt-1 mt-1 shrink-0">
                     <span :class="['truncate', clasesBloque(b).sub]">{{ b.espacio }}</span>
                     <span :class="['shrink-0 flex items-center gap-0.5 px-1 rounded-md bg-black/10 text-[9px]', clasesBloque(b).text]">
-                      <!-- Icono personas -->
                       <svg class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                       </svg>
@@ -489,8 +622,8 @@ function formatGutterHour(h) {
         </div>
       </div>
 
-      <!-- ══════════ LEYENDA CROMÁTICA (5 estados) ══════════ -->
-      <div class="flex gap-4 flex-wrap shrink-0 px-2 py-1.5 text-[10px] bg-white/70 rounded-xl border border-slate-100">
+      <!-- ══════════ LEYENDA CROMÁTICA + ESTADO DE FILTROS ══════════ -->
+      <div class="flex gap-4 flex-wrap shrink-0 px-2 py-1.5 text-[10px] bg-white/70 rounded-xl border border-slate-100 items-center">
         <span class="flex items-center gap-1.5 font-bold text-slate-600">
           <span class="w-3 h-3 rounded border border-teal-700 bg-linear-to-br from-emerald-500 to-teal-700 shrink-0" />
           Abierta · Disponible
@@ -511,8 +644,34 @@ function formatGutterHour(h) {
           <span class="w-3 h-3 rounded border border-rose-700 bg-linear-to-br from-red-500 to-rose-700 shrink-0" />
           Cancelada
         </span>
-        <!-- Indicador de filtro activo -->
-        <span v-if="disciplinasActivas.length > 0" class="flex items-center gap-1.5 font-bold text-violet-600 ml-auto">
+
+        <!-- Indicador de día enfocado -->
+        <Transition
+          enter-active-class="transition-all duration-150 ease-out"
+          enter-from-class="opacity-0 -translate-x-1"
+          enter-to-class="opacity-100 translate-x-0"
+          leave-active-class="transition-all duration-100 ease-in"
+          leave-from-class="opacity-100 translate-x-0"
+          leave-to-class="opacity-0 -translate-x-1"
+        >
+          <span
+            v-if="diaSeleccionado"
+            class="flex items-center gap-1.5 font-bold text-slate-700 ml-auto cursor-pointer hover:text-red-500 transition-colors"
+            @click="diaSeleccionado = null"
+            title="Quitar filtro de día"
+          >
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" />
+            </svg>
+            Enfocando: {{ DIAS_LABEL[diaSeleccionado] }}
+            <svg class="w-2.5 h-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </span>
+        </Transition>
+
+        <!-- Indicador de disciplinas activas -->
+        <span v-if="disciplinasActivas.length > 0 && !diaSeleccionado" class="flex items-center gap-1.5 font-bold text-violet-600 ml-auto">
           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
           </svg>
@@ -529,4 +688,12 @@ function formatGutterHour(h) {
 .calendar-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .calendar-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .calendar-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Flecha del select sin SVG inline (evita el error de Vite con '/' en atributos style) */
+.select-slim {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 14px;
+}
 </style>

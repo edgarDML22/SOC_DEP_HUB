@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\InscripcionClase;
 use App\Models\Reservacion;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AgendaUnificadaService
 {
@@ -115,40 +116,38 @@ class AgendaUnificadaService
                   )
             )
             ->with([
-                'sesion'                    => fn($q) => $q->withoutGlobalScopes()
-                                                           ->select([
-                                                               'id_sesion',
-                                                               'id_actividad_plantilla',
-                                                               'fecha_sesion',
-                                                           ]),
-                'sesion.actividadPlantilla' => fn($q) => $q->withTrashed()
-                                                           ->select([
-                                                               'id_actividad_plantilla',
-                                                               'id_disciplina',
-                                                               'id_espacio',
-                                                               'id_instructor',
-                                                               'hora_inicio',
-                                                               'hora_fin',
-                                                               'requiere_inscripcion'
-                                                           ]),
-                'sesion.actividadPlantilla.disciplina:id_disciplina,nombre_disciplina',
-                'sesion.actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
-                'sesion.actividadPlantilla.instructor:id_instructor,nombre_completo',
+                'sesion' => fn($q) => $q->withoutGlobalScopes()
+                    ->select([
+                        'id_sesion',
+                        'id_disciplina',
+                        'id_espacio',
+                        'id_instructor',
+                        'fecha_sesion',
+                        'hora_inicio',
+                        'hora_fin',
+                        'requiere_inscripcion',
+                    ])
+                    ->with([
+                        'disciplina:id_disciplina,nombre_disciplina',
+                        'espacio:id_espacio,nombre_espacio',
+                        'instructorPrincipal:id_instructor,nombre_completo',
+                    ]),
             ])
             ->get()
-            ->map(function($i) {
-                $plantilla = $i->sesion?->actividadPlantilla;
-                $tipo = ($plantilla && $plantilla->requiere_inscripcion) ? 'CLASE_CERRADA' : 'CLASE_ABIERTA';
+            ->map(function ($i) {
+                $sesion = $i->sesion;
+                $esCerrada = (bool) $sesion?->requiere_inscripcion;
+                $tipo = $esCerrada ? 'CLASE_CERRADA' : 'CLASE_ABIERTA';
 
                 return [
                     'tipo'        => $tipo,
-                    'disciplina'  => $plantilla?->disciplina?->nombre_disciplina,
-                    'titulo'      => $plantilla?->disciplina?->nombre_disciplina ?? 'Clase',
-                    'fecha'       => $i->sesion?->fecha_sesion,
-                    'hora_inicio' => substr($plantilla?->hora_inicio ?? '', 0, 5),
-                    'hora_fin'    => substr($plantilla?->hora_fin ?? '', 0, 5),
-                    'espacio'     => $plantilla?->espacioFisico?->nombre_espacio,
-                    'instructor'  => $plantilla?->instructor?->nombre_completo,
+                    'disciplina'  => $sesion?->disciplina?->nombre_disciplina,
+                    'titulo'      => $sesion?->disciplina?->nombre_disciplina ?? 'Clase',
+                    'fecha'       => $sesion?->fecha_sesion,
+                    'hora_inicio' => substr($sesion?->hora_inicio ?? '', 0, 5),
+                    'hora_fin'    => substr($sesion?->hora_fin ?? '', 0, 5),
+                    'espacio'     => $sesion?->espacio?->nombre_espacio,
+                    'instructor'  => $sesion?->instructorPrincipal?->nombre_completo,
                     'estatus'     => $i->estatus_inscripcion,
                 ];
             })
@@ -218,7 +217,7 @@ class AgendaUnificadaService
             })
             ->whereNotNull('fecha_hora_inicio')
             ->whereDate('fecha_hora_inicio', '>=', $hoy)
-            ->whereBetween(\DB::raw('DATE(fecha_hora_inicio)'), [$desde, $hasta])
+            ->whereBetween(DB::raw('DATE(fecha_hora_inicio)'), [$desde, $hasta])
             ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
             ->with([
                 'torneo:id_torneo,nombre_torneo',

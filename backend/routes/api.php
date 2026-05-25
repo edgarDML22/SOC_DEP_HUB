@@ -313,7 +313,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Administrativas (gerente )
         Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
+        Route::delete('admin/turnos/{id}', [AdminLudotecaController::class, 'destroy']);
         Route::get('admin/instructores', [AdminLudotecaController::class, 'getInstructores']);
+        Route::get('admin/instructores/{id}/agenda', [AdminLudotecaController::class, 'getInstructorAgenda']);
         Route::get('admin/stats', [AdminLudotecaController::class, 'getStats']);
         Route::get('admin/socios-con-menores', [AdminLudotecaController::class, 'getSociosConMenores']);
         Route::get('admin/historial', [AdminLudotecaController::class, 'getHistorial']);

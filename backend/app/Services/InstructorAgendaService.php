@@ -69,30 +69,15 @@ class InstructorAgendaService
             ->whereBetween('fecha_sesion', [$desde, $hasta])
             ->where('fecha_sesion', '>=', $hoy)
             ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
-            ->where(function ($q) use ($idInstructor) {
-                $q->whereHas('actividadPlantilla', function ($ap) use ($idInstructor) {
-                    $ap->where('id_instructor', $idInstructor)
-                       ->whereHas('plantilla', fn($p) =>
-                           $p->where('publicada', true)
-                             ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
-                             ->whereColumn('plantillas_programacion.fecha_fin',    '>=', 'sesiones_activas.fecha_sesion')
-                       );
-                })
-                ->orWhere('id_instructor_sustituto', $idInstructor);
-            })
+            ->where('id_instructor', $idInstructor)
+            ->whereHas('actividadPlantilla.plantilla', fn($p) =>
+                $p->where('publicada', true)
+                  ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+                  ->whereColumn('plantillas_programacion.fecha_fin',    '>=', 'sesiones_activas.fecha_sesion')
+            )
             ->with([
-                'actividadPlantilla' => fn($q) => $q->withTrashed()->select([
-                    'id_actividad_plantilla',
-                    'id_disciplina',
-                    'id_espacio',
-                    'id_instructor',
-                    'hora_inicio',
-                    'hora_fin',
-                    'requiere_inscripcion',
-                    'cupo_maximo',
-                ]),
-                'actividadPlantilla.disciplina:id_disciplina,nombre_disciplina',
-                'actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
+                'disciplina:id_disciplina,nombre_disciplina',
+                'espacio:id_espacio,nombre_espacio',
                 'inscripcionesClase' => fn($q) => $q->whereIn('estatus_inscripcion', [
                     'CONFIRMADA', 'ASISTIO', 'FALTA',
                 ])->with('socio:id_socio,nombre_completo'),
@@ -100,8 +85,7 @@ class InstructorAgendaService
             ->get();
 
         return $sesiones->map(function ($sesion) {
-            $plantilla  = $sesion->actividadPlantilla;
-            $esCerrada  = $plantilla?->requiere_inscripcion ?? false;
+            $esCerrada  = (bool) $sesion->requiere_inscripcion;
             $tipo       = $esCerrada ? 'CLASE_CERRADA' : 'CLASE_ABIERTA';
 
             $inscritos  = $sesion->inscripcionesClase->where('estatus_inscripcion', 'CONFIRMADA');
@@ -126,13 +110,13 @@ class InstructorAgendaService
             return [
                 'id_sesion'   => $sesion->id_sesion,
                 'tipo'        => $tipo,
-                'disciplina'  => $plantilla?->disciplina?->nombre_disciplina,
-                'titulo'      => $plantilla?->disciplina?->nombre_disciplina ?? 'Sesión',
+                'disciplina'  => $sesion->disciplina?->nombre_disciplina,
+                'titulo'      => $sesion->disciplina?->nombre_disciplina ?? 'Sesión',
                 'fecha'       => $sesion->fecha_sesion,
-                'hora_inicio' => substr($plantilla?->hora_inicio ?? '', 0, 5),
-                'hora_fin'    => substr($plantilla?->hora_fin ?? '', 0, 5),
-                'espacio'     => $plantilla?->espacioFisico?->nombre_espacio,
-                'cupo_maximo' => $plantilla?->cupo_maximo,
+                'hora_inicio' => substr($sesion->hora_inicio ?? '', 0, 5),
+                'hora_fin'    => substr($sesion->hora_fin ?? '', 0, 5),
+                'espacio'     => $sesion->espacio?->nombre_espacio,
+                'cupo_maximo' => $sesion->cupo_maximo,
                 'estatus'     => $sesion->estatus_sesion,
                 'contadores'  => [
                     'inscritos'  => $inscritos->count() + $asistencia->count() + $noShow->count(),
