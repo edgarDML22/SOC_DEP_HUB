@@ -20,9 +20,9 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         return profileData.value?.tieneLudoteca == true;
     });
 
-    const tieneTurnoLudotecaHoy = computed(() => {
-        return profileData.value?.turno_ludoteca_hoy === true;
-    });
+    const turnoLudotecaHoy = computed(() => profileData.value?.turno_ludoteca_hoy ?? null);
+
+    const tieneTurnoLudotecaHoy = computed(() => turnoLudotecaHoy.value !== null);
 
     const homeSessions = computed(() => {
         return homeSessionsCache.value;
@@ -66,6 +66,7 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         idInstructor,
         disciplinas,
         isCuidador,
+        turnoLudotecaHoy,
         tieneTurnoLudotecaHoy,
         homeSessions,
         fetchProfile,

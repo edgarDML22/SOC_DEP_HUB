@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SesionActiva;
 use App\Models\EncuentrosTorneo;
+use App\Models\TurnosLudoteca;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,7 @@ class InstructorAgendaService
         $items = [
             ...$this->obtenerSesiones($idInstructor, $desde, $hasta),
             ...$this->obtenerTorneos($idInstructor, $desde, $hasta),
+            ...$this->obtenerTurnosLudoteca($idInstructor, $desde, $hasta),
         ];
 
         usort($items, fn($a, $b) =>
@@ -140,6 +142,34 @@ class InstructorAgendaService
                 'listas'      => $grupos,
             ];
         })->toArray();
+    }
+
+    /**
+     * Turnos de ludoteca asignados al instructor en el rango de fechas.
+     */
+    private function obtenerTurnosLudoteca(int $idInstructor, string $desde, string $hasta): array
+    {
+        $hoy = Carbon::today('America/Mexico_City')->toDateString();
+
+        return TurnosLudoteca::where('id_instructor', $idInstructor)
+            ->whereBetween('fecha', [$desde, $hasta])
+            ->where('fecha', '>=', $hoy)
+            ->orderBy('fecha')
+            ->orderBy('hora_inicio')
+            ->get()
+            ->map(fn($turno) => [
+                'id_turno'    => $turno->id_turno,
+                'tipo'        => 'TURNO_LUDOTECA',
+                'titulo'      => 'Turno Ludoteca',
+                'fecha'       => $turno->fecha,
+                'hora_inicio' => substr($turno->hora_inicio, 0, 5),
+                'hora_fin'    => substr($turno->hora_fin, 0, 5),
+                'espacio'     => null,
+                'estatus'     => 'PROGRAMADO',
+                'contadores'  => null,
+                'listas'      => null,
+            ])
+            ->toArray();
     }
 
     /**

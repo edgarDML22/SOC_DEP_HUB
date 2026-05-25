@@ -85,6 +85,13 @@ const configTipo = {
     accentBorder: 'border-l-amber-500',
     iconColor:    'text-amber-500',
   },
+  TURNO_LUDOTECA: {
+    badgeBg:      'bg-primary-100 text-primary-800 border-primary-200',
+    badge:        'LUDOTECA',
+    btnBg:        'bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white border-primary-200 hover:border-primary-600',
+    accentBorder: 'border-l-primary-500',
+    iconColor:    'text-primary-500',
+  },
 };
 
 const getCfg = (tipo) => configTipo[tipo] ?? configTipo.CLASE_ABIERTA;
@@ -236,9 +243,19 @@ const cerrarAsistencia = () => {
                 </div>
               </div>
 
-              <!-- Footer: solo botón de acción (sin QR — vista de solo lectura) -->
+              <!-- Footer -->
               <div class="px-4 pb-4 mt-auto border-t border-surface-50 pt-3">
+                <router-link
+                  v-if="item.tipo === 'TURNO_LUDOTECA'"
+                  to="/instructor/ludoteca"
+                  class="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all"
+                  :class="getCfg(item.tipo).btnBg"
+                >
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.23-2.98 5.21-5.37C11.07 8.33 14.05 10 17.42 10c.78 0 1.53-.09 2.25-.26.21.71.33 1.47.33 2.26 0 4.41-3.59 8-8 8z"/></svg>
+                  Ir al Tablero
+                </router-link>
                 <button
+                  v-else
                   @click="item.tipo !== 'TORNEO' ? abrirAsistencia(item) : null"
                   class="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all"
                   :class="getCfg(item.tipo).btnBg"
@@ -340,7 +357,7 @@ const cerrarAsistencia = () => {
                 </div>
 
                 <!-- Footer: solo botón de acción (sin QR — vista de solo lectura) -->
-                <div class="px-4 pb-4 mt-auto border-t border-surface-50 pt-3">
+                <div v-if="item.tipo !== 'TURNO_LUDOTECA'" class="px-4 pb-4 mt-auto border-t border-surface-50 pt-3">
                   <button
                     @click="item.tipo !== 'TORNEO' ? abrirAsistencia(item) : null"
                     class="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all"

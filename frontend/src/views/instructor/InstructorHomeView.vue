@@ -107,9 +107,13 @@ onMounted(async () => {
                   <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Turno Activo
                 </span>
               </div>
-              <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">¡Eres el Cuidador de hoy!</h3>
+              <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">¡Tienes turno en Ludoteca hoy!</h3>
               <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
-                Tu agenda de clases se ha pausado para priorizar el control de menores en la ludoteca.
+                La administración te ha asignado un turno de cuidado en la Ludoteca
+                <template v-if="profileStore.turnoLudotecaHoy">
+                  de <span class="text-white font-bold">{{ profileStore.turnoLudotecaHoy.hora_inicio }}</span>
+                  a <span class="text-white font-bold">{{ profileStore.turnoLudotecaHoy.hora_fin }}</span>.
+                </template>
               </p>
             </div>
             <div class="relative z-10 shrink-0 w-full md:w-auto">
@@ -198,29 +202,28 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- SECCIÓN 3: ESTADÍSTICAS RÁPIDAS -->
-          <div class="animate-fade-in">
-            <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Resumen de hoy</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        </template>
+
+        <!-- SECCIÓN 3: ESTADÍSTICAS RÁPIDAS — siempre visible -->
+        <div class="animate-fade-in">
+          <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Resumen de hoy</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div
+              v-for="stat in stats"
+              :key="stat.id"
+              class="group bg-white rounded-2xl border border-surface-100 p-5 md:p-6 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-lg hover:border-surface-200 hover:-translate-y-1 transition-all duration-200 ease-out"
+            >
               <div
-                v-for="stat in stats"
-                :key="stat.id"
-                class="group bg-white rounded-2xl border border-surface-100 p-5 md:p-6 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-lg hover:border-surface-200 hover:-translate-y-1 transition-all duration-200 ease-out"
+                class="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all duration-200 mb-3"
+                :class="[stat.iconBg, stat.iconColor, stat.hoverBg, 'group-hover:text-white']"
               >
-                <!-- Icono con color semántico propio de cada KPI -->
-                <div
-                  class="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all duration-200 mb-3"
-                  :class="[stat.iconBg, stat.iconColor, stat.hoverBg, 'group-hover:text-white']"
-                >
-                  <component :is="stat.icon" class="w-6 h-6 md:w-7 md:h-7" />
-                </div>
-                <span class="font-extrabold text-2xl md:text-3xl text-surface-900 leading-none">{{ stat.value }}</span>
-                <span class="font-medium text-surface-500 text-xs mt-1.5 leading-snug">{{ stat.label }}</span>
+                <component :is="stat.icon" class="w-6 h-6 md:w-7 md:h-7" />
               </div>
+              <span class="font-extrabold text-2xl md:text-3xl text-surface-900 leading-none">{{ stat.value }}</span>
+              <span class="font-medium text-surface-500 text-xs mt-1.5 leading-snug">{{ stat.label }}</span>
             </div>
           </div>
-
-        </template>
+        </div>
 
         <!-- ACCESOS RÁPIDOS: Sesiones + Arbitraje -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
