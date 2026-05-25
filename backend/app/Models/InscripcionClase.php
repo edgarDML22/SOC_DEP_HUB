@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\SesionActiva;
 use App\Models\SocioTitular;
+use App\Models\MiembrosFamiliares;
+use App\Models\PasesDiarios;
 
 class InscripcionClase extends Model
 {
@@ -19,6 +21,8 @@ class InscripcionClase extends Model
     protected $fillable = [
         'id_sesion',
         'id_usuario',
+        'id_miembro_familiar',
+        'id_pase_invitado',
         'tipo_usuario',
         'fecha_transaccion',
         'estatus_inscripcion',
@@ -49,15 +53,7 @@ class InscripcionClase extends Model
     }
 
     /**
-     * Dynamic accessor for positive guest pass ID.
-     */
-    public function getIdPaseInvitadoAttribute()
-    {
-        return $this->id_usuario < 0 ? abs($this->id_usuario) : null;
-    }
-
-    /**
-     * Pase diario del invitado (nullable — resolves using absolute id_usuario when negative).
+     * Pase diario del invitado (nullable — solo cuando tipo_usuario = 'invitado').
      */
     public function paseInvitado()
     {

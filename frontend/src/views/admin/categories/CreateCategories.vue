@@ -111,7 +111,7 @@ const submit = async () => {
               <input v-model="form.nombre_categoria" required placeholder="Ej. Juvenil, Veteranos, U-15..."
                 class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
                        text-slate-900 placeholder:text-slate-400
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm" />
+                       focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm" />
             </div>
           </div>
 
@@ -123,7 +123,7 @@ const submit = async () => {
                 <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input type="number" min="1" v-model="form.edad_minima" required
                   class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                         text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm" />
+                         text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm" />
               </div>
             </div>
 
@@ -134,7 +134,7 @@ const submit = async () => {
                 <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input type="number" min="1" v-model="form.edad_maxima" required
                   class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                         text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm" />
+                         text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm" />
               </div>
             </div>
           </div>
@@ -146,7 +146,7 @@ const submit = async () => {
               <IconGender class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <select v-model="form.genero_requerido" required
                 class="w-full pl-11 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                       text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm cursor-pointer">
+                       text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm cursor-pointer">
                 <option disabled value="">Selecciona una opción</option>
                 <option value="M">Masculino</option>
                 <option value="F">Femenino</option>

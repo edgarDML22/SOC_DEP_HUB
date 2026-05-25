@@ -162,7 +162,7 @@ const cerrarAsistencia = () => {
             </p>
           </div>
 
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div
               v-for="item in itemsHoy"
               :key="item.id_sesion ?? item.id_encuentro ?? item.titulo + item.hora_inicio"
@@ -271,7 +271,7 @@ const cerrarAsistencia = () => {
               {{ formatFechaLarga(grupo.fecha) }}
             </h3>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <div
                 v-for="item in grupo.items"
                 :key="item.id_sesion ?? item.id_encuentro ?? item.titulo + item.hora_inicio"

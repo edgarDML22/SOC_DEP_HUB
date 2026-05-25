@@ -234,8 +234,8 @@ onMounted(() => {
         </span>
         <button
           @click="openNewModal"
-          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
-                 text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
@@ -438,7 +438,7 @@ onMounted(() => {
                         <input v-model="newSpace.nombre_espacio" placeholder="Ej. Cancha de Tenis 1"
                           class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                                  text-surface-900 placeholder:text-surface-400 shadow-sm
-                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"/>
                       </div>
                     </div>
 
@@ -449,7 +449,7 @@ onMounted(() => {
                         <input v-model.number="newSpace.capacidad_maxima" type="number" min="1" placeholder="Ej. 10"
                           class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                                  text-surface-900 placeholder:text-surface-400 shadow-sm
-                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"/>
                       </div>
                     </div>
 

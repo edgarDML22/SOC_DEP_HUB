@@ -299,8 +299,8 @@ const agruparPorFecha = (actividades) => {
                 </button>
               </div>
             </div>
+            </div>
           </div>
-        </div>
 
         <!-- ── VISTA PRÓXIMAS ── -->
         <div v-else class="space-y-8">

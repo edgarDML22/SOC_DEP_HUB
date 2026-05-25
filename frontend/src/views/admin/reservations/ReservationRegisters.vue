@@ -14,7 +14,8 @@ const filters = ref({
     search: '',
     disciplina_id: '',
     fecha_inicio: '',
-    fecha_fin: ''
+    fecha_fin: '',
+    modalidad: ''
 })
 
 const isModalOpen = ref(false)
@@ -30,7 +31,8 @@ const hasActiveFilters = computed(() =>
     filters.value.espacio_id || 
     filters.value.disciplina_id || 
     filters.value.fecha_inicio || 
-    filters.value.fecha_fin
+    filters.value.fecha_fin ||
+    filters.value.modalidad
 )
 
 const clearFilters = () => {
@@ -39,7 +41,8 @@ const clearFilters = () => {
         search: '',
         disciplina_id: '',
         fecha_inicio: '',
-        fecha_fin: ''
+        fecha_fin: '',
+        modalidad: ''
     }
 }
 
@@ -68,6 +71,10 @@ const sortedReservaciones = computed(() => {
 
     if (filters.value.disciplina_id) {
         result = result.filter(r => r.id_disciplina == filters.value.disciplina_id)
+    }
+
+    if (filters.value.modalidad) {
+        result = result.filter(r => r.modalidad?.toUpperCase() === filters.value.modalidad.toUpperCase())
     }
 
     if (filters.value.fecha_inicio) {
@@ -148,12 +155,12 @@ const getBadgeColor = (tipo) => {
 
 const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
-        case 'ACTIVA': return 'bg-green-100 text-green-800 border-green-200'
-        case 'PENDIENTE': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-        case 'FINALIZADA': return 'bg-blue-100 text-blue-800 border-blue-200'
-        case 'CANCELADA': return 'bg-red-100 text-red-800 border-red-200'
-        case 'NO_SHOW': return 'bg-slate-100 text-slate-800 border-slate-200'
-        default: return 'bg-gray-100 text-gray-800 border-gray-200'
+        case 'ACTIVA': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        case 'PENDIENTE': return 'bg-amber-50 text-amber-700 border-amber-200'
+        case 'FINALIZADA': return 'bg-blue-50 text-blue-700 border-blue-200'
+        case 'CANCELADA': return 'bg-red-50 text-red-700 border-red-200'
+        case 'NO_SHOW': return 'bg-slate-100 text-slate-500 border-slate-200'
+        default: return 'bg-slate-100 text-slate-500 border-slate-200'
     }
 }
 
@@ -214,12 +221,12 @@ const exportColumns = [
             </div>
 
             <div class="flex flex-col lg:flex-row gap-4 items-end">
-                <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div class="flex flex-col gap-1.5">
                         <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Espacio</label>
                         <div class="relative">
                             <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <select v-model="filters.espacio_id" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                            <select v-model="filters.espacio_id" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
                                 <option value="">Todos los espacios</option>
                                 <option v-for="espacio in store.filtersMeta.espacios" :key="espacio.id" :value="espacio.id">
                                     {{ espacio.nombre }}
@@ -233,7 +240,7 @@ const exportColumns = [
                         <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
                         <div class="relative">
                             <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <select v-model="filters.disciplina_id" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                            <select v-model="filters.disciplina_id" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
                                 <option value="">Todas las disciplinas</option>
                                 <option v-for="disciplina in store.filtersMeta.disciplinas" :key="disciplina.id" :value="disciplina.id">
                                     {{ disciplina.nombre }}
@@ -244,10 +251,23 @@ const exportColumns = [
                     </div>
 
                     <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Modalidad</label>
+                        <div class="relative">
+                            <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                            <select v-model="filters.modalidad" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                                <option value="">Todas las modalidades</option>
+                                <option value="INDIVIDUAL">Individual</option>
+                                <option value="ACOMPANANTES">Acompañantes</option>
+                            </select>
+                            <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Desde</label>
                         <div class="relative">
                             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <input type="date" v-model="filters.fecha_inicio" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
+                            <input type="date" v-model="filters.fecha_inicio" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                         </div>
                     </div>
 
@@ -255,7 +275,7 @@ const exportColumns = [
                         <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hasta</label>
                         <div class="relative">
                             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <input type="date" v-model="filters.fecha_fin" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
+                            <input type="date" v-model="filters.fecha_fin" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                         </div>
                     </div>
                 </div>
