@@ -449,6 +449,11 @@ const router = createRouter({
           component: () => import('@/views/admin/Ludoteca.vue'),
         },
         {
+          path: 'ludoteca/turnos',
+          name: 'admin-ludoteca-turnos',
+          component: () => import('@/views/ludoteca/TurnosAdminView.vue'),
+        },
+        {
           path: 'ludoteca/record/:id',
           name: 'admin-ludoteca-record-details',
           component: () => import('@/views/ludoteca/LudotecaRegisterDetails.vue'),

@@ -196,17 +196,16 @@ const sections = [
                 >
                   <div v-if="child.label === 'Ludoteca' && route.path.startsWith('/admin/ludoteca')" 
                        class="pl-12 pr-3 mt-2 mb-1 overflow-hidden flex flex-col gap-1">
-                    <button 
-                      @click.stop="setLudotecaView('turnos')" 
-                      type="button"
-                      class="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none outline-none"
-                      :class="ludotecaStore.viewActive === 'turnos' 
+                    <router-link
+                      to="/admin/ludoteca/turnos"
+                      class="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all outline-none"
+                      :class="route.path === '/admin/ludoteca/turnos'
                         ? 'bg-slate-800 text-white font-bold shadow-xs' 
                         : 'text-slate-500 hover:text-slate-100 hover:bg-slate-800/60'"
                     >
                       <IconCalendar class="w-3.5 h-3.5" />
                       <span>Asignar turnos</span>
-                    </button>
+                    </router-link>
                   </div>
                 </Transition>
               </template>
