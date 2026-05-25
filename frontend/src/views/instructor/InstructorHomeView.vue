@@ -1,62 +1,62 @@
 <script setup>
 import { markRaw, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { useInstructorStore } from '@/stores/profiles/instructorStore';
 import { useAgendaStore } from '@/stores/agendaStore';
 import { storeToRefs } from 'pinia';
+import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue';
 
 import {
   IconCalendar,
   IconClock,
   IconHourglass,
   IconUser,
-  IconInbox,
-  IconBaby
+  IconBaby,
+  IconTrophy,
 } from '@/components/icons';
 
-const router = useRouter();
 const profileStore = useInstructorStore();
 const agendaStore = useAgendaStore();
-const { proximaActividadInstructor, loadingInstructor } = storeToRefs(agendaStore);
+const { proximaActividadInstructor, loadingInstructor, itemsInstructor } = storeToRefs(agendaStore);
 
-const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-
+// Sesiones de hoy derivadas directamente de mi-agenda (itemsInstructor del store)
 const todaySessions = computed(() => {
-  const allSessions = profileStore.homeSessionsCache;
-  if (!allSessions) return [];
-  const todayName = dias[new Date().getDay()];
-  return allSessions
-    .filter(s => s.diaSemana === todayName)
-    .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
-    .map(s => ({
-      id: s.id,
-      startTime: s.horaInicio,
-      endTime: s.horaFin,
-      client: s.tipo,
-      location: s.espacio,
-      status: s.status,
-      statusType: s.statusType,
-      inscritos: s.inscritos || 0,
-      originalData: s
-    }));
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  return itemsInstructor.value.filter(i => i.fecha === todayStr);
 });
 
 const stats = computed(() => {
-  const sessions = todaySessions.value;
-  const currentHour = new Date().getHours();
-  const proximas = sessions.filter(s => {
-    const sHour = parseInt(s.startTime.substring(0, 2));
-    return sHour >= currentHour && sHour <= currentHour + 2;
+  const items = itemsInstructor.value;
+  const hoy = todaySessions.value;
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMin  = now.getMinutes();
+
+  // Próximas en las siguientes 2 horas (de toda la agenda, no solo hoy)
+  const proximas = items.filter(i => {
+    if (!i.hora_inicio) return false;
+    const [h, m] = i.hora_inicio.split(':').map(Number);
+    const diffMin = (h * 60 + m) - (currentHour * 60 + currentMin);
+    return diffMin >= 0 && diffMin <= 120;
   }).length;
+
+  // Total inscritos: suma de contadores.inscritos de sesiones (torneos no tienen contadores)
+  const totalInscritos = items.reduce((sum, i) => sum + (i.contadores?.inscritos ?? 0), 0);
+
+  // Pendientes: sesiones/encuentros con estatus que no sea FINALIZADA/CANCELADA (ya filtrado en backend, pero son todos los que no han ocurrido aún)
+  const pendientes = items.filter(i => {
+    const estatus = (i.estatus ?? '').toUpperCase();
+    return estatus !== 'FINALIZADA' && estatus !== 'CANCELADA' && estatus !== 'FINALIZADO' && estatus !== 'CANCELADO';
+  }).length;
+
   return [
-    { id: 1, value: sessions.length, label: 'Sesiones hoy', icon: markRaw(IconCalendar), iconColor: 'text-green' },
-    { id: 2, value: proximas, label: 'Prox. 2 horas', icon: markRaw(IconClock), iconColor: 'text-blue' },
-    { id: 3, value: sessions.filter(s => s.status === 'Programada').length, label: 'Pendientes', icon: markRaw(IconHourglass), iconColor: 'text-yellow' },
-    { id: 4, value: sessions.reduce((sum, s) => sum + s.inscritos, 0), label: 'Total Inscritos', icon: markRaw(IconUser), iconColor: 'text-gray' },
+    { id: 1, value: hoy.length,       label: 'Sesiones hoy',   icon: markRaw(IconCalendar),  iconBg: 'bg-primary-50', iconColor: 'text-primary-600', hoverBg: 'group-hover:bg-primary-600' },
+    { id: 2, value: proximas,          label: 'Próx. 2 horas',  icon: markRaw(IconClock),     iconBg: 'bg-primary-50', iconColor: 'text-primary-600', hoverBg: 'group-hover:bg-primary-600' },
+    { id: 3, value: pendientes,        label: 'Pendientes',      icon: markRaw(IconHourglass), iconBg: 'bg-primary-50', iconColor: 'text-primary-600', hoverBg: 'group-hover:bg-primary-600' },
+    { id: 4, value: totalInscritos,    label: 'Total Inscritos', icon: markRaw(IconUser),      iconBg: 'bg-primary-50', iconColor: 'text-primary-600', hoverBg: 'group-hover:bg-primary-600' },
   ];
 });
 
-const isLoading = computed(() => profileStore.homeSessionsLoading);
+const isLoading = computed(() => loadingInstructor.value);
 
 const proximaBadgeLabel = computed(() => {
   const tipo = proximaActividadInstructor.value?.tipo ?? '';
@@ -68,16 +68,9 @@ const proximaBadgeLabel = computed(() => {
 
 onMounted(async () => {
   await profileStore.fetchProfile();
-  profileStore.fetchHomeSessions();
   agendaStore.fetchInstructorAgenda();
 });
 
-const handleGoToDetails = (sessionObj) => {
-  router.push({
-    path: `/instructor/sessions/${sessionObj.id}`,
-    state: { sessionData: JSON.stringify(sessionObj.originalData) }
-  });
-};
 </script>
 
 <template>
@@ -114,9 +107,13 @@ const handleGoToDetails = (sessionObj) => {
                   <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Turno Activo
                 </span>
               </div>
-              <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">¡Eres el Cuidador de hoy!</h3>
+              <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">¡Tienes turno en Ludoteca hoy!</h3>
               <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
-                Tu agenda de clases se ha pausado para priorizar el control de menores en la ludoteca.
+                La administración te ha asignado un turno de cuidado en la Ludoteca
+                <template v-if="profileStore.turnoLudotecaHoy">
+                  de <span class="text-white font-bold">{{ profileStore.turnoLudotecaHoy.hora_inicio }}</span>
+                  a <span class="text-white font-bold">{{ profileStore.turnoLudotecaHoy.hora_fin }}</span>.
+                </template>
               </p>
             </div>
             <div class="relative z-10 shrink-0 w-full md:w-auto">
@@ -155,14 +152,17 @@ const handleGoToDetails = (sessionObj) => {
 
               <!-- Con próxima actividad cargada -->
               <template v-if="proximaActividadInstructor">
-                <div class="flex items-center gap-3 mb-2">
-                  <!-- Ícono torneo vs clase -->
-                  <svg v-if="proximaActividadInstructor.tipo === 'TORNEO'" class="w-8 h-8 shrink-0 drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                  </svg>
-                  <svg v-else class="w-8 h-8 shrink-0 drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
-                  </svg>
+                <div class="flex items-center gap-3 mb-2 text-white">
+                  <!-- Torneo: trofeo; Clase: icono de disciplina por nombre -->
+                  <IconTrophy
+                    v-if="proximaActividadInstructor.tipo === 'TORNEO'"
+                    class="w-8 h-8 shrink-0 drop-shadow-md"
+                  />
+                  <DisciplineIcon
+                    v-else
+                    :name="proximaActividadInstructor.disciplina || proximaActividadInstructor.titulo"
+                    class="w-8 h-8 shrink-0 drop-shadow-md text-white fill-white"
+                  />
                   <h3 class="text-2xl md:text-3xl font-bold tracking-tight line-clamp-1 m-0">
                     {{ proximaActividadInstructor.titulo }}
                   </h3>
@@ -192,7 +192,7 @@ const handleGoToDetails = (sessionObj) => {
             <div class="relative z-10 shrink-0 w-full md:w-auto" v-if="proximaActividadInstructor">
               <router-link
                 to="/instructor/agenda"
-                class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-8 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-black/20 text-center border border-primary-500 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                class="w-full sm:w-auto bg-white hover:bg-primary-50 text-primary-700 rounded-xl px-8 py-3.5 font-bold transition-all active:scale-95 shadow-lg shadow-black/20 text-center border border-white/90 flex items-center justify-center gap-2 hover:-translate-y-0.5"
               >
                 Ver Agenda
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -202,100 +202,68 @@ const handleGoToDetails = (sessionObj) => {
             </div>
           </div>
 
-          <!-- SECCIÓN 3: ESTADÍSTICAS RÁPIDAS -->
-          <div class="animate-fade-in">
-            <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Resumen de hoy</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-              <div v-for="stat in stats" :key="stat.id" class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 transition-all duration-300 ease-out">
-                <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
-                  <component :is="stat.icon" class="w-7 h-7 md:w-8 md:h-8" />
-                </div>
-                <span class="font-bold text-xl md:text-2xl text-surface-900 group-hover:text-primary-700 transition-colors leading-tight">{{ stat.value }}</span>
-                <span class="font-medium text-surface-500 text-xs md:text-sm mt-1 leading-tight">{{ stat.label }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- SECCIÓN 4: SESIONES DE HOY (lista rápida) -->
-          <div class="bg-white rounded-3xl border border-surface-200 p-6 md:p-8 shadow-sm animate-fade-in">
-            <div class="flex items-center justify-between mb-6">
-              <h3 class="text-xl md:text-2xl font-bold text-surface-900 tracking-tight">Sesiones de hoy</h3>
-              <router-link to="/instructor/agenda" class="text-primary-600 font-semibold text-sm hover:text-primary-700 hover:underline transition-all hidden md:block">
-                Ver Agenda &rarr;
-              </router-link>
-            </div>
-
-            <div v-if="todaySessions.length === 0" class="h-32 flex items-center justify-center rounded-2xl border border-dashed border-surface-300 bg-surface-50">
-              <p class="text-surface-500 font-medium text-xs md:text-sm tracking-widest text-center px-4 uppercase">Sin sesiones registradas este día</p>
-            </div>
-
-            <div v-else class="flex flex-col gap-3">
-              <article
-                v-for="session in todaySessions"
-                :key="session.id"
-                @click="handleGoToDetails(session)"
-                class="bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-2xl p-4 flex items-center gap-4 cursor-pointer transition-all hover:border-primary-400 hover:-translate-y-0.5 active:scale-95 group"
-              >
-                <div class="bg-white border border-surface-200 rounded-xl px-3 py-2 flex flex-col items-center justify-center min-w-[70px] shadow-sm">
-                  <span class="font-bold text-surface-900 text-sm">{{ session.startTime }}</span>
-                  <span class="text-xs text-surface-500">{{ session.endTime }}</span>
-                </div>
-                <div class="flex-1 flex flex-col min-w-0">
-                  <h4 class="font-bold text-surface-900 text-base m-0">{{ session.client }}</h4>
-                  <p class="text-surface-500 text-sm m-0 line-clamp-1">{{ session.location }}</p>
-                </div>
-                <div class="flex items-center gap-3 shrink-0">
-                  <span class="px-3 py-1.5 rounded-full text-xs font-bold text-white capitalize shadow-sm" :class="{
-                    'bg-green-500': session.statusType === 'success',
-                    'bg-blue-500': session.statusType === 'info',
-                    'bg-primary-600': session.statusType === 'success-dark',
-                    'bg-surface-400': !['success', 'info', 'success-dark'].includes(session.statusType)
-                  }">{{ session.status }}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-surface-400 group-hover:text-primary-600 transition-colors hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </article>
-            </div>
-
-            <router-link to="/instructor/agenda" class="block text-center w-full mt-4 bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 md:hidden">
-              Ver Agenda Completa
-            </router-link>
-          </div>
         </template>
 
-        <!-- SECCIÓN 5: ACCESO AL MÓDULO AVANZADO DE SESIONES -->
-        <div class="bg-surface-100 rounded-3xl border border-surface-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-inner animate-fade-in mt-6">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-primary-600 shadow-sm shrink-0">
-              <IconClock class="w-6 h-6" />
-            </div>
-            <div>
-              <h4 class="font-bold text-surface-900 text-lg leading-tight mb-1">Módulo de Gestión de Sesiones</h4>
-              <p class="text-surface-600 text-sm leading-snug">Accede a las sesiones detalladas, asistencias y escaneo de QR.</p>
+        <!-- SECCIÓN 3: ESTADÍSTICAS RÁPIDAS — siempre visible -->
+        <div class="animate-fade-in">
+          <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Resumen de hoy</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div
+              v-for="stat in stats"
+              :key="stat.id"
+              class="group bg-white rounded-2xl border border-surface-100 p-5 md:p-6 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-lg hover:border-surface-200 hover:-translate-y-1 transition-all duration-200 ease-out"
+            >
+              <div
+                class="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all duration-200 mb-3"
+                :class="[stat.iconBg, stat.iconColor, stat.hoverBg, 'group-hover:text-white']"
+              >
+                <component :is="stat.icon" class="w-6 h-6 md:w-7 md:h-7" />
+              </div>
+              <span class="font-extrabold text-2xl md:text-3xl text-surface-900 leading-none">{{ stat.value }}</span>
+              <span class="font-medium text-surface-500 text-xs mt-1.5 leading-snug">{{ stat.label }}</span>
             </div>
           </div>
-          <router-link to="/instructor/sessions" class="w-full md:w-auto bg-white border border-surface-300 hover:border-primary-400 text-surface-800 hover:text-primary-700 rounded-xl px-6 py-3 font-bold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 shrink-0">
-            Entrar al Módulo &rarr;
-          </router-link>
         </div>
 
-        <!-- MÓDULO DE ARBITRAJE DE TORNEOS -->
-        <div class="bg-amber-50/50 rounded-3xl border border-amber-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-fade-in mt-4">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-white border border-amber-100 rounded-full flex items-center justify-center text-amber-600 shadow-xs shrink-0">
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497" />
+        <!-- ACCESOS RÁPIDOS: Sesiones + Arbitraje -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+
+          <!-- Módulo de Gestión de Sesiones -->
+          <router-link
+            to="/instructor/sessions"
+            class="group bg-white border border-surface-100 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <div class="w-11 h-11 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-colors duration-200">
+              <IconClock class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-surface-900 text-sm leading-tight">Gestión de Sesiones</p>
+              <p class="text-surface-500 text-xs mt-0.5 leading-snug">Asistencias, listas y escaneo QR</p>
+            </div>
+            <svg class="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </router-link>
+
+          <!-- Arbitraje de Torneos -->
+          <router-link
+            to="/instructor/encuentros"
+            class="group bg-white border border-surface-100 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <div class="w-11 h-11 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-colors duration-200">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497"/>
               </svg>
             </div>
-            <div>
-              <h4 class="font-bold text-surface-900 text-lg leading-tight mb-1">Arbitraje de Torneos</h4>
-              <p class="text-surface-600 text-sm leading-snug">Reporta resultados de los encuentros en los que estás asignado como árbitro.</p>
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-surface-900 text-sm leading-tight">Arbitraje de Torneos</p>
+              <p class="text-surface-500 text-xs mt-0.5 leading-snug">Reporta resultados de tus encuentros</p>
             </div>
-          </div>
-          <router-link to="/instructor/encuentros" class="w-full md:w-auto bg-white border border-surface-300 hover:border-amber-400 text-surface-800 hover:text-amber-700 rounded-xl px-6 py-3 font-bold transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2 shrink-0">
-            Ver Mis Encuentros &rarr;
+            <svg class="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
           </router-link>
+
         </div>
 
       </template>

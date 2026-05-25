@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SesionActiva;
 use App\Models\EncuentrosTorneo;
+use App\Models\TurnosLudoteca;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,7 @@ class InstructorAgendaService
         $items = [
             ...$this->obtenerSesiones($idInstructor, $desde, $hasta),
             ...$this->obtenerTorneos($idInstructor, $desde, $hasta),
+            ...$this->obtenerTurnosLudoteca($idInstructor, $desde, $hasta),
         ];
 
         usort($items, fn($a, $b) =>
@@ -70,7 +72,11 @@ class InstructorAgendaService
             ->where(function ($q) use ($idInstructor) {
                 $q->whereHas('actividadPlantilla', function ($ap) use ($idInstructor) {
                     $ap->where('id_instructor', $idInstructor)
-                       ->whereHas('plantilla', fn($p) => $p->where('publicada', true));
+                       ->whereHas('plantilla', fn($p) =>
+                           $p->where('publicada', true)
+                             ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+                             ->whereColumn('plantillas_programacion.fecha_fin',    '>=', 'sesiones_activas.fecha_sesion')
+                       );
                 })
                 ->orWhere('id_instructor_sustituto', $idInstructor);
             })
@@ -120,6 +126,7 @@ class InstructorAgendaService
             return [
                 'id_sesion'   => $sesion->id_sesion,
                 'tipo'        => $tipo,
+                'disciplina'  => $plantilla?->disciplina?->nombre_disciplina,
                 'titulo'      => $plantilla?->disciplina?->nombre_disciplina ?? 'Sesión',
                 'fecha'       => $sesion->fecha_sesion,
                 'hora_inicio' => substr($plantilla?->hora_inicio ?? '', 0, 5),
@@ -135,6 +142,34 @@ class InstructorAgendaService
                 'listas'      => $grupos,
             ];
         })->toArray();
+    }
+
+    /**
+     * Turnos de ludoteca asignados al instructor en el rango de fechas.
+     */
+    private function obtenerTurnosLudoteca(int $idInstructor, string $desde, string $hasta): array
+    {
+        $hoy = Carbon::today('America/Mexico_City')->toDateString();
+
+        return TurnosLudoteca::where('id_instructor', $idInstructor)
+            ->whereBetween('fecha', [$desde, $hasta])
+            ->where('fecha', '>=', $hoy)
+            ->orderBy('fecha')
+            ->orderBy('hora_inicio')
+            ->get()
+            ->map(fn($turno) => [
+                'id_turno'    => $turno->id_turno,
+                'tipo'        => 'TURNO_LUDOTECA',
+                'titulo'      => 'Turno Ludoteca',
+                'fecha'       => $turno->fecha,
+                'hora_inicio' => substr($turno->hora_inicio, 0, 5),
+                'hora_fin'    => substr($turno->hora_fin, 0, 5),
+                'espacio'     => null,
+                'estatus'     => 'PROGRAMADO',
+                'contadores'  => null,
+                'listas'      => null,
+            ])
+            ->toArray();
     }
 
     /**

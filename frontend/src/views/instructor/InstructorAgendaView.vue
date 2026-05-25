@@ -5,7 +5,7 @@ import { useAgendaStore } from '@/stores/agendaStore';
 import { storeToRefs } from 'pinia';
 import ModalAsistenciaLectura from '@/components/instructor/ModalAsistenciaLectura.vue';
 
-const router = useRouter();
+const router = useRouter();  // kept for back-navigation
 const agendaStore = useAgendaStore();
 const { itemsInstructor, loadingInstructor, errorInstructor } = storeToRefs(agendaStore);
 
@@ -65,25 +65,32 @@ const agrupadosProximas = computed(() => {
 // ── Configuración visual por tipo ────────────────────────────────────────────
 const configTipo = {
   CLASE_CERRADA: {
-    gradient: 'from-violet-600 to-purple-700',
-    badgeBg:  'bg-violet-100 text-violet-800 border-violet-300',
-    badge:    'CLASE CERRADA',
-    btnBg:    'bg-violet-50 text-violet-700 hover:bg-violet-600 hover:text-white border-violet-200 hover:border-violet-600',
-    accentBg: 'bg-violet-600',
+    badgeBg:      'bg-violet-100 text-violet-800 border-violet-200',
+    badge:        'CLASE CERRADA',
+    btnBg:        'bg-violet-50 text-violet-700 hover:bg-violet-600 hover:text-white border-violet-200 hover:border-violet-600',
+    accentBorder: 'border-l-violet-500',
+    iconColor:    'text-violet-500',
   },
   CLASE_ABIERTA: {
-    gradient: 'from-teal-500 to-emerald-600',
-    badgeBg:  'bg-teal-100 text-teal-800 border-teal-300',
-    badge:    'CLASE ABIERTA',
-    btnBg:    'bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white border-teal-200 hover:border-teal-600',
-    accentBg: 'bg-teal-600',
+    badgeBg:      'bg-teal-100 text-teal-800 border-teal-200',
+    badge:        'CLASE ABIERTA',
+    btnBg:        'bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white border-teal-200 hover:border-teal-600',
+    accentBorder: 'border-l-teal-500',
+    iconColor:    'text-teal-500',
   },
   TORNEO: {
-    gradient: 'from-amber-500 to-orange-600',
-    badgeBg:  'bg-amber-100 text-amber-800 border-amber-300',
-    badge:    'TORNEO',
-    btnBg:    'bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border-amber-200 hover:border-amber-600',
-    accentBg: 'bg-amber-500',
+    badgeBg:      'bg-amber-100 text-amber-800 border-amber-200',
+    badge:        'TORNEO',
+    btnBg:        'bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border-amber-200 hover:border-amber-600',
+    accentBorder: 'border-l-amber-500',
+    iconColor:    'text-amber-500',
+  },
+  TURNO_LUDOTECA: {
+    badgeBg:      'bg-primary-100 text-primary-800 border-primary-200',
+    badge:        'LUDOTECA',
+    btnBg:        'bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white border-primary-200 hover:border-primary-600',
+    accentBorder: 'border-l-primary-500',
+    iconColor:    'text-primary-500',
   },
 };
 
@@ -103,10 +110,6 @@ const cerrarAsistencia = () => {
   setTimeout(() => { sesionSeleccionada.value = null; }, 300);
 };
 
-// ── QR: redirige al módulo de sesiones existente ──────────────────────────────
-const abrirQR = (item) => {
-  if (item.id_sesion) router.push(`/instructor/sessions/${item.id_sesion}`);
-};
 </script>
 
 <template>
@@ -170,129 +173,102 @@ const abrirQR = (item) => {
             <div
               v-for="item in itemsHoy"
               :key="item.id_sesion ?? item.id_encuentro ?? item.titulo + item.hora_inicio"
-              class="p-1 bg-slate-100/70 border border-slate-200/50 rounded-[28px] shadow-sm hover:shadow-xl hover:border-slate-350 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 group/card flex flex-col h-full"
+              class="bg-white rounded-2xl border border-surface-100 border-l-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group"
+              :class="getCfg(item.tipo).accentBorder"
             >
-              <div class="bg-white rounded-[24px] overflow-hidden flex flex-col flex-1 h-full">
-                <!-- Card Header coloreado según tipo -->
-                <div class="px-5 py-4 flex items-center justify-between bg-linear-to-r relative overflow-hidden shrink-0" :class="getCfg(item.tipo).gradient">
-                  <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000 ease-out pointer-events-none" />
-                  <span class="text-white font-extrabold text-sm tracking-wide line-clamp-1 pr-2 relative z-10">
-                    {{ item.titulo }}
-                  </span>
-                  <span class="bg-white/15 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 border border-white/10 relative z-10">
-                    {{ getCfg(item.tipo).badge }}
+              <!-- Card Header — blanco con título + badge, sin gradiente -->
+              <div class="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+                <h3 class="font-bold text-surface-900 text-sm leading-snug line-clamp-2 flex-1">
+                  {{ item.titulo }}
+                </h3>
+                <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shrink-0" :class="getCfg(item.tipo).badgeBg">
+                  {{ getCfg(item.tipo).badge }}
+                </span>
+              </div>
+
+              <!-- Divider -->
+              <div class="mx-5 border-t border-surface-100"></div>
+
+              <!-- Body -->
+              <div class="px-5 py-4 flex-1 space-y-2.5">
+                <!-- Fecha -->
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 shrink-0" :class="getCfg(item.tipo).iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span class="text-sm font-semibold text-surface-700">{{ formatFecha(item.fecha) }}</span>
+                </div>
+
+                <!-- Horario -->
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 shrink-0" :class="getCfg(item.tipo).iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span class="text-sm font-semibold tabular-nums text-surface-700">
+                    {{ formatHora(item.hora_inicio) }} – {{ formatHora(item.hora_fin) }}
                   </span>
                 </div>
 
-                <!-- Body -->
-                <div class="px-5 py-4 flex-1 flex flex-col justify-between space-y-4">
-                  <div class="space-y-3.5">
-                    <!-- Fecha + badge tipo clase -->
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-3 text-slate-700 min-w-0">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fecha</span>
-                          <span class="text-xs font-bold text-slate-800 truncate">{{ formatFecha(item.fecha) }}</span>
-                        </div>
-                      </div>
-                      <span class="inline-block text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0" :class="getCfg(item.tipo).badgeBg">
-                        {{ getCfg(item.tipo).badge }}
-                      </span>
-                    </div>
-
-                    <!-- Horario -->
-                    <div class="flex items-center gap-3 text-slate-700 min-w-0">
-                      <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                      </div>
-                      <div class="flex flex-col min-w-0">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Horario</span>
-                        <span class="text-xs font-bold text-slate-800 truncate tabular-nums">
-                          {{ formatHora(item.hora_inicio) }} – {{ formatHora(item.hora_fin) }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Espacio -->
-                    <div v-if="item.espacio" class="flex items-center gap-3 text-slate-700 min-w-0">
-                      <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div class="flex flex-col min-w-0">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Espacio</span>
-                        <span class="text-xs font-semibold text-slate-600 truncate">{{ item.espacio }}</span>
-                      </div>
-                    </div>
-
-                    <!-- Fase torneo -->
-                    <div v-if="item.tipo === 'TORNEO' && item.fase" class="flex items-center gap-3 text-slate-700 min-w-0">
-                      <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                        </svg>
-                      </div>
-                      <div class="flex flex-col min-w-0">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fase</span>
-                        <span class="text-xs font-semibold text-slate-600 truncate">{{ item.fase }}</span>
-                      </div>
-                    </div>
-
-                    <!-- Contadores (solo clases) -->
-                    <div v-if="item.contadores" class="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
-                      <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200/60 rounded-lg text-[9px] font-extrabold uppercase">
-                        <span class="font-black text-primary-600">{{ item.contadores.inscritos }}</span> Inscritos
-                      </span>
-                      <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50/50 text-emerald-750 border border-emerald-200/50 rounded-lg text-[9px] font-extrabold uppercase">
-                        <span class="font-black text-emerald-600">{{ item.contadores.asistencia }}</span> Asistencia
-                      </span>
-                      <span v-if="item.tipo === 'CLASE_CERRADA'" class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50/50 text-red-750 border border-red-200/50 rounded-lg text-[9px] font-extrabold uppercase">
-                        <span class="font-black text-red-600">{{ item.contadores.falta }}</span> No Show
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Footer con botones -->
-                  <div class="pt-3 border-t border-slate-100 flex gap-2">
-                    <!-- Botón QR (solo clases) -->
-                    <button
-                      v-if="item.tipo !== 'TORNEO'"
-                      @click="abrirQR(item)"
-                      :title="'Escanear QR — ' + item.titulo"
-                      class="w-10 h-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all cursor-pointer border-none"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-                        <path d="M14 14h.01M14 17h.01M17 14h.01M17 17h.01M20 14h.01M20 17h.01M20 20h.01M17 20h.01M14 20h.01"/>
-                      </svg>
-                    </button>
-
-                    <!-- Botón principal -->
-                    <button
-                      @click="item.tipo !== 'TORNEO' ? abrirAsistencia(item) : null"
-                      class="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider border active:scale-[0.98] transition-all duration-300 cursor-pointer focus:outline-none"
-                      :class="getCfg(item.tipo).btnBg"
-                    >
-                      <template v-if="item.tipo === 'TORNEO'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                        Encuentro Torneo
-                      </template>
-                      <template v-else>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        Lista de Asistencia
-                      </template>
-                    </button>
-                  </div>
+                <!-- Espacio -->
+                <div v-if="item.espacio" class="flex items-center gap-2">
+                  <svg class="w-4 h-4 shrink-0" :class="getCfg(item.tipo).iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span class="text-sm font-medium text-surface-500 truncate">{{ item.espacio }}</span>
                 </div>
+
+                <!-- Contadores (solo clases) — chips semánticos en línea -->
+                <div v-if="item.contadores" class="flex items-center gap-2 pt-1 flex-wrap">
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-100 text-surface-600">
+                    <span class="w-1.5 h-1.5 rounded-full bg-surface-400 inline-block"></span>
+                    {{ item.contadores.inscritos }} inscritos
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                    {{ item.contadores.asistencia }} asistencia
+                  </span>
+                  <span v-if="item.tipo === 'CLASE_CERRADA'" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span>
+                    {{ item.contadores.falta }} no show
+                  </span>
+                </div>
+
+                <!-- Fase torneo -->
+                <div v-if="item.tipo === 'TORNEO' && item.fase" class="flex items-center gap-2">
+                  <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                  </svg>
+                  <span class="text-sm font-medium text-surface-500">{{ item.fase }}</span>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="px-4 pb-4 mt-auto border-t border-surface-50 pt-3">
+                <router-link
+                  v-if="item.tipo === 'TURNO_LUDOTECA'"
+                  to="/instructor/ludoteca"
+                  class="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all"
+                  :class="getCfg(item.tipo).btnBg"
+                >
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.23-2.98 5.21-5.37C11.07 8.33 14.05 10 17.42 10c.78 0 1.53-.09 2.25-.26.21.71.33 1.47.33 2.26 0 4.41-3.59 8-8 8z"/></svg>
+                  Ir al Tablero
+                </router-link>
+                <button
+                  v-else
+                  @click="item.tipo !== 'TORNEO' ? abrirAsistencia(item) : null"
+                  class="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all"
+                  :class="getCfg(item.tipo).btnBg"
+                >
+                  <template v-if="item.tipo === 'TORNEO'">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                    Encuentro Torneo
+                  </template>
+                  <template v-else>
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Lista de Asistencia
+                  </template>
+                </button>
               </div>
             </div>
           </div>
@@ -307,8 +283,8 @@ const abrirQR = (item) => {
             </p>
           </div>
 
-          <div v-else v-for="grupo in agrupadosProximas" :key="grupo.fecha" class="space-y-4">
-            <h3 class="text-sm md:text-base font-extrabold text-primary-900 normal-case tracking-wide pl-2 border-l-4 border-primary-500">
+          <div v-else v-for="grupo in agrupadosProximas" :key="grupo.fecha" class="space-y-3">
+            <h3 class="text-sm md:text-base font-extrabold capitalize tracking-wide pl-3 border-l-4 border-l-primary-500 text-primary-700">
               {{ formatFechaLarga(grupo.fecha) }}
             </h3>
 
@@ -316,125 +292,86 @@ const abrirQR = (item) => {
               <div
                 v-for="item in grupo.items"
                 :key="item.id_sesion ?? item.id_encuentro ?? item.titulo + item.hora_inicio"
-                class="p-1 bg-slate-100/70 border border-slate-200/50 rounded-[28px] shadow-sm hover:shadow-xl hover:border-slate-350 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 group/card flex flex-col h-full"
+                class="bg-white rounded-2xl border border-surface-100 border-l-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group"
+                :class="getCfg(item.tipo).accentBorder"
               >
-                <div class="bg-white rounded-[24px] overflow-hidden flex flex-col flex-1 h-full">
-                  <!-- Header coloreado -->
-                  <div class="px-5 py-4 flex items-center justify-between bg-linear-to-r relative overflow-hidden shrink-0" :class="getCfg(item.tipo).gradient">
-                    <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000 ease-out pointer-events-none" />
-                    <span class="text-white font-extrabold text-sm tracking-wide line-clamp-1 pr-2 relative z-10">
-                      {{ item.titulo }}
-                    </span>
-                    <span class="bg-white/15 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 border border-white/10 relative z-10">
-                      {{ getCfg(item.tipo).badge }}
+                <!-- Header: título + badge, fondo blanco -->
+                <div class="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+                  <h3 class="font-bold text-surface-900 text-sm leading-snug line-clamp-2 flex-1">
+                    {{ item.titulo }}
+                  </h3>
+                  <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shrink-0" :class="getCfg(item.tipo).badgeBg">
+                    {{ getCfg(item.tipo).badge }}
+                  </span>
+                </div>
+
+                <div class="mx-5 border-t border-surface-100"></div>
+
+                <!-- Body -->
+                <div class="px-5 py-4 flex-1 space-y-2.5">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 shrink-0" :class="getCfg(item.tipo).iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-sm font-semibold text-surface-700">{{ formatFecha(item.fecha) }}</span>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 shrink-0" :class="getCfg(item.tipo).iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="text-sm font-semibold tabular-nums text-surface-700">
+                      {{ formatHora(item.hora_inicio) }} – {{ formatHora(item.hora_fin) }}
                     </span>
                   </div>
 
-                  <!-- Body -->
-                  <div class="px-5 py-4 flex-1 flex flex-col justify-between space-y-4">
-                    <div class="space-y-3.5">
-                      <div class="flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-3 text-slate-700 min-w-0">
-                          <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                          <div class="flex flex-col min-w-0">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fecha</span>
-                            <span class="text-xs font-bold text-slate-800 truncate">{{ formatFecha(item.fecha) }}</span>
-                          </div>
-                        </div>
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0" :class="getCfg(item.tipo).badgeBg">
-                          {{ getCfg(item.tipo).badge }}
-                        </span>
-                      </div>
-
-                      <!-- Horario -->
-                      <div class="flex items-center gap-3 text-slate-700 min-w-0">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                          </svg>
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Horario</span>
-                          <span class="text-xs font-bold text-slate-800 truncate tabular-nums">
-                            {{ formatHora(item.hora_inicio) }} – {{ formatHora(item.hora_fin) }}
-                          </span>
-                        </div>
-                      </div>
-
-                      <!-- Espacio -->
-                      <div v-if="item.espacio" class="flex items-center gap-3 text-slate-700 min-w-0">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Espacio</span>
-                          <span class="text-xs font-semibold text-slate-600 truncate">{{ item.espacio }}</span>
-                        </div>
-                      </div>
-
-                      <!-- Fase torneo -->
-                      <div v-if="item.tipo === 'TORNEO' && item.fase" class="flex items-center gap-3 text-slate-700 min-w-0">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
-                          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                          </svg>
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fase</span>
-                          <span class="text-xs font-semibold text-slate-600 truncate">{{ item.fase }}</span>
-                        </div>
-                      </div>
-
-                      <!-- Contadores (solo clases) -->
-                      <div v-if="item.contadores" class="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200/60 rounded-lg text-[9px] font-extrabold uppercase">
-                          <span class="font-black text-primary-600">{{ item.contadores.inscritos }}</span> Inscritos
-                        </span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50/50 text-emerald-750 border border-emerald-200/50 rounded-lg text-[9px] font-extrabold uppercase">
-                          <span class="font-black text-emerald-600">{{ item.contadores.asistencia }}</span> Asistencia
-                        </span>
-                        <span v-if="item.tipo === 'CLASE_CERRADA'" class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50/50 text-red-755 border border-red-200/50 rounded-lg text-[9px] font-extrabold uppercase">
-                          <span class="font-black text-red-600">{{ item.contadores.falta }}</span> No Show
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="pt-3 border-t border-slate-100 flex gap-2">
-                      <button
-                        v-if="item.tipo !== 'TORNEO'"
-                        @click="abrirQR(item)"
-                        :title="'Escanear QR'"
-                        class="w-10 h-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all cursor-pointer border-none"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-                          <path d="M14 14h.01M14 17h.01M17 14h.01M17 17h.01M20 14h.01M20 17h.01M20 20h.01M17 20h.01M14 20h.01"/>
-                        </svg>
-                      </button>
-                      <button
-                        @click="item.tipo !== 'TORNEO' ? abrirAsistencia(item) : null"
-                        class="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider border active:scale-[0.98] transition-all duration-300 cursor-pointer focus:outline-none"
-                        :class="getCfg(item.tipo).btnBg"
-                      >
-                        <template v-if="item.tipo === 'TORNEO'">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                          Encuentro Torneo
-                        </template>
-                        <template v-else>
-                          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                          Lista de Asistencia
-                        </template>
-                      </button>
-                    </div>
+                  <div v-if="item.espacio" class="flex items-center gap-2">
+                    <svg class="w-4 h-4 shrink-0" :class="getCfg(item.tipo).iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="text-sm font-medium text-surface-500 truncate">{{ item.espacio }}</span>
                   </div>
+
+                  <div v-if="item.contadores" class="flex items-center gap-2 pt-1 flex-wrap">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-100 text-surface-600">
+                      <span class="w-1.5 h-1.5 rounded-full bg-surface-400 inline-block"></span>
+                      {{ item.contadores.inscritos }} inscritos
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                      {{ item.contadores.asistencia }} asistencia
+                    </span>
+                    <span v-if="item.tipo === 'CLASE_CERRADA'" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span>
+                      {{ item.contadores.falta }} no show
+                    </span>
+                  </div>
+
+                  <div v-if="item.tipo === 'TORNEO' && item.fase" class="flex items-center gap-2">
+                    <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-surface-500">{{ item.fase }}</span>
+                  </div>
+                </div>
+
+                <!-- Footer: solo botón de acción (sin QR — vista de solo lectura) -->
+                <div v-if="item.tipo !== 'TURNO_LUDOTECA'" class="px-4 pb-4 mt-auto border-t border-surface-50 pt-3">
+                  <button
+                    @click="item.tipo !== 'TORNEO' ? abrirAsistencia(item) : null"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all"
+                    :class="getCfg(item.tipo).btnBg"
+                  >
+                    <template v-if="item.tipo === 'TORNEO'">
+                      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                      Encuentro Torneo
+                    </template>
+                    <template v-else>
+                      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      Lista de Asistencia
+                    </template>
+                  </button>
                 </div>
               </div>
             </div>

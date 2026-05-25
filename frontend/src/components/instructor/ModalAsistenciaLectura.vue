@@ -15,7 +15,7 @@ const esCerrada = computed(() => props.sesion.tipo === 'CLASE_CERRADA');
 const inscritos   = computed(() => props.sesion.listas?.inscritos   ?? []);
 const asistencia  = computed(() => props.sesion.listas?.asistencia  ?? []);
 const noShow      = computed(() => props.sesion.listas?.falta       ?? []);
-const contadores  = computed(() => props.sesion.contadores ?? { inscritos: 0, asistencia: 0, no_show: 0 });
+const contadores  = computed(() => props.sesion.contadores ?? { inscritos: 0, asistencia: 0, falta: 0 });
 
 const porcentajeAsistencia = computed(() => {
   const total = contadores.value.inscritos;
@@ -24,6 +24,21 @@ const porcentajeAsistencia = computed(() => {
 });
 
 const formatHora = (h) => h ? h.substring(0, 5) : '—';
+
+// Acento semántico del header según tipo (unificado con el estándar global de modales)
+const headerAccent = computed(() =>
+  esCerrada.value ? 'border-violet-500' : 'border-teal-500'
+);
+const badgeClass = computed(() =>
+  esCerrada.value
+    ? 'bg-violet-100 text-violet-800 border-violet-200'
+    : 'bg-teal-100 text-teal-800 border-teal-200'
+);
+const closeBtnClass = computed(() =>
+  esCerrada.value
+    ? 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100'
+    : 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+);
 </script>
 
 <template>
@@ -33,94 +48,103 @@ const formatHora = (h) => h ? h.substring(0, 5) : '—';
       <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm" @click="emit('close')"></div>
 
       <!-- Panel -->
-      <div class="relative bg-white w-full sm:max-w-lg rounded-t-4xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 animate-scale-in max-h-[95dvh] flex flex-col">
+      <div class="relative bg-white w-full sm:max-w-lg rounded-t-4xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden border border-surface-100 animate-scale-in max-h-[95dvh] flex flex-col">
 
-        <!-- Header coloreado según tipo de clase -->
+        <!-- Header unificado: fondo blanco, acento lateral azul de marca, sin gradiente masivo -->
         <div
-          class="p-6 sm:p-7 text-white flex justify-between items-start shrink-0"
-          :class="esCerrada ? 'bg-linear-to-br from-violet-700 to-purple-800' : 'bg-linear-to-br from-teal-500 to-emerald-700'"
+          class="px-6 sm:px-7 pt-6 pb-5 shrink-0 border-b border-surface-100 border-l-4"
+          :class="headerAccent"
         >
-          <div class="flex-1 min-w-0 pr-4">
-            <div class="flex items-center gap-2 mb-2 flex-wrap">
-              <span class="px-2.5 py-0.5 rounded-full border border-white/30 text-[10px] font-bold uppercase tracking-wider bg-white/15">
-                {{ esCerrada ? 'CLASE CERRADA' : 'CLASE ABIERTA' }}
-              </span>
-              <span class="px-2.5 py-0.5 rounded-full border border-white/30 text-[10px] font-bold uppercase tracking-wider bg-white/15">
-                {{ sesion.estatus }}
-              </span>
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <!-- Badges de tipo y estado -->
+              <div class="flex items-center gap-2 mb-3 flex-wrap">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border" :class="badgeClass">
+                  {{ esCerrada ? 'CLASE CERRADA' : 'CLASE ABIERTA' }}
+                </span>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-surface-200 bg-surface-100 text-surface-600">
+                  {{ sesion.estatus }}
+                </span>
+              </div>
+              <!-- Título -->
+              <h3 class="text-xl sm:text-2xl font-bold text-surface-900 tracking-tight leading-tight truncate">
+                {{ sesion.titulo }}
+              </h3>
+              <!-- Meta -->
+              <p class="text-surface-500 text-sm font-medium mt-1.5">
+                {{ sesion.fecha }} • {{ formatHora(sesion.hora_inicio) }}–{{ formatHora(sesion.hora_fin) }}
+                <template v-if="sesion.espacio"> • {{ sesion.espacio }}</template>
+              </p>
             </div>
-            <h3 class="text-xl sm:text-2xl font-bold tracking-tight leading-tight truncate">{{ sesion.titulo }}</h3>
-            <p class="text-white/80 text-sm font-medium mt-1">
-              {{ sesion.fecha }} • {{ formatHora(sesion.hora_inicio) }}–{{ formatHora(sesion.hora_fin) }}
-              <template v-if="sesion.espacio"> • {{ sesion.espacio }}</template>
-            </p>
+            <!-- Botón cerrar -->
+            <button
+              @click="emit('close')"
+              class="w-9 h-9 bg-surface-100 hover:bg-surface-200 rounded-full flex items-center justify-center transition-colors focus:outline-none shrink-0"
+              aria-label="Cerrar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            @click="emit('close')"
-            class="w-9 h-9 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center transition-colors focus:outline-none shrink-0"
-            aria-label="Cerrar"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
         <!-- Barra de progreso de asistencia -->
-        <div class="px-6 pt-4 pb-2 shrink-0 bg-white border-b border-surface-100">
+        <div class="px-6 pt-4 pb-3 shrink-0 bg-white border-b border-surface-100">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-[11px] font-extrabold text-surface-500 uppercase tracking-widest">Asistencia</span>
-            <span class="text-sm font-bold" :class="porcentajeAsistencia >= 70 ? 'text-emerald-600' : 'text-amber-600'">
+            <span class="text-sm font-bold" :class="porcentajeAsistencia >= 70 ? 'text-emerald-600' : 'text-amber-500'">
               {{ porcentajeAsistencia }}%
             </span>
           </div>
-          <div class="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
+          <div class="w-full h-1.5 bg-surface-100 rounded-full overflow-hidden">
             <div
-              class="h-2 rounded-full transition-all duration-500"
+              class="h-1.5 rounded-full transition-all duration-500"
               :class="porcentajeAsistencia >= 70 ? 'bg-emerald-500' : 'bg-amber-400'"
               :style="{ width: porcentajeAsistencia + '%' }"
             ></div>
           </div>
-          <!-- Resumen de contadores -->
-          <div class="flex items-center gap-4 mt-3">
-            <div class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-surface-400 inline-block"></span>
-              <span class="text-xs font-semibold text-surface-600">{{ contadores.inscritos }} inscritos</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-              <span class="text-xs font-semibold text-emerald-700">{{ contadores.asistencia }} asistencia</span>
-            </div>
-            <div v-if="esCerrada" class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
-              <span class="text-xs font-semibold text-red-600">{{ contadores.falta }} no show</span>
-            </div>
+          <!-- Chips de conteo semánticos -->
+          <div class="flex items-center gap-2 mt-3 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-surface-100 text-surface-600">
+              <span class="w-2 h-2 rounded-full bg-surface-400 inline-block"></span>
+              {{ contadores.inscritos }} inscritos
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+              {{ contadores.asistencia }} asistencia
+            </span>
+            <span v-if="esCerrada" class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-100">
+              <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+              {{ contadores.falta }} no show
+            </span>
           </div>
         </div>
 
         <!-- Listas de usuarios (scrolleable) -->
-        <div class="overflow-y-auto scrollbar-thin flex-1 p-6 sm:p-7 space-y-6">
+        <div class="overflow-y-auto scrollbar-thin flex-1 px-6 sm:px-7 py-5 space-y-6">
 
           <!-- ── INSCRITOS ────────────────────────────────────────────────── -->
           <section>
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-xs font-extrabold text-surface-500 uppercase tracking-widest">Inscritos</h4>
-              <span class="text-xs font-bold text-surface-400 bg-surface-100 px-2 py-0.5 rounded-full">{{ inscritos.length }}</span>
+              <h4 class="text-[11px] font-extrabold text-surface-500 uppercase tracking-widest">Inscritos</h4>
+              <span class="text-[11px] font-bold text-surface-500 bg-surface-100 px-2.5 py-0.5 rounded-full">{{ inscritos.length }}</span>
             </div>
-            <div v-if="inscritos.length === 0" class="text-center py-6 text-surface-400 text-sm font-medium bg-surface-50 rounded-2xl border border-surface-100">
+            <div v-if="inscritos.length === 0" class="text-center py-6 text-surface-400 text-sm font-medium bg-surface-50 rounded-2xl border border-dashed border-surface-200">
               Sin inscritos confirmados
             </div>
             <ul v-else class="space-y-2">
               <li
                 v-for="u in inscritos"
                 :key="u.id_inscripcion"
-                class="flex items-center gap-3 p-3 bg-surface-50 rounded-xl border border-surface-100"
+                class="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-surface-100 hover:border-surface-200 transition-colors"
               >
-                <div class="w-8 h-8 rounded-full bg-surface-300 text-white flex items-center justify-center text-xs font-extrabold uppercase shrink-0">
+                <!-- Avatar inicial -->
+                <div class="w-8 h-8 rounded-full bg-surface-200 text-surface-600 flex items-center justify-center text-xs font-extrabold uppercase shrink-0 select-none">
                   {{ u.nombre?.charAt(0) ?? '?' }}
                 </div>
                 <span class="text-sm font-semibold text-surface-800 truncate flex-1">{{ u.nombre }}</span>
-                <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-200 text-surface-600">
+                <span class="text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-surface-100 text-surface-500 border border-surface-200 shrink-0">
                   Inscrito
                 </span>
               </li>
@@ -130,23 +154,23 @@ const formatHora = (h) => h ? h.substring(0, 5) : '—';
           <!-- ── ASISTENCIA ──────────────────────────────────────────────── -->
           <section>
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-xs font-extrabold text-emerald-600 uppercase tracking-widest">Asistencia</h4>
-              <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{{ asistencia.length }}</span>
+              <h4 class="text-[11px] font-extrabold text-emerald-600 uppercase tracking-widest">Asistencia</h4>
+              <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">{{ asistencia.length }}</span>
             </div>
-            <div v-if="asistencia.length === 0" class="text-center py-6 text-surface-400 text-sm font-medium bg-surface-50 rounded-2xl border border-surface-100">
+            <div v-if="asistencia.length === 0" class="text-center py-6 text-surface-400 text-sm font-medium bg-surface-50 rounded-2xl border border-dashed border-surface-200">
               Ningún registro de asistencia aún
             </div>
             <ul v-else class="space-y-2">
               <li
                 v-for="u in asistencia"
                 :key="u.id_inscripcion"
-                class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
+                class="flex items-center gap-3 px-4 py-3 bg-emerald-50/60 rounded-xl border border-emerald-100 hover:border-emerald-200 transition-colors"
               >
-                <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-extrabold uppercase shrink-0">
+                <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-extrabold uppercase shrink-0 select-none">
                   {{ u.nombre?.charAt(0) ?? '?' }}
                 </div>
                 <span class="text-sm font-semibold text-surface-800 truncate flex-1">{{ u.nombre }}</span>
-                <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <span class="text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
                   Asistió
                 </span>
               </li>
@@ -156,23 +180,23 @@ const formatHora = (h) => h ? h.substring(0, 5) : '—';
           <!-- ── NO SHOW (solo Clase Cerrada) ──────────────────────────── -->
           <section v-if="esCerrada">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-xs font-extrabold text-red-500 uppercase tracking-widest">No Show</h4>
-              <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">{{ noShow.length }}</span>
+              <h4 class="text-[11px] font-extrabold text-red-500 uppercase tracking-widest">No Show</h4>
+              <span class="text-[11px] font-bold text-red-500 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-100">{{ noShow.length }}</span>
             </div>
-            <div v-if="noShow.length === 0" class="text-center py-6 text-surface-400 text-sm font-medium bg-surface-50 rounded-2xl border border-surface-100">
+            <div v-if="noShow.length === 0" class="text-center py-6 text-surface-400 text-sm font-medium bg-surface-50 rounded-2xl border border-dashed border-surface-200">
               Sin no shows registrados
             </div>
             <ul v-else class="space-y-2">
               <li
                 v-for="u in noShow"
                 :key="u.id_inscripcion"
-                class="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100"
+                class="flex items-center gap-3 px-4 py-3 bg-red-50/60 rounded-xl border border-red-100 hover:border-red-200 transition-colors"
               >
-                <div class="w-8 h-8 rounded-full bg-red-400 text-white flex items-center justify-center text-xs font-extrabold uppercase shrink-0">
+                <div class="w-8 h-8 rounded-full bg-red-400 text-white flex items-center justify-center text-xs font-extrabold uppercase shrink-0 select-none">
                   {{ u.nombre?.charAt(0) ?? '?' }}
                 </div>
                 <span class="text-sm font-semibold text-surface-800 truncate flex-1">{{ u.nombre }}</span>
-                <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200">
+                <span class="text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200 shrink-0">
                   No Show
                 </span>
               </li>
@@ -181,15 +205,15 @@ const formatHora = (h) => h ? h.substring(0, 5) : '—';
 
         </div>
 
-        <!-- Footer — solo lectura, sin acciones de guardado -->
+        <!-- Footer -->
         <div class="px-6 pb-6 pt-4 shrink-0 border-t border-surface-100 bg-white">
-          <p class="text-[11px] text-center text-surface-400 font-medium mb-3">Vista de solo lectura — los cambios se aplican desde el módulo de gestión</p>
+          <p class="text-[11px] text-center text-surface-400 font-medium mb-3">
+            Vista de solo lectura — los cambios se aplican desde el módulo de gestión
+          </p>
           <button
             @click="emit('close')"
             class="w-full py-3 rounded-xl font-bold text-sm transition-all active:scale-95 border"
-            :class="esCerrada
-              ? 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100'
-              : 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'"
+            :class="closeBtnClass"
           >
             Cerrar
           </button>
