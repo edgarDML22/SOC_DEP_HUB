@@ -108,6 +108,11 @@ class AgendaUnificadaService
                   ->whereBetween('fecha_sesion', [$desde, $hasta])
                   ->where('fecha_sesion', '>=', $hoy)
                   ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
+                  ->whereHas('actividadPlantilla.plantilla', fn($p) =>
+                      $p->where('publicada', true)
+                        ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+                        ->whereColumn('plantillas_programacion.fecha_fin', '>=', 'sesiones_activas.fecha_sesion')
+                  )
             )
             ->with([
                 'sesion'                    => fn($q) => $q->withoutGlobalScopes()

@@ -70,10 +70,26 @@ function showToast(ok, message) {
   setTimeout(() => { toast.value.show = false }, 3500)
 }
 
+function getAhoraMexico() {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  const parts = formatter.formatToParts(new Date())
+  const pv = {}
+  parts.forEach(p => { pv[p.type] = p.value })
+  return new Date(`${pv.year}-${pv.month}-${pv.day}T${pv.hour}:${pv.minute}:${pv.second}`)
+}
+
 function calcularMinutosRestantes(fecha, hora) {
   if (!fecha || !hora) return 9999
-  const ahoraStr = new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" });
-  const ahoraMexico = new Date(ahoraStr);
+  const ahoraMexico = getAhoraMexico();
   const fechaHoraSesion = new Date(`${fecha}T${hora}`);
   return (fechaHoraSesion - ahoraMexico) / 60000;
 }
@@ -186,8 +202,7 @@ function getBadge(estatus) {
 const cancelables = ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA']
 
 const inscripcionesVisibles = computed(() => {
-  const ahoraStr = new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" })
-  const ahoraMexico = new Date(ahoraStr)
+  const ahoraMexico = getAhoraMexico()
 
   // 1. Filtrar las que ya pasaron
   const filtradas = store.misInscripciones.filter(i => {
@@ -197,8 +212,35 @@ const inscripcionesVisibles = computed(() => {
     return fechaHoraSesion >= ahoraMexico
   })
 
-  // 2. Ordenar: las no canceladas primero (de más próxima a más lejana), canceladas al fondo
-  return [...filtradas].sort((a, b) => {
+  // 2. Mapear cada inscripción a su estado efectivo del grupo para esa sesión.
+  // Si el socio se canceló a sí mismo pero tiene familiares o invitados activos en esa misma sesión,
+  // la tarjeta adopta el estatus del participante activo de mayor rango (CONFIRMADA > PENDIENTE > ESPERA/LISTA).
+  const conEstatusEfectivo = filtradas.map(i => {
+    const todasDeSesion = store.misInscripciones.filter(m => m.id_sesion === i.id_sesion)
+    const activas = todasDeSesion.filter(m => ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA'].includes(m.estatus_inscripcion))
+
+    let estatusEfectivo = i.estatus_inscripcion
+    if (activas.length > 0) {
+      const tieneConfirmada = activas.some(m => m.estatus_inscripcion === 'CONFIRMADA')
+      const tienePendiente = activas.some(m => m.estatus_inscripcion === 'PENDIENTE')
+
+      if (tieneConfirmada) {
+        estatusEfectivo = 'CONFIRMADA'
+      } else if (tienePendiente) {
+        estatusEfectivo = 'PENDIENTE'
+      } else {
+        estatusEfectivo = activas[0].estatus_inscripcion
+      }
+    }
+
+    return {
+      ...i,
+      estatus_inscripcion: estatusEfectivo
+    }
+  })
+
+  // 3. Ordenar: las no canceladas primero (de más próxima a más lejana), canceladas al fondo
+  return [...conEstatusEfectivo].sort((a, b) => {
     const aEsCancelada = ['CANCELADA', 'NO_SHOW', 'FALTA'].includes(a.estatus_inscripcion)
     const bEsCancelada = ['CANCELADA', 'NO_SHOW', 'FALTA'].includes(b.estatus_inscripcion)
 

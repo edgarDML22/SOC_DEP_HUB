@@ -61,12 +61,11 @@ class InscripcionClaseController extends Controller
                 'actividadPlantilla.espacioFisico:id_espacio,nombre_espacio',
                 'actividadPlantilla.plantilla:id_plantilla,nombre_plantilla,fecha_inicio,fecha_fin,estatus_plantilla',
             ])
-            ->whereHas('actividadPlantilla.plantilla', function ($q) use ($hoy, $fin) {
+            ->whereHas('actividadPlantilla.plantilla', function ($q) {
                 $q->where('estatus_plantilla', true)
-                  ->where(function ($sub) use ($hoy, $fin) {
-                      $sub->where('fecha_inicio', '<=', $fin)
-                          ->where('fecha_fin', '>=', $hoy);
-                  });
+                  ->where('publicada', true)
+                  ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+                  ->whereColumn('plantillas_programacion.fecha_fin', '>=', 'sesiones_activas.fecha_sesion');
             });
 
         // ── Filtros opcionales ────────────────────────────────────────────────
@@ -97,39 +96,53 @@ class InscripcionClaseController extends Controller
             );
         }
 
-        $sesiones = $query->orderBy('fecha_sesion')->get()->map(function ($s) {
-            $act = $s->actividadPlantilla;
+        $ahora = Carbon::now($tz);
 
-            $disponible = null;
-            if ($act && $act->requiere_inscripcion && $act->cupo_maximo !== null) {
-                $disponible = max(0, $act->cupo_maximo - $s->cantidad_inscritos);
-            }
+        $sesiones = $query->orderBy('fecha_sesion')->get()
+            ->filter(function ($s) use ($ahora) {
+                $act = $s->actividadPlantilla;
+                if (!$act) return false;
+                
+                // Combina fecha_sesion y hora_inicio
+                $fechaHora = Carbon::parse("{$s->fecha_sesion} {$act->hora_inicio}", 'America/Mexico_City');
+                
+                // Si la fecha y hora de inicio de la sesión ya pasaron (menor que ahora), no la mostramos
+                return $fechaHora->greaterThanOrEqualTo($ahora);
+            })
+            ->map(function ($s) {
+                $act = $s->actividadPlantilla;
 
-            return [
-                'id_sesion'            => $s->id_sesion,
-                'fecha_sesion'         => $s->fecha_sesion,
-                'estatus_sesion'       => $s->estatus_sesion,
-                'cantidad_inscritos'   => $s->cantidad_inscritos,
-                'es_cupo_lleno'        => $s->es_cupo_lleno,
-                'hora_inicio'          => $act ? substr($act->hora_inicio, 0, 5) : null,
-                'hora_fin'             => $act ? substr($act->hora_fin, 0, 5) : null,
-                'cupo_maximo'          => $act?->cupo_maximo,
-                'disponible'           => $disponible,
-                'requiere_inscripcion' => (bool) ($act?->requiere_inscripcion ?? false),
-                'tipo_clase'           => ($act?->requiere_inscripcion) ? 'Cerrada' : 'Abierta',
-                'nombre_actividad'     => $act?->disciplina?->nombre_disciplina ?? 'Actividad',
-                'dia_semana'           => $act?->dia_semana,
-                'disciplina'           => [
-                    'id'     => $act?->disciplina?->id_disciplina,
-                    'nombre' => $act?->disciplina?->nombre_disciplina,
-                ],
-                'instructor'           => [
-                    'id'     => $act?->instructor?->id_instructor,
-                    'nombre' => $act?->instructor?->nombre_completo,
-                ],
-                'espacio'              => $act?->espacioFisico?->nombre_espacio,
-            ];
-        });
+                $disponible = null;
+                if ($act && $act->requiere_inscripcion && $act->cupo_maximo !== null) {
+                    $disponible = max(0, $act->cupo_maximo - $s->cantidad_inscritos);
+                }
+
+                return [
+                    'id_sesion'            => $s->id_sesion,
+                    'fecha_sesion'         => $s->fecha_sesion,
+                    'estatus_sesion'       => $s->estatus_sesion,
+                    'cantidad_inscritos'   => $s->cantidad_inscritos,
+                    'es_cupo_lleno'        => $s->es_cupo_lleno,
+                    'hora_inicio'          => $act ? substr($act->hora_inicio, 0, 5) : null,
+                    'hora_fin'             => $act ? substr($act->hora_fin, 0, 5) : null,
+                    'cupo_maximo'          => $act?->cupo_maximo,
+                    'disponible'           => $disponible,
+                    'requiere_inscripcion' => (bool) ($act?->requiere_inscripcion ?? false),
+                    'tipo_clase'           => ($act?->requiere_inscripcion) ? 'Cerrada' : 'Abierta',
+                    'nombre_actividad'     => $act?->disciplina?->nombre_disciplina ?? 'Actividad',
+                    'dia_semana'           => $act?->dia_semana,
+                    'disciplina'           => [
+                        'id'     => $act?->disciplina?->id_disciplina,
+                        'nombre' => $act?->disciplina?->nombre_disciplina,
+                    ],
+                    'instructor'           => [
+                        'id'     => $act?->instructor?->id_instructor,
+                        'nombre' => $act?->instructor?->nombre_completo,
+                    ],
+                    'espacio'              => $act?->espacioFisico?->nombre_espacio,
+                ];
+            })
+            ->values();
 
         return response()->json(['data' => $sesiones], 200);
     }

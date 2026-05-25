@@ -244,7 +244,7 @@ function openAssignModal(enc) {
 
 function handleAssignmentSaved() {
   if (torneoIdFromQuery.value) {
-    scheduleStore.fetchEncuentrosTorneo(torneoIdFromQuery.value)
+    scheduleStore.fetchEncuentrosTorneo(torneoIdFromQuery.value, true)
   }
 }
 
@@ -317,7 +317,7 @@ const getEspacioName = (idEspacio) => {
 function handleTorneoCreated() {
   tournamentStore.fetchTorneos()
   if (!isDetailMode.value) {
-    scheduleStore.fetchTodosLosTorneos()
+    scheduleStore.fetchTodosLosTorneos(true)
   }
 }
 
