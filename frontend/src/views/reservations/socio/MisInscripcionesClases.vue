@@ -30,19 +30,6 @@ const toast = ref({ show: false, ok: true, message: '' })
 const showDetailsModal = ref(false)
 const selectedInscripcion = ref(null)
 
-// Filtros por estatus de inscripción
-const activeStatusFilter = ref('TODAS')
-
-// FILTROS LOCALES — sin cambios de datos
-const filters = [
-  { id: 'TODAS',     label: 'Todas',      icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>' },
-  { id: 'CONFIRMADA',label: 'Confirmadas',icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' },
-  { id: 'PENDIENTE', label: 'Pendientes', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
-  { id: 'CANCELADA', label: 'Canceladas', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' },
-  { id: 'ESPERA',    label: 'En espera',  icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14M5 22h14M19 2v4a7 7 0 0 1-7 7 7 7 0 0 1-7-7V2M19 22v-4a7 7 0 0 0-7-7 7 7 0 0 0-7 7v4"/></svg>' },
-  { id: 'NO_SHOW',   label: 'No Shows',   icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>' }
-];
-
 // Modal de ver inscritos y cancelación selectiva
 const selectedSesionCancelacion = ref(null)
 const selectedSesionVerInscritos = ref(null)
@@ -180,7 +167,7 @@ function formatFecha(f) {
 const estatusBadge = {
   CONFIRMADA: { bg: 'bg-emerald-50 border border-emerald-200', text: 'text-emerald-700', label: 'Confirmada' },
   PENDIENTE:  { bg: 'bg-blue-50 border border-blue-200',       text: 'text-blue-700',    label: 'Pendiente' },
-  CANCELADA:  { bg: 'bg-slate-100 border border-slate-200',    text: 'text-slate-500',   label: 'Cancelada' },
+  CANCELADA:  { bg: 'bg-red-50 border border-red-200',         text: 'text-red-700',     label: 'Cancelada' },
   NO_SHOW:    { bg: 'bg-red-50 border border-red-200',         text: 'text-red-700',     label: 'No Show' },
   FALTA:      { bg: 'bg-red-50 border border-red-200',         text: 'text-red-700',     label: 'No Show' },
   LISTA:      { bg: 'bg-blue-50 border border-blue-200',       text: 'text-blue-700',    label: 'En Lista' },
@@ -193,86 +180,31 @@ function getBadge(estatus) {
 
 const cancelables = ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA']
 
-// inscripcionesVisibles — sin cambios en lógica
-const inscripcionesVisibles = computed(() => {
+const ESTATUS_ACTIVOS = ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA']
+
+// Solo inscripciones activas del socio titular, futuras, ordenadas por fecha/hora
+const inscripcionesFiltradas = computed(() => {
   const ahoraMexico = getAhoraMexico()
 
-  const filtradas = store.misInscripciones.filter(i => {
-    if (!i.fecha_sesion) return true
-    const horaFinRef = i.hora_fin || i.hora_inicio || '23:59:59'
-    const fechaHoraSesion = new Date(`${i.fecha_sesion}T${horaFinRef}`)
-    return fechaHoraSesion >= ahoraMexico
-  })
-
-  // 2. Mapear cada inscripción a su estado efectivo del grupo para esa sesión.
-  // Si el socio se canceló a sí mismo pero tiene familiares o invitados activos en esa misma sesión,
-  // la tarjeta adopta el estatus del participante activo de mayor rango (CONFIRMADA > PENDIENTE > ESPERA/LISTA).
-  const conEstatusEfectivo = filtradas.map(i => {
-    const todasDeSesion = store.misInscripciones.filter(m => m.id_sesion === i.id_sesion)
-    const activas = todasDeSesion.filter(m => ['CONFIRMADA', 'PENDIENTE', 'LISTA', 'ESPERA'].includes(m.estatus_inscripcion))
-
-    let estatusEfectivo = i.estatus_inscripcion
-    if (activas.length > 0) {
-      const tieneConfirmada = activas.some(m => m.estatus_inscripcion === 'CONFIRMADA')
-      const tienePendiente = activas.some(m => m.estatus_inscripcion === 'PENDIENTE')
-
-      if (tieneConfirmada) {
-        estatusEfectivo = 'CONFIRMADA'
-      } else if (tienePendiente) {
-        estatusEfectivo = 'PENDIENTE'
-      } else {
-        estatusEfectivo = activas[0].estatus_inscripcion
-      }
-    }
-
-    return {
-      ...i,
-      estatus_inscripcion: estatusEfectivo
-    }
-  })
-
-  // 3. Ordenar: las no canceladas primero (de más próxima a más lejana), canceladas al fondo
-  return [...conEstatusEfectivo].sort((a, b) => {
-    const aEsCancelada = ['CANCELADA', 'NO_SHOW', 'FALTA'].includes(a.estatus_inscripcion)
-    const bEsCancelada = ['CANCELADA', 'NO_SHOW', 'FALTA'].includes(b.estatus_inscripcion)
-    if (aEsCancelada && !bEsCancelada) return 1
-    if (!aEsCancelada && bEsCancelada) return -1
-    const dateA = a.fecha_sesion || '9999-12-31'
-    const dateB = b.fecha_sesion || '9999-12-31'
-    const timeA = a.hora_inicio || '00:00:00'
-    const timeB = b.hora_inicio || '00:00:00'
-    return dateA.localeCompare(dateB) || timeA.localeCompare(timeB)
-  })
+  return store.misInscripciones
+    .filter(i => {
+      if (i.tipo_usuario !== 'socio_titular') return false
+      if (!ESTATUS_ACTIVOS.includes(i.estatus_inscripcion)) return false
+      const horaFinRef = i.hora_fin || i.hora_inicio || '23:59:59'
+      const fin = new Date(`${i.fecha_sesion}T${horaFinRef}`)
+      return fin >= ahoraMexico
+    })
+    .sort((a, b) => {
+      const dateA = a.fecha_sesion || '9999-12-31'
+      const dateB = b.fecha_sesion || '9999-12-31'
+      const timeA = a.hora_inicio || '00:00:00'
+      const timeB = b.hora_inicio || '00:00:00'
+      return dateA.localeCompare(dateB) || timeA.localeCompare(timeB)
+    })
 })
 
-// inscripcionesFiltradas — sin cambios en lógica
-const inscripcionesFiltradas = computed(() => {
-  let resultado = inscripcionesVisibles.value.filter(i => i.tipo_usuario === 'socio_titular')
-  if (activeStatusFilter.value !== 'TODAS') {
-    if (activeStatusFilter.value === 'ESPERA') {
-      resultado = resultado.filter(i => ['ESPERA', 'LISTA'].includes(i.estatus_inscripcion))
-    } else if (activeStatusFilter.value === 'NO_SHOW') {
-      resultado = resultado.filter(i => ['NO_SHOW', 'FALTA'].includes(i.estatus_inscripcion))
-    } else {
-      resultado = resultado.filter(i => i.estatus_inscripcion === activeStatusFilter.value)
-    }
-  }
-  return resultado
-})
-
-// Acento lateral por estatus — mismo patrón que SocioAgendaView
-const cardAccentByStatus = {
-  CONFIRMADA: 'border-l-emerald-500',
-  PENDIENTE:  'border-l-blue-500',
-  CANCELADA:  'border-l-slate-300',
-  NO_SHOW:    'border-l-red-500',
-  FALTA:      'border-l-red-500',
-  LISTA:      'border-l-blue-400',
-  ESPERA:     'border-l-amber-400',
-}
-
-function getCardAccent(estatus) {
-  return cardAccentByStatus[estatus] || 'border-l-slate-300'
+function getCardAccent(tipoClase) {
+  return tipoClase === 'Cerrada' ? 'border-l-violet-500' : 'border-l-emerald-500'
 }
 </script>
 
@@ -296,28 +228,9 @@ function getCardAccent(estatus) {
         <p class="text-sm font-bold text-red-800">{{ store.errorInscripciones }}</p>
       </div>
 
-      <!-- Filtros por Estatus — activeStatusFilter binding sin cambios -->
-      <div v-if="!store.loadingInscripciones && !store.errorInscripciones" class="flex flex-col gap-3 mb-6 pt-2">
-        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Filtrar por Estado</label>
-        <div class="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1 justify-start md:justify-center">
-          <button
-            v-for="filter in filters"
-            :key="filter.id"
-            @click="activeStatusFilter = filter.id"
-            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all focus:outline-none shrink-0 border cursor-pointer"
-            :class="activeStatusFilter === filter.id
-              ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
-              : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50'"
-          >
-            <span v-html="filter.icon" class="[&>svg]:w-3.5 [&>svg]:h-3.5 shrink-0"></span>
-            {{ filter.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Empty state general -->
+      <!-- Empty state -->
       <div
-        v-if="!store.loadingInscripciones && !store.errorInscripciones && store.misInscripciones.length === 0"
+        v-else-if="inscripcionesFiltradas.length === 0"
         class="flex flex-col items-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm"
       >
         <div class="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 border border-slate-200">
@@ -329,58 +242,37 @@ function getCardAccent(estatus) {
             <path d="m9 16 2 2 4-4"/>
           </svg>
         </div>
-        <p class="text-slate-800 font-extrabold text-lg">Sin inscripciones registradas</p>
+        <p class="text-slate-800 font-extrabold text-lg">Sin inscripciones activas</p>
         <p class="text-slate-400 font-medium text-sm text-center max-w-xs mt-1.5 leading-relaxed">
-          Aquí verás el historial de todas tus clases y actividades inscritas.
+          No tienes clases próximas. Explora las vistas Abiertas o Cerradas para inscribirte.
         </p>
       </div>
 
-      <!-- Empty state filtrado -->
-      <div
-        v-else-if="!store.loadingInscripciones && !store.errorInscripciones && inscripcionesFiltradas.length === 0"
-        class="flex flex-col items-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm"
-      >
-        <div class="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 border border-slate-200">
-          <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-        </div>
-        <p class="text-slate-800 font-extrabold text-lg">Sin coincidencias</p>
-        <p class="text-slate-400 font-medium text-sm text-center max-w-xs mt-1.5 leading-relaxed">
-          No encontramos inscripciones con este estado.
-        </p>
-      </div>
-
-      <!-- Lista de inscripciones — v-for binding sin cambios -->
-      <div v-else-if="!store.loadingInscripciones && !store.errorInscripciones" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Lista de inscripciones -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
           v-for="inscripcion in inscripcionesFiltradas"
           :key="inscripcion.id_inscripcion"
           class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col overflow-hidden border-l-4"
-          :class="getCardAccent(inscripcion.estatus_inscripcion)"
+          :class="getCardAccent(inscripcion.tipo_clase)"
         >
           <!-- Card Header: limpio blanco — título + icono disciplina -->
-          <div class="px-5 pt-4 pb-3 flex items-start gap-3">
-            <!-- DisciplineIcon — :name binding sin cambios -->
-            <div class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 text-slate-500 mt-0.5">
+          <div class="px-5 pt-4 pb-3 flex items-center gap-3">
+            <!-- DisciplineIcon — color por tipo de clase -->
+            <div
+              class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+              :class="inscripcion.tipo_clase === 'Cerrada'
+                ? 'bg-violet-50 border border-violet-200 text-violet-600'
+                : 'bg-emerald-50 border border-emerald-200 text-emerald-600'"
+            >
               <DisciplineIcon :name="inscripcion.disciplina" class="w-5 h-5 fill-current" />
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
                 {{ inscripcion.nombre_actividad }}
               </h3>
-              <!-- Badges tipo clase + participante -->
+              <!-- Badge participante -->
               <div class="flex items-center gap-1.5 flex-wrap mt-1.5">
-                <!-- :class ternario sin cambios -->
-                <span
-                  class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md border"
-                  :class="inscripcion.tipo_clase === 'Cerrada'
-                    ? 'bg-violet-50 border-violet-200 text-violet-700'
-                    : 'bg-teal-50 border-teal-200 text-teal-700'"
-                >
-                  {{ inscripcion.tipo_clase }}
-                </span>
-                <!-- v-if participante — condiciones sin cambios -->
                 <span
                   v-if="inscripcion.tipo_usuario === 'miembro_familiar' && inscripcion.familiar"
                   class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md border bg-purple-50 border-purple-200 text-purple-700"
@@ -422,7 +314,7 @@ function getCardAccent(estatus) {
             </div>
             <!-- Hora -->
             <div class="flex items-center gap-2.5 text-slate-600">
-              <div class="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+              <div class="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
@@ -449,8 +341,18 @@ function getCardAccent(estatus) {
             </div>
           </div>
 
-          <!-- Acciones — todos los @click / :disabled sin cambios -->
-          <div class="px-5 pb-4 pt-2 mt-auto flex items-center justify-end gap-2 border-t border-slate-100">
+          <!-- Acciones -->
+          <div class="px-5 pb-4 pt-2 mt-auto flex items-center justify-between gap-2 border-t border-slate-100">
+            <!-- Badge tipo clase -->
+            <span
+              class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md border"
+              :class="inscripcion.tipo_clase === 'Cerrada'
+                ? 'bg-violet-50 border-violet-200 text-violet-700'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-700'"
+            >
+              {{ inscripcion.tipo_clase }}
+            </span>
+            <div class="flex items-center gap-2">
             <!-- Cancelar inscripción — v-if cancelables sin cambios -->
             <button
               v-if="cancelables.includes(inscripcion.estatus_inscripcion)"
@@ -486,6 +388,7 @@ function getCardAccent(estatus) {
                 <path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" />
               </svg>
             </button>
+            </div>
           </div>
         </div>
       </div>

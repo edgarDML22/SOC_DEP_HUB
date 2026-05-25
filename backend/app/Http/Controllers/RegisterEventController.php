@@ -1,99 +1,88 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Http\Controllers\Controller;
-use App\Models\SesionActiva;
-use App\Models\User;
-use Illuminate\Http\Request;
-use App\Models\MongoDB\RegistroAsistecia;
-use Illuminate\Validation\ValidationException;
-use App\Models\ActividadPlantilla;
-use App\Models\Instructor;
-use App\Models\Disciplina;
 
+use App\Models\CodigoQr;
+use App\Models\RegistroAsistencia;
+use App\Models\SesionActiva;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class RegisterEventController extends Controller
 {
-    public function register_event(Request $request)
+    /**
+     * POST /api/v1/instructor/register-event
+     *
+     * Registra la asistencia de un socio a una sesión.
+     * El QR contiene el payload del socio; el código ya fue validado
+     * por el frontend (regex OS|MF|OI + 6 chars) antes de llegar aquí.
+     *
+     * Persistencia: 100% PostgreSQL — tabla registros_asistencia.
+     */
+    public function register_event(Request $request): JsonResponse
     {
+        $request->validate([
+            'id'        => 'required|string',
+            'id_sesion' => 'required|integer',
+            'fase'      => 'required|in:ingreso,cierre',
+        ]);
 
-        $id_user = User::where("id", $request->id)->first();
-        if (!$id_user) {
+        // ── 1. Resolver el socio a partir del payload QR ─────────────────────
+        $codigoQr = CodigoQr::where('codigo', $request->id)
+            ->where('estatus', 'ACTIVO')
+            ->first();
+
+        if (!$codigoQr) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se encontro usuario con ese id'
-            ], 404);
-        }
-        $id_sesion = SesionActiva::where("id_sesion", $request->id_sesion)->first();
-        if (!$id_sesion) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontro sesion con ese id'
-            ], 404);
-        }
-        $id_actividad = ActividadPlantilla::where("id_actividad_plantilla", $id_sesion->id_actividad_plantilla)->first();
-        if (!$id_actividad) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontro actividad con ese id'
-            ], 404);
-        }
-        $intructor = Instructor::where("id_instructor", $id_actividad->id_instructor)->first();
-        if (!$intructor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontro instructor con ese id'
-            ], 404);
-        }
-        $disipina = Disciplina::where("id_disciplina", $id_actividad->id_disciplina)->first();
-        if (!$disipina) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontro disciplina con ese id'
+                'message' => 'Código QR no válido o expirado.',
             ], 404);
         }
 
-        try {
-            $request->validate([
-                'fase' => 'required|in:ingreso,cierre',
-            ]);
-        } catch (ValidationException $e) {
+        // ── 2. Verificar que la sesión existe ─────────────────────────────────
+        $sesion = SesionActiva::withoutGlobalScopes()
+            ->find($request->id_sesion);
+
+        if (!$sesion) {
             return response()->json([
                 'success' => false,
-                'errors' => $e->errors()
-            ], 422);
+                'message' => 'Sesión no encontrada.',
+            ], 404);
         }
-        $data = [
-            'socio_id' => $id_user->id,
-            'id_sesion' => $id_sesion->id_sesion,
-            'fase' => $request->fase,
-            'timestamp' => now('America/Mexico_City'),
-            'metadata' => [
-                'dia_semana' => $id_actividad->dia_semana ?? null,
-                'estatus' => $id_actividad->estatus ?? null,
-                'instructor' => $intructor->nombre_completo ?? null,
-                'disciplina' => $disipina->nombre_disciplina ?? null,
 
+        // ── 3. Evitar doble registro en la misma sesión/fase ─────────────────
+        $yaRegistrado = RegistroAsistencia::where('id_sesion',  $sesion->id_sesion)
+            ->where('id_usuario',  $codigoQr->usuario_id)
+            ->where('tipo_usuario', $codigoQr->tipo_usuario)
+            ->where('metodo_registro', $request->fase)
+            ->exists();
 
-            ],
-        ];
-
-
-        $registro = RegistroAsistecia::insert($data);
-
-        if ($registro) {
+        if ($yaRegistrado) {
             return response()->json([
-                'success' => true,
-                'message' => 'Registro de asistencia creado correctamente',
-                'data' => $registro
-            ], 201);
+                'success' => false,
+                'message' => 'Este socio ya fue registrado en esta sesión.',
+            ], 409);
         }
 
+        // ── 4. Crear el registro en PostgreSQL ────────────────────────────────
+        $registro = RegistroAsistencia::create([
+            'id_sesion'        => $sesion->id_sesion,
+            'id_usuario'       => $codigoQr->usuario_id,
+            'tipo_usuario'     => $codigoQr->tipo_usuario,
+            'metodo_registro'  => $request->fase,
+            'asistencia'       => true,
+        ]);
 
         return response()->json([
-            'success' => false,
-            'message' => 'No se pudo crear el registro de asistencia'
-        ], 500);
-
+            'success' => true,
+            'message' => 'Asistencia registrada correctamente.',
+            'data'    => [
+                'id_registro'         => $registro->id_registro,
+                'id_sesion'           => $registro->id_sesion,
+                'tipo_usuario'        => $registro->tipo_usuario,
+                'metodo_registro'     => $registro->metodo_registro,
+                'fecha_hora_registro' => $registro->fecha_hora_registro,
+            ],
+        ], 201);
     }
 }

@@ -245,6 +245,11 @@ const router = createRouter({
           component: () => import('../views/instructor/InstructorEncuentrosView.vue'),
         },
         {
+          path: 'qr',
+          name: 'instructor-qr-hub',
+          component: () => import('../views/instructor/QrHubView.vue'),
+        },
+        {
           path: 'scanner',
           component: () => import('../views/instructor/ScannerView.vue'),
         },

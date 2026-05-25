@@ -266,7 +266,7 @@ const selectTab = (id) => {
             <!-- LISTA DE RESERVAS (Card Rediseñada y Compacta) -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div v-for="reserva in reservasFiltradas" :key="reserva.id_reserva"
-                    class="bg-white p-5 md:p-6 rounded-2xl border border-surface-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all flex flex-col gap-3 group">
+                    class="bg-white p-5 md:p-6 rounded-2xl border border-surface-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all flex flex-col gap-3 group border-l-4 border-l-blue-500">
                     <div class="flex items-start justify-between gap-4 w-full">
                         <h3 class="text-base md:text-lg font-bold text-surface-900 m-0 truncate flex-1">
                             {{ reserva.disciplina?.nombre_disciplina || 'Deporte no especificado' }}

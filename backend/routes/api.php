@@ -53,6 +53,7 @@ use App\Actions\Torneo\GenerarBracketAction;
 use App\Models\Torneo;
 use App\Http\Controllers\RefereeAvailabilityController;
 use App\Http\Controllers\MatchAssignmentController;
+use App\Http\Controllers\SesionInstructorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -283,6 +284,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
     Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
     Route::get('/v1/instructor/mi-agenda', [InstructorAgendaController::class, 'miAgenda']);
+    // US-32: Hub QR — datos del día para el instructor (sesiones + reservaciones + encuentros)
+    Route::get('/v1/instructor/datos-hoy', [SesionInstructorController::class, 'datosHoy']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
