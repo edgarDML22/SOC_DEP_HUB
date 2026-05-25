@@ -158,46 +158,50 @@ const copiarImagenAlPortapapeles = async (url) => {
         <div 
           v-for="inv in invitadosFiltrados" 
           :key="inv.id" 
-          class="bg-white rounded-2xl p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col h-full"
+          class="bg-white rounded-[24px] p-6 shadow-sm border border-surface-100 transition-all hover:shadow-md hover:-translate-y-1 flex flex-col h-full group"
         >
           <!-- Header de tarjeta -->
           <div class="flex items-start gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-medium text-lg uppercase shrink-0">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
               {{ inv.nombre?.charAt(0) || '?' }}
             </div>
             <div class="flex-1 flex flex-col min-w-0">
               <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="inv.nombre">{{ inv.nombre }}</h3>
               <div class="mt-1">
-                 <span 
-                   class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border"
-                   :class="{
-                     'bg-green-50 text-green-700 border-green-200': inv.estatus_acceso === 'ACTIVO',
-                     'bg-red-50 text-red-700 border-red-200': inv.estatus_acceso === 'EXPIRADO' || inv.estatus_acceso === 'INACTIVO'
-                   }"
-                 >
-                   {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
-                 </span>
+                  <span 
+                    v-if="inv.estatus_acceso === 'ACTIVO'"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border bg-green-50 text-green-700 border-green-200 tracking-wide uppercase"
+                  >
+                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0"></span>
+                    Activo
+                  </span>
+                  <span 
+                    v-else
+                    class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold border bg-red-50 text-red-700 border-red-200 tracking-wide uppercase"
+                  >
+                    {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
+                  </span>
               </div>
             </div>
           </div>
 
           <!-- Body de tarjeta -->
-          <div class="flex-1 flex flex-col gap-3 text-sm text-surface-600 mb-5 font-medium">
+          <div class="flex-1 flex flex-col gap-2 text-xs md:text-sm text-surface-600 mb-4 font-medium min-w-0">
             <div v-if="inv.telefono" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
               </svg>
               <span class="truncate">{{ inv.telefono }}</span>
             </div>
             <div v-if="inv.correo" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                 <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
               </svg>
               <span class="truncate" :title="inv.correo">{{ inv.correo }}</span>
             </div>
             <div v-if="inv.fecha_expiracion" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
               </svg>
               <span>Expira: {{ inv.fecha_expiracion }}</span>
@@ -205,13 +209,13 @@ const copiarImagenAlPortapapeles = async (url) => {
           </div>
 
           <!-- Footer de tarjeta -->
-          <div class="mt-auto" v-if="inv.estatus_acceso === 'ACTIVO'">
+          <div class="mt-auto pt-4 border-t border-surface-50 flex justify-end" v-if="inv.estatus_acceso === 'ACTIVO'">
             <button 
               @click="abrirModalQR(inv)" 
-              class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md focus:outline-none"
+              title="Ver codigo QR"
+              class="w-10 h-10 bg-primary-50 hover:bg-primary-100 text-primary-600 border border-primary-100 rounded-xl transition-all flex items-center justify-center active:scale-90 focus:outline-none shadow-sm group/btn"
             >
-              <IconQR class="w-4 h-4 text-white" />
-              Ver código QR
+              <IconQR class="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
             </button>
           </div>
         </div>

@@ -41,13 +41,67 @@ class SocioTournamentController extends Controller
                 ->toArray();
         }
 
-        // Obtener torneos en inscripción con conteo de participantes confirmados
-        $torneos = Torneo::where('estatus_torneo', 'EN_INSCRIPCION')
-            ->with(['disciplina', 'categoria'])
+        // Obtener torneos en inscripción, en curso o programados con conteo de participantes confirmados
+        $torneos = Torneo::whereIn('estatus_torneo', ['EN_INSCRIPCION', 'EN_CURSO', 'PROGRAMADO'])
+            ->with(['disciplina', 'categoria', 'encuentros' => function ($q) {
+                $q->where('fase_bracket', 'FINAL');
+            }])
             ->withCount(['participantes as inscritos_actual' => function ($q) {
                 $q->where('estatus_inscripcion', 'CONFIRMADO');
             }])
             ->get();
+
+        // Ordenar los torneos activos: EN_CURSO primero, luego EN_INSCRIPCION, luego PROGRAMADO
+        // Y dentro del mismo estatus, ordenar en base a la fecha_hora_inicio de la final (más cercana/reciente primero)
+        $torneos = $torneos->sort(function ($a, $b) {
+            $statusPriority = [
+                'EN_CURSO' => 1,
+                'EN_INSCRIPCION' => 2,
+                'PROGRAMADO' => 3
+            ];
+            $priA = $statusPriority[$a->estatus_torneo] ?? 99;
+            $priB = $statusPriority[$b->estatus_torneo] ?? 99;
+            if ($priA !== $priB) {
+                return $priA <=> $priB;
+            }
+
+            // Ambos tienen el mismo estatus, ordenar por la fecha_hora_inicio de su final descendente (más reciente primero)
+            $finalA = $a->encuentros->first();
+            $finalB = $b->encuentros->first();
+
+            $timeA = $finalA && $finalA->fecha_hora_inicio ? $finalA->fecha_hora_inicio : null;
+            $timeB = $finalB && $finalB->fecha_hora_inicio ? $finalB->fecha_hora_inicio : null;
+
+            if ($timeA && $timeB) {
+                return strcmp($timeB, $timeA);
+            }
+            if ($timeA) return -1; // a tiene final, va antes
+            if ($timeB) return 1;  // b tiene final, va antes
+
+            // Si ninguno tiene final, ordenar por fecha_inicio asc
+            return strcmp($a->fecha_inicio, $b->fecha_inicio);
+        })->values();
+
+        // Si no hay torneos activos, obtener los últimos finalizados que tengan una final
+        if ($torneos->isEmpty()) {
+            $torneosFinalizados = Torneo::where('estatus_torneo', 'FINALIZADO')
+                ->whereHas('encuentros', function ($q) {
+                    $q->where('fase_bracket', 'FINAL');
+                })
+                ->with(['disciplina', 'categoria', 'encuentros' => function ($q) {
+                    $q->where('fase_bracket', 'FINAL');
+                }])
+                ->withCount(['participantes as inscritos_actual' => function ($q) {
+                    $q->where('estatus_inscripcion', 'CONFIRMADO');
+                }])
+                ->get();
+
+            // Ordenar por la fecha/hora de inicio de la final descendente
+            $torneos = $torneosFinalizados->sortByDesc(function ($torneo) {
+                $finalMatch = $torneo->encuentros->first();
+                return $finalMatch ? $finalMatch->fecha_hora_inicio : '1970-01-01 00:00:00';
+            })->values();
+        }
 
         // Obtener todas las inscripciones del socio o familiares para estos torneos
         $registrations = ParticipantesTorneo::whereIn('id_torneo', $torneos->pluck('id_torneo'))
@@ -87,6 +141,7 @@ class SocioTournamentController extends Controller
                 'nombre_torneo' => $torneo->nombre_torneo,
                 'fecha_inicio' => $torneo->fecha_inicio,
                 'fecha_fin' => $torneo->fecha_fin,
+                'estatus_torneo' => $torneo->estatus_torneo,
                 'disciplina' => $torneo->disciplina ? [
                     'nombre_disciplina' => $torneo->disciplina->nombre_disciplina
                 ] : null,

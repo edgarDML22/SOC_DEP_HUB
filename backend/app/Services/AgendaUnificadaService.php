@@ -77,6 +77,7 @@ class AgendaUnificadaService
             ->get()
             ->map(fn($r) => [
                 'tipo'         => 'RESERVA',
+                'disciplina'   => $r->disciplina?->nombre_disciplina,
                 'titulo'       => trim(
                     ($r->disciplina?->nombre_disciplina ?? 'Reservación')
                     . ($r->espacioFisico ? ' — ' . $r->espacioFisico->nombre_espacio : '')
@@ -136,6 +137,7 @@ class AgendaUnificadaService
 
                 return [
                     'tipo'        => $tipo,
+                    'disciplina'  => $plantilla?->disciplina?->nombre_disciplina,
                     'titulo'      => $plantilla?->disciplina?->nombre_disciplina ?? 'Clase',
                     'fecha'       => $i->sesion?->fecha_sesion,
                     'hora_inicio' => substr($plantilla?->hora_inicio ?? '', 0, 5),
