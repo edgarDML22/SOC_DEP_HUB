@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\SesionActiva;
+use App\Models\SocioTitular;
 
 class InscripcionClase extends Model
 {
@@ -24,5 +25,10 @@ class InscripcionClase extends Model
     public function sesion()
     {
         return $this->belongsTo(SesionActiva::class, 'id_sesion', 'id_sesion');
+    }
+
+    public function socio()
+    {
+        return $this->belongsTo(SocioTitular::class, 'id_usuario', 'id_socio');
     }
 }

@@ -43,6 +43,7 @@ use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\SocioAgendaController;
 use App\Http\Controllers\InstructorEncuentrosController;
+use App\Http\Controllers\InstructorAgendaController;
 use App\Http\Controllers\PreRegisterController;
 use App\Http\Controllers\PlantillaProgramacionController;
 use App\Http\Controllers\ProgramacionDependenciasController;
@@ -281,6 +282,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
     Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
+    Route::get('/v1/instructor/mi-agenda', [InstructorAgendaController::class, 'miAgenda']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
