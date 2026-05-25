@@ -522,7 +522,7 @@ const handleDeleteGuest = async () => {
                 <div class="relative">
                   <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="guestForm.nombre_invitado" type="text" maxlength="255" placeholder="Ej. Juan Pérez"
-                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all shadow-sm"
+                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
                     :class="formErrors.nombre_invitado ? 'border-red-300' : 'border-surface-200'" />
                 </div>
                 <p v-if="formErrors.nombre_invitado" class="text-[10px] font-bold text-red-500 px-1">{{
@@ -536,7 +536,7 @@ const handleDeleteGuest = async () => {
                 <div class="relative">
                   <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="guestForm.correo" type="email" placeholder="ejemplo@correo.com"
-                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all shadow-sm"
+                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
                     :class="formErrors.correo ? 'border-red-300' : 'border-surface-200'" />
                 </div>
                 <p v-if="formErrors.correo" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.correo }}</p>
@@ -549,7 +549,7 @@ const handleDeleteGuest = async () => {
                 <div class="relative">
                   <IconPhone class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="guestForm.telefono" type="tel" placeholder="10 dígitos"
-                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all shadow-sm"
+                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
                     :class="formErrors.telefono ? 'border-red-300' : 'border-surface-200'" />
                 </div>
                 <p v-if="formErrors.telefono" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.telefono }}

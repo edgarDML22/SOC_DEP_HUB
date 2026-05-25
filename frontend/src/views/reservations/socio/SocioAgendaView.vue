@@ -164,80 +164,107 @@ const agruparPorFecha = (actividades) => {
               No tienes actividades programadas para hoy.
             </p>
           </div>
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div
               v-for="(enc, idx) in encuentrosHoy"
               :key="idx"
-              class="bg-white rounded-3xl border border-surface-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col group"
+              class="p-1 bg-slate-100/70 border border-slate-200/50 rounded-[28px] shadow-sm hover:shadow-xl hover:border-blue-200/60 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 group/card flex flex-col h-full"
             >
-              <!-- Card Header - Gradient Azul (Animado) -->
-              <div class="px-5 py-3.5 flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-700">
-                <span class="text-white font-bold text-sm tracking-wide line-clamp-1 pr-2">
-                  {{ enc.titulo }}
-                </span>
-                <span class="bg-white/20 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0">
-                  {{ getActivityLabel(enc.tipo) }}
-                </span>
-              </div>
+              <div class="bg-white rounded-[24px] overflow-hidden flex flex-col flex-1 h-full">
+                <!-- Card Header - Gradient Azul (Animado) -->
+                <div class="px-5 py-4 flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-750 relative overflow-hidden shrink-0">
+                  <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000 ease-out pointer-events-none" />
+                  <span class="text-white font-extrabold text-sm tracking-wide line-clamp-1 pr-2 relative z-10">
+                    {{ enc.titulo }}
+                  </span>
+                  <span class="bg-white/15 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 border border-white/10 relative z-10">
+                    {{ getActivityLabel(enc.tipo) }}
+                  </span>
+                </div>
 
-              <!-- Body -->
-              <div class="px-5 py-4 flex-1 space-y-3">
-                
-                <div class="flex items-center justify-between">
-                  <!-- Fecha y hora -->
-                  <div class="flex items-center gap-2 text-surface-600">
-                    <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span class="text-sm font-semibold">{{ formatFecha(enc.fecha) }}</span>
+                <!-- Body -->
+                <div class="px-5 py-4 flex-1 flex flex-col justify-between space-y-4">
+                  <div class="space-y-3.5">
+                    
+                    <!-- Fecha y Estatus -->
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fecha</span>
+                          <span class="text-xs font-bold text-slate-800 truncate">{{ formatFecha(enc.fecha) }}</span>
+                        </div>
+                      </div>
+                      <!-- Estatus -->
+                      <span class="inline-block text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border shrink-0 shadow-2xs" :class="getStatusBadge(enc.estatus)">
+                        {{ enc.estatus }}
+                      </span>
+                    </div>
+
+                    <!-- Horario -->
+                    <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                      <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                      </div>
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Horario</span>
+                        <span class="text-xs font-bold text-slate-800 truncate tabular-nums">
+                          {{ formatHora(enc.hora_inicio) }} – {{ formatHora(enc.hora_fin) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Instructor -->
+                    <div v-if="enc.instructor" class="flex items-center gap-3 text-slate-700 min-w-0">
+                      <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Instructor</span>
+                        <span class="text-xs font-semibold text-slate-600 truncate">{{ enc.instructor }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Espacio -->
+                    <div v-if="enc.espacio" class="flex items-center gap-3 text-slate-700 min-w-0">
+                      <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Espacio</span>
+                        <span class="text-xs font-semibold text-slate-600 truncate">{{ enc.espacio }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <!-- Estatus -->
-                  <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border" :class="getStatusBadge(enc.estatus)">
-                    {{ enc.estatus }}
-                  </span>
-                </div>
 
-                <div class="flex items-center gap-2 text-surface-600">
-                  <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  <span class="text-sm font-semibold tabular-nums">
-                    {{ formatHora(enc.hora_inicio) }} – {{ formatHora(enc.hora_fin) }}
-                  </span>
+                  <!-- Footer - Botón detalles interactivo -->
+                  <div class="pt-3 border-t border-slate-100 flex justify-end">
+                    <button
+                      @click="openDetails(enc)"
+                      class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-550 text-white rounded-xl flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer shadow-md hover:shadow-lg hover:shadow-blue-500/20 group/btn border border-blue-700/50"
+                      title="Ver detalles"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 group-hover/btn:scale-110 group-hover/btn:rotate-2 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-
-                <!-- Instructor -->
-                <div v-if="enc.instructor" class="flex items-center gap-2 text-surface-600">
-                  <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span class="text-sm font-medium text-surface-500 truncate">{{ enc.instructor }}</span>
-                </div>
-
-                <!-- Espacio -->
-                <div v-if="enc.espacio" class="flex items-center gap-2 text-surface-600">
-                  <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span class="text-sm font-medium text-surface-500 truncate">{{ enc.espacio }}</span>
-                </div>
-              </div>
-
-              <!-- Footer - Botón detalles -->
-              <div class="px-5 pb-5 mt-auto flex justify-end">
-                <button
-                  @click="openDetails(enc)"
-                  class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer border border-blue-700 shadow-md shadow-blue-500/10"
-                  title="Ver detalles"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-                </button>
               </div>
             </div>
+            </div>
           </div>
-        </div>
 
         <!-- Agenda Semanal (Próximas) -->
         <div v-else class="space-y-8">
@@ -251,67 +278,90 @@ const agruparPorFecha = (actividades) => {
           <div v-else v-for="grupo in agruparPorFecha(encuentrosSocioVisibles)" :key="grupo.fecha" class="space-y-4">
             <h3 class="text-sm md:text-base font-extrabold text-blue-900 uppercase tracking-widest pl-2 border-l-4 border-blue-500">
               {{ formatFechaLarga(grupo.fecha) }}
-            </h3>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            </h3>            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <div
                 v-for="(enc, idx) in grupo.actividades"
                 :key="idx"
-                class="bg-white rounded-3xl border border-surface-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col group"
+                class="p-1 bg-slate-100/70 border border-slate-200/50 rounded-[28px] shadow-sm hover:shadow-xl hover:border-blue-200/60 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 group/card flex flex-col h-full"
               >
-                <!-- Card Header - Gradient Azul (Animado) -->
-                <div class="px-5 py-3.5 flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-700">
-                  <span class="text-white font-bold text-sm tracking-wide line-clamp-1 pr-2">
-                    {{ enc.titulo }}
-                  </span>
-                  <span class="bg-white/20 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0">
-                    {{ getActivityLabel(enc.tipo) }}
-                  </span>
-                </div>
+                <div class="bg-white rounded-[24px] overflow-hidden flex flex-col flex-1 h-full">
+                  <!-- Card Header - Gradient Azul (Animado) -->
+                  <div class="px-5 py-4 flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-750 relative overflow-hidden shrink-0">
+                    <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000 ease-out pointer-events-none" />
+                    <span class="text-white font-extrabold text-sm tracking-wide line-clamp-1 pr-2 relative z-10">
+                      {{ enc.titulo }}
+                    </span>
+                    <span class="bg-white/15 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 border border-white/10 relative z-10">
+                      {{ getActivityLabel(enc.tipo) }}
+                    </span>
+                  </div>
 
-                <!-- Body -->
-                <div class="px-5 py-4 flex-1 space-y-3">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2 text-surface-600">
-                      <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span class="text-sm font-semibold">{{ formatFecha(enc.fecha) }}</span>
+                  <!-- Body -->
+                  <div class="px-5 py-4 flex-1 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3.5">
+                      
+                      <!-- Fecha y Estatus -->
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                          <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div class="flex flex-col min-w-0">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fecha</span>
+                            <span class="text-xs font-bold text-slate-800 truncate">{{ formatFecha(enc.fecha) }}</span>
+                          </div>
+                        </div>
+                        <!-- Estatus -->
+                        <span class="inline-block text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border shrink-0 shadow-2xs" :class="getStatusBadge(enc.estatus)">
+                          {{ enc.estatus }}
+                        </span>
+                      </div>
+
+                      <!-- Horario -->
+                      <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Horario</span>
+                          <span class="text-xs font-bold text-slate-800 truncate tabular-nums">
+                            {{ formatHora(enc.hora_inicio) }} – {{ formatHora(enc.hora_fin) }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Espacio -->
+                      <div v-if="enc.espacio" class="flex items-center gap-3 text-slate-700 min-w-0">
+                        <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                          <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Espacio</span>
+                          <span class="text-xs font-semibold text-slate-600 truncate">{{ enc.espacio }}</span>
+                        </div>
+                      </div>
                     </div>
-                    <!-- Estatus -->
-                    <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border" :class="getStatusBadge(enc.estatus)">
-                      {{ enc.estatus }}
-                    </span>
-                  </div>
 
-                  <div class="flex items-center gap-2 text-surface-600">
-                    <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    <span class="text-sm font-semibold tabular-nums">
-                      {{ formatHora(enc.hora_inicio) }} – {{ formatHora(enc.hora_fin) }}
-                    </span>
+                    <!-- Footer - Botón detalles interactivo -->
+                    <div class="pt-3 border-t border-slate-100 flex justify-end">
+                      <button
+                        @click="openDetails(enc)"
+                        class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-550 text-white rounded-xl flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer shadow-md hover:shadow-lg hover:shadow-blue-500/20 group/btn border border-blue-700/50"
+                        title="Ver detalles"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 group-hover/btn:scale-110 group-hover/btn:rotate-2 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-
-                  <!-- Espacio -->
-                  <div v-if="enc.espacio" class="flex items-center gap-2 text-surface-600">
-                    <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span class="text-sm font-medium text-surface-500 truncate">{{ enc.espacio }}</span>
-                  </div>
-                </div>
-
-                <!-- Footer - Botón detalles -->
-                <div class="px-5 pb-5 mt-auto flex justify-end">
-                  <button
-                    @click="openDetails(enc)"
-                    class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer border border-blue-700 shadow-md shadow-blue-500/10"
-                    title="Ver detalles"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-                  </button>
                 </div>
               </div>
             </div>
@@ -319,7 +369,6 @@ const agruparPorFecha = (actividades) => {
         </div>
       </div>
     </div>
-
     <!-- MODAL DE DETALLES -->
     <Transition name="fade">
       <div v-if="showModal && selectedActivity" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">

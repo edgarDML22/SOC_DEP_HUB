@@ -22,6 +22,7 @@ const instructor = ref(null);
 const activities = ref([]);
 const isLoading = ref(false);
 const isSaving = ref(false);
+const showSuccessOverlay = ref(false);
 
 // Step Management
 const currentStep = ref(1); // 1: Status Selection, 2: Impact Analysis, 3: Confirmation
@@ -150,9 +151,12 @@ const saveChanges = async () => {
 
         const res = await instructorStore.applyMeticulousStatus(props.instructorId, payload);
         if (res.success) {
-            toast.add({ severity: 'success', summary: 'Éxito', detail: 'Estatus actualizado correctamente', life: 3000 });
+            showSuccessOverlay.value = true;
             emit('updated');
-            emit('close');
+            setTimeout(() => {
+                showSuccessOverlay.value = false;
+                emit('close');
+            }, 1500);
         } else {
             toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
         }
@@ -184,8 +188,26 @@ const getStatusColor = (status) => {
                 <Transition enter-active-class="transition-all duration-300 ease-out"
                     enter-from-class="opacity-0 scale-95 translate-y-4"
                     enter-to-class="opacity-100 scale-100 translate-y-0">
-                    <div v-if="show" class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-                        
+                    <div v-if="show" class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] relative">
+                        <!-- Overlay de éxito (animate-scale-in) -->
+                        <Transition
+                          enter-active-class="transition-opacity duration-150 ease-out"
+                          enter-from-class="opacity-0"
+                          enter-to-class="opacity-100"
+                          leave-active-class="transition-opacity duration-200 ease-in"
+                          leave-from-class="opacity-100"
+                          leave-to-class="opacity-0"
+                        >
+                          <div v-if="showSuccessOverlay" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-[2px] rounded-4xl flex flex-col items-center justify-center gap-4">
+                            <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
+                              <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </div>
+                            <p class="text-base font-black text-slate-800">Estatus de instructor actualizado</p>
+                          </div>
+                        </Transition>
+
                         <!-- Cabecera -->
                         <div class="flex items-center justify-between px-8 py-6 border-b border-surface-100">
                             <div>
@@ -311,7 +333,7 @@ const getStatusColor = (status) => {
                                                     <p class="text-sm font-black text-surface-900">{{ r.nombre }}</p>
                                                     <p class="text-[10px] font-bold text-surface-400 uppercase tracking-wider">{{ r.horario }}</p>
                                                 </div>
-                                                <select v-model="r.action" class="text-xs font-bold px-3 py-2 bg-white border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500/30 outline-none transition-all">
+                                                <select v-model="r.action" class="text-xs font-bold px-3 py-2 bg-white border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                                                     <option value="reasignar">Reasignar</option>
                                                     <option value="deshabilitar">Suspender</option>
                                                 </select>
@@ -319,7 +341,7 @@ const getStatusColor = (status) => {
                                             <div v-if="r.action === 'reasignar'" class="p-5">
                                                 <div v-if="candidateSubstitutes[r.id_actividad]?.length > 0">
                                                     <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2 ml-1">Sustituto disponible</label>
-                                                    <select v-model="r.substituteId" class="w-full text-sm font-bold p-3 bg-surface-50 border border-surface-100 rounded-2xl focus:ring-2 focus:ring-primary-500/30 outline-none transition-all">
+                                                    <select v-model="r.substituteId" class="w-full text-sm font-bold p-3 bg-surface-50 border border-surface-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                                                         <option :value="null" disabled>Seleccionar compañero...</option>
                                                         <option v-for="c in candidateSubstitutes[r.id_actividad]" :key="c.id_instructor" :value="c.id_instructor">
                                                             {{ c.nombre_completo }}

@@ -311,7 +311,7 @@ const buildMenuItems = (miembro) => [
                 <div class="relative">
                   <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="formData.nombre" type="text"
-                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
+                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
                     placeholder="Ej. Juan Pérez">
                 </div>
               </div>
@@ -324,7 +324,7 @@ const buildMenuItems = (miembro) => [
                   <div class="relative">
                     <IconGuests class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                     <select v-model="formData.parentesco"
-                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
+                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-sm">
                       <option value="" disabled>Seleccionar</option>
                       <option value="CONYUGE">Cónyuge</option>
                       <option value="HIJO/A">Hijo/a</option>
@@ -340,7 +340,7 @@ const buildMenuItems = (miembro) => [
                   <div class="relative">
                     <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                     <select v-model="formData.genero"
-                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-sm">
+                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-sm">
                       <option value="" disabled>Seleccionar</option>
                       <option value="M">Masculino</option>
                       <option value="F">Femenino</option>
@@ -359,7 +359,7 @@ const buildMenuItems = (miembro) => [
                   <div class="relative">
                     <IconCalendar class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                     <input v-model="formData.fecha_nacimiento" type="date"
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm">
+                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm">
                   </div>
                 </div>
                 <div class="space-y-1.5">
@@ -378,7 +378,7 @@ const buildMenuItems = (miembro) => [
                 <div class="relative">
                   <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
                   <input v-model="formData.correo" type="email"
-                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"
+                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
                     placeholder="correo@ejemplo.com">
                 </div>
               </div>

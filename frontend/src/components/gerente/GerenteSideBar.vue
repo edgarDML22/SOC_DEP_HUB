@@ -114,7 +114,7 @@ const sections = [
                transition-all duration-200 group" :class="[
                 isOpen ? 'gap-3 px-3 justify-start' : 'justify-center',
                 route.path === '/admin/dashboard'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  ? 'bg-slate-800 text-white font-bold shadow-xs'
                   : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
               ]" :title="!isOpen ? 'Dashboard' : undefined">
         <IconHome class="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
@@ -126,7 +126,7 @@ const sections = [
                transition-all duration-200 group" :class="[
                 isOpen ? 'gap-3 px-3 justify-start' : 'justify-center',
                 route.path.startsWith('/admin/reports')
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  ? 'bg-slate-800 text-white font-bold shadow-xs'
                   : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
               ]" :title="!isOpen ? 'Reportes' : undefined">
         <IconGuests class="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
@@ -142,7 +142,7 @@ const sections = [
                  transition-all duration-200 group" :class="[
                   isOpen ? 'gap-3 px-3 justify-start' : 'justify-center',
                   isRouteUnder(section.paths)
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold'
+                    ? 'bg-slate-800 text-white font-bold shadow-xs'
                     : openSection === section.key
                       ? 'bg-slate-800 text-slate-100'
                       : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100',
@@ -155,7 +155,7 @@ const sections = [
           <!-- Chevron animado -->
           <svg v-if="isOpen" class="w-3.5 h-3.5 shrink-0 transition-transform duration-300" :class="[
             openSection === section.key ? 'rotate-180' : '',
-            isRouteUnder(section.paths) ? 'text-white' : openSection === section.key ? 'text-blue-400' : 'text-slate-600'
+            isRouteUnder(section.paths) ? 'text-white' : openSection === section.key ? 'text-slate-300' : 'text-slate-600'
           ]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M6 9l6 6 6-6" />
           </svg>
@@ -175,7 +175,7 @@ const sections = [
                   :to="child.to" 
                   class="relative z-10 flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm transition-all duration-150 ml-0" 
                   :class="route.path.startsWith(child.to)
-                    ? 'text-white font-bold bg-blue-600 shadow-md shadow-blue-600/20'
+                    ? 'text-white font-bold bg-slate-800 shadow-xs'
                     : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 font-medium'"
                   @click="child.label === 'Ludoteca' ? setLudotecaView('dashboard', false) : null"
 
@@ -201,7 +201,7 @@ const sections = [
                       type="button"
                       class="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none outline-none"
                       :class="ludotecaStore.viewActive === 'turnos' 
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40' 
+                        ? 'bg-slate-800 text-white font-bold shadow-xs' 
                         : 'text-slate-500 hover:text-slate-100 hover:bg-slate-800/60'"
                     >
                       <IconCalendar class="w-3.5 h-3.5" />

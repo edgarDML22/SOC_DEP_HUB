@@ -310,16 +310,15 @@ const inscripcionesFiltradas = computed(() => {
         </p>
       </div>
 
-      <!-- Lista de inscripciones -->
-      <div v-else-if="!store.loadingInscripciones && !store.errorInscripciones" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-else-if="!store.loadingInscripciones && !store.errorInscripciones" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="inscripcion in inscripcionesFiltradas"
           :key="inscripcion.id_inscripcion"
-          class="bg-white p-5 md:p-6 rounded-[24px] border border-surface-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col gap-3 group relative overflow-hidden"
+          class="p-1 bg-slate-100/70 border border-slate-200/50 rounded-[28px] shadow-sm hover:shadow-xl hover:border-blue-200/60 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 group/card flex flex-col h-full relative overflow-hidden"
         >
-          <!-- Franja lateral de color según estatus -->
+          <!-- Franja lateral de color según estatus, redondeada en sus extremos -->
           <div
-            class="absolute left-0 top-0 bottom-0 w-1.5 shrink-0 self-stretch"
+            class="absolute left-1 top-4 bottom-4 w-1.5 rounded-full shrink-0 z-10"
             :class="{
               'bg-emerald-500': inscripcion.estatus_inscripcion === 'CONFIRMADA',
               'bg-blue-400':    inscripcion.estatus_inscripcion === 'PENDIENTE',
@@ -330,155 +329,170 @@ const inscripcionesFiltradas = computed(() => {
             }"
           />
 
-          <!-- Contenido -->
-          <div class="pl-2 flex flex-col gap-3 h-full justify-between">
+          <div class="bg-white rounded-[24px] overflow-hidden flex flex-col flex-1 h-full pl-3.5 pr-5 py-5 md:py-6 gap-4">
             
-            <!-- Info Principal -->
-            <div class="space-y-3 min-w-0">
-              <div class="flex items-start justify-between gap-4 w-full">
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/40">
-                    <DisciplineIcon :name="inscripcion.disciplina" class="w-5 h-5 fill-current" />
+            <!-- Contenido -->
+            <div class="flex flex-col gap-4 h-full justify-between">
+              
+              <!-- Info Principal -->
+              <div class="space-y-3.5 min-w-0">
+                <div class="flex items-start justify-between gap-4 w-full">
+                  <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div class="w-8.5 h-8.5 rounded-xl bg-blue-50/60 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/30">
+                      <DisciplineIcon :name="inscripcion.disciplina" class="w-5 h-5 fill-current" />
+                    </div>
+                    <h3 class="text-base md:text-lg font-bold text-slate-800 m-0 truncate">
+                      {{ inscripcion.nombre_actividad }}
+                    </h3>
                   </div>
-                  <h3 class="text-base md:text-lg font-bold text-slate-800 m-0 truncate">
-                    {{ inscripcion.nombre_actividad }}
-                  </h3>
+                  
+                  <!-- Estatus Badge -->
+                  <span
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-extrabold border tracking-wider uppercase shrink-0"
+                    :class="[getBadge(inscripcion.estatus_inscripcion).bg, getBadge(inscripcion.estatus_inscripcion).text]"
+                  >
+                    <span v-if="inscripcion.estatus_inscripcion === 'CONFIRMADA'" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span v-else-if="['PENDIENTE', 'LISTA'].includes(inscripcion.estatus_inscripcion)" class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0"></span>
+                    <span v-else-if="inscripcion.estatus_inscripcion === 'ESPERA'" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                    {{ getBadge(inscripcion.estatus_inscripcion).label }}
+                  </span>
                 </div>
-                
-                <!-- Estatus Badge -->
-                <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold border tracking-wide uppercase shrink-0"
-                  :class="[getBadge(inscripcion.estatus_inscripcion).bg, getBadge(inscripcion.estatus_inscripcion).text]"
-                >
-                  <span v-if="inscripcion.estatus_inscripcion === 'CONFIRMADA'" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                  <span v-else-if="['PENDIENTE', 'LISTA'].includes(inscripcion.estatus_inscripcion)" class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0"></span>
-                  <span v-else-if="inscripcion.estatus_inscripcion === 'ESPERA'" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-                  {{ getBadge(inscripcion.estatus_inscripcion).label }}
-                </span>
+
+                <!-- Badges de tipo de clase y participante -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <!-- Badge Abierta/Cerrada -->
+                  <span 
+                    class="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
+                    :class="inscripcion.tipo_clase === 'Cerrada'
+                      ? 'bg-violet-50 border-violet-200 text-violet-850'
+                      : 'bg-teal-50 border-teal-200 text-teal-850'"
+                  >
+                    {{ inscripcion.tipo_clase }}
+                  </span>
+
+                  <!-- Badge Participante si no es el socio principal -->
+                  <span 
+                    v-if="inscripcion.tipo_usuario === 'miembro_familiar' && inscripcion.familiar"
+                    class="text-[9px] font-black uppercase px-2 py-0.5 rounded border bg-blue-50 border-blue-200 text-blue-800"
+                  >
+                    Familiar: {{ inscripcion.familiar.nombre }}
+                  </span>
+                  <span 
+                    v-else-if="inscripcion.tipo_usuario === 'invitado' && inscripcion.invitado"
+                    class="text-[9px] font-black uppercase px-2 py-0.5 rounded border bg-indigo-50 border-indigo-200 text-indigo-800"
+                  >
+                    Invitado: {{ inscripcion.invitado.nombre }}
+                  </span>
+                </div>
+
+                <!-- Info con cajas de iconos premium -->
+                <div class="flex flex-col gap-2 min-w-0 pt-1.5">
+                  <!-- Fecha -->
+                  <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                    <div class="w-7.5 h-7.5 rounded-lg bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                      <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fecha</span>
+                      <span class="text-xs font-bold text-slate-800 truncate">{{ formatFecha(inscripcion.fecha_sesion) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Hora -->
+                  <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                    <div class="w-7.5 h-7.5 rounded-lg bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                      <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Horario</span>
+                      <span class="text-xs font-bold text-slate-800 truncate tabular-nums">{{ inscripcion.hora_inicio }} – {{ inscripcion.hora_fin }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Espacio -->
+                  <div v-if="inscripcion.espacio" class="flex items-center gap-3 text-slate-700 min-w-0">
+                    <div class="w-7.5 h-7.5 rounded-lg bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Espacio</span>
+                      <span class="text-xs font-semibold text-slate-650 truncate">{{ inscripcion.espacio }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Instructor -->
+                  <div v-if="inscripcion.instructor" class="flex items-center gap-3 text-slate-700 min-w-0">
+                    <div class="w-7.5 h-7.5 rounded-lg bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                      <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Instructor</span>
+                      <span class="text-xs font-semibold text-slate-655 truncate">{{ inscripcion.instructor }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Badges de tipo de clase y participante -->
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <!-- Badge Abierta/Cerrada -->
-                <span 
-                  class="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
-                  :class="inscripcion.tipo_clase === 'Cerrada'
-                    ? 'bg-violet-50 border-violet-200 text-violet-850'
-                    : 'bg-teal-50 border-teal-200 text-teal-850'"
+              <!-- Estatus & Acciones en el pie de tarjeta -->
+              <div class="flex items-center justify-end gap-2 shrink-0 border-t border-slate-100 pt-3">
+                <!-- Botón X: Cancelar inscripción -->
+                <button
+                  v-if="cancelables.includes(inscripcion.estatus_inscripcion)"
+                  :id="`btn-cancelar-inscripcion-${inscripcion.id_inscripcion}`"
+                  @click="selectedSesionCancelacion = inscripcion"
+                  class="w-9 h-9 bg-red-50 hover:bg-red-550 text-red-500 hover:text-white rounded-xl flex items-center justify-center transition-all shadow-sm focus:outline-none shrink-0 cursor-pointer border-none"
+                  title="Cancelar cupo"
                 >
-                  {{ inscripcion.tipo_clase }}
-                </span>
+                  <svg class="w-4.5 h-4.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
 
-                <!-- Badge Participante si no es el socio principal -->
-                <span 
-                  v-if="inscripcion.tipo_usuario === 'miembro_familiar' && inscripcion.familiar"
-                  class="text-[9px] font-black uppercase px-2 py-0.5 rounded border bg-blue-50 border-blue-200 text-blue-800"
+                <!-- Botón Ver Inscritos (Lectura de Participantes) -->
+                <button
+                  @click="selectedSesionVerInscritos = inscripcion"
+                  class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm focus:outline-none cursor-pointer border-none"
+                  title="Ver personas inscritas"
                 >
-                  Familiar: {{ inscripcion.familiar.nombre }}
-                </span>
-                <span 
-                  v-else-if="inscripcion.tipo_usuario === 'invitado' && inscripcion.invitado"
-                  class="text-[9px] font-black uppercase px-2 py-0.5 rounded border bg-indigo-50 border-indigo-200 text-indigo-800"
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                      class="w-4.5 h-4.5" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="11" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </button>
+
+                <!-- Botón Ver Detalles (Copiado de Reservaciones) -->
+                <button
+                  @click="openDetails(inscripcion)"
+                  class="w-9 h-9 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-600 hover:text-white transition-all shadow-sm focus:outline-none cursor-pointer border-none"
+                  title="Ver detalles de la clase"
                 >
-                  Invitado: {{ inscripcion.invitado.nombre }}
-                </span>
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                      class="w-4 h-4" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <path d="M14 2v6h6" />
+                      <path d="M16 13H8" />
+                      <path d="M16 17H8" />
+                      <path d="M10 9H8" />
+                  </svg>
+                </button>
               </div>
-
-              <!-- Grid de Info con íconos premium envueltos (igual que reservas) -->
-              <div class="flex flex-col gap-2 min-w-0 pt-1">
-                <!-- Fecha -->
-                <div class="flex items-center gap-2.5 text-sm font-semibold text-slate-600">
-                  <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100/40">
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <span class="truncate">{{ formatFecha(inscripcion.fecha_sesion) }}</span>
-                </div>
-
-                <!-- Hora -->
-                <div class="flex items-center gap-2.5 text-sm font-semibold text-slate-600">
-                  <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100/40">
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                  </div>
-                  <span class="truncate tabular-nums">{{ inscripcion.hora_inicio }} – {{ inscripcion.hora_fin }}</span>
-                </div>
-
-                <!-- Espacio -->
-                <div v-if="inscripcion.espacio" class="flex items-center gap-2.5 text-sm font-semibold text-slate-600">
-                  <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100/40">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </div>
-                  <span class="truncate">{{ inscripcion.espacio }}</span>
-                </div>
-
-                <!-- Instructor -->
-                <div v-if="inscripcion.instructor" class="flex items-center gap-2.5 text-sm font-semibold text-slate-600">
-                  <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100/40">
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <span class="truncate text-xs font-semibold">{{ inscripcion.instructor }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Estatus & Acciones -->
-            <div class="flex items-center justify-end gap-2 shrink-0 border-t border-slate-100 pt-3">
-              <!-- Botón X: Cancelar inscripción -->
-              <button
-                v-if="cancelables.includes(inscripcion.estatus_inscripcion)"
-                :id="`btn-cancelar-inscripcion-${inscripcion.id_inscripcion}`"
-                @click="selectedSesionCancelacion = inscripcion"
-                class="w-9 h-9 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm focus:outline-none shrink-0 cursor-pointer"
-                title="Cancelar cupo"
-              >
-                <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              <!-- Botón Ver Inscritos (Lectura de Participantes) -->
-              <button
-                @click="selectedSesionVerInscritos = inscripcion"
-                class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm focus:outline-none cursor-pointer"
-                title="Ver personas inscritas"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-4.5 h-4.5" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="11" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </button>
-
-              <!-- Botón Ver Detalles (Copiado de Reservaciones) -->
-              <button
-                @click="openDetails(inscripcion)"
-                class="w-9 h-9 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-600 hover:text-white transition-all shadow-sm focus:outline-none cursor-pointer"
-                title="Ver detalles de la clase"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-4 h-4" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <path d="M14 2v6h6" />
-                    <path d="M16 13H8" />
-                    <path d="M16 17H8" />
-                    <path d="M10 9H8" />
-                </svg>
-              </button>
-            </div>
             </div>
           </div>
         </div>
+      </div>
 
 
     <!-- MODAL DE DETALLES -->

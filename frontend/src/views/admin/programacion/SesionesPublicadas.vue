@@ -302,12 +302,12 @@ defineExpose({ fetchSesiones })
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-slate-50 font-sans min-h-0 relative">
+  <div class="flex flex-col h-full bg-slate-50/40 font-sans min-h-0 relative">
 
     <!-- ══════════ HEADER ══════════ -->
     <div
       v-if="isLoading || loadError || plantillaEncontrada === true"
-      class="px-6 py-4 bg-white border-b border-slate-200 shrink-0 shadow-sm"
+      class="px-6 py-4 bg-slate-50/40 border-b border-slate-200/50 shrink-0 shadow-xs"
     >
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -329,13 +329,13 @@ defineExpose({ fetchSesiones })
           </button>
 
           <!-- Switcher Tabla / Calendario -->
-          <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-slate-200">
+          <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
             <button
               @click="activeView = 'tabla'"
-              class="py-1.5 px-4 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all"
+              class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97]"
               :class="activeView === 'tabla'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'"
+                ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]'
+                : 'text-surface-500 hover:bg-white hover:text-surface-700'"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -344,10 +344,10 @@ defineExpose({ fetchSesiones })
             </button>
             <button
               @click="activeView = 'calendario'"
-              class="py-1.5 px-4 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all"
+              class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97]"
               :class="activeView === 'calendario'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'"
+                ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]'
+                : 'text-surface-500 hover:bg-white hover:text-surface-700'"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" />
@@ -421,7 +421,7 @@ defineExpose({ fetchSesiones })
         >
 
           <!-- ── BARRA DE FILTROS ── -->
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-2.5 shrink-0 border-t-2 border-t-slate-900">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-2.5 shrink-0">
 
             <!-- Fila 1: Buscador + Disciplina (alineados al fondo del label) -->
             <div class="flex items-end gap-2.5">
@@ -563,22 +563,19 @@ defineExpose({ fetchSesiones })
 
           <div v-else class="flex-1 overflow-hidden flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm relative">
             <div class="flex-1 table-scroll">
-              <table class="w-full border-collapse text-left min-w-[1350px]">
+              <table class="w-full border-collapse text-left min-w-[1000px]">
                 <thead>
-                  <tr class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
-                    <th class="py-3.5 px-5 font-extrabold">ID</th>
-                    <th class="py-3.5 px-4 text-center font-extrabold">Estatus</th>
-                    <th class="py-3.5 px-4 text-center font-extrabold">Tipo</th>
-                    <th class="py-3.5 px-4 font-extrabold">Fecha</th>
-                    <th class="py-3.5 px-4 font-extrabold">Disciplina</th>
-                    <th class="py-3.5 px-4 font-extrabold">Categoría</th>
+                  <tr class="bg-slate-950 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+                    <th class="py-3.5 px-4 font-extrabold">ID</th>
+                    <th class="py-3.5 px-3 text-center font-extrabold">Estatus</th>
+                    <th class="py-3.5 px-3 text-center font-extrabold">Tipo</th>
+                    <th class="py-3.5 px-4 font-extrabold">Fecha / Día</th>
+                    <th class="py-3.5 px-4 font-extrabold">Disciplina / Categoría</th>
                     <th class="py-3.5 px-4 font-extrabold">Instructor</th>
                     <th class="py-3.5 px-4 font-extrabold">Espacio</th>
-                    <th class="py-3.5 px-4 text-center font-extrabold">Día</th>
-                    <th class="py-3.5 px-4 text-center font-extrabold">Hora Inicio</th>
-                    <th class="py-3.5 px-4 text-center font-extrabold">Hora Fin</th>
-                    <th class="py-3.5 px-4 text-center font-extrabold">Inscritos</th>
-                    <th class="py-3.5 px-5 text-right font-extrabold">Acción</th>
+                    <th class="py-3.5 px-4 text-center font-extrabold">Horario</th>
+                    <th class="py-3.5 px-3 text-center font-extrabold">Inscritos</th>
+                    <th class="py-3.5 px-4 text-right font-extrabold">Acción</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
@@ -588,9 +585,9 @@ defineExpose({ fetchSesiones })
                     class="hover:bg-slate-50/60 transition-colors"
                     :class="s.estatus_sesion === 'CANCELADA' ? 'bg-red-50/20' : ''"
                   >
-                    <td class="py-3.5 px-5 font-mono font-bold text-slate-400">#{{ s.id_sesion }}</td>
+                    <td class="py-3.5 px-4 font-mono font-bold text-slate-400">#{{ s.id_sesion }}</td>
 
-                    <td class="py-3.5 px-4 text-center">
+                    <td class="py-3.5 px-3 text-center">
                       <span
                         class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
                         :class="ESTATUS_COLORS[s.estatus_sesion] ?? 'bg-slate-50 text-slate-600 border-slate-200'"
@@ -599,7 +596,7 @@ defineExpose({ fetchSesiones })
                       </span>
                     </td>
 
-                    <td class="py-3.5 px-4 text-center">
+                    <td class="py-3.5 px-3 text-center">
                       <span
                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
                         :class="s.requiere_inscripcion
@@ -612,14 +609,23 @@ defineExpose({ fetchSesiones })
                       </span>
                     </td>
 
-                    <td class="py-3.5 px-4 text-slate-500 font-medium tabular-nums">{{ formatDate(s.fecha_sesion) }}</td>
-
-                    <td class="py-3.5 px-4 text-slate-800 font-extrabold">{{ s.disciplina ?? '—' }}</td>
-
+                    <!-- COMBINED: FECHA + DÍA -->
                     <td class="py-3.5 px-4">
+                      <span class="text-slate-700 font-bold block tabular-nums leading-tight">{{ formatDate(s.fecha_sesion) }}</span>
+                      <span
+                        class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-extrabold border uppercase tracking-wider mt-1"
+                        :class="DIAS_COLORS[s.dia_semana] ?? 'bg-slate-50 text-slate-600 border-slate-200'"
+                      >
+                        {{ DIAS_LABEL[s.dia_semana] ?? s.dia_semana }}
+                      </span>
+                    </td>
+
+                    <!-- COMBINED: DISCIPLINA + CATEGORÍA -->
+                    <td class="py-3.5 px-4">
+                      <span class="text-slate-800 font-extrabold block leading-tight">{{ s.disciplina ?? '—' }}</span>
                       <span
                         v-if="s.categoria"
-                        class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border tracking-wide"
+                        class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border tracking-wide uppercase mt-1"
                         :class="categoriaColor(s.categoria)"
                       >
                         {{ formatCategoria(s.categoria) }}
@@ -627,31 +633,27 @@ defineExpose({ fetchSesiones })
                       <span v-else class="text-slate-300 text-[10px] font-bold">—</span>
                     </td>
 
-                    <td class="py-3.5 px-4 text-slate-600 font-bold">{{ s.instructor ?? '—' }}</td>
-                    <td class="py-3.5 px-4 text-slate-500 font-medium">{{ s.espacio ?? '—' }}</td>
+                    <td class="py-3.5 px-4 text-slate-600 font-bold leading-tight">{{ s.instructor ?? '—' }}</td>
 
-                    <td class="py-3.5 px-4 text-center">
-                      <span
-                        class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border"
-                        :class="DIAS_COLORS[s.dia_semana] ?? 'bg-slate-50 text-slate-600 border-slate-200'"
-                      >
-                        {{ DIAS_LABEL[s.dia_semana] ?? s.dia_semana }}
-                      </span>
+                    <td class="py-3.5 px-4 text-slate-500 font-semibold leading-tight max-w-[200px] truncate" :title="s.espacio">
+                      {{ s.espacio ?? '—' }}
                     </td>
 
-                    <td class="py-3.5 px-4 text-center tabular-nums text-slate-700 font-bold">{{ (s.hora_inicio ?? '').slice(0,5) }}</td>
-                    <td class="py-3.5 px-4 text-center tabular-nums text-slate-700 font-bold">{{ (s.hora_fin ?? '').slice(0,5) }}</td>
+                    <!-- COMBINED: HORA INICIO + HORA FIN -->
+                    <td class="py-3.5 px-4 text-center tabular-nums text-slate-700 font-black whitespace-nowrap">
+                      {{ (s.hora_inicio ?? '').slice(0,5) }} - {{ (s.hora_fin ?? '').slice(0,5) }}
+                    </td>
 
-                    <td class="py-3.5 px-4 text-center">
-                      <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-extrabold tabular-nums">
+                    <td class="py-3.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-extrabold tabular-nums">
                         {{ s.cantidad_inscritos ?? 0 }}
                       </span>
                     </td>
 
-                    <td class="py-3.5 px-5 text-right">
+                    <td class="py-3.5 px-4 text-right">
                       <button
                         @click="abrirDetalle(s)"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-extrabold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-black text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-95 cursor-pointer"
                       >
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />

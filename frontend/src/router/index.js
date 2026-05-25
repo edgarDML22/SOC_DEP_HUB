@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useAlerts } from '@/composables/useAlerts'
+import { ref } from 'vue'
+
+export const isRouteLoading = ref(false)
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -484,16 +487,19 @@ const router = createRouter({
 
 // Global Navigation Guard
 router.beforeEach(async (to, from, next) => {
+  isRouteLoading.value = true
   const token = localStorage.getItem("auth_token");
   const userData = JSON.parse(localStorage.getItem("user_data"));
 
   // 1. Si la ruta a la que quiere ir requiere autenticación
   if (to.meta.requiresAuth) {
     if (!token || !userData) {
+      isRouteLoading.value = false
       return next("/login");
     }
 
     if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userData.rol)) {
+      isRouteLoading.value = false
       switch (userData.rol) {
         case "gerente":
         case "subgerente":
@@ -511,6 +517,7 @@ router.beforeEach(async (to, from, next) => {
 
   // 2. Si ya está logueado y quiere ir al login, lo redirigimos a su dashboard correspondiente
   if (to.path === "/login" && token && userData) {
+    isRouteLoading.value = false
     switch (userData.rol) {
       case "gerente":
       case "subgerente":
@@ -539,11 +546,18 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (profileStore.profileData?.estatus_cuenta === 'SUSPENDIDO') {
+      isRouteLoading.value = false
       return next({ name: 'account-suspended' });
     }
   }
 
   next();
 });
+
+router.afterEach(() => {
+  setTimeout(() => {
+    isRouteLoading.value = false
+  }, 250)
+})
 
 export default router;

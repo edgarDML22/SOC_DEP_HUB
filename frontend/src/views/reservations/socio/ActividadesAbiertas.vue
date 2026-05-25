@@ -293,98 +293,127 @@ function formatFecha(f) {
         <div
           v-for="sesion in store.sesionesTipoAbierta"
           :key="sesion.id_sesion"
-          class="bg-white rounded-3xl border border-surface-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col group"
+          class="p-1 bg-slate-100/70 border border-slate-200/50 rounded-[28px] shadow-sm hover:shadow-xl hover:border-blue-200/60 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 group/card flex flex-col h-full"
         >
-          <!-- Header (franja superior de color) -->
-          <div class="px-5 py-3.5 flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-700">
-            <h3 class="text-white font-bold text-sm tracking-wide truncate m-0" :title="sesion.nombre_actividad">
-              {{ sesion.nombre_actividad }}
-            </h3>
-            <div class="flex items-center gap-2">
-              <span v-if="esSocioInscrito(sesion.id_sesion)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-wider">
-                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0"></span>
-                Tú inscrito
-              </span>
-            </div>
-          </div>
-
-          <!-- Body -->
-          <div class="px-5 py-4 flex-1 flex flex-col justify-between space-y-3">
-            <div class="space-y-3">
-              <!-- Fecha -->
-              <div class="flex items-center gap-2 text-surface-600">
-                <svg class="w-4 h-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span class="text-sm font-semibold">{{ formatFecha(sesion.fecha_sesion) }}</span>
-              </div>
-
-              <!-- Horario -->
-              <div class="flex items-center gap-2 text-surface-600">
-                <svg class="w-4 h-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span class="text-sm font-semibold tabular-nums">{{ sesion.hora_inicio }} – {{ sesion.hora_fin }}</span>
-              </div>
-
-              <!-- Instructor -->
-              <div v-if="sesion.instructor?.nombre" class="flex items-center gap-2 text-surface-600">
-                <svg class="w-4 h-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span class="text-sm font-medium text-surface-500 truncate" :title="sesion.instructor.nombre">{{ sesion.instructor.nombre }}</span>
-              </div>
-
-              <!-- Espacio -->
-              <div v-if="sesion.espacio" class="flex items-center gap-2 text-surface-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <span class="text-sm font-medium text-surface-500 truncate" :title="sesion.espacio">{{ sesion.espacio }}</span>
-              </div>
-
-              <!-- Fila de inscritos -->
-              <div class="flex items-center gap-2 text-surface-600">
-                <svg class="w-4 h-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span class="text-xs font-semibold text-surface-500">
-                  {{ sesion.cantidad_inscritos }} inscritos <span class="bg-blue-50 border border-blue-150 px-1.5 py-0.5 rounded text-[9px] font-black uppercase text-blue-700 ml-1">Sin límite de cupo</span>
+          <div class="bg-white rounded-[24px] overflow-hidden flex flex-col flex-1 h-full">
+            <!-- Header (franja superior de color) -->
+            <div class="px-5 py-4 flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-750 relative overflow-hidden shrink-0">
+              <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000 ease-out pointer-events-none" />
+              <h3 class="text-white font-extrabold text-sm tracking-wide truncate m-0 relative z-10" :title="sesion.nombre_actividad">
+                {{ sesion.nombre_actividad }}
+              </h3>
+              <div class="flex items-center gap-2 relative z-10">
+                <span v-if="esSocioInscrito(sesion.id_sesion)" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest border border-white/10 shadow-2xs">
+                  <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0"></span>
+                  Tú inscrito
                 </span>
               </div>
             </div>
 
-            <!-- Footer (botón de acción) -->
-            <div class="pt-2">
-              <!-- Ya inscrito -->
-              <div
-                v-if="isSesionCompletamenteInscrita(sesion.id_sesion)"
-                class="w-full flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-4 py-2.5 text-sm font-bold shadow-inner"
-              >
-                <svg class="w-4.5 h-4.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Inscrito
+            <!-- Body -->
+            <div class="px-5 py-4 flex-1 flex flex-col justify-between space-y-4">
+              <div class="space-y-3.5">
+                <!-- Fecha -->
+                <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Fecha</span>
+                    <span class="text-xs font-bold text-slate-800 truncate">{{ formatFecha(sesion.fecha_sesion) }}</span>
+                  </div>
+                </div>
+
+                <!-- Horario -->
+                <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Horario</span>
+                    <span class="text-xs font-bold text-slate-800 truncate tabular-nums">{{ sesion.hora_inicio }} – {{ sesion.hora_fin }}</span>
+                  </div>
+                </div>
+
+                <!-- Instructor -->
+                <div v-if="sesion.instructor?.nombre" class="flex items-center gap-3 text-slate-700 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Instructor</span>
+                    <span class="text-xs font-semibold text-slate-650 truncate" :title="sesion.instructor.nombre">{{ sesion.instructor.nombre }}</span>
+                  </div>
+                </div>
+
+                <!-- Espacio -->
+                <div v-if="sesion.espacio" class="flex items-center gap-3 text-slate-700 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Espacio</span>
+                    <span class="text-xs font-semibold text-slate-600 truncate" :title="sesion.espacio">{{ sesion.espacio }}</span>
+                  </div>
+                </div>
+
+                <!-- Fila de inscritos -->
+                <div class="flex items-center gap-3 text-slate-700 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-blue-50/60 border border-blue-100/30 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-0.5">Cupo</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-xs font-bold text-slate-800">{{ sesion.cantidad_inscritos }} inscritos</span>
+                      <span class="bg-blue-50 border border-blue-150 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-blue-700 leading-none">Sin límite</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Botón inscribirse (Verde esmeralda/teal de alto contraste) -->
-              <button
-                v-else
-                :id="`btn-inscribir-${sesion.id_sesion}`"
-                @click="abrirModalInscripcion(sesion)"
-                :disabled="store.loadingAccion"
-                class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl px-4 py-2.5 text-sm font-bold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm border border-emerald-700 focus:outline-none cursor-pointer"
-              >
-                <svg v-if="store.loadingAccion" class="animate-spin w-4.5 h-4.5" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                <svg v-else class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Inscribirse
-              </button>
+              <!-- Footer (botón de acción) -->
+              <div class="pt-3 border-t border-slate-100">
+                <!-- Ya inscrito -->
+                <div
+                  v-if="isSesionCompletamenteInscrita(sesion.id_sesion)"
+                  class="w-full flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-250 text-emerald-700 rounded-xl px-4 py-2.5 text-xs font-bold shadow-inner"
+                >
+                  <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Inscrito
+                </div>
+
+                <!-- Botón inscribirse -->
+                <button
+                  v-else
+                  :id="`btn-inscribir-${sesion.id_sesion}`"
+                  @click="abrirModalInscripcion(sesion)"
+                  :disabled="store.loadingAccion"
+                  class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-500 hover:to-teal-550 text-white rounded-xl px-4 py-2.5 text-xs font-bold border border-emerald-700 shadow-md hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer focus:outline-none"
+                >
+                  <svg v-if="store.loadingAccion" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Inscribirse
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -478,7 +507,7 @@ function formatFecha(f) {
                   >
                     <div class="flex items-center gap-3">
                       <div class="w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs font-bold uppercase shrink-0 font-sans"
-                           :class="isSelected('titular', 'titular') && !esSocioInscrito(selectedSesionInscripcion.id_sesion) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-650'">
+                           :class="isSelected('titular', 'titular') && !esSocioInscrito(selectedSesionInscripcion.id_sesion) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'">
                         Yo
                       </div>
                       <div>
@@ -523,7 +552,7 @@ function formatFecha(f) {
                   >
                     <div class="flex items-center gap-3">
                       <div class="w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs font-bold uppercase shrink-0"
-                           :class="isSelected(familiar.id_miembro, 'familiar') && !esFamiliarInscrito(selectedSesionInscripcion.id_sesion, familiar.id_miembro) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-650'">
+                           :class="isSelected(familiar.id_miembro, 'familiar') && !esFamiliarInscrito(selectedSesionInscripcion.id_sesion, familiar.id_miembro) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'">
                         {{ familiar.nombre_completo?.charAt(0) || 'F' }}
                       </div>
                       <div>
@@ -568,7 +597,7 @@ function formatFecha(f) {
                   >
                     <div class="flex items-center gap-3">
                       <div class="w-8.5 h-8.5 rounded-full flex items-center justify-center text-xs font-bold uppercase shrink-0"
-                           :class="isSelected(g.id_pase, 'invitado') && !esInvitadoInscrito(selectedSesionInscripcion.id_sesion, g.id_pase) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-650'">
+                           :class="isSelected(g.id_pase, 'invitado') && !esInvitadoInscrito(selectedSesionInscripcion.id_sesion, g.id_pase) ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'">
                         {{ g.nombre?.charAt(0) || 'I' }}
                       </div>
                       <div>

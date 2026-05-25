@@ -267,8 +267,8 @@ onMounted(() => {
           </svg>
           Categorías
         </button>
-        <button @click="openNewModal" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
-                 text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+        <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="16" />
@@ -438,7 +438,7 @@ onMounted(() => {
                     <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
                       class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                              text-surface-900 placeholder:text-surface-400 shadow-sm
-                             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                             focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
                   </div>
                 </div>
 
@@ -469,7 +469,7 @@ onMounted(() => {
                     </label>
                     <div class="relative">
                       <select v-model="newDiscipline.categorias_ids[0]"
-                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer shadow-xs">
+                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
                         <option :value="null">Seleccionar…</option>
                         <option v-for="c in categories" :key="c.id_categoria" :value="c.id_categoria">{{ formatText(c.nombre) }}</option>
                       </select>
@@ -480,7 +480,7 @@ onMounted(() => {
                     <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
                     <div class="relative">
                       <select v-model="newDiscipline.estatus"
-                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer shadow-xs">
+                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
                         <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                       </select>
                       <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />

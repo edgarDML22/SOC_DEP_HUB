@@ -523,7 +523,7 @@ defineExpose({ openCreate })
                   v-model="createForm.nombre_plantilla"
                   type="text"
                   placeholder="Ej. Programación Base 2026-II"
-                  class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
+                  class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
                   :class="createErrors.nombre_plantilla ? 'border-red-400' : ''"
                 />
                 <p v-if="createErrors.nombre_plantilla" class="text-red-500 text-xs mt-1 font-medium">{{ createErrors.nombre_plantilla }}</p>
@@ -536,7 +536,7 @@ defineExpose({ openCreate })
                   <input
                     v-model="createForm.fecha_inicio"
                     type="date"
-                    class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
+                    class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
                     :class="createErrors.fecha_inicio ? 'border-red-400' : ''"
                   />
                   <p v-if="createErrors.fecha_inicio" class="text-red-500 text-xs mt-1 font-medium">{{ createErrors.fecha_inicio }}</p>
@@ -547,7 +547,7 @@ defineExpose({ openCreate })
                     v-model="createForm.fecha_fin"
                     type="date"
                     :min="createForm.fecha_inicio || undefined"
-                    class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
+                    class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
                     :class="createErrors.fecha_fin ? 'border-red-400' : ''"
                   />
                   <p v-if="createErrors.fecha_fin" class="text-red-500 text-xs mt-1 font-medium">{{ createErrors.fecha_fin }}</p>
@@ -649,7 +649,7 @@ defineExpose({ openCreate })
                   v-model="editForm.nombre_plantilla"
                   type="text"
                   placeholder="Ej. Programación Base 2026"
-                  class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
+                  class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
                 />
                 <p v-if="editErrors.nombre_plantilla" class="text-red-500 text-xs mt-1 font-medium">{{ editErrors.nombre_plantilla }}</p>
               </div>

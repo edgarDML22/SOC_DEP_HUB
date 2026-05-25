@@ -223,12 +223,12 @@ const getIcon = (name) => {
                                     <div class="space-y-6 col-span-1 md:col-span-2">
                                         <div class="space-y-1.5">
                                             <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Nombre</label>
-                                            <input v-model="editForm.nombre_espacio" type="text" class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none">
+                                            <input v-model="editForm.nombre_espacio" type="text" class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                                         </div>
                                         <div class="grid grid-cols-2 gap-6">
                                             <div class="space-y-1.5">
                                                 <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Capacidad</label>
-                                                <input v-model="editForm.capacidad_maxima" type="number" class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none">
+                                                <input v-model="editForm.capacidad_maxima" type="number" class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                                             </div>
                                         </div>
                                         <div class="space-y-2">
@@ -262,7 +262,7 @@ const getIcon = (name) => {
                                         </div>
                                         <div class="space-y-1.5">
                                             <label class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Descripción</label>
-                                            <textarea v-model="editForm.descripcion" rows="4" class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none resize-none"></textarea>
+                                            <textarea v-model="editForm.descripcion" rows="4" class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all resize-none"></textarea>
                                         </div>
                                     </div>
                                 </div>
