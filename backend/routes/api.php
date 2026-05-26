@@ -293,8 +293,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
     Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
     Route::get('/v1/instructor/mi-agenda', [InstructorAgendaController::class, 'miAgenda']);
-    // US-32: Hub QR — datos del día para el instructor (sesiones + reservaciones + encuentros)
+    // US-32/33: Hub QR — datos del día y pase de lista
     Route::get('/v1/instructor/datos-hoy', [SesionInstructorController::class, 'datosHoy']);
+    Route::get('/v1/instructor/sesiones/{idSesion}/lista-inscriptos', [SesionInstructorController::class, 'listaInscriptos']);
+    Route::post('/v1/instructor/sesiones/{idSesion}/confirmar-asistencia', [SesionInstructorController::class, 'confirmarAsistencia']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);

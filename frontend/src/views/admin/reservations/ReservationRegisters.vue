@@ -49,7 +49,7 @@ const clearFilters = () => {
 const statusOrder = {
     'ACTIVA': 1,
     'PENDIENTE': 2,
-    'FINALIZADA': 3,
+    'COMPLETADA': 3,
     'CANCELADA': 4,
     'NO_SHOW': 5
 }
@@ -157,7 +157,7 @@ const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
         case 'ACTIVA': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
         case 'PENDIENTE': return 'bg-amber-50 text-amber-700 border-amber-200'
-        case 'FINALIZADA': return 'bg-blue-50 text-blue-700 border-blue-200'
+        case 'COMPLETADA': return 'bg-primary-50 text-primary-700 border-primary-200'
         case 'CANCELADA': return 'bg-red-50 text-red-700 border-red-200'
         case 'NO_SHOW': return 'bg-slate-100 text-slate-500 border-slate-200'
         default: return 'bg-slate-100 text-slate-500 border-slate-200'
@@ -183,7 +183,7 @@ const getStatusLabel = (status) => {
     const labels = {
         'ACTIVA': 'Activa',
         'PENDIENTE': 'Pendiente',
-        'FINALIZADA': 'Finalizada',
+        'COMPLETADA': 'Completada',
         'CANCELADA': 'Cancelada',
         'NO_SHOW': 'No Show',
     }

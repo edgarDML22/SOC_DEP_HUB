@@ -96,8 +96,8 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- MODO LUDOTECA -->
-        <div v-if="profileStore.isCuidador" class="animate-fade-in space-y-6">
+        <!-- MODO LUDOTECA — solo si hay turno asignado hoy -->
+        <div v-if="profileStore.tieneTurnoLudotecaHoy" class="animate-fade-in space-y-6">
           <div class="bg-linear-to-br from-primary-800 to-primary-600 text-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 relative overflow-hidden shadow-xl shadow-primary-700/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -135,7 +135,7 @@ onMounted(async () => {
         </div>
 
         <template v-else>
-          <!-- SECCIÓN 2: BANNER PRÓXIMA ACTIVIDAD (All-in-one) -->
+          <!-- SECCIÓN 2: BANNER PRÓXIMA ACTIVIDAD — visible cuando no hay turno de Ludoteca hoy -->
           <div class="bg-linear-to-br from-primary-800 to-primary-600 text-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 relative overflow-hidden shadow-xl shadow-primary-700/20 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all hover:shadow-2xl hover:shadow-primary-700/30 animate-fade-in">
             <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>

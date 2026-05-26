@@ -11,7 +11,7 @@ export const useScannerStore = defineStore('scanner', () => {
     // Estado de navegación
     // Flujo completo:
     //   MENU → LIST_CLASES / LIST_RESERVACIONES / LIST_TORNEO
-    //        → SELECCION_METODO → ESCANER_ACTIVO → OUTPUT
+    //        → SELECCION_METODO → ESCANER_ACTIVO → OUTPUT | PASE_LISTA
     // -------------------------------------------------------------------------
     const paso              = ref('MENU')
     const categoriaActiva   = ref(null)   // 'CLASES' | 'RESERVACIONES' | 'TORNEO'
@@ -30,11 +30,19 @@ export const useScannerStore = defineStore('scanner', () => {
 
     const reservacionesHoy  = ref([])
     const reservacionesLoading = ref(false)
-    const hayReservaciones  = ref(false)   // se resuelve en el fetch
+    const hayReservaciones  = ref(false)
 
     const encuentrosHoy     = ref([])
     const encuentrosLoading = ref(false)
-    const hayEncuentros     = ref(false)   // se resuelve en el fetch
+    const hayEncuentros     = ref(false)
+
+    // ---- US-33: Pase de lista -----------------------------------------------
+    const listaInscritos    = ref([])   // precargada para clases cerradas
+    const listaLoading      = ref(false)
+    const aforoLleno        = ref(false)
+    const listaConfirmada   = ref(false)
+    // Set local para deduplicación sin request HTTP
+    const codigosYaVistos   = ref(new Set())
 
     // -------------------------------------------------------------------------
     // Getters
@@ -42,15 +50,41 @@ export const useScannerStore = defineStore('scanner', () => {
     const esCategoriaClases   = computed(() => categoriaActiva.value === 'CLASES')
     const esCategoriaReservas = computed(() => categoriaActiva.value === 'RESERVACIONES')
     const esCategoriaTorneo   = computed(() => categoriaActiva.value === 'TORNEO')
+
+    // Tipo e ID de actividad normalizados para el payload del backend
+    const tipoActividadActual = computed(() => {
+        if (esCategoriaClases.value)   return 'sesion'
+        if (esCategoriaReservas.value) return 'reserva'
+        if (esCategoriaTorneo.value)   return 'torneo'
+        return null
+    })
+    const idActividadActual = computed(() => {
+        if (esCategoriaClases.value)   return sesionActivaId.value
+        if (esCategoriaReservas.value) return reservaActivaId.value
+        if (esCategoriaTorneo.value)   return encuentroActivoId.value
+        return null
+    })
     const haySesionesHoy      = computed(() => sesionesHoy.value.length > 0)
 
-    // Contexto legible de la reserva seleccionada (para el header del escáner)
+    const sesionActiva = computed(() =>
+        sesionesHoy.value.find(s => s.id_sesion === sesionActivaId.value) ?? null
+    )
+
+    const esSesionCerrada = computed(() => sesionActiva.value?.requiere_inscripcion === true)
+
     const reservaActiva = computed(() =>
         reservacionesHoy.value.find(r => r.id_reserva === reservaActivaId.value) ?? null
     )
     const encuentroActivo = computed(() =>
         encuentrosHoy.value.find(e => e.id_encuentro === encuentroActivoId.value) ?? null
     )
+
+    const totalRegistrados = computed(() => {
+        if (esSesionCerrada.value) {
+            return listaInscritos.value.filter(i => i.estatus_asistencia === 'PRESENTE').length
+        }
+        return resultados.value.filter(r => r.success).length
+    })
 
     // -------------------------------------------------------------------------
     // Navegación hacia adelante
@@ -66,9 +100,15 @@ export const useScannerStore = defineStore('scanner', () => {
         }
     }
 
-    function seleccionarSesion(id) {
+    async function seleccionarSesion(id) {
         sesionActivaId.value = id
         paso.value = 'SELECCION_METODO'
+
+        // Precargar lista de inscritos si la sesión es cerrada
+        const sesion = sesionesHoy.value.find(s => s.id_sesion === id)
+        if (sesion?.requiere_inscripcion) {
+            await fetchListaInscritos(id)
+        }
     }
 
     function seleccionarReserva(id) {
@@ -92,6 +132,11 @@ export const useScannerStore = defineStore('scanner', () => {
     // -------------------------------------------------------------------------
     function irAtras() {
         switch (paso.value) {
+            case 'PASE_LISTA':
+                // Desde pase de lista volver al escáner (permite seguir escaneando)
+                paso.value = 'ESCANER_ACTIVO'
+                break
+
             case 'OUTPUT':
                 codigoEscaneado.value = null
                 resultados.value = []
@@ -105,10 +150,10 @@ export const useScannerStore = defineStore('scanner', () => {
                 break
 
             case 'SELECCION_METODO':
-                // Regresa a la lista de la categoría activa, limpiando la selección puntual
                 sesionActivaId.value    = null
                 reservaActivaId.value   = null
                 encuentroActivoId.value = null
+                listaInscritos.value    = []
                 switch (categoriaActiva.value) {
                     case 'CLASES':        paso.value = 'LIST_CLASES';        break
                     case 'RESERVACIONES': paso.value = 'LIST_RESERVACIONES'; break
@@ -125,7 +170,6 @@ export const useScannerStore = defineStore('scanner', () => {
                 break
 
             case 'MENU':
-                // El componente padre navega al Home del instructor
                 break
         }
     }
@@ -141,17 +185,28 @@ export const useScannerStore = defineStore('scanner', () => {
         resultados.value        = []
         loading.value           = false
         error.value             = null
-        // Las listas (sesiones/reservaciones/encuentros) NO se limpian — caché de sesión
+        // US-33
+        listaInscritos.value    = []
+        listaLoading.value      = false
+        aforoLleno.value        = false
+        listaConfirmada.value   = false
+        codigosYaVistos.value   = new Set()
+        // Listas del menú: NO se limpian (caché de sesión del Hub)
     }
 
     // -------------------------------------------------------------------------
-    // Validación y envío
+    // Validación QR
     // -------------------------------------------------------------------------
     function validarFormatoQRLocal(codigo) {
         return validarFormatoQR(codigo)
     }
 
+    // -------------------------------------------------------------------------
+    // Procesamiento de código — punto de entrada único para cámara y manual
+    // -------------------------------------------------------------------------
     async function procesarCodigo(codigo) {
+        if (aforoLleno.value) return
+
         const codigoNormalizado = (codigo ?? '').toUpperCase()
 
         if (!validarFormatoQR(codigoNormalizado)) {
@@ -160,25 +215,163 @@ export const useScannerStore = defineStore('scanner', () => {
             return
         }
 
+        // Deduplicación local — no consume red en el segundo intento
+        if (codigosYaVistos.value.has(codigoNormalizado)) {
+            actionToast('Este socio ya fue registrado en esta sesión.', 'warning')
+            return
+        }
+
         codigoEscaneado.value = codigoNormalizado
-        await enviarRegistro(codigoNormalizado)
+
+        if (esCategoriaClases.value) {
+            await procesarCodigoClase(codigoNormalizado)
+        } else {
+            await enviarRegistro(codigoNormalizado)
+        }
+    }
+
+    // ---- Lógica diferenciada para Mis Clases --------------------------------
+    async function procesarCodigoClase(codigo) {
+        if (esSesionCerrada.value) {
+            // Clase cerrada: buscar en la lista preloaded
+            const inscrito = listaInscritos.value.find(i => i.codigo_qr === codigo)
+
+            if (!inscrito) {
+                actionToast('Socio no inscrito en esta clase.', 'error')
+                return
+            }
+
+            if (inscrito.estatus_asistencia === 'PRESENTE') {
+                actionToast('Este socio ya fue registrado en esta sesión.', 'warning')
+                return
+            }
+
+            // Enviar al backend y actualizar localmente
+            await enviarRegistroClase(codigo, inscrito)
+        } else {
+            // Clase abierta: lista dinámica
+            await enviarRegistroClase(codigo, null)
+        }
+    }
+
+    async function enviarRegistroClase(codigo, inscritoLocal) {
+        loading.value = true
+        error.value   = null
+
+        try {
+            const response = await api.post('instructor/register-event', {
+                tipo_actividad: tipoActividadActual.value,
+                id_actividad:   idActividadActual.value,
+                codigos_qr:     [codigo],
+                metodo:         metodoIngreso.value === 'CAMARA' ? 'ESCANER_QR' : 'INGRESO_MANUAL',
+            })
+
+            const data = response.data
+
+            // Marcar como visto para deduplicación futura
+            codigosYaVistos.value.add(codigo)
+
+            if (esSesionCerrada.value && inscritoLocal) {
+                // Actualizar la lista preloaded localmente — sin refetch
+                inscritoLocal.estatus_asistencia = 'PRESENTE'
+            } else {
+                // Clase abierta: agregar a resultados dinámicos
+                resultados.value = [data, ...resultados.value]
+            }
+
+            // Navegar al pase de lista en clases
+            paso.value = 'PASE_LISTA'
+
+            // Verificar si el aforo se llenó
+            if (data.aforo_lleno) {
+                setAforoLleno(true)
+            } else if (sesionActiva.value?.cupo_maximo) {
+                const registrados = esSesionCerrada.value
+                    ? listaInscritos.value.filter(i => i.estatus_asistencia === 'PRESENTE').length
+                    : resultados.value.filter(r => r.success).length
+
+                if (registrados >= sesionActiva.value.cupo_maximo) {
+                    setAforoLleno(true)
+                }
+            }
+
+        } catch (err) {
+            const status  = err.response?.status
+            const message = err.response?.data?.message
+
+            if (status === 409 && message === 'Aforo máximo alcanzado.') {
+                setAforoLleno(true)
+                paso.value = 'PASE_LISTA'
+            } else {
+                error.value = message || 'Error al registrar el acceso.'
+                actionToast(error.value, 'error')
+            }
+        } finally {
+            loading.value = false
+        }
     }
 
     async function enviarRegistro(codigo) {
         loading.value = true
         error.value   = null
         try {
-            const payload = {
-                id:         codigo,
-                id_sesion:  sesionActivaId.value ?? reservaActivaId.value ?? encuentroActivoId.value,
-                fase:       'ingreso',
-            }
-            const response = await api.post('instructor/register-event', payload)
+            const response = await api.post('instructor/register-event', {
+                tipo_actividad: tipoActividadActual.value,
+                id_actividad:   idActividadActual.value,
+                codigos_qr:     [codigo],
+                metodo:         metodoIngreso.value === 'CAMARA' ? 'ESCANER_QR' : 'INGRESO_MANUAL',
+            })
+            codigosYaVistos.value.add(codigo)
             resultados.value = [response.data, ...resultados.value]
             paso.value = 'OUTPUT'
         } catch (err) {
             error.value = err.response?.data?.message || 'Error al registrar el acceso.'
             actionToast(error.value, 'error')
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // US-33: acciones de pase de lista
+    // -------------------------------------------------------------------------
+    async function fetchListaInscritos(idSesion) {
+        listaLoading.value = true
+        try {
+            const res = await api.get(`instructor/sesiones/${idSesion}/lista-inscriptos`)
+            listaInscritos.value = res.data?.data ?? []
+
+            // Reconstruir Set de códigos ya vistos desde el estado del servidor
+            codigosYaVistos.value = new Set(
+                listaInscritos.value
+                    .filter(i => i.estatus_asistencia === 'PRESENTE')
+                    .map(i => i.codigo_qr)
+                    .filter(Boolean)
+            )
+        } catch {
+            actionToast('No se pudo cargar la lista de inscritos.', 'error')
+            listaInscritos.value = []
+        } finally {
+            listaLoading.value = false
+        }
+    }
+
+    function setAforoLleno(valor) {
+        aforoLleno.value = valor
+    }
+
+    async function confirmarAsistencia() {
+        if (!sesionActivaId.value) return
+
+        loading.value = true
+        try {
+            await api.post(`instructor/sesiones/${sesionActivaId.value}/confirmar-asistencia`)
+            listaConfirmada.value = true
+            actionToast('Lista de asistencia confirmada exitosamente.', 'success')
+            resetHub()
+        } catch (err) {
+            const message = err.response?.data?.message || 'No se pudo confirmar la lista. Intente de nuevo.'
+            actionToast(message, 'error')
         } finally {
             loading.value = false
         }
@@ -222,13 +415,18 @@ export const useScannerStore = defineStore('scanner', () => {
         paso, categoriaActiva, metodoIngreso,
         sesionActivaId, reservaActivaId, encuentroActivoId,
         codigoEscaneado, resultados, loading, error,
-        // Listas
+        // Listas del menú
         sesionesHoy, sesionesLoading,
         reservacionesHoy, reservacionesLoading, hayReservaciones,
         encuentrosHoy, encuentrosLoading, hayEncuentros,
+        // US-33
+        listaInscritos, listaLoading, aforoLleno, listaConfirmada,
+        totalRegistrados,
         // Getters
         esCategoriaClases, esCategoriaReservas, esCategoriaTorneo,
-        haySesionesHoy, reservaActiva, encuentroActivo,
+        haySesionesHoy, sesionActiva, esSesionCerrada,
+        reservaActiva, encuentroActivo,
+        tipoActividadActual, idActividadActual,
         // Navegación
         seleccionarCategoria, seleccionarSesion,
         seleccionarReserva, seleccionarEncuentro,
@@ -236,6 +434,8 @@ export const useScannerStore = defineStore('scanner', () => {
         // Acciones QR
         validarFormatoQR: validarFormatoQRLocal,
         procesarCodigo,
+        // US-33 acciones
+        fetchListaInscritos, setAforoLleno, confirmarAsistencia,
         // Fetches
         fetchDatosMenu,
     }

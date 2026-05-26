@@ -10,6 +10,7 @@ import ListaEncuentros    from '@/components/instructor/scanner/ListaEncuentros.
 import SeleccionMetodo    from '@/components/instructor/scanner/SeleccionMetodo.vue'
 import ScannerActivo      from '@/components/instructor/scanner/ScannerActivo.vue'
 import ResultadoOutput    from '@/components/instructor/scanner/ResultadoOutput.vue'
+import PaseLista          from '@/components/instructor/scanner/PaseLista.vue'
 
 const store  = useScannerStore()
 const router = useRouter()
@@ -32,13 +33,16 @@ onUnmounted(() => store.resetHub())
       <HubHeader :paso="store.paso" @volver="handleVolver" />
 
       <Transition name="hub-slide" mode="out-in">
-        <MenuCategorias     v-if="store.paso === 'MENU'"               :key="'menu'" />
-        <ListaClases        v-else-if="store.paso === 'LIST_CLASES'"        :key="'list-clases'" />
-        <ListaReservaciones v-else-if="store.paso === 'LIST_RESERVACIONES'" :key="'list-reservas'" />
-        <ListaEncuentros    v-else-if="store.paso === 'LIST_TORNEO'"        :key="'list-torneo'" />
-        <SeleccionMetodo    v-else-if="store.paso === 'SELECCION_METODO'"   :key="'metodo'" />
-        <ScannerActivo      v-else-if="store.paso === 'ESCANER_ACTIVO'"    :key="'escaner'" />
-        <ResultadoOutput    v-else-if="store.paso === 'OUTPUT'"            :key="'output'" />
+        <MenuCategorias     v-if="store.paso === 'MENU'"                         :key="'menu'" />
+        <ListaClases        v-else-if="store.paso === 'LIST_CLASES'"             :key="'list-clases'" />
+        <ListaReservaciones v-else-if="store.paso === 'LIST_RESERVACIONES'"      :key="'list-reservas'" />
+        <ListaEncuentros    v-else-if="store.paso === 'LIST_TORNEO'"             :key="'list-torneo'" />
+        <SeleccionMetodo    v-else-if="store.paso === 'SELECCION_METODO'"        :key="'metodo'" />
+        <ScannerActivo      v-else-if="store.paso === 'ESCANER_ACTIVO'"          :key="'escaner'" />
+        <!-- PASE_LISTA: pase de lista completo para Mis Clases (cerradas y abiertas) -->
+        <PaseLista          v-else-if="store.paso === 'PASE_LISTA'"              :key="'pase-lista'" />
+        <!-- OUTPUT: resultado simple para Reservaciones y Torneos -->
+        <ResultadoOutput    v-else-if="store.paso === 'OUTPUT'"                  :key="'output'" />
         <!-- fallback seguro -->
         <MenuCategorias     v-else :key="'fallback'" />
       </Transition>

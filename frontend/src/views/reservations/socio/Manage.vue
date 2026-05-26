@@ -195,7 +195,7 @@ const closeDetails = () => {
 const getStatusConfig = (status) => {
     const configs = {
         'ACTIVA':     { label: 'ACTIVA',     class: 'bg-green-50 text-green-700 border-green-200' },
-        'COMPLETADA': { label: 'COMPLETADA', class: 'bg-blue-50 text-blue-700 border-blue-200' },
+        'COMPLETADA': { label: 'COMPLETADA', class: 'bg-primary-50 text-primary-700 border-primary-200' },
         'CANCELADA':  { label: 'CANCELADA',  class: 'bg-orange-50 text-orange-700 border-orange-200' },
         'NO_SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
         'NO SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },

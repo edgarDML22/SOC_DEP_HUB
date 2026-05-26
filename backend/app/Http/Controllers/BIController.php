@@ -380,7 +380,7 @@ class BIController extends Controller
                 $query->select(DB::raw(1))
                     ->from('reservaciones_on_demand as r')
                     ->whereRaw('r.id_socio_titular = s.id_socio')
-                    ->where('r.estatus_operativo', '=', 'FINALIZADA')
+                    ->where('r.estatus_operativo', '=', 'COMPLETADA')
                     ->whereBetween('r.fecha_reserva', [$fechaInicio, $fechaFin]);
             })
             ->select('s.id_socio', 's.nombre_completo', 's.numero_accion')
