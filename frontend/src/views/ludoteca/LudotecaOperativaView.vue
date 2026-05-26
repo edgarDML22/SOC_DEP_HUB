@@ -14,6 +14,7 @@ const activeTab = ref('activos');
 // Estado para modales
 const modalIngresoInfo = ref({ visible: false, idEstancia: null, correo: '' });
 const modalSalidaInfo = ref({ visible: false, idEstancia: null, tipoUsuario: 'SOCIO_TITULAR', correo: '' });
+const modalIncidenciaInfo = ref({ visible: false, idEstancia: null, correo: '' });
 
 const store = useLudotecaOperativaStore();
 const instructorStore = useInstructorStore();
@@ -51,15 +52,15 @@ onUnmounted(() => {
 });
 
 // Helpers para la UI
-const moverAInactivo = async (id, nombreNino) => {
-    const result = await confirmWarning(
-        'Registrar Incidencia',
-        `¿Estás seguro de que quieres marcar una incidencia para ${nombreNino || 'este menor'}?`,
-        'Sí, registrar'
-    );
-    if (!result.isConfirmed) return;
+const abrirModalIncidencia = (id) => {
+    modalIncidenciaInfo.value = { visible: true, idEstancia: id, correo: '' };
+};
 
-    const res = await store.cambiarEstatusEstancia(id, 'INACTIVO');
+const confirmarIncidencia = async () => {
+    modalIncidenciaInfo.value.visible = false;
+    const res = await store.cambiarEstatusEstancia(modalIncidenciaInfo.value.idEstancia, 'INACTIVO', {
+        correo_receptor: modalIncidenciaInfo.value.correo
+    });
     if (res?.success) {
         actionToast('El menor fue marcado como inactivo.', 'success');
     } else {
@@ -267,7 +268,7 @@ const formatTime = (timeString) => {
 
               <div class="px-4 pb-4 pt-3 flex gap-2">
                 <button
-                  @click="moverAInactivo(nino.id_registro, nino.nombre_nino)"
+                  @click="abrirModalIncidencia(nino.id_registro)"
                   class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold border border-surface-200 bg-white text-surface-600 hover:bg-surface-100 hover:border-surface-300 transition-all active:scale-95"
                 >
                   <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -462,6 +463,32 @@ const formatTime = (timeString) => {
           <div class="flex gap-3 mt-6">
             <button @click="modalSalidaInfo.visible = false" class="flex-1 py-3 rounded-xl font-bold text-sm border border-surface-200 bg-white text-surface-700 hover:bg-surface-50 transition-all active:scale-95">Cancelar</button>
             <button @click="confirmarSalida" class="flex-1 py-3 rounded-xl font-bold text-sm bg-primary-600 hover:bg-primary-700 text-white shadow-sm transition-all active:scale-95">Confirmar Salida</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Incidencia -->
+    <div v-if="modalIncidenciaInfo.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/50 backdrop-blur-sm p-4" @click.self="modalIncidenciaInfo.visible = false">
+      <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-fade-in overflow-y-auto" style="max-height: 85svh;">
+        <div class="p-6">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-surface-900">Registrar Incidencia</h3>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-surface-500 uppercase tracking-wider mb-1.5">Correo del socio titular</label>
+            <input v-model="modalIncidenciaInfo.correo" type="email" placeholder="ejemplo@correo.com"
+              class="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 outline-none text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all"
+              @keyup.enter="confirmarIncidencia" />
+          </div>
+          <div class="flex gap-3 mt-6">
+            <button @click="modalIncidenciaInfo.visible = false" class="flex-1 py-3 rounded-xl font-bold text-sm border border-surface-200 bg-white text-surface-700 hover:bg-surface-50 transition-all active:scale-95">Cancelar</button>
+            <button @click="confirmarIncidencia" class="flex-1 py-3 rounded-xl font-bold text-sm bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all active:scale-95">Confirmar Incidencia</button>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-surface-50 relative">
+  <div class="flex h-[100dvh] overflow-hidden bg-surface-50 relative">
     <!-- Barra de progreso linear de alta gama -->
     <Transition
       enter-active-class="transition-opacity duration-200"

@@ -83,7 +83,7 @@ const sections = [
 </script>
 
 <template>
-  <aside class="h-screen sticky top-0 z-50 bg-slate-950 text-slate-400 flex flex-col font-sans
+  <aside class="h-full bg-slate-950 text-slate-400 flex flex-col font-sans
            transition-all duration-300 ease-in-out shrink-0" :class="isOpen ? 'w-64' : 'w-[72px]'">
     <!-- ── HEADER ─────────────────────────────────────── -->
     <div class="flex items-center gap-3 px-4 py-5 border-b border-slate-800/60 h-[76px]">

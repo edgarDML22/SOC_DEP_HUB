@@ -15,7 +15,7 @@ const spinnerClasses = computed(() => {
   }
   
   const colors = {
-    primary: 'border-surface-200 border-t-primary-600',
+    primary: 'border-surface-200 border-t-slate-900',
     white: 'border-white/30 border-t-white',
     slate: 'border-slate-200 border-t-slate-600',
     danger: 'border-red-200 border-t-red-600',

@@ -19,6 +19,8 @@
     "@primevue/themes": "^4.5.4",
     "axios": "^1.13.6",
     "chart.js": "^4.5.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "pinia": "^3.0.4",
     "primevue": "^4.5.5",
     "qrcode.vue": "^3.8.0",
