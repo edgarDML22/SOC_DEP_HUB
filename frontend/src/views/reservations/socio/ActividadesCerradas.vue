@@ -388,7 +388,6 @@ const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
       </div>
 
     </div>
-  </div>
 
     <!-- Modal de Inscripción — selectedSesionInscripcion / inscripcionTipo sin cambios -->
     <Teleport to="body">
@@ -646,6 +645,7 @@ const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
       </Transition>
     </Teleport>
 
+  </div>
 </template>
 
 <style scoped>

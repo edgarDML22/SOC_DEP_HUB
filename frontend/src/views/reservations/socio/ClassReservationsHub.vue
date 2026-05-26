@@ -108,9 +108,15 @@ onMounted(async () => {
 
     <!-- Área de Contenido — v-show para preservar estado, sin cambios -->
     <div class="w-full relative z-10">
-      <MisInscripcionesClases v-show="activeView === 'mis-inscripciones'" />
-      <ActividadesAbiertas    v-show="activeView === 'actividades-abiertas'" />
-      <ActividadesCerradas    v-show="activeView === 'actividades-cerradas'" />
+      <div v-show="activeView === 'mis-inscripciones'">
+        <MisInscripcionesClases />
+      </div>
+      <div v-show="activeView === 'actividades-abiertas'">
+        <ActividadesAbiertas />
+      </div>
+      <div v-show="activeView === 'actividades-cerradas'">
+        <ActividadesCerradas />
+      </div>
     </div>
 
   </div>
