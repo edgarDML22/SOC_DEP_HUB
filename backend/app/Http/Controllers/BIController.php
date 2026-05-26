@@ -51,10 +51,16 @@ class BIController extends Controller
             ->get();
 
         // 4. Monitor de Ludoteca en Vivo (KPIs)
+        $startOfDay = now($timezone)->startOfDay();
+        $endOfDay = now($timezone)->endOfDay();
+
         $ninosActivos = RegistrosLudoteca::where('estatus_ludoteca', 'ACTIVA')->count();
+        $ninosEntregados = RegistrosLudoteca::whereBetween('hora_ingreso', [$startOfDay, $endOfDay])
+            ->whereIn('estatus_ludoteca', ['COMPLETADA_A_TIEMPO', 'COMPLETADA_CON_RETRASO'])
+            ->count();
 
         // Calcular ingresos estimados de hoy ($1.5 MXN por minuto de uso)
-        $ingresosHistorial = HistorialLudoteca::whereDate('hora_ingreso', $hoy)
+        $ingresosHistorial = HistorialLudoteca::whereBetween('hora_ingreso', [$startOfDay, $endOfDay])
             ->whereNotNull('tiempo_total_minutos')
             ->sum('tiempo_total_minutos') * 1.5;
 
@@ -102,7 +108,8 @@ class BIController extends Controller
                 'ludoteca_kpis' => [
                     'ninos_activos' => $ninosActivos,
                     'ingresos_hoy' => $ingresosTotalesHoy,
-                    'alertas_tiempo' => $alertasTiempoExcedido
+                    'alertas_tiempo' => $alertasTiempoExcedido,
+                    'ninos_entregados' => $ninosEntregados
                 ]
             ]
         ]);
@@ -261,18 +268,37 @@ class BIController extends Controller
             ->orderBy('hora')
             ->get();
 
-        // --- Gráfico 2: Ocupación por Espacio ---
+        // --- Gráfico 2: Ocupación por Disciplina ---
         $queryOcupacion = Reservacion::whereBetween('fecha_reserva', [$fechaInicio, $fechaFin])
             ->where('estatus_operativo', '!=', 'CANCELADA')
-            ->join('espacios_fisicos as e', 'reservaciones_on_demand.id_espacio', '=', 'e.id_espacio')
-            ->selectRaw('e.nombre_espacio as label, COUNT(*) as total')
-            ->groupBy('e.nombre_espacio');
+            ->join('disciplinas as d', 'reservaciones_on_demand.id_disciplina', '=', 'd.id_disciplina')
+            ->selectRaw('d.nombre_disciplina as label, d.id_disciplina, COUNT(*) as total')
+            ->groupBy('d.nombre_disciplina', 'd.id_disciplina');
 
         if ($idEspacio) {
             $queryOcupacion->where('reservaciones_on_demand.id_espacio', $idEspacio);
         }
 
         $ocupacion = $queryOcupacion->get();
+
+        // --- Gráfico 3: Ocupación por Espacio Físico (con filtro opcional de disciplina) ---
+        $queryEspacio = Reservacion::whereBetween('fecha_reserva', [$fechaInicio, $fechaFin])
+            ->where('estatus_operativo', '!=', 'CANCELADA')
+            ->join('espacios_fisicos as e', 'reservaciones_on_demand.id_espacio', '=', 'e.id_espacio')
+            ->selectRaw('e.nombre_espacio as label, COUNT(*) as total')
+            ->groupBy('e.nombre_espacio')
+            ->orderByDesc('total');
+
+        if ($idEspacio) {
+            $queryEspacio->where('reservaciones_on_demand.id_espacio', $idEspacio);
+        }
+
+        $idDisciplina = $request->query('id_disciplina');
+        if ($idDisciplina) {
+            $queryEspacio->where('reservaciones_on_demand.id_disciplina', $idDisciplina);
+        }
+
+        $ocupacionEspacio = $queryEspacio->get();
 
         return response()->json([
             'success' => true,
@@ -286,7 +312,12 @@ class BIController extends Controller
                 }),
                 'ocupacion_por_tipo' => [
                     'labels' => $ocupacion->pluck('label'),
+                    'ids' => $ocupacion->pluck('id_disciplina'),
                     'data' => $ocupacion->pluck('total')
+                ],
+                'ocupacion_por_espacio' => [
+                    'labels' => $ocupacionEspacio->pluck('label'),
+                    'data' => $ocupacionEspacio->pluck('total')
                 ]
             ]
         ]);

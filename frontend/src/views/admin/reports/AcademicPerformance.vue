@@ -95,6 +95,14 @@ const loadStats = async (forceRefresh = false) => {
   }
 };
 
+const clearFilters = () => {
+  filtroRango.value = 'semana';
+  selectedDisciplina.value = '';
+  selectedInstructor.value = '';
+  updateDatesFromRango('semana');
+  loadStats(true);
+};
+
 watch(filtroRango, (newVal) => {
   if (newVal) {
     updateDatesFromRango(newVal);
@@ -280,6 +288,62 @@ const optionsAsistencia = {
     y: { stacked: true }
   }
 };
+
+// Computes de Totales y Desgloses para copiar el estilo premium de Ludoteca
+const totalDemandaOcupacion = computed(() => {
+  if (!stats.value?.matriz_demanda?.length) return 0;
+  const total = stats.value.matriz_demanda.reduce((sum, item) => sum + (item.ocupacion_porcentaje || 0), 0);
+  return Math.round(total / stats.value.matriz_demanda.length);
+});
+
+const individualDemanda = computed(() => {
+  const diaLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const days = Array.from({ length: 7 }, (_, i) => ({ label: diaLabels[i], sum: 0, count: 0 }));
+  stats.value?.matriz_demanda?.forEach(item => {
+    if (item.dia >= 1 && item.dia <= 7) {
+      days[item.dia - 1].sum += (item.ocupacion_porcentaje || 0);
+      days[item.dia - 1].count++;
+    }
+  });
+  return days.map(d => ({
+    label: d.label,
+    value: d.count > 0 ? `${Math.round(d.sum / d.count)}%` : '0%',
+    color: '#6366f1'
+  })).filter(d => d.value !== '0%');
+});
+
+const totalRankingOcupacion = computed(() => {
+  if (!stats.value?.ranking_instructores?.data?.length) return 0;
+  const sum = stats.value.ranking_instructores.data.reduce((a, b) => a + Number(b), 0);
+  return Math.round(sum / stats.value.ranking_instructores.data.length);
+});
+
+const individualRanking = computed(() => {
+  const labels = stats.value?.ranking_instructores?.labels || [];
+  const data = stats.value?.ranking_instructores?.data || [];
+  return labels.map((label, idx) => ({
+    label,
+    value: `${data[idx]}%`,
+    color: '#7c3aed'
+  })).filter(item => parseInt(item.value) > 0);
+});
+
+const totalAsistenciaNoShows = computed(() => {
+  const asists = stats.value?.asistencia_disciplina?.asistencias?.reduce((a, b) => a + Number(b), 0) || 0;
+  const noshows = stats.value?.asistencia_disciplina?.no_shows?.reduce((a, b) => a + Number(b), 0) || 0;
+  return asists + noshows;
+});
+
+const individualAsistencia = computed(() => {
+  const labels = stats.value?.asistencia_disciplina?.labels || [];
+  const asistencias = stats.value?.asistencia_disciplina?.asistencias || [];
+  const noShows = stats.value?.asistencia_disciplina?.no_shows || [];
+  return labels.map((label, idx) => ({
+    label,
+    value: `${asistencias[idx] || 0} Check-ins / ${noShows[idx] || 0} No-shows`,
+    color: '#10b981'
+  })).filter(item => asistencias[labels.indexOf(item.label)] > 0 || noShows[labels.indexOf(item.label)] > 0);
+});
 </script>
 
 <template>
@@ -292,12 +356,12 @@ const optionsAsistencia = {
         <p class="text-xs text-surface-500 m-0 mt-0.5 font-medium">Ajusta el rango de tiempo de consulta para recalcular el rendimiento académico.</p>
       </div>
       <div class="flex items-center gap-3">
-        <div class="flex bg-white shadow-sm border border-surface-200 rounded-xl p-1">
+        <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
           <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
             @click="filtroRango = r"
             :disabled="isLoading"
-            class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize disabled:opacity-50"
-            :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md' : 'text-surface-500 hover:bg-surface-50'">
+            class="py-1.5 px-4 rounded-xl text-xs font-black transition-all duration-200 ease-out capitalize disabled:opacity-50 cursor-pointer border-none"
+            :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
             {{ r }}
           </button>
         </div>
@@ -305,8 +369,8 @@ const optionsAsistencia = {
     </div>
 
     <!-- BARRA DE FILTROS -->
-    <div class="bg-surface-50 border border-surface-200 rounded-3xl p-5 space-y-4 shadow-inner">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
         
         <!-- Rango Fecha Inicio -->
         <div class="flex flex-col gap-1.5">
@@ -314,7 +378,7 @@ const optionsAsistencia = {
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <input type="date" v-model="filterDateStart" @change="filtroRango = ''; loadStats()"
-                   class="w-full pl-10 pr-4 py-2 bg-white border border-surface-200 rounded-xl text-xs font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer" />
+                   class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
@@ -324,7 +388,7 @@ const optionsAsistencia = {
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <input type="date" v-model="filterDateEnd" @change="filtroRango = ''; loadStats()"
-                   class="w-full pl-10 pr-4 py-2 bg-white border border-surface-200 rounded-xl text-xs font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer" />
+                   class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
@@ -334,7 +398,7 @@ const optionsAsistencia = {
           <div class="relative">
             <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <select v-model="selectedDisciplina"
-                    class="w-full pl-10 pr-8 py-2 bg-white border border-surface-200 rounded-xl text-xs font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                    class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer">
               <option value="">Todas las disciplinas</option>
               <option v-for="d in disciplines" :key="d.id_disciplina" :value="d.id_disciplina">{{ d.nombre_disciplina }}</option>
             </select>
@@ -347,11 +411,22 @@ const optionsAsistencia = {
           <div class="relative">
             <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <select v-model="selectedInstructor"
-                    class="w-full pl-10 pr-8 py-2 bg-white border border-surface-200 rounded-xl text-xs font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                    class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer">
               <option value="">Todos los instructores</option>
               <option v-for="i in instructors" :key="i.id_instructor" :value="i.id_instructor">{{ i.nombre_completo }}</option>
             </select>
           </div>
+        </div>
+
+        <!-- Botón Limpiar Filtro -->
+        <div class="flex flex-col gap-1.5">
+          <button @click="clearFilters"
+                  class="w-full py-2.5 bg-surface-50 hover:bg-white text-surface-700 border border-surface-200 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px] shadow-xs active:scale-[0.98]">
+            <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Limpiar Filtros
+          </button>
         </div>
 
       </div>
@@ -371,43 +446,103 @@ const optionsAsistencia = {
     <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       
       <!-- Gráfico 1: Burbujas de Horarios -->
-      <div class="bg-white border border-surface-200 rounded-3xl p-6 lg:p-8 flex flex-col h-[400px]">
+      <div class="bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col hover:shadow-lg transition-all duration-300">
         <div class="mb-4">
           <h3 class="text-base font-black text-surface-900 leading-tight">Matriz de Demanda (Horas y Días)</h3>
           <p class="text-xs font-medium text-surface-400 mt-0.5">Muestra los puntos con mayor afluencia. El tamaño de la burbuja representa la saturación.</p>
         </div>
-        <div class="flex-1 min-h-0">
-          <BaseChart v-if="chartMatrizDemanda" type="bubble" :data="chartMatrizDemanda" :options="optionsMatrizDemanda" />
-          <div v-else class="h-full flex items-center justify-center text-slate-400 text-sm font-bold">
-            Sin datos de reservas registradas para este periodo
+        <div class="h-[280px] w-full" v-if="chartMatrizDemanda">
+          <BaseChart type="bubble" :data="chartMatrizDemanda" :options="optionsMatrizDemanda" />
+        </div>
+        <div v-else class="h-[280px] flex items-center justify-center text-slate-400 text-sm font-bold bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
+          Sin datos de reservas registradas para este periodo
+        </div>
+
+        <!-- Desglose de Totales y Métricas Individuales -->
+        <div class="mt-6 border-t border-surface-100 pt-4" v-if="chartMatrizDemanda && individualDemanda.length">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest">Llenado por Día</span>
+            <span class="text-xs font-bold text-surface-500 bg-surface-50 px-3 py-1 rounded-full border border-surface-100 shadow-sm">
+              Llenado Promedio: <span class="text-surface-900 font-black">{{ totalDemandaOcupacion }}%</span>
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
+            <div v-for="(val, idx) in individualDemanda" :key="idx" 
+              class="flex items-center justify-between p-2.5 bg-surface-50/50 hover:bg-surface-50 hover:border-surface-200 rounded-2xl border border-surface-100 transition-all">
+              <div class="flex items-center gap-2 truncate min-w-0">
+                <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: val.color || '#94a3b8' }"></span>
+                <span class="text-xs font-bold text-surface-600 truncate">{{ val.label }}</span>
+              </div>
+              <span class="text-xs font-black text-surface-900 ml-2 bg-white px-2 py-0.5 rounded-lg border border-surface-100 shadow-2xs">{{ val.value }}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Gráfico 2: Ranking Convocatoria Instructores -->
-      <div class="bg-white border border-surface-200 rounded-3xl p-6 lg:p-8 flex flex-col h-[400px]">
+      <div class="bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col hover:shadow-lg transition-all duration-300">
         <div class="mb-4">
           <h3 class="text-base font-black text-surface-900 leading-tight">Convocatoria por Instructor</h3>
           <p class="text-xs font-medium text-surface-400 mt-0.5">Porcentaje promedio de llenado de cupo por clase programada.</p>
         </div>
-        <div class="flex-1 min-h-0">
-          <BaseChart v-if="chartRanking" type="bar" :data="chartRanking" :options="optionsRanking" />
-          <div v-else class="h-full flex items-center justify-center text-slate-400 text-sm font-bold">
-            Sin sesiones activas en este periodo
+        <div class="h-[280px] w-full" v-if="chartRanking">
+          <BaseChart type="bar" :data="chartRanking" :options="optionsRanking" />
+        </div>
+        <div v-else class="h-[280px] flex items-center justify-center text-slate-400 text-sm font-bold bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
+          Sin sesiones activas en este periodo
+        </div>
+
+        <!-- Desglose de Totales y Métricas Individuales -->
+        <div class="mt-6 border-t border-surface-100 pt-4" v-if="chartRanking && individualRanking.length">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest">Desglose por Instructor</span>
+            <span class="text-xs font-bold text-surface-500 bg-surface-50 px-3 py-1 rounded-full border border-surface-100 shadow-sm">
+              Llenado Instructor: <span class="text-surface-900 font-black">{{ totalRankingOcupacion }}%</span>
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
+            <div v-for="(val, idx) in individualRanking" :key="idx" 
+              class="flex items-center justify-between p-2.5 bg-surface-50/50 hover:bg-surface-50 hover:border-surface-200 rounded-2xl border border-surface-100 transition-all">
+              <div class="flex items-center gap-2 truncate min-w-0">
+                <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: val.color || '#94a3b8' }"></span>
+                <span class="text-xs font-bold text-surface-600 truncate">{{ val.label }}</span>
+              </div>
+              <span class="text-xs font-black text-surface-900 ml-2 bg-white px-2 py-0.5 rounded-lg border border-surface-100 shadow-2xs">{{ val.value }}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Gráfico 3: Stacked Bar Asistencia Disciplina (Full Width) -->
-      <div class="lg:col-span-2 bg-white border border-surface-200 rounded-3xl p-6 lg:p-8 flex flex-col h-[400px]">
+      <div class="lg:col-span-2 bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col hover:shadow-lg transition-all duration-300">
         <div class="mb-4">
           <h3 class="text-base font-black text-surface-900 leading-tight">Asistencia vs. Abandono (No-Shows) por Disciplina</h3>
           <p class="text-xs font-medium text-surface-400 mt-0.5">Analiza el compromiso de asistencia. Identifica clases que reservan pero no asisten.</p>
         </div>
-        <div class="flex-1 min-h-0">
-          <BaseChart v-if="chartAsistencia" type="bar" :data="chartAsistencia" :options="optionsAsistencia" />
-          <div v-else class="h-full flex items-center justify-center text-slate-400 text-sm font-bold">
-            Sin datos de asistencias registrados en este periodo
+        <div class="h-[280px] w-full" v-if="chartAsistencia">
+          <BaseChart type="bar" :data="chartAsistencia" :options="optionsAsistencia" />
+        </div>
+        <div v-else class="h-[280px] flex items-center justify-center text-slate-400 text-sm font-bold bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
+          Sin datos de asistencias registrados en este periodo
+        </div>
+
+        <!-- Desglose de Totales y Métricas Individuales -->
+        <div class="mt-6 border-t border-surface-100 pt-4" v-if="chartAsistencia && individualAsistencia.length">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest">Desglose por Disciplina</span>
+            <span class="text-xs font-bold text-surface-500 bg-surface-50 px-3 py-1 rounded-full border border-surface-100 shadow-sm">
+              Total Reservas: <span class="text-surface-900 font-black">{{ totalAsistenciaNoShows }}</span>
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
+            <div v-for="(val, idx) in individualAsistencia" :key="idx" 
+              class="flex items-center justify-between p-2.5 bg-surface-50/50 hover:bg-surface-50 hover:border-surface-200 rounded-2xl border border-surface-100 transition-all">
+              <div class="flex items-center gap-2 truncate min-w-0">
+                <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: val.color || '#94a3b8' }"></span>
+                <span class="text-xs font-bold text-surface-600 truncate">{{ val.label }}</span>
+              </div>
+              <span class="text-xs font-black text-surface-900 ml-2 bg-white px-2 py-0.5 rounded-lg border border-surface-100 shadow-2xs">{{ val.value }}</span>
+            </div>
           </div>
         </div>
       </div>

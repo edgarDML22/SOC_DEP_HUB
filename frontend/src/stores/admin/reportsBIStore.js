@@ -41,7 +41,8 @@ export const useReportsBIStore = defineStore('reportsBI', () => {
     rango: 'semana',
     fecha_inicio: '',
     fecha_fin: '',
-    id_espacio: ''
+    id_espacio: '',
+    id_disciplina: ''
   });
 
   const fetchSpacesStats = async (filters, forceRefresh = false) => {
@@ -50,7 +51,8 @@ export const useReportsBIStore = defineStore('reportsBI', () => {
       spacesFilters.value.rango === filters.rango &&
       spacesFilters.value.fecha_inicio === filters.fecha_inicio &&
       spacesFilters.value.fecha_fin === filters.fecha_fin &&
-      spacesFilters.value.id_espacio === filters.id_espacio;
+      spacesFilters.value.id_espacio === filters.id_espacio &&
+      spacesFilters.value.id_disciplina === filters.id_disciplina;
 
     if (isSameFilters && !forceRefresh) {
       return spacesStats.value;

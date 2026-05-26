@@ -145,12 +145,12 @@ const exportExecutivePDF = async () => {
         <h1 class="text-3xl font-black text-surface-900 tracking-tight m-0">Reportes y Analíticas</h1>
         <button
           @click="exportExecutivePDF"
-          class="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl text-xs font-black tracking-wider uppercase hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer shadow-sm shadow-slate-900/10 hover:shadow-md"
+          class="flex items-center gap-2 px-5 py-3 bg-red-600 text-white rounded-xl text-xs font-black tracking-wider uppercase hover:bg-red-700 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer shadow-sm shadow-red-900/10 hover:shadow-md"
         >
           <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
           </svg>
-          Exportar Reporte General PDF
+          PDF
         </button>
       </div>
 

@@ -76,6 +76,15 @@ const loadStats = async (forceRefresh = false) => {
   }
 };
 
+const clearFilters = () => {
+  filtroRango.value = 'mes';
+  updateDatesFromRango('mes');
+  const now = new Date();
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  filterDateStart.value = sixMonthsAgo.toISOString().split('T')[0];
+  loadStats(true);
+};
+
 watch(filtroRango, (newVal) => {
   if (newVal) {
     updateDatesFromRango(newVal);
@@ -140,6 +149,21 @@ const optionsTendenciaNoShows = {
     }
   }
 };
+
+// Computes de Totales y Desgloses para copiar el estilo premium de Ludoteca
+const totalNoShowsAuditoria = computed(() => {
+  return stats.value?.tendencia_no_shows?.data?.reduce((a, b) => a + Number(b), 0) || 0;
+});
+
+const individualNoShowsAuditoria = computed(() => {
+  const labels = stats.value?.tendencia_no_shows?.labels || [];
+  const data = stats.value?.tendencia_no_shows?.data || [];
+  return labels.map((label, idx) => ({
+    label,
+    value: data[idx] || 0,
+    color: '#f43f5e'
+  })).filter(item => item.value > 0);
+});
 </script>
 
 <template>
@@ -152,12 +176,12 @@ const optionsTendenciaNoShows = {
         <p class="text-xs text-surface-500 m-0 mt-0.5 font-medium">Ajusta el rango de tiempo de consulta para recalcular fidelización, cancelaciones y lista negra.</p>
       </div>
       <div class="flex items-center gap-3">
-        <div class="flex bg-white shadow-sm border border-surface-200 rounded-xl p-1">
+        <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
           <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
             @click="filtroRango = r"
             :disabled="isLoading"
-            class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize disabled:opacity-50"
-            :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md' : 'text-surface-500 hover:bg-surface-50'">
+            class="py-1.5 px-4 rounded-xl text-xs font-black transition-all duration-200 ease-out capitalize disabled:opacity-50 cursor-pointer border-none"
+            :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
             {{ r }}
           </button>
         </div>
@@ -165,8 +189,8 @@ const optionsTendenciaNoShows = {
     </div>
 
     <!-- BARRA DE FILTROS -->
-    <div class="bg-surface-50 border border-surface-200 rounded-3xl p-5 space-y-4 shadow-inner">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         
         <!-- Rango Fecha Inicio -->
         <div class="flex flex-col gap-1.5">
@@ -174,7 +198,7 @@ const optionsTendenciaNoShows = {
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <input type="date" v-model="filterDateStart" @change="filtroRango = ''; loadStats()"
-                   class="w-full pl-10 pr-4 py-2 bg-white border border-surface-200 rounded-xl text-xs font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer" />
+                   class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
@@ -184,8 +208,19 @@ const optionsTendenciaNoShows = {
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <input type="date" v-model="filterDateEnd" @change="filtroRango = ''; loadStats()"
-                   class="w-full pl-10 pr-4 py-2 bg-white border border-surface-200 rounded-xl text-xs font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer" />
+                   class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
+        </div>
+
+        <!-- Botón Limpiar Filtro -->
+        <div class="flex flex-col gap-1.5">
+          <button @click="clearFilters"
+                  class="w-full py-2.5 bg-surface-50 hover:bg-white text-surface-700 border border-surface-200 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px] shadow-xs active:scale-[0.98]">
+            <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Limpiar Filtros
+          </button>
         </div>
 
       </div>
@@ -204,104 +239,85 @@ const optionsTendenciaNoShows = {
     <!-- REPORTES DE AUDITORÍA Y TABLAS -->
     <div v-else class="space-y-8">
       
-      <!-- Gráfico 1: Tasa de Abandono (No-Shows) -->
-      <div class="bg-white border border-surface-200 rounded-3xl p-6 lg:p-8 flex flex-col h-[350px]">
-        <div class="mb-4">
-          <h3 class="text-base font-black text-surface-900 leading-tight">Tendencia de Cancelaciones Imprevistas (No-Shows)</h3>
-          <p class="text-xs font-medium text-surface-400 mt-0.5">Línea temporal acumulada de inasistencias en clases programadas y reservas on-demand.</p>
-        </div>
-        <div class="flex-1 min-h-0">
-          <BaseChart v-if="chartTendenciaNoShows" type="line" :data="chartTendenciaNoShows" :options="optionsTendenciaNoShows" />
-          <div v-else class="h-full flex items-center justify-center text-slate-400 text-sm font-bold">
-            Sin abandonos de reservas en este periodo
+      <!-- Tabla A1: Heavy Users (Full Width) -->
+      <div class="bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col h-[400px] hover:shadow-lg transition-all duration-300">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-base font-black text-surface-900 leading-tight">Socios Destacados: Heavy Users</h3>
+            <p class="text-xs font-medium text-surface-400 mt-0.5">Socios con mayor cantidad de asistencias confirmadas.</p>
           </div>
+          <ExportCsvButton :data="stats.heavy_users" filename="heavy-users"
+                           :columns="[
+                             { label: 'ID Socio', field: 'id_socio' },
+                             { label: 'Número Acción', field: 'numero_accion' },
+                             { label: 'Nombre Completo', field: 'nombre_completo' },
+                             { label: 'Total Asistencias', field: 'total_asistencias' }
+                           ]" />
+        </div>
+        <div class="flex-1 min-h-0 overflow-y-auto border border-surface-100 rounded-xl">
+          <table class="w-full text-xs text-left text-surface-600">
+            <thead class="bg-slate-900 text-white text-[10px] uppercase font-bold sticky top-0">
+              <tr>
+                <th scope="col" class="px-4 py-2.5">Socio</th>
+                <th scope="col" class="px-4 py-2.5">Acción</th>
+                <th scope="col" class="px-4 py-2.5 text-right">Asistencias</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="user in stats.heavy_users" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
+                <td class="px-4 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
+                <td class="px-4 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
+                <td class="px-4 py-3 text-right font-black text-emerald-600">{{ user.total_asistencias }}</td>
+              </tr>
+              <tr v-if="!stats.heavy_users.length">
+                <td colspan="3" class="px-4 py-8 text-center text-slate-400 font-bold">Sin usuarios detectados</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Sección Tablas Fidelización (Heavy Users vs. Fantasmas) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        <!-- Tabla A1: Heavy Users -->
-        <div class="bg-white border border-surface-200 rounded-3xl p-6 flex flex-col h-[400px]">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h3 class="text-sm font-black text-surface-900 leading-tight">Socios Destacados: Heavy Users</h3>
-              <p class="text-[11px] font-medium text-surface-400 mt-0.5">Socios con mayor cantidad de asistencias confirmadas.</p>
-            </div>
-            <ExportCsvButton :data="stats.heavy_users" filename="heavy-users"
-                             :columns="[
-                               { label: 'ID Socio', field: 'id_socio' },
-                               { label: 'Número Acción', field: 'numero_accion' },
-                               { label: 'Nombre Completo', field: 'nombre_completo' },
-                               { label: 'Total Asistencias', field: 'total_asistencias' }
-                             ]" />
+      <!-- Tabla A2: Fantasmas (Full Width) -->
+      <div class="bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col h-[400px] hover:shadow-lg transition-all duration-300">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-base font-black text-surface-900 leading-tight">Membresías Fantasmas</h3>
+            <p class="text-xs font-medium text-surface-400 mt-0.5">Socios al corriente pero con 0 reservaciones en el periodo.</p>
           </div>
-          <div class="flex-1 min-h-0 overflow-y-auto border border-surface-100 rounded-xl">
-            <table class="w-full text-xs text-left text-surface-600">
-              <thead class="bg-slate-900 text-white text-[10px] uppercase font-bold sticky top-0">
-                <tr>
-                  <th scope="col" class="px-4 py-2.5">Socio</th>
-                  <th scope="col" class="px-4 py-2.5">Acción</th>
-                  <th scope="col" class="px-4 py-2.5 text-right">Asistencias</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-surface-100">
-                <tr v-for="user in stats.heavy_users" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
-                  <td class="px-4 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
-                  <td class="px-4 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
-                  <td class="px-4 py-3 text-right font-black text-emerald-600">{{ user.total_asistencias }}</td>
-                </tr>
-                <tr v-if="!stats.heavy_users.length">
-                  <td colspan="3" class="px-4 py-8 text-center text-slate-400 font-bold">Sin usuarios detectados</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <ExportCsvButton :data="stats.fantasmas" filename="membresias-fantasmas"
+                           :columns="[
+                             { label: 'ID Socio', field: 'id_socio' },
+                             { label: 'Número Acción', field: 'numero_accion' },
+                             { label: 'Nombre Completo', field: 'nombre_completo' }
+                           ]" />
         </div>
-
-        <!-- Tabla A2: Fantasmas -->
-        <div class="bg-white border border-surface-200 rounded-3xl p-6 flex flex-col h-[400px]">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h3 class="text-sm font-black text-surface-900 leading-tight">Membresías Fantasmas</h3>
-              <p class="text-[11px] font-medium text-surface-400 mt-0.5">Socios al corriente pero con 0 reservaciones en el periodo.</p>
-            </div>
-            <ExportCsvButton :data="stats.fantasmas" filename="membresias-fantasmas"
-                             :columns="[
-                               { label: 'ID Socio', field: 'id_socio' },
-                               { label: 'Número Acción', field: 'numero_accion' },
-                               { label: 'Nombre Completo', field: 'nombre_completo' }
-                             ]" />
-          </div>
-          <div class="flex-1 min-h-0 overflow-y-auto border border-surface-100 rounded-xl">
-            <table class="w-full text-xs text-left text-surface-600">
-              <thead class="bg-slate-900 text-white text-[10px] uppercase font-bold sticky top-0">
-                <tr>
-                  <th scope="col" class="px-4 py-2.5">Socio</th>
-                  <th scope="col" class="px-4 py-2.5">Acción</th>
-                  <th scope="col" class="px-4 py-2.5 text-center">Estatus</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-surface-100">
-                <tr v-for="user in stats.fantasmas" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
-                  <td class="px-4 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
-                  <td class="px-4 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
-                  <td class="px-4 py-3 text-center">
-                    <span class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-full text-[9px] uppercase tracking-wider">Inactivo</span>
-                  </td>
-                </tr>
-                <tr v-if="!stats.fantasmas.length">
-                  <td colspan="3" class="px-4 py-8 text-center text-slate-400 font-bold">Sin membresías inactivas</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="flex-1 min-h-0 overflow-y-auto border border-surface-100 rounded-xl">
+          <table class="w-full text-xs text-left text-surface-600">
+            <thead class="bg-slate-900 text-white text-[10px] uppercase font-bold sticky top-0">
+              <tr>
+                <th scope="col" class="px-4 py-2.5">Socio</th>
+                <th scope="col" class="px-4 py-2.5">Acción</th>
+                <th scope="col" class="px-4 py-2.5 text-center">Estatus</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+              <tr v-for="user in stats.fantasmas" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
+                <td class="px-4 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
+                <td class="px-4 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-full text-[9px] uppercase tracking-wider">Inactivo</span>
+                </td>
+              </tr>
+              <tr v-if="!stats.fantasmas.length">
+                <td colspan="3" class="px-4 py-8 text-center text-slate-400 font-bold">Sin membresías inactivas</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-
       </div>
 
       <!-- Tabla B: La "Lista Negra" (Reincidentes) - Full Width -->
-      <div class="bg-white border border-surface-200 rounded-3xl p-6 lg:p-8 flex flex-col h-[400px]">
+      <div class="bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col h-[400px] hover:shadow-lg transition-all duration-300">
         <div class="flex justify-between items-start mb-4">
           <div>
             <h3 class="text-base font-black text-surface-900 leading-tight">La Lista Negra (Reincidentes y Sancionados)</h3>
