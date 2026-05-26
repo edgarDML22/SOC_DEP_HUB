@@ -310,6 +310,7 @@ const router = createRouter({
       children: [
         {
           path: "dashboard",
+          name: "admin-dashboard",
           component: () => import("@/views/admin/Dashboard.vue"),
         },
         {
@@ -565,9 +566,7 @@ router.beforeEach(async (to, from, next) => {
 });
 
 router.afterEach(() => {
-  setTimeout(() => {
-    isRouteLoading.value = false
-  }, 250)
+  isRouteLoading.value = false
 })
 
 export default router;

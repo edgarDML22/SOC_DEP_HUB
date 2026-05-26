@@ -11,7 +11,7 @@ const props = defineProps({
 const canvasRef = ref(null);
 let chartInstance = null;
 
-// Colores sofisticados para usar por defecto (basados en HSL / Slate / Indigo de Tailwind)
+// Colores sofisticados por defecto
 const presetOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -20,7 +20,7 @@ const presetOptions = {
       display: true,
       position: 'bottom',
       labels: {
-        color: '#475569', // text-slate-600
+        color: '#475569',
         font: {
           family: 'system-ui, -apple-system, sans-serif',
           size: 11,
@@ -32,13 +32,13 @@ const presetOptions = {
       }
     },
     tooltip: {
-      backgroundColor: '#0f172a', // slate-900
+      backgroundColor: '#0f172a',
       titleColor: '#ffffff',
       bodyColor: '#e2e8f0',
       padding: 12,
       cornerRadius: 12,
       borderWidth: 1,
-      borderColor: '#334155', // slate-700
+      borderColor: '#334155',
       titleFont: {
         family: 'system-ui, -apple-system, sans-serif',
         size: 12,
@@ -52,11 +52,9 @@ const presetOptions = {
   },
   scales: {
     x: {
-      grid: {
-        display: false
-      },
+      grid: { display: false },
       ticks: {
-        color: '#64748b', // text-slate-500
+        color: '#64748b',
         font: {
           family: 'system-ui, -apple-system, sans-serif',
           size: 10,
@@ -66,11 +64,11 @@ const presetOptions = {
     },
     y: {
       grid: {
-        color: '#f1f5f9', // slate-100
+        color: '#f1f5f9',
         drawBorder: false
       },
       ticks: {
-        color: '#64748b', // text-slate-500
+        color: '#64748b',
         font: {
           family: 'system-ui, -apple-system, sans-serif',
           size: 10,
@@ -84,10 +82,11 @@ const presetOptions = {
 const renderChart = () => {
   if (chartInstance) {
     chartInstance.destroy();
+    chartInstance = null;
   }
   if (!canvasRef.value) return;
 
-  // Combinar opciones por defecto con las pasadas por props
+  // Clonado superficial/combinación limpia para evitar mutar referencias reactivas de Vue
   const finalOptions = {
     ...presetOptions,
     ...props.options,
@@ -117,14 +116,24 @@ const renderChart = () => {
     }
   };
 
+  // Clonamos ligeramente la estructura de data para desligarla de los triggers reactivos profundos de Vue
+  const finalData = {
+    labels: props.data?.labels ? [...props.data.labels] : [],
+    datasets: props.data?.datasets ? props.data.datasets.map(ds => ({ ...ds })) : []
+  };
+
   chartInstance = new Chart(canvasRef.value, {
     type: props.type,
-    data: props.data,
+    data: finalData,
     options: finalOptions
   });
 };
 
-watch(() => props.data, renderChart, { deep: true });
+// CRÍTICO: Vigilamos el cambio del objeto por referencia, NUNCA de forma profunda ({ deep: true })
+// Esto detiene el bucle infinito causado por los callbacks de gradientes.
+watch(() => props.data, () => {
+  renderChart();
+}, { deep: false });
 
 onMounted(() => {
   renderChart();
@@ -133,6 +142,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (chartInstance) {
     chartInstance.destroy();
+    chartInstance = null;
   }
 });
 </script>

@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAdminStore } from '@/stores/profiles/adminStore';
 import { useActividadesStore } from '@/stores/actividadesStore';
-import { useSocioTorneoStore } from '@/stores/socioTorneoStore';
+import { useTournamentStore } from '@/stores/tournamentStore';
 import { IconGuests, IconTarget, IconCalendar, IconGrid, IconBaby, IconTrophy } from '@/components/icons';
 import api from '@/services/api';
 import BaseChart from '@/components/admin/BaseChart.vue';
@@ -11,7 +11,9 @@ import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue';
 
 const profileStore = useAdminStore();
 const actividadesStore = useActividadesStore();
-const torneoStore = useSocioTorneoStore();
+const torneoStore = useTournamentStore();
+let abortController = new AbortController();
+const isMounted = ref(false);
 const isLoading = ref(true);
 const errorMsg = ref('');
 const statsData = ref(null);
@@ -107,38 +109,53 @@ const loadDashboardStats = async () => {
   try {
     isLoading.value = true;
     errorMsg.value = '';
-    const res = await api.get('/admin/bi/dashboard');
+    const res = await api.get('/admin/bi/dashboard', { signal: abortController.signal });
+    if (!isMounted.value) return;
     if (res.data && res.data.success) {
       statsData.value = res.data.data;
     } else {
       errorMsg.value = 'No se pudo cargar la información analítica.';
     }
   } catch (error) {
+    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') return;
+    if (!isMounted.value) return;
     console.error('Error al cargar estadísticas de BI:', error);
     errorMsg.value = 'Error de conexión al cargar el panel de Business Intelligence.';
   } finally {
-    isLoading.value = false;
+    if (isMounted.value) isLoading.value = false;
   }
 };
 
 const loadAdminSessions = async () => {
+  isLoadingActividades.value = true;
   try {
-    isLoadingActividades.value = true;
-    const res = await api.get('/programacion/sesiones-activas?per_page=1000');
+    const res = await api.get('/programacion/sesiones-activas?per_page=1000', {
+      signal: abortController.signal
+    });
+    if (!isMounted.value) return;
     todasLasSesionesAdmin.value = res.data?.data ?? [];
   } catch (err) {
+    if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
+    if (!isMounted.value) return;
     console.error('Error fetching admin sessions:', err);
   } finally {
-    isLoadingActividades.value = false;
+    if (isMounted.value) isLoadingActividades.value = false;
   }
 };
 
-onMounted(async () => {
-  await loadDashboardStats();
-  await Promise.all([
+onMounted(() => {
+  isMounted.value = true;
+  // Disparamos todo al mismo tiempo en paralelo. ¡Carga inmediata!
+  Promise.all([
+    loadDashboardStats(),
     loadAdminSessions(),
-    torneoStore.fetchDisponibles()
+    torneoStore.fetchTorneos({ estatus: 'EN_CURSO' })
   ]);
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
+  abortController.abort();
 });
 
 // --- Configuración de Gráficos ---
@@ -374,7 +391,7 @@ const totalEstatusOperativo = computed(() => {
 
 // Torneos Activos helpers
 const torneosActivos = computed(() => {
-  return (torneoStore.disponibles || []).slice(0, 4);
+  return (torneoStore.torneos || []).slice(0, 4);
 });
 
 const getCupoPercentage = (torneo) => {
