@@ -223,34 +223,94 @@ const copiarImagenAlPortapapeles = async (url) => {
     </div>
 
     <!-- Modal QR -->
-    <div v-if="showQrModal" class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
-      <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
-        <h3 class="text-xl font-bold text-surface-900 mb-2">Código QR de Acceso</h3>
-        <p class="text-surface-600 font-medium text-sm mb-6">Este es el código QR de <strong class="text-surface-900 font-medium">{{ selectedGuest.nombre }}</strong></p>
-        
-        <div class="bg-surface-50 p-4 border border-dashed border-surface-300 rounded-xl mb-6 flex justify-center w-full">
-          <img 
-            :src="generarQrUrl(selectedGuest.codigo_qr)" 
-            alt="QR Code" 
-            class="w-48 h-48 md:w-56 md:h-56 rounded-lg bg-white object-contain" 
-          />
-        </div>
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showQrModal && selectedGuest" class="fixed inset-0 z-200 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="cerrarModalQR"></div>
+          <div class="relative bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in flex flex-col">
+            
+            <!-- Header premium -->
+            <div class="bg-primary-600 px-6 pt-6 pb-5 flex items-center gap-4 text-white">
+              <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h1v1h-1zM17 14h1v1h-1zM14 17h1v1h-1zM17 17h1v1h-1zM20 14v.5M20 17h.5M20 20H14v-3"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base font-extrabold text-white leading-none">Pase QR de Invitado</h3>
+                <p class="text-primary-100 text-xs font-semibold mt-1.5 truncate">{{ selectedGuest.nombre }}</p>
+              </div>
+              <button @click="cerrarModalQR"
+                class="w-8 h-8 bg-white/15 hover:bg-white/25 rounded-full flex items-center justify-center transition-colors focus:outline-none shrink-0 cursor-pointer"
+              >
+                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-        <div class="w-full flex flex-col gap-3">
-          <button 
-            @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))"
-            class="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm focus:outline-none"
-          >
-            Copiar Imagen QR
-          </button>
-          <button 
-            @click="cerrarModalQR"
-            class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 focus:outline-none"
-          >
-            Cerrar
-          </button>
+            <!-- Body -->
+            <div class="p-6 flex flex-col items-center">
+              <div class="mb-4 text-center">
+                <span class="text-2xl font-black text-slate-800 tracking-[0.25em] uppercase font-mono">
+                  {{ selectedGuest.codigo_qr }}
+                </span>
+              </div>
+
+              <div class="bg-slate-50 p-6 border-2 border-dashed border-slate-200 rounded-[28px] mb-5 flex justify-center w-fit shadow-inner">
+                <img 
+                  :src="generarQrUrl(selectedGuest.codigo_qr)" 
+                  alt="QR Code" 
+                  class="w-48 h-48 md:w-56 md:h-56 rounded-xl bg-white object-contain shadow-sm border border-slate-100" 
+                />
+              </div>
+
+              <p class="text-xs text-slate-400 font-semibold text-center mb-5 leading-relaxed max-w-xs">
+                Muestra este código QR en la entrada del club para registrar el acceso del invitado.
+              </p>
+
+              <div class="flex justify-center mb-6">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shrink-0"></span>
+                  Pase Activo
+                </span>
+              </div>
+
+              <!-- Footer Actions -->
+              <div class="w-full flex flex-col gap-2.5">
+                <button 
+                  @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))"
+                  class="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-2xl py-3.5 font-bold transition-all active:scale-95 shadow-md shadow-primary-100 focus:outline-none cursor-pointer text-center text-sm border-none"
+                >
+                  Copiar Código QR
+                </button>
+                <button 
+                  @click="cerrarModalQR"
+                  class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-2xl py-3 font-bold transition-all active:scale-95 focus:outline-none cursor-pointer text-center text-sm"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+/* Animaciones suaves */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-in { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+</style>
