@@ -40,12 +40,12 @@ onMounted(async () => {
       
       <div>
         
-        <router-link to="/socio/home" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 transition-colors mb-4 font-medium text-sm w-fit group">
+        <router-link :to="$route.name === 'add-register' ? { name: 'ludoteca-list' } : '/socio/home'" class="flex items-center gap-2 text-surface-500 hover:text-primary-600 transition-colors mb-4 font-medium text-sm w-fit group">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             Volver
         </router-link>
         
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-200 pb-4">
+        <div v-if="$route.name !== 'add-register'" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-200 pb-4">
             <div>
                 <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Ludoteca</h2>
                 <p class="text-surface-500 font-medium text-sm md:text-base m-0 mt-1">Gestiona los ingresos de tus pequeños</p>
