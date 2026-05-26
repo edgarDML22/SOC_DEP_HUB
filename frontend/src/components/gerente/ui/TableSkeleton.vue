@@ -16,7 +16,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="p-6 md:p-8 space-y-3 w-full">
+  <div class="px-6 py-4 space-y-3 w-full">
     <div v-for="r in rows" :key="r" class="flex items-center gap-4 animate-pulse py-3 border-b border-surface-100 last:border-b-0 w-full">
       <!-- Columna 1: Avatar opcional -->
       <div v-if="hasAvatar" class="w-10 h-10 rounded-xl bg-surface-200 shrink-0" />

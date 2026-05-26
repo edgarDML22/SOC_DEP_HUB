@@ -180,7 +180,8 @@ const chartReservasHoy = computed(() => {
           ['#f43f5e', '#be123c'], // Rose
           ['#64748b', '#475569']  // Slate
         ];
-        const pair = colorsMap[context.dataIndex % colorsMap.length];
+        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const pair = colorsMap[index % colorsMap.length];
         if (!chartArea) return pair[0];
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
         gradient.addColorStop(0, pair[1]);
@@ -237,7 +238,8 @@ const chartEstatusOperativo = computed(() => {
           'PENDIENTE': ['#fcd34d', '#d97706'],  // Amber gradient
           'NO_SHOW': ['#fda4af', '#e11d48']     // Rose gradient
         };
-        const rawLabel = statsData.value.estatus_operativo.labels[context.dataIndex];
+        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const rawLabel = statsData.value.estatus_operativo.labels[index];
         const key = String(rawLabel || '').toUpperCase();
         const pair = colorsMap[key] || ['#cbd5e1', '#94a3b8'];
         if (!chartArea) return pair[0];
@@ -285,7 +287,8 @@ const chartTopEspacios = computed(() => {
           ['#f43f5e', '#be123c'], // Rose
           ['#64748b', '#475569']  // Slate
         ];
-        const pair = colorsMap[context.dataIndex % colorsMap.length];
+        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const pair = colorsMap[index % colorsMap.length];
         if (!chartArea) return pair[0];
         const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0); // Horizontal gradient!
         gradient.addColorStop(0, pair[1]);
@@ -679,7 +682,7 @@ const ESTATUS_COLORS = {
             <p class="text-xs font-medium text-surface-400 mt-0.5">Programación y disciplinas del día en vivo.</p>
           </div>
           
-          <div class="flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin space-y-3">
+          <div class="max-h-[365px] overflow-y-auto pr-1 scrollbar-thin space-y-3">
             <div v-if="isLoadingActividades" class="h-full flex flex-col items-center justify-center text-slate-400">
               <LoadingSpinner class="w-8 h-8 mb-2" />
               <span class="text-xs font-bold">Cargando actividades…</span>

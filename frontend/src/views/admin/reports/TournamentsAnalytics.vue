@@ -161,7 +161,8 @@ const chartCategorias = computed(() => {
           ['#f43f5e', '#be123c'], // Rose
           ['#64748b', '#475569']  // Slate
         ];
-        const pair = colorsMap[context.dataIndex % colorsMap.length];
+        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const pair = colorsMap[index % colorsMap.length];
         if (!chartArea) return pair[0];
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
         gradient.addColorStop(0, pair[1]);
@@ -193,7 +194,8 @@ const chartOrigen = computed(() => {
       backgroundColor: (context) => {
         const { ctx, chartArea } = context.chart;
         const colors = ['#6366f1', '#a855f7', '#ec4899'];
-        if (!chartArea) return colors[context.dataIndex % colors.length];
+        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        if (!chartArea) return colors[index % colors.length];
 
         const colorsMap = [
           ['#6366f1', '#4338ca'], // Socio Titular (Indigo)
@@ -201,7 +203,7 @@ const chartOrigen = computed(() => {
           ['#ec4899', '#be185d']  // Competidor Externo (Pink)
         ];
 
-        const pair = colorsMap[context.dataIndex % colorsMap.length];
+        const pair = colorsMap[index % colorsMap.length];
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
         gradient.addColorStop(0, pair[1]);
         gradient.addColorStop(1, pair[0]);

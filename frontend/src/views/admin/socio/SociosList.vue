@@ -400,24 +400,17 @@ onMounted(fetchSocios)
 
 <template>
   <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
-    <div class="max-w-7xl mx-auto space-y-8">
+    <div class="max-w-7xl mx-auto">
 
       <!-- CABECERA -->
       <AdminPageHeader title="Socios Titulares"
-        subtitle="Gestión de membresías, penalizaciones e información de cuenta.">
+        subtitle="Gestión de membresías, penalizaciones e información de cuenta."
+        class="mb-8"
+      >
         <span class="text-sm font-bold text-surface-500">
           {{ filteredSocios.length }}
           <span class="font-medium text-surface-400">de {{ socios.length }} socios</span>
         </span>
-        <ExportCsvButton :data="filteredSocios" filename="socios-titulares"
-          :columns="[
-            { label: 'ID Socio', field: 'id_socio' },
-            { label: 'Número Acción', field: 'numero_accion' },
-            { label: 'Nombre Completo', field: 'nombre_completo' },
-            { label: 'Tipo', field: 'tipo_socio' },
-            { label: 'Modalidad', field: 'modalidad_plan' },
-            { label: 'Estatus', field: 'estatus_cuenta' }
-          ]" />
       </AdminPageHeader>
 
       <!-- Segmented Control (Pills) -->
@@ -445,23 +438,18 @@ onMounted(fetchSocios)
         <transition name="fade" mode="out-in">
           
           <!-- PESTAÑA: ESTADÍSTICAS DEMOGRÁFICAS -->
-          <div v-if="activeTab === 'stats'" key="stats" class="space-y-6">
-            <div>
-              <h3 class="text-base font-black text-surface-900 leading-tight">Estadísticas Demográficas</h3>
-              <p class="text-xs font-medium text-surface-400 mt-0.5">Composición demográfica y tipos de planes de socios titulares activos.</p>
-            </div>
-
+          <div v-if="activeTab === 'stats'" key="stats" class="space-y-8">
             <div class="py-4">
               <div v-if="isDemographicsLoading" class="flex flex-col items-center justify-center py-12">
                 <LoadingSpinner />
                 <span class="text-xs font-bold text-surface-400 mt-2">Cargando datos demográficos…</span>
               </div>
               
-              <div v-else-if="demographicsData" class="space-y-6">
+              <div v-else-if="demographicsData" class="space-y-8">
                 <!-- Fila 1: Segmentación & Planes -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <!-- Gráfico A: Segmentación de Membresías -->
-                  <div class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-all duration-300 min-h-[360px]">
+                  <div class="bg-white border border-surface-200 rounded-[2.5rem] p-8 flex flex-col justify-between hover:shadow-md transition-all duration-300 shadow-sm min-h-[360px]">
                     <div>
                       <h4 class="text-xs font-black text-surface-900 mb-4 uppercase tracking-wider">Accionistas vs Rentistas</h4>
                       <div class="h-[220px] flex items-center justify-center">
@@ -486,7 +474,7 @@ onMounted(fetchSocios)
                   </div>
 
                   <!-- Gráfico B: Modalidad de Planes -->
-                  <div class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-all duration-300 min-h-[360px]">
+                  <div class="bg-white border border-surface-200 rounded-[2.5rem] p-8 flex flex-col justify-between hover:shadow-md transition-all duration-300 shadow-sm min-h-[360px]">
                     <div>
                       <h4 class="text-xs font-black text-surface-900 mb-4 uppercase tracking-wider">Planes Individuales vs Familiares</h4>
                       <div class="h-[220px] flex items-center justify-center">
@@ -512,8 +500,8 @@ onMounted(fetchSocios)
                 </div>
 
                 <!-- Fila 2: Distribución por Edad y Género -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div class="bg-surface-50 border border-surface-200 rounded-3xl p-6 flex flex-col hover:shadow-md transition-all duration-300 min-h-[360px] lg:col-span-2">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div class="bg-white border border-surface-200 rounded-[2.5rem] p-8 flex flex-col hover:shadow-md transition-all duration-300 shadow-sm min-h-[360px] lg:col-span-2">
                     <h4 class="text-xs font-black text-surface-900 mb-4 uppercase tracking-wider">Distribución por Edad y Género</h4>
                     <div class="flex-1 min-h-[240px]">
                       <BaseChart v-if="chartDemografia" type="bar" :data="chartDemografia" :options="optionsDemografia" />
@@ -525,98 +513,117 @@ onMounted(fetchSocios)
           </div>
 
           <!-- PESTAÑA: REGISTROS -->
-          <div v-else key="register" class="space-y-8">
+          <div v-else key="register" class="flex flex-col gap-6">
 
             <!-- BARRA DE FILTROS -->
-            <div class="bg-surface-50 rounded-2xl border border-surface-200 p-5 space-y-4 shadow-inner">
-              <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o número de acción…" />
-              <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                <div class="flex flex-col gap-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
-                  <div class="relative">
-                    <IconFilter
-                      class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    <select v-model="listFilters.tipo"
-                      class="w-full pl-10 pr-8 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                      <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+            <div class="bg-white p-6 rounded-3xl border border-surface-200 shadow-sm space-y-6">
+              <div class="flex flex-col gap-2">
+                <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o número de acción…" />
+              </div>
+              
+              <div class="flex flex-col lg:flex-row gap-4 items-end">
+                <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
+                    <div class="relative">
+                      <IconFilter
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      <select v-model="listFilters.tipo"
+                        class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                        <option v-for="opt in OPT_TIPO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Modalidad</label>
+                    <div class="relative">
+                      <IconFilter
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      <select v-model="listFilters.modalidad"
+                        class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                        <option v-for="opt in OPT_MODALIDAD" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Género</label>
+                    <div class="relative">
+                      <IconFilter
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      <select v-model="listFilters.genero"
+                        class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                        <option v-for="opt in OPT_GENERO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Cuenta</label>
+                    <div class="relative">
+                      <IconAlertCircle
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      <select v-model="listFilters.estatus"
+                        class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                        <option v-for="opt in OPT_ESTATUS_CUENTA" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Penalización</label>
+                    <div class="relative">
+                      <IconWarning
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      <select v-model="listFilters.penalizacion"
+                        class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
+                        <option v-for="opt in OPT_ESTATUS_PENALIZACION" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                      <IconChevronDown
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
-                <div class="flex flex-col gap-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Modalidad</label>
-                  <div class="relative">
-                    <IconFilter
-                      class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    <select v-model="listFilters.modalidad"
-                      class="w-full pl-10 pr-8 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                      <option v-for="opt in OPT_MODALIDAD" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-                <div class="flex flex-col gap-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Género</label>
-                  <div class="relative">
-                    <IconFilter
-                      class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    <select v-model="listFilters.genero"
-                      class="w-full pl-10 pr-8 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                      <option v-for="opt in OPT_GENERO" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-                <!-- Fila 2: los 2 filtros de estatus -->
-                <div class="flex flex-col gap-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Cuenta</label>
-                  <div class="relative">
-                    <IconAlertCircle
-                      class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    <select v-model="listFilters.estatus"
-                      class="w-full pl-10 pr-8 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                      <option v-for="opt in OPT_ESTATUS_CUENTA" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-                <div class="flex flex-col gap-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Penalización</label>
-                  <div class="relative">
-                    <IconWarning
-                      class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    <select v-model="listFilters.penalizacion"
-                      class="w-full pl-10 pr-8 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                      <option v-for="opt in OPT_ESTATUS_PENALIZACION" :key="opt.value" :value="opt.value">{{ opt.label }}
-                      </option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
+
+                <div class="shrink-0 w-full lg:w-auto flex items-center gap-4 justify-end">
+                  <Transition enter-active-class="transition-all duration-200 ease-out"
+                    enter-from-class="opacity-0 translate-x-4" enter-to-class="opacity-100 translate-x-0"
+                    leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-x-0"
+                    leave-to-class="opacity-0 translate-x-4">
+                    <button v-if="hasActiveFilters" @click="clearFilters"
+                      class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors px-2 py-1">
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                      Limpiar filtros
+                    </button>
+                  </Transition>
+
+                  <ExportCsvButton :data="filteredSocios" filename="socios-titulares"
+                    :columns="[
+                      { label: 'ID Socio', field: 'id_socio' },
+                      { label: 'Número Acción', field: 'numero_accion' },
+                      { label: 'Nombre Completo', field: 'nombre_completo' },
+                      { label: 'Tipo', field: 'tipo_socio' },
+                      { label: 'Modalidad', field: 'modalidad_plan' },
+                      { label: 'Estatus', field: 'estatus_cuenta' }
+                    ]"
+                    class="w-full md:w-auto" />
                 </div>
               </div>
-              <Transition enter-active-class="transition-all duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-                leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-                leave-to-class="opacity-0 -translate-y-1">
-                <div v-if="hasActiveFilters" class="flex justify-end">
-                  <button @click="clearFilters"
-                    class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                    Limpiar filtros
-                  </button>
-                </div>
-              </Transition>
             </div>
 
             <!-- TABLA -->
-            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96 flex flex-col">
+            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-96 flex flex-col">
 
               <!-- Estado: cargando -->
               <TableSkeleton v-if="isLoading" :rows="6" :columns="6" :has-avatar="true" />
@@ -648,13 +655,11 @@ onMounted(fetchSocios)
                 <table class="w-full text-sm text-left text-slate-600">
                   <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
                     <tr>
-                      <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Socio</th>
-                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden sm:table-cell">Acción</th>
-                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Tipo</th>
-                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Modalidad</th>
-                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Género</th>
+                      <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Socio / Acción</th>
+                      <th scope="col" class="px-6 py-4 text-left font-extrabold">Tipo / Plan</th>
+                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden sm:table-cell">Género</th>
                       <th scope="col" class="px-6 py-4 text-left font-extrabold">Estatus Cuenta</th>
-                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden xl:table-cell">Estatus Penalización</th>
+                      <th scope="col" class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Estatus Penalización</th>
                       <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
                     </tr>
                   </thead>
@@ -663,7 +668,7 @@ onMounted(fetchSocios)
                       v-memo="[socio.estatus_cuenta, socio.estatus_penalizacion, socio.nombre_completo, socio.tipo_socio, socio.modalidad_plan, socio.genero]"
                       class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group animate-row-in"
                       :style="{ animationDelay: `${idx * 30}ms` }">
-                      <!-- Nombre + avatar -->
+                      <!-- Nombre + avatar + Acción agrupados -->
                       <td class="px-6 py-4 first:last:rounded-bl-2xl">
                         <div class="flex items-center gap-3">
                           <div class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center
@@ -671,27 +676,25 @@ onMounted(fetchSocios)
                             :class="avatarGradient(socio.nombre_completo)">
                             {{ initials(socio.nombre_completo) }}
                           </div>
-                          <span class="font-semibold text-surface-900 truncate max-w-[180px]">
-                            {{ socio.nombre_completo }}
-                          </span>
+                          <div class="flex flex-col min-w-0">
+                            <span class="font-bold text-slate-800 truncate max-w-[180px]">
+                              {{ socio.nombre_completo }}
+                            </span>
+                            <span class="text-slate-500 text-xs mt-0.5 font-semibold font-sans tracking-wide">
+                              Acción: {{ socio.numero_accion }}
+                            </span>
+                          </div>
                         </div>
                       </td>
-                      <!-- Acción -->
-                      <td class="px-6 py-4 hidden sm:table-cell">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
-                          {{ socio.numero_accion }}
-                        </span>
-                      </td>
-                      <!-- Tipo -->
-                      <td class="px-6 py-4 hidden md:table-cell">
-                        <BadgeStatus :status="socio.tipo_socio" />
-                      </td>
-                      <!-- Modalidad -->
-                      <td class="px-6 py-4 hidden lg:table-cell">
-                        <BadgeStatus :status="socio.modalidad_plan" />
+                      <!-- Tipo / Plan agrupados -->
+                      <td class="px-6 py-4">
+                        <div class="flex flex-col gap-1 items-start">
+                          <BadgeStatus :status="socio.tipo_socio" />
+                          <BadgeStatus :status="socio.modalidad_plan" />
+                        </div>
                       </td>
                       <!-- Género -->
-                      <td class="px-6 py-4 hidden lg:table-cell">
+                      <td class="px-6 py-4 hidden sm:table-cell">
                         <BadgeStatus :status="socio.genero" />
                       </td>
                       <!-- Estatus Cuenta -->
@@ -699,7 +702,7 @@ onMounted(fetchSocios)
                         <BadgeStatus :status="socio.estatus_cuenta" />
                       </td>
                       <!-- Estatus Penalización -->
-                      <td class="px-6 py-4 hidden xl:table-cell" @click.stop>
+                      <td class="px-6 py-4 hidden md:table-cell" @click.stop>
                         <BadgeStatus :status="socio.estatus_penalizacion ?? 'SIN_PENALIZACION'" />
                       </td>
                       <!-- Menú acciones -->
@@ -843,8 +846,8 @@ onMounted(fetchSocios)
   animation: rowIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 @keyframes rowIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .fade-enter-active,
