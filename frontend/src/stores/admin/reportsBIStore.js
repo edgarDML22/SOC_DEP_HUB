@@ -37,6 +37,7 @@ export const useReportsBIStore = defineStore('reportsBI', () => {
 
   // --- Spaces / Infrastructure Cache ---
   const spacesStats = ref(null);
+  const spacesStatsCache = ref({});
   const spacesFilters = ref({
     rango: 'semana',
     fecha_inicio: '',
@@ -46,21 +47,19 @@ export const useReportsBIStore = defineStore('reportsBI', () => {
   });
 
   const fetchSpacesStats = async (filters, forceRefresh = false) => {
-    const isSameFilters =
-      spacesStats.value &&
-      spacesFilters.value.rango === filters.rango &&
-      spacesFilters.value.fecha_inicio === filters.fecha_inicio &&
-      spacesFilters.value.fecha_fin === filters.fecha_fin &&
-      spacesFilters.value.id_espacio === filters.id_espacio &&
-      spacesFilters.value.id_disciplina === filters.id_disciplina;
+    const key = `${filters.rango || ''}_${filters.fecha_inicio || ''}_${filters.fecha_fin || ''}_${filters.id_espacio || ''}_${filters.id_disciplina || ''}`;
 
-    if (isSameFilters && !forceRefresh) {
+    if (spacesStatsCache.value[key] && !forceRefresh) {
+      spacesStats.value = spacesStatsCache.value[key];
+      spacesFilters.value = { ...filters };
       return spacesStats.value;
     }
 
     const res = await api.get('/admin/bi/reports/spaces', { params: filters });
     if (res.data && res.data.success) {
-      spacesStats.value = res.data.data;
+      const data = res.data.data;
+      spacesStatsCache.value[key] = data;
+      spacesStats.value = data;
       spacesFilters.value = { ...filters };
       return spacesStats.value;
     }
@@ -131,6 +130,7 @@ export const useReportsBIStore = defineStore('reportsBI', () => {
   const clearCache = () => {
     academicStats.value = null;
     spacesStats.value = null;
+    spacesStatsCache.value = {};
     auditoriaStats.value = null;
     tournamentsStats.value = null;
   };

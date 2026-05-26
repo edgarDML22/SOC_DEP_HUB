@@ -429,12 +429,13 @@ const ESTATUS_COLORS = {
         </div>
         <button 
           @click="loadDashboardStats" 
-          class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-surface-200 rounded-xl text-xs font-bold text-surface-700 shadow-sm hover:bg-surface-50 transition-colors self-start md:self-auto"
+          :disabled="isLoading"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-surface-900 border border-surface-950 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-slate-800 transition-all duration-300 self-start md:self-auto cursor-pointer disabled:opacity-50"
         >
-          <svg class="w-4 h-4" :class="{'animate-spin': isLoading}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg class="w-4 h-4 text-white" :class="{'animate-spin': isLoading}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          Actualizar datos
+          {{ isLoading ? 'Actualizando...' : 'Actualizar datos' }}
         </button>
       </div>
 
@@ -600,12 +601,12 @@ const ESTATUS_COLORS = {
             <div class="flex bg-slate-100 rounded-xl p-0.5 border border-slate-200 shadow-inner">
               <button @click="activeFusedTab = 'afluencia'"
                       class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
-                      :class="activeFusedTab === 'afluencia' ? 'bg-white text-surface-900 shadow-sm scale-[1.02]' : 'text-surface-500 hover:text-surface-700 bg-transparent'">
+                      :class="activeFusedTab === 'afluencia' ? 'bg-surface-900 text-white shadow-sm scale-[1.02]' : 'text-surface-500 hover:text-surface-700 bg-transparent'">
                 Afluencia
               </button>
               <button @click="activeFusedTab = 'espacios'"
                       class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
-                      :class="activeFusedTab === 'espacios' ? 'bg-white text-surface-900 shadow-sm scale-[1.02]' : 'text-surface-500 hover:text-surface-700 bg-transparent'">
+                      :class="activeFusedTab === 'espacios' ? 'bg-surface-900 text-white shadow-sm scale-[1.02]' : 'text-surface-500 hover:text-surface-700 bg-transparent'">
                 Espacios
               </button>
             </div>

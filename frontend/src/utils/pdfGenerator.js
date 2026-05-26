@@ -15,7 +15,7 @@ const loadImage = (url) => {
 
 const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeight = 600) => {
   const scale = aspectWidth / 400; // Dynamic scale factor based on resolution width
-  
+
   const canvas = document.createElement('canvas');
   canvas.width = aspectWidth;
   canvas.height = aspectHeight;
@@ -36,13 +36,37 @@ const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeigh
   // Inject beautiful linear gradients, borders and spacing dynamically
   if (data.datasets && Array.isArray(data.datasets)) {
     data.datasets.forEach((dataset, dsIdx) => {
+      // If a custom callback function is provided for colors, let Chart.js process it directly
+      if (typeof dataset.backgroundColor === 'function' || typeof dataset.borderColor === 'function') {
+        if (type === 'bar') {
+          const isHorizontal = options.indexAxis === 'y';
+          dataset.borderRadius = isHorizontal ? {
+            topRight: Math.round(5 * scale),
+            bottomRight: Math.round(5 * scale),
+            topLeft: 0,
+            bottomLeft: 0
+          } : {
+            topLeft: Math.round(5 * scale),
+            topRight: Math.round(5 * scale),
+            bottomLeft: 0,
+            bottomRight: 0
+          };
+          dataset.borderSkipped = false;
+        }
+        return;
+      }
+
       // 1. Beautiful linear gradients for Bar and Line charts
       if (type === 'bar' || type === 'line') {
-        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        const colorVal = Array.isArray(dataset.backgroundColor) 
-          ? dataset.backgroundColor[0] 
+        const isHorizontal = options.indexAxis === 'y';
+        const gradient = isHorizontal
+          ? ctx.createLinearGradient(0, 0, canvas.width, 0)
+          : ctx.createLinearGradient(0, canvas.height, 0, 0);
+
+        const colorVal = Array.isArray(dataset.backgroundColor)
+          ? dataset.backgroundColor[0]
           : dataset.backgroundColor;
-          
+
         if (colorVal === '#3b82f6' || colorVal === 'rgba(99, 102, 241, 0.85)' || colorVal === '#6366f1' || colorVal === '#2563eb') {
           // Vibrant Blue-to-Indigo Gradient (matches reference image)
           gradient.addColorStop(0, '#1e70eb'); // Deep blue
@@ -71,7 +95,12 @@ const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeigh
 
         // Rounded corners for Bar charts (Top corners only, dynamically scaled!)
         if (type === 'bar') {
-          dataset.borderRadius = {
+          dataset.borderRadius = isHorizontal ? {
+            topRight: Math.round(5 * scale),
+            bottomRight: Math.round(5 * scale),
+            topLeft: 0,
+            bottomLeft: 0
+          } : {
             topLeft: Math.round(5 * scale),
             topRight: Math.round(5 * scale),
             bottomLeft: 0,
@@ -86,7 +115,7 @@ const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeigh
         dataset.borderRadius = Math.round(2.5 * scale);
         dataset.spacing = Math.round(1.8 * scale); // Adds whitespace gap
         dataset.cutout = '65%'; // Modern thick ring cutout
-        
+
         // Map demographic colors to ultra-vivid matching palettes
         if (dataset.backgroundColor && Array.isArray(dataset.backgroundColor)) {
           const premiumPalette = ['#2563eb', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#64748b'];
@@ -96,14 +125,14 @@ const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeigh
 
       // 3. Thick vivid lines with circle markers for Line charts (Dynamically scaled!)
       if (type === 'line') {
-        dataset.borderWidth = Math.round(1.5 * scale); // Scaled elegant line thickness
-        dataset.borderColor = '#e11d48'; // Rose
-        dataset.pointRadius = Math.round(2 * scale);
-        dataset.pointHoverRadius = Math.round(2.5 * scale);
-        dataset.pointBackgroundColor = '#ffffff';
-        dataset.pointBorderColor = '#e11d48';
-        dataset.pointBorderWidth = Math.round(1 * scale);
-        dataset.tension = 0.35; // Smooth tension bezier curve
+        dataset.borderWidth = dataset.borderWidth ? Math.round(dataset.borderWidth * scale * 0.8) : Math.round(1.5 * scale);
+        dataset.borderColor = dataset.borderColor || '#e11d48'; // Preserve existing or default to Rose
+        dataset.pointRadius = dataset.pointRadius ? Math.round(dataset.pointRadius * scale * 0.6) : Math.round(2 * scale);
+        dataset.pointHoverRadius = dataset.pointHoverRadius ? Math.round(dataset.pointHoverRadius * scale * 0.6) : Math.round(2.5 * scale);
+        dataset.pointBackgroundColor = dataset.pointBackgroundColor || '#ffffff';
+        dataset.pointBorderColor = dataset.pointBorderColor || '#e11d48';
+        dataset.pointBorderWidth = dataset.pointBorderWidth ? Math.round(dataset.pointBorderWidth * scale * 0.6) : Math.round(1 * scale);
+        dataset.tension = dataset.tension ?? 0.35; // Smooth tension bezier curve, preserve if set
       }
     });
   }
@@ -112,17 +141,17 @@ const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeigh
     ...options,
     responsive: false,
     animation: false,
-    devicePixelRatio: 2, // High resolution crisp text and graphics
+    devicePixelRatio: 3, // Ultra-high resolution crisp text and graphics
     plugins: {
       ...options.plugins,
       legend: {
         ...options.plugins?.legend,
         labels: {
           ...options.plugins?.legend?.labels,
-          font: { 
-            family: 'Helvetica', 
+          font: {
+            family: 'Helvetica',
             size: Math.round(9.5 * scale), // Scaled font size
-            weight: 'bold' 
+            weight: 'bold'
           },
           color: '#1e293b', // slate-800
           boxWidth: Math.round(6 * scale), // Scaled box width
@@ -130,53 +159,69 @@ const getChartImage = (type, data, options = {}, aspectWidth = 1200, aspectHeigh
         }
       }
     },
-    scales: (type === 'bar' || type === 'line') ? {
+    scales: (type === 'bar' || type === 'line' || type === 'bubble') ? {
       x: {
         ...options.scales?.x,
         ticks: {
           ...options.scales?.x?.ticks,
-          font: { 
-            family: 'Helvetica', 
+          font: {
+            family: 'Helvetica',
             size: Math.round(8.5 * scale), // Scaled tick fonts
-            weight: 'bold' 
+            weight: 'bold'
           },
           color: '#475569' // Slate-600
         },
         grid: {
-          display: false
+          display: false,
+          ...options.scales?.x?.grid
         }
       },
       y: {
         ...options.scales?.y,
         ticks: {
           ...options.scales?.y?.ticks,
-          font: { 
-            family: 'Helvetica', 
+          font: {
+            family: 'Helvetica',
             size: Math.round(8.5 * scale), // Scaled tick fonts
-            weight: 'bold' 
+            weight: 'bold'
           },
           color: '#475569' // Slate-600
         },
         grid: {
           color: '#e2e8f0', // slate-200 grid lines
           lineWidth: Math.round(0.4 * scale), // Scaled grid lines width
-          drawBorder: false
+          drawBorder: false,
+          ...options.scales?.y?.grid
         }
       }
     } : undefined
   };
 
+  // White background plugin to prevent transparent PNG renders
+  const bgPlugin = {
+    id: 'custom_canvas_background_color',
+    beforeDraw: (chart) => {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, chart.width, chart.height);
+      ctx.restore();
+    }
+  };
+
   const chart = new Chart(canvas, {
     type,
     data,
-    options: chartOptions
+    options: chartOptions,
+    plugins: [bgPlugin]
   });
 
   // Force synchronous render immediately
   chart.update('none');
 
   const imgData = canvas.toDataURL('image/png');
-  
+
   // Clean up completely
   chart.destroy();
   canvas.remove();
@@ -196,21 +241,25 @@ const formatEstatusPenalizacion = (estatus) => {
  * Helper to draw a beautifully styled rounded card container for charts.
  */
 const drawChartCard = (doc, title, subtitle, x, y, width, height) => {
-  // Outer soft border/card container
+  // Outer soft shadow simulation (slightly offset lighter rect)
+  doc.setFillColor(241, 245, 249); // slate-100 shadow
+  doc.roundedRect(x + 0.5, y + 0.5, width, height, 4, 4, 'F');
+
+  // Main card container with border
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 232, 240); // slate-200
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.35);
   doc.roundedRect(x, y, width, height, 4, 4, 'FD'); // radius 4mm
-  
+
   // Card header title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10.5);
   doc.setTextColor(15, 23, 42); // slate-900 (vibrant slate)
   doc.text(title, x + 6, y + 8);
-  
+
   // Subtitle
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139); // slate-500
   doc.text(subtitle, x + 6, y + 13);
 };
@@ -223,13 +272,13 @@ const drawChartCard = (doc, title, subtitle, x, y, width, height) => {
  */
 const drawProgressBar = (doc, label, value, max, x, y, width, height, barColor) => {
   const percentage = max > 0 ? Math.min(1, value / max) : 0;
-  
+
   // Label and value
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(15, 23, 42); // slate-900
   doc.text(label, x, y - 2);
-  
+
   doc.setFont('helvetica', 'bold');
   doc.text(`${value}`, x + width, y - 2, { align: 'right' });
 
@@ -251,7 +300,7 @@ const drawKPICard = (doc, title, value, subtext, x, y, width, height, themeColor
   // Shadow-like border or simple card container
   doc.setFillColor(255, 255, 255);
   doc.rect(x, y, width, height, 'F');
-  
+
   doc.setDrawColor(226, 232, 240); // slate-200
   doc.setLineWidth(1);
   doc.rect(x, y, width, height, 'S');
@@ -267,7 +316,7 @@ const drawKPICard = (doc, title, value, subtext, x, y, width, height, themeColor
   doc.text(title.toUpperCase(), x + 10, y + 12);
 
   // Large Value
-  doc.setFont('helvetica', 'black');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(15, 23, 42); // slate-900
   doc.text(`${value}`, x + 10, y + 28);
@@ -335,7 +384,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.text('DETALLES DEL INFORME', 15, 115);
-  
+
   doc.setDrawColor(226, 232, 240);
   doc.line(15, 119, 195, 119);
 
@@ -370,11 +419,11 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
   doc.text('RESUMEN EJECUTIVO', 22, 198);
-  
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
   doc.setTextColor(71, 85, 105);
-  
+
   const introParagraphs = [
     'Este documento técnico consolida los indicadores clave de rendimiento (KPIs) y analíticas operativas de',
     'las cinco áreas centrales de la plataforma SocDep HUB. Su propósito es proveer a la Subgerencia una visión',
@@ -382,7 +431,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
     'de reservaciones, niveles de uso de canchas, comportamiento académico de alumnos, auditoría de la',
     'cartera de socios activos e inactivos, y el control de alertas y estancia en la Ludoteca infantil.'
   ];
-  
+
   currentY = 208;
   introParagraphs.forEach(line => {
     doc.text(line, 22, currentY);
@@ -405,7 +454,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   // PAGE 2: LUDOTECA Y DASHBOARD EN VIVO
   // ==========================================
   doc.addPage();
-  
+
   // Header and Footer for Page 2
   const addHeaderAndFooter = (title, pageNum) => {
     if (logoImg) {
@@ -447,7 +496,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const kpis = allStats.ludoteca_kpis || {};
   const ninosActivos = kpis.ninos_activos ?? 0;
   const alertasTiempo = kpis.alertas_tiempo ?? 0;
-  
+
   drawKPICard(doc, 'Niños en Sala', `${ninosActivos}`, 'Menores activos actualmente en ludoteca', 15, 38, 87, 45, [244, 63, 94]); // Rose
   drawKPICard(doc, 'Alertas de Tiempo', `${alertasTiempo}`, 'Niños con estancia mayor a 90 min', 108, 38, 87, 45, [239, 68, 68]); // Red
 
@@ -455,7 +504,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const topEspacios = allStats.top_espacios || {};
   const topEspaciosLabels = topEspacios.labels || [];
   const topEspaciosData = topEspacios.data || [];
-  
+
   const spacesData = topEspaciosLabels.map((lbl, idx) => ({
     label: lbl,
     value: topEspaciosData[idx] || 0
@@ -465,7 +514,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
 
   // Left card: Espacios más demandados
   drawChartCard(doc, 'Espacios más Demandados Hoy', 'Tránsito acumulado de espacios en el transcurso del día de hoy', 15, 92, 105, 92);
-  
+
   let barY = 112;
   if (spacesData.length === 0) {
     doc.setFont('helvetica', 'italic');
@@ -487,18 +536,38 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
     labels: (estatusOperativo.labels || []).map(l => l.replace('_', ' ')),
     datasets: [{
       data: estatusOperativo.data || [],
-      backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#64748b']
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        const colorsMap = {
+          'CONFIRMADA': ['#60a5fa', '#2563eb'],
+          'ACTIVA': ['#34d399', '#059669'],
+          'FINALIZADA': ['#cbd5e1', '#94a3b8'],
+          'PENDIENTE': ['#fcd34d', '#d97706'],
+          'NO_SHOW': ['#fda4af', '#e11d48']
+        };
+        const idx = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const rawLabel = estatusOperativo.labels[idx];
+        const key = String(rawLabel || '').toUpperCase();
+        const pair = colorsMap[key] || ['#cbd5e1', '#94a3b8'];
+        if (!chartArea) return pair[0];
+        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, pair[1]);
+        gradient.addColorStop(1, pair[0]);
+        return gradient;
+      },
+      borderWidth: 2,
+      borderColor: '#ffffff'
     }]
   };
-  
-  // High quality square aspect ratio 800x800 doughnut chart to place perfectly in the card
+
+  // High quality square aspect ratio 800x800 doughnut chart to place perfectly in the card (1:1 aspect ratio)
   const estatusImg = getChartImage('doughnut', chartEstatusData, {
     plugins: {
       legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { weight: 'bold' } } }
     }
-  }, 800, 800);
-  
-  doc.addImage(estatusImg, 'PNG', 129, 114, 64, 60);
+  }, 900, 900);
+
+  doc.addImage(estatusImg, 'PNG', 131, 114, 60, 60);
 
   // Bottom Card: Afluencia de Hoy Bar Chart
   const reservasHoy = allStats.reservas_hoy_hora || {};
@@ -507,19 +576,40 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
     datasets: [{
       label: 'Reservas por hora',
       data: reservasHoy.data || [],
-      backgroundColor: 'rgba(99, 102, 241, 0.85)'
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        const colorsMap = [
+          ['#6366f1', '#4338ca'],
+          ['#10b981', '#047857'],
+          ['#f59e0b', '#b45309'],
+          ['#ec4899', '#be185d'],
+          ['#06b6d4', '#0e7490'],
+          ['#8b5cf6', '#6d28d9'],
+          ['#f43f5e', '#be123c'],
+          ['#64748b', '#475569']
+        ];
+        const idx = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const pair = colorsMap[idx % colorsMap.length];
+        if (!chartArea) return pair[0];
+        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, pair[1]);
+        gradient.addColorStop(1, pair[0]);
+        return gradient;
+      },
+      borderRadius: 6,
+      borderSkipped: false
     }]
   };
-  
+
   // Custom canvas aspect ratio to match precisely wide 176x33 (approx 5.33:1)
   const reservasHoyImg = getChartImage('bar', reservasHoyData, {
-    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10 } } },
+    plugins: { legend: { display: false } },
     scales: {
       x: { grid: { display: false } },
       y: { beginAtZero: true, ticks: { stepSize: 1 } }
     }
-  }, 1600, 300);
-  
+  }, 2400, 450);
+
   drawChartCard(doc, 'Curva de Afluencia de Reservaciones por Horas (Hoy)', 'Tránsito horario acumulado en el día (Horas del día vs. Cantidad de reservas)', 15, 192, 180, 50);
   doc.addImage(reservasHoyImg, 'PNG', 17, 206, 176, 33);
 
@@ -538,7 +628,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  
+
   const dailyAnalysisText = [
     `Al día de hoy, el centro deportivo SocDep HUB cuenta con un registro de ${ninosActivos} niños activos en la Ludoteca. Se han`,
     `detectado ${alertasTiempo} alertas por exceso de estancia (>90 minutos) que requieren atención. El monitor de afluencia general`,
@@ -578,7 +668,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const rankingInstructores = academic.ranking_instructores || { labels: [], data: [] };
   const rankingInstructoresLabels = rankingInstructores.labels || [];
   const rankingInstructoresData = rankingInstructores.data || [];
-  
+
   const instructorsRank = rankingInstructoresLabels.map((lbl, idx) => ({
     name: lbl,
     percentage: rankingInstructoresData[idx] || 0
@@ -587,7 +677,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   // Draw table for Instructor Ranking
   doc.setFillColor(15, 23, 42); // slate-900 header
   doc.rect(15, 46, 180, 8, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
@@ -611,12 +701,12 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       doc.setFontSize(8.5);
       doc.setTextColor(71, 85, 105);
       doc.text(inst.name, 18, rowY + 5.5);
-      
+
       // Right-aligned percentage
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(59, 130, 246);
       doc.text(`${inst.percentage}%`, 192, rowY + 5.5, { align: 'right' });
-      
+
       // Thin line separation
       doc.setDrawColor(241, 245, 249);
       doc.line(15, rowY + 8, 195, rowY + 8);
@@ -646,7 +736,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const startTableY = rowY + 16;
   doc.setFillColor(15, 23, 42); // slate-900 header
   doc.rect(15, startTableY, 180, 8, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
@@ -672,10 +762,10 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       doc.setTextColor(71, 85, 105);
       doc.text(disc.name, 18, rowY + 5.5);
       doc.text(`${disc.checkin}`, 90, rowY + 5.5, { align: 'center' });
-      
+
       doc.setTextColor(239, 68, 68); // red no show
       doc.text(`${disc.noshow}`, 135, rowY + 5.5, { align: 'center' });
-      
+
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(16, 185, 129); // green rate
       doc.text(`${disc.rate}%`, 192, rowY + 5.5, { align: 'right' });
@@ -690,24 +780,37 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const rankingData = {
     labels: rankingInstructoresLabels,
     datasets: [{
-      label: 'Llenado (%)',
+      label: 'Llenado Promedio %',
       data: rankingInstructoresData,
-      backgroundColor: 'rgba(99, 102, 241, 0.85)'
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        if (!chartArea) return '#7c3aed';
+        const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+        gradient.addColorStop(0, '#7c3aed'); // Violet-600
+        gradient.addColorStop(1, '#c084fc'); // Purple-400
+        return gradient;
+      },
+      borderColor: '#6d28d9',
+      borderWidth: 1
     }]
   };
-  
+
   // Aspect ratio is 83x34 (approx 2.44:1), matching 1600x655 perfectly
   const rankingImg = getChartImage('bar', rankingData, {
-    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10 } } },
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
     scales: {
-      x: { grid: { display: false } },
-      y: { beginAtZero: true }
+      x: {
+        min: 0,
+        max: 100,
+        ticks: { callback: (val) => `${val}%` }
+      }
     }
-  }, 1600, 655);
-  
+  }, 1800, 740);
+
   const cardY = rowY + 12;
   const cardH = 56;
-  
+
   drawChartCard(doc, 'Ocupación de Clases', 'Ocupación promedio (%) de clase por instructor', 15, cardY, 87, cardH);
   doc.addImage(rankingImg, 'PNG', 17, cardY + 18, 83, 34);
 
@@ -715,18 +818,34 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
     labels: asistenciaDisciplinaLabels,
     datasets: [
       {
-        label: 'Asistencias',
+        label: 'Asistencia (Check-in)',
         data: asistenciaDisciplinaAsistencias,
-        backgroundColor: '#10b981'
+        backgroundColor: (context) => {
+          const { ctx, chartArea } = context.chart;
+          if (!chartArea) return '#10b981';
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, '#059669'); // Emerald-600
+          gradient.addColorStop(1, '#34d399'); // Emerald-400
+          return gradient;
+        },
+        borderRadius: 6
       },
       {
-        label: 'No-Shows',
+        label: 'No-Show / Inasistencias',
         data: asistenciaDisciplinaNoShows,
-        backgroundColor: '#f43f5e'
+        backgroundColor: (context) => {
+          const { ctx, chartArea } = context.chart;
+          if (!chartArea) return '#f43f5e';
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, '#e11d48'); // Rose-600
+          gradient.addColorStop(1, '#fb7185'); // Rose-400
+          return gradient;
+        },
+        borderRadius: 6
       }
     ]
   };
-  
+
   // Aspect ratio is 83x34 (approx 2.44:1), matching 1600x655 perfectly
   const discAsistenciaImg = getChartImage('bar', discAsistenciaData, {
     plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10 } } },
@@ -734,8 +853,8 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       x: { stacked: true, grid: { display: false } },
       y: { stacked: true, beginAtZero: true }
     }
-  }, 1600, 655);
-  
+  }, 1800, 740);
+
   drawChartCard(doc, 'Check-ins vs. No-Shows', 'Check-ins vs No-Shows por disciplina', 108, cardY, 87, cardH);
   doc.addImage(discAsistenciaImg, 'PNG', 110, cardY + 18, 83, 34);
 
@@ -757,99 +876,169 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   doc.setTextColor(71, 85, 105);
   doc.text('Porcentaje de uso y volumen de reservaciones on-demand en la infraestructura del club.', 15, 30);
 
-  // Table of spaces usage volume
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Volumen de Reservaciones por Instalación Deportiva', 15, 40);
-
   const spaces = allStats.spaces || {};
-  const ocupacionPorTipo = spaces.ocupacion_por_tipo || { labels: [], data: [] };
-  const ocupacionPorTipoLabels = ocupacionPorTipo.labels || [];
-  const ocupacionPorTipoData = ocupacionPorTipo.data || [];
 
-  const spacesUsage = ocupacionPorTipoLabels.map((lbl, idx) => ({
-    name: lbl,
-    reservations: ocupacionPorTipoData[idx] || 0
-  })).sort((a,b) => b.reservations - a.reservations);
+  // 1. Mapa de Saturación Horaria (Bubble Chart Heatmap)
+  const saturacionHeatmap = spaces.saturacion_heatmap || [];
+  const bubbleData = saturacionHeatmap.map(item => {
+    const horaInt = parseInt(item.hora.split(':')[0]);
+    return {
+      x: item.dia,
+      y: horaInt,
+      r: Math.max(3, Math.min(22, item.total * 3)),
+      total: item.total
+    };
+  });
 
-  doc.setFillColor(15, 23, 42);
-  doc.rect(15, 46, 180, 8, 'F');
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('CANCHA / ESPACIO FÍSICO', 18, 51.5);
-  doc.text('RESERVACIONES ACUMULADAS', 192, 51.5, { align: 'right' });
-
-  rowY = 54;
-  const maxSpaceReservations = Math.max(...(ocupacionPorTipoData.length > 0 ? ocupacionPorTipoData : [1]), 10);
-  
-  if (spacesUsage.length === 0) {
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
-    doc.setTextColor(148, 163, 184);
-    doc.text('No hay reservaciones acumuladas en este periodo.', 18, 64);
-  } else {
-    spacesUsage.forEach((space, index) => {
-      if (index % 2 === 0) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(15, rowY, 180, 8, 'F');
-      }
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(71, 85, 105);
-      doc.text(space.name, 18, rowY + 5.5);
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${space.reservations}`, 192, rowY + 5.5, { align: 'right' });
-
-      doc.setDrawColor(241, 245, 249);
-      doc.line(15, rowY + 8, 195, rowY + 8);
-      rowY += 8;
-    });
-  }
-
-  // Left card: Comparativa de Ocupación por Áreas inside a rounded card
-  const spacesCardY = rowY + 12;
-  const spacesCardH = 92;
-  
-  drawChartCard(doc, 'Comparativa de Ocupación por Áreas', 'Volumen de reservaciones registradas por cancha', 15, spacesCardY, 105, spacesCardH);
-  
-  const spacesSample = spacesUsage.slice(0, 4);
-  let visualY = spacesCardY + 20;
-  if (spacesSample.length === 0) {
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
-    doc.setTextColor(148, 163, 184);
-    doc.text('No hay reservaciones acumuladas en este periodo.', 21, spacesCardY + 30);
-  } else {
-    spacesSample.forEach(item => {
-      drawProgressBar(doc, item.name, item.reservations, maxSpaceReservations, 21, visualY, 93, 5, [16, 185, 129]); // Inside card (x = 21, w = 93)
-      visualY += 15;
-    });
-  }
-
-  // Right card: Demanda de Espacios inside a aligned card
-  drawChartCard(doc, 'Demanda de Espacios', 'Proporción de uso de la infraestructura física', 127, spacesCardY, 68, spacesCardH);
-
-  const spacesUsageData = {
-    labels: ocupacionPorTipoLabels,
+  const chartSaturacion = {
     datasets: [{
-      data: ocupacionPorTipoData,
-      backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#f43f5e', '#64748b']
+      label: 'Saturación de Espacios',
+      data: bubbleData,
+      backgroundColor: 'rgba(245, 158, 11, 0.55)', // Amber-500 traslúcido
+      borderColor: 'rgba(217, 119, 6, 0.95)',      // Amber-600
+      borderWidth: 1.5
     }]
   };
-  
-  // Use high resolution square 800x800 layout to match perfectly inside card
-  const spacesUsageImg = getChartImage('doughnut', spacesUsageData, {
-    plugins: {
-      legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { weight: 'bold' } } }
+
+  const saturacionImg = getChartImage('bubble', chartSaturacion, {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        type: 'linear',
+        min: 0.5,
+        max: 7.5,
+        ticks: {
+          stepSize: 1,
+          callback: (value) => {
+            const labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            return labels[value - 1] || '';
+          }
+        }
+      },
+      y: {
+        type: 'linear',
+        min: 6,
+        max: 22,
+        ticks: {
+          stepSize: 2,
+          callback: (value) => `${value}:00`
+        }
+      }
     }
-  }, 800, 800);
-  
-  doc.addImage(spacesUsageImg, 'PNG', 129, spacesCardY + 14, 64, 60);
+  }, 1600, 480);
+
+  drawChartCard(doc, 'Mapa de Saturación Horaria General', 'Días y horas de afluencia cruzados para detectar horarios pico y canchas subutilizadas', 15, 36, 180, 68);
+  doc.addImage(saturacionImg, 'PNG', 17, 50, 176, 50);
+
+  // 2. Ocupación por Disciplina (Horizontal Bar Chart)
+  const ocupacionPorTipo = spaces.ocupacion_por_tipo || { labels: [], data: [] };
+  const chartOcupacionTipo = {
+    labels: ocupacionPorTipo.labels || [],
+    datasets: [{
+      label: 'Reservaciones registradas',
+      data: ocupacionPorTipo.data || [],
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        if (!chartArea) return '#7c3aed';
+        const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+        gradient.addColorStop(0, '#7c3aed'); // Violet-600
+        gradient.addColorStop(1, '#c084fc'); // Purple-400
+        return gradient;
+      },
+      borderColor: '#6d28d9',
+      borderWidth: 1
+    }]
+  };
+
+  const ocupacionTipoImg = getChartImage('bar', chartOcupacionTipo, {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } }
+  }, 1400, 810);
+
+  const spacesCardY = 112;
+  const spacesCardH = 68;
+  drawChartCard(doc, 'Ocupación por Disciplina', 'Distribución proporcional de uso de canchas desglosada', 15, spacesCardY, 87, spacesCardH);
+  doc.addImage(ocupacionTipoImg, 'PNG', 17, spacesCardY + 16, 83, 48);
+
+  // 3. Uso de Canchas y Espacios Físicos (Vertical Bar Chart Multicolor)
+  const ocupacionPorEspacio = spaces.ocupacion_por_espacio || { labels: [], data: [] };
+  const chartOcupacionEspacio = {
+    labels: ocupacionPorEspacio.labels || [],
+    datasets: [{
+      label: 'Reservaciones registradas',
+      data: ocupacionPorEspacio.data || [],
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        const colorsMap = [
+          ['#6366f1', '#4338ca'],
+          ['#10b981', '#047857'],
+          ['#f59e0b', '#b45309'],
+          ['#ec4899', '#be185d'],
+          ['#06b6d4', '#0e7490'],
+          ['#8b5cf6', '#6d28d9'],
+          ['#f43f5e', '#be123c'],
+          ['#3b82f6', '#1d4ed8'],
+          ['#f97316', '#c2410c'],
+          ['#84cc16', '#4d7c0f'],
+          ['#14b8a6', '#0f766e'],
+          ['#a855f7', '#7e22ce'],
+          ['#64748b', '#334155']
+        ];
+        const idx = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const pair = colorsMap[idx % colorsMap.length];
+        if (!chartArea) return pair[0];
+        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, pair[1]);
+        gradient.addColorStop(1, pair[0]);
+        return gradient;
+      },
+      borderColor: (context) => {
+        const colorsMap = [
+          '#4338ca', '#047857', '#b45309', '#be185d', '#0e7490', '#6d28d9',
+          '#be123c', '#1d4ed8', '#c2410c', '#4d7c0f', '#0f766e', '#7e22ce', '#334155'
+        ];
+        const idx = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        return colorsMap[idx % colorsMap.length];
+      },
+      borderWidth: 1
+    }]
+  };
+
+  const ocupacionEspacioImg = getChartImage('bar', chartOcupacionEspacio, {
+    plugins: { legend: { display: false } }
+  }, 1400, 810);
+
+  drawChartCard(doc, 'Uso de Canchas y Espacios Físicos', 'Volumen total de reservaciones acumuladas por instalación física', 108, spacesCardY, 87, spacesCardH);
+  doc.addImage(ocupacionEspacioImg, 'PNG', 110, spacesCardY + 16, 83, 48);
+
+  // Bottom Box: Executive summary
+  const totalReservasEspacio = ocupacionPorEspacio.data?.reduce((sum, val) => sum + Number(val), 0) || 0;
+
+  doc.setFillColor(248, 250, 252);
+  doc.rect(15, 188, 180, 26, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(15, 188, 180, 26, 'S');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('RESUMEN DE USO DE INFRAESTRUCTURA', 20, 194);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+
+  const infrastructureText = [
+    `Durante el periodo analizado, se registraron un total de ${totalReservasEspacio} reservaciones on-demand en la infraestructura física del club.`,
+    `El Mapa de Saturación Horaria identifica con claridad las horas pico de uso del club deportivo, permitiendo planificar tareas`,
+    `de mantenimiento, limpieza y distribución de instructores de forma óptima sin interrumpir la operación del club.`
+  ];
+
+  let spacesTextY = 200;
+  infrastructureText.forEach(line => {
+    doc.text(line, 20, spacesTextY);
+    spacesTextY += 4.5;
+  });
 
 
 
@@ -883,11 +1072,11 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const catRegistrations = inscripcionesCategoriaLabels.map((lbl, idx) => ({
     name: lbl,
     total: inscripcionesCategoriaData[idx] || 0
-  })).sort((a,b) => b.total - a.total);
+  })).sort((a, b) => b.total - a.total);
 
   doc.setFillColor(15, 23, 42);
   doc.rect(15, 46, 180, 8, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
@@ -910,7 +1099,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       doc.setFontSize(8.5);
       doc.setTextColor(71, 85, 105);
       doc.text(cat.name, 18, rowY + 5.5);
-      
+
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(15, 23, 42);
       doc.text(`${cat.total}`, 192, rowY + 5.5, { align: 'right' });
@@ -939,7 +1128,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const startOriginY = rowY + 16;
   doc.setFillColor(15, 23, 42);
   doc.rect(15, startOriginY, 180, 8, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
@@ -962,7 +1151,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       doc.setFontSize(8.5);
       doc.setTextColor(71, 85, 105);
       doc.text(origin.type, 18, rowY + 5.5);
-      
+
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(59, 130, 246);
       doc.text(`${origin.count}`, 192, rowY + 5.5, { align: 'right' });
@@ -979,22 +1168,29 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
     datasets: [{
       label: 'Jugadores inscritos',
       data: inscripcionesCategoriaData,
-      backgroundColor: '#3b82f6'
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        if (!chartArea) return '#3b82f6';
+        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, '#1e70eb'); // Deep blue
+        gradient.addColorStop(1, '#4ea2f7'); // Bright sky blue
+        return gradient;
+      }
     }]
   };
-  
+
   const tourCardY = rowY + 12;
   const tourCardH = 56;
 
   // Aspect ratio is 83x34 (approx 2.44:1), matching 1600x655 perfectly
   const tourInscritosImg = getChartImage('bar', tourInscritosData, {
-    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10 } } },
+    plugins: { legend: { display: false } },
     scales: {
       x: { grid: { display: false } },
-      y: { beginAtZero: true }
+      y: { beginAtZero: true, ticks: { precision: 0 } }
     }
-  }, 1600, 655);
-  
+  }, 1800, 740);
+
   drawChartCard(doc, 'Inscritos por Categoría', 'Jugadores registrados por categoría de torneo', 15, tourCardY, 87, tourCardH);
   doc.addImage(tourInscritosImg, 'PNG', 17, tourCardY + 18, 83, 34);
 
@@ -1002,17 +1198,35 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
     labels: origenCompetidoresLabels,
     datasets: [{
       data: origenCompetidoresData,
-      backgroundColor: ['#6366f1', '#a855f7', '#ec4899']
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        const colorsMap = [
+          ['#6366f1', '#4338ca'], // Indigo
+          ['#a855f7', '#7e22ce'], // Purple
+          ['#ec4899', '#be185d'], // Pink
+          ['#10b981', '#059669'], // Emerald
+          ['#f59e0b', '#d97706']  // Amber
+        ];
+        const idx = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
+        const pair = colorsMap[idx % colorsMap.length];
+        if (!chartArea) return pair[0];
+        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, pair[1]);
+        gradient.addColorStop(1, pair[0]);
+        return gradient;
+      },
+      borderWidth: 2,
+      borderColor: '#ffffff'
     }]
   };
-  
+
   // High quality 1600x655 layout to match perfectly with right legend in side-by-side card
   const tourOrigenImg = getChartImage('doughnut', tourOrigenData, {
     plugins: {
       legend: { display: true, position: 'right', labels: { boxWidth: 10, padding: 8, font: { weight: 'bold' } } }
     }
-  }, 1600, 655);
-  
+  }, 1800, 740);
+
   drawChartCard(doc, 'Origen de Competidores', 'Distribución demográfica de competidores', 108, tourCardY, 87, tourCardH);
   doc.addImage(tourOrigenImg, 'PNG', 110, tourCardY + 18, 83, 34);
 
@@ -1051,7 +1265,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
 
   doc.setFillColor(15, 23, 42);
   doc.rect(15, 46, 180, 8, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
@@ -1076,7 +1290,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       doc.setTextColor(71, 85, 105);
       doc.text(user.nombre_completo || 'Socio Desconocido', 18, rowY + 5.5);
       doc.text(user.numero_accion || 'S/N', 90, rowY + 5.5, { align: 'center' });
-      
+
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(16, 185, 129); // green total
       doc.text(`${user.total_asistencias || 0}`, 192, rowY + 5.5, { align: 'right' });
@@ -1098,7 +1312,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
   const startBlackY = rowY + 16;
   doc.setFillColor(15, 23, 42);
   doc.rect(15, startBlackY, 180, 8, 'F');
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
@@ -1125,7 +1339,7 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       doc.text(user.nombre_completo || 'Socio Desconocido', 18, rowY + 5.5);
       doc.text(user.numero_accion || 'S/N', 80, rowY + 5.5, { align: 'center' });
       doc.text(`${user.contador_no_shows || 0}`, 125, rowY + 5.5, { align: 'center' });
-      
+
       doc.setFont('helvetica', 'bold');
       const isPenalized = user.estatus_penalizacion !== 'SIN_PENALIZACION';
       if (isPenalized) {
@@ -1148,24 +1362,36 @@ export const generateExecutiveReportPDF = async (allStats, exporterName = 'Subge
       label: 'Reservas inasistidas (No-Shows)',
       data: tendenciaNoShowsData,
       borderColor: '#f43f5e',
-      backgroundColor: 'rgba(244, 63, 94, 0.1)',
+      backgroundColor: (context) => {
+        const { ctx, chartArea } = context.chart;
+        if (!chartArea) return 'rgba(244, 63, 94, 0.1)';
+        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, 'rgba(244, 63, 94, 0.02)'); // Extremely faint rose
+        gradient.addColorStop(1, 'rgba(244, 63, 94, 0.16)'); // Soft rose
+        return gradient;
+      },
       fill: true,
-      tension: 0.3
+      borderWidth: 2,
+      pointRadius: 4,
+      pointBackgroundColor: '#ffffff',
+      pointBorderColor: '#f43f5e',
+      pointBorderWidth: 1.5,
+      tension: 0.35 // Smooth curve
     }]
   };
-  
-  const auditCardY = rowY + 12;
+
+  const auditCardY = Math.min(rowY + 12, 218); // Clamp to prevent overflow past page bounds
   const auditCardH = 56;
-  
+
   // Aspect ratio is 176x34 (approx 5.17:1), matching 2000x386 perfectly
   const auditoriaNoShowsImg = getChartImage('line', auditoriaNoShowsData, {
-    plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10 } } },
+    plugins: { legend: { display: false } },
     scales: {
       x: { grid: { display: false } },
-      y: { beginAtZero: true }
+      y: { beginAtZero: true, ticks: { precision: 0 } }
     }
-  }, 2000, 386);
-  
+  }, 2400, 464);
+
   drawChartCard(doc, 'Tendencia Histórica de No-Shows', 'Historial de inasistencias acumuladas de socios penalizados en el periodo', 15, auditCardY, 180, auditCardH);
   doc.addImage(auditoriaNoShowsImg, 'PNG', 17, auditCardY + 18, 176, 34);
 

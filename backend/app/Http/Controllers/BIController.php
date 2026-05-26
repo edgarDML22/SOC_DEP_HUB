@@ -90,6 +90,13 @@ class BIController extends Controller
             }
         }
 
+        // Sumamos los registros que ya fueron entregados con retraso el día de hoy
+        $entregadosConRetrasoHoy = RegistrosLudoteca::whereBetween('hora_ingreso', [$startOfDay, $endOfDay])
+            ->where('estatus_ludoteca', 'COMPLETADA_CON_RETRASO')
+            ->count();
+
+        $totalAlertasRetraso = $alertasTiempoExcedido + $entregadosConRetrasoHoy;
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -108,7 +115,7 @@ class BIController extends Controller
                 'ludoteca_kpis' => [
                     'ninos_activos' => $ninosActivos,
                     'ingresos_hoy' => $ingresosTotalesHoy,
-                    'alertas_tiempo' => $alertasTiempoExcedido,
+                    'alertas_tiempo' => $totalAlertasRetraso,
                     'ninos_entregados' => $ninosEntregados
                 ]
             ]
