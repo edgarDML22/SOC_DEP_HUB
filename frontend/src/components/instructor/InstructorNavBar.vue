@@ -61,9 +61,9 @@ onUnmounted(() => {
         <!-- Izquierda: Logo -->
         <router-link to="/instructor/home" class="flex items-center gap-3 shrink-0 group">
           <div class="p-1 bg-white rounded-xl shadow-sm border border-surface-100 group-hover:scale-105 transition-transform">
-              <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
+              <img src="../../assets/LogoSocDep.png" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
           </div>
-          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">SOC-DEP</span>
+          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">Soc-Dep Hub</span>
         </router-link>
 
         <!-- Centro: Enlaces (Isla de navegación) con Active State Notorio -->
@@ -185,8 +185,8 @@ onUnmounted(() => {
     <!-- Top Bar (Mobile) - Logo & Notifications -->
     <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
-            <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
-            <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
+            <img src="../../assets/LogoSocDep.png" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
+            <span class="font-bold text-lg text-surface-900 tracking-tight">Soc-Dep Hub</span>
         </div>
         
         <div class="relative" ref="notifDropdownMobile">

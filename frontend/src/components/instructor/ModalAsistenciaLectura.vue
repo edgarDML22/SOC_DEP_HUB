@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   sesion: {
@@ -9,6 +9,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+onMounted(() => {
+  document.body.style.overflow = 'hidden';
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 
 const esCerrada = computed(() => props.sesion.tipo === 'CLASE_CERRADA');
 
@@ -43,7 +51,7 @@ const closeBtnClass = computed(() =>
 
 <template>
   <Transition name="fade">
-    <div class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <!-- Overlay -->
       <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm" @click="emit('close')"></div>
 

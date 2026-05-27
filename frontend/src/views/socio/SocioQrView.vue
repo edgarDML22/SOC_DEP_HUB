@@ -72,7 +72,7 @@ const copiarImagenAlPortapapeles = async (url) => {
         <div v-else-if="qrPayload" class="w-full flex flex-col items-center">
 
           <div v-if="qrPayload" class="mb-4 text-center">
-            <span class="text-2xl md:text-3xl font-normal text-surface-900 tracking-widest uppercase font-sans">
+            <span class="text-2xl md:text-3xl font-normal text-surface-900 tracking-widest uppercase font-mono">
               {{ qrPayload }}
             </span>
           </div>

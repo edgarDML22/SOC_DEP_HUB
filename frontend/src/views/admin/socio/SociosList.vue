@@ -523,7 +523,7 @@ onMounted(fetchSocios)
               
               <div class="flex flex-col lg:flex-row gap-4 items-end">
                 <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-1.5 justify-end">
                     <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tipo</label>
                     <div class="relative">
                       <IconFilter
@@ -537,7 +537,7 @@ onMounted(fetchSocios)
                     </div>
                   </div>
                   
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-1.5 justify-end">
                     <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Modalidad</label>
                     <div class="relative">
                       <IconFilter
@@ -551,7 +551,7 @@ onMounted(fetchSocios)
                     </div>
                   </div>
                   
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-1.5 justify-end">
                     <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Género</label>
                     <div class="relative">
                       <IconFilter
@@ -565,7 +565,7 @@ onMounted(fetchSocios)
                     </div>
                   </div>
                   
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-1.5 justify-end">
                     <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Cuenta</label>
                     <div class="relative">
                       <IconAlertCircle
@@ -579,7 +579,7 @@ onMounted(fetchSocios)
                     </div>
                   </div>
                   
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-1.5 justify-end">
                     <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus Penalización</label>
                     <div class="relative">
                       <IconWarning

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAgendaStore } from '@/stores/agendaStore'
 import { storeToRefs } from 'pinia'
@@ -74,6 +74,18 @@ const closeDetails = () => {
   showModal.value = false
   setTimeout(() => { selectedActivity.value = null }, 300)
 }
+
+watch(showModal, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 
 const getActivityLabel = (tipo) => {
   const configs = {
@@ -413,7 +425,7 @@ const agruparPorFecha = (actividades) => {
 
     <!-- ── MODAL DE DETALLES — showModal / selectedActivity / closeDetails sin cambios ── -->
     <Transition name="fade">
-      <div v-if="showModal && selectedActivity" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div v-if="showModal && selectedActivity" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-6">
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="closeDetails"></div>
 
         <div class="relative bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in max-h-[90vh] flex flex-col">

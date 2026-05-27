@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useAgendaStore } from '@/stores/agendaStore'
@@ -36,6 +36,18 @@ const openDetails = () => {
 const closeDetails = () => {
   showDetailsModal.value = false;
 };
+
+watch(showDetailsModal, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 
 const formatHora = (hora) => {
   if (!hora) return '—';
@@ -471,7 +483,7 @@ const getProgressBarColor = (pct) => {
 
     <!-- MODAL DE DETALLES DE PRÓXIMA ACTIVIDAD -->
     <Transition name="fade">
-      <div v-if="showDetailsModal && selectedActivity" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 text-slate-800">
+      <div v-if="showDetailsModal && selectedActivity" class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 text-slate-800">
         <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm" @click="closeDetails"></div>
         <div class="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 animate-scale-in max-h-full flex flex-col">
           

@@ -1,16 +1,26 @@
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
+
 const props = defineProps({
     totalPresentes: { type: Number, required: true },
     totalInscritos: { type: Number, default: null },  // null en clases abiertas
 })
 
 const emit = defineEmits(['cancelar', 'confirmar'])
+
+onMounted(() => {
+  document.body.style.overflow = 'hidden'
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 </script>
 
 <template>
   <!-- Backdrop -->
   <Teleport to="body">
-    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+    <div class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
 
       <!-- Overlay -->
       <div

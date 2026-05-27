@@ -40,7 +40,19 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  document.body.style.overflow = '';
 });
+
+watch(
+  () => modalIngresoInfo.value.visible || modalSalidaInfo.value.visible,
+  (newVal) => {
+    if (newVal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+);
 
 // Helpers para la UI
 const moverAInactivo = async (id, nombreNino) => {
@@ -415,7 +427,7 @@ const formatTime = (timeString) => {
       <!-- Modales -->
       <Teleport to="body">
         <!-- Modal ingreso -->
-        <div v-if="modalIngresoInfo.visible" class="fixed inset-0 z-1000 flex items-end sm:items-center justify-center bg-surface-900/50 backdrop-blur-sm p-0 sm:p-4">
+        <div v-if="modalIngresoInfo.visible" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-surface-900/50 backdrop-blur-sm p-0 sm:p-4">
           <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 md:p-8 shadow-2xl animate-fade-in">
             <div class="flex items-center gap-3 mb-5">
               <div class="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
@@ -440,7 +452,7 @@ const formatTime = (timeString) => {
         </div>
 
         <!-- Modal salida -->
-        <div v-if="modalSalidaInfo.visible" class="fixed inset-0 z-1000 flex items-end sm:items-center justify-center bg-surface-900/50 backdrop-blur-sm p-0 sm:p-4">
+        <div v-if="modalSalidaInfo.visible" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-surface-900/50 backdrop-blur-sm p-0 sm:p-4">
           <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 md:p-8 shadow-2xl animate-fade-in">
             <div class="flex items-center gap-3 mb-5">
               <div class="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0">
