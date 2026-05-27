@@ -323,9 +323,32 @@ export const useScannerStore = defineStore('scanner', () => {
             })
             codigosYaVistos.value.add(codigo)
             resultados.value = [response.data, ...resultados.value]
+
+            // Marcar la reserva como COMPLETADA en el caché local
+            // para que la lista refleje el cambio sin recargar
+            if (esCategoriaReservas.value && reservaActivaId.value) {
+                const reserva = reservacionesHoy.value.find(r => r.id_reserva === reservaActivaId.value)
+                if (reserva) reserva.estatus_operativo = 'COMPLETADA'
+            }
+
             paso.value = 'OUTPUT'
         } catch (err) {
-            error.value = err.response?.data?.message || 'Error al registrar el acceso.'
+            const status  = err.response?.status
+            const message = err.response?.data?.message ?? ''
+
+            // QR válido pero no corresponde al titular de la reserva
+            if (status === 403 && message.includes('no corresponde')) {
+                resultados.value = [{
+                    success:  false,
+                    qr_mismatch: true,
+                    message,
+                    data: { codigo_qr: codigo },
+                }, ...resultados.value]
+                paso.value = 'OUTPUT'
+                return
+            }
+
+            error.value = message || 'Error al registrar el acceso.'
             actionToast(error.value, 'error')
         } finally {
             loading.value = false
@@ -394,7 +417,7 @@ export const useScannerStore = defineStore('scanner', () => {
             reservacionesHoy.value = res.data?.reservaciones ?? []
             encuentrosHoy.value    = res.data?.encuentros    ?? []
 
-            hayReservaciones.value = reservacionesHoy.value.length > 0
+            hayReservaciones.value = reservacionesHoy.value.some(r => r.estatus_operativo === 'ACTIVA')
             hayEncuentros.value    = encuentrosHoy.value.length > 0
         } catch {
             sesionesHoy.value      = []

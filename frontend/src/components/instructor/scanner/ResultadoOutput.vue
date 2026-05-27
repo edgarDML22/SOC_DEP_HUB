@@ -1,102 +1,223 @@
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useScannerStore } from '@/stores/profiles/scannerStore'
 
-const store = useScannerStore()
+const store  = useScannerStore()
+const router = useRouter()
 
 const ultimoResultado = computed(() => store.resultados[0] ?? null)
-const exito = computed(() => ultimoResultado.value?.success === true)
+const exito    = computed(() => ultimoResultado.value?.success === true)
+const mismatch = computed(() => ultimoResultado.value?.qr_mismatch === true)
 
 const LABEL_CATEGORIA = {
   CLASES:        'Mis Clases',
   RESERVACIONES: 'Reservaciones',
   TORNEO:        'Encuentros Torneo',
 }
-
 const labelCategoria = computed(() => LABEL_CATEGORIA[store.categoriaActiva] ?? '')
 
+async function handleListo() {
+  // Refrescar la caché de datos para reflejar cambios (reservas completadas, etc.)
+  store.resetHub()
+  await router.push('/instructor/home')
+}
+
 function continuarEscaneando() {
-  store.irAtras() // OUTPUT → ESCANER_ACTIVO, preservando sesión
+  store.irAtras()
 }
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-4">
 
-    <!-- Tarjeta de resultado principal -->
-    <div
-      class="rounded-3xl border p-6 flex flex-col items-center text-center gap-4"
-      :class="exito
-        ? 'bg-green-50 border-green-200'
-        : 'bg-red-50 border-red-200'"
-    >
-      <!-- Icono de estado -->
-      <div
-        class="w-16 h-16 rounded-full flex items-center justify-center"
-        :class="exito ? 'bg-green-100' : 'bg-red-100'"
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- ÉXITO                                                          -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <template v-if="exito">
+
+      <!-- Tarjeta central blanca -->
+      <div class="bg-white rounded-2xl shadow-sm border border-surface-100 overflow-hidden">
+
+        <!-- Franja decorativa superior -->
+        <div class="h-1.5 w-full" style="background-color: #059669;" />
+
+        <div class="px-6 pt-8 pb-7 flex flex-col items-center text-center gap-5">
+
+          <!-- Icono check -->
+          <div class="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+               style="background-color: #059669;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-white" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <!-- Textos -->
+          <div class="space-y-1.5">
+            <p class="text-2xl font-bold text-surface-900 tracking-tight">¡Bienvenido!</p>
+            <p class="text-sm text-surface-500 font-medium leading-relaxed">
+              Asistencia confirmada de forma exitosa.
+            </p>
+          </div>
+
+          <!-- Datos del socio -->
+          <div v-if="ultimoResultado?.data?.nombre" class="w-full space-y-2.5">
+            <!-- Nombre -->
+            <div class="w-full px-4 py-3 rounded-xl bg-surface-50 border border-surface-100 text-left">
+              <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Socio</p>
+              <p class="text-sm font-bold text-surface-900 leading-tight">
+                {{ ultimoResultado.data.nombre }}
+              </p>
+            </div>
+            <!-- Código QR + N.° acción -->
+            <div class="flex gap-2">
+              <div v-if="store.codigoEscaneado"
+                   class="flex-1 px-4 py-3 rounded-xl bg-surface-50 border border-surface-100 text-left">
+                <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Código QR</p>
+                <p class="text-sm font-bold text-surface-900 leading-tight">
+                  {{ store.codigoEscaneado }}
+                </p>
+              </div>
+              <div v-if="ultimoResultado?.data?.numero_accion"
+                   class="flex-1 px-4 py-3 rounded-xl bg-surface-50 border border-surface-100 text-left">
+                <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">N.° Acción</p>
+                <p class="text-sm font-bold text-surface-900">
+                  {{ ultimoResultado.data.numero_accion }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback: solo código si no hay datos de socio -->
+          <div v-else-if="store.codigoEscaneado"
+               class="w-full px-4 py-3 rounded-xl bg-surface-50 border border-surface-100 text-left">
+            <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Código QR</p>
+            <p class="text-sm font-bold text-surface-900 font-mono tracking-widest">
+              {{ store.codigoEscaneado }}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Botón Listo -->
+      <button
+        @click="handleListo"
+        class="w-full py-4 rounded-2xl font-bold text-sm bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98] transition-all focus:outline-none"
       >
-        <svg v-if="exito" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        Listo
+      </button>
+
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- QR MISMATCH                                                    -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <template v-else-if="mismatch">
+
+      <div class="bg-white rounded-2xl shadow-sm border border-surface-100 overflow-hidden">
+
+        <!-- Franja decorativa superior roja -->
+        <div class="h-1.5 w-full" style="background-color: #DC2626;" />
+
+        <div class="px-6 pt-8 pb-7 flex flex-col items-center text-center gap-5">
+
+          <!-- Icono advertencia -->
+          <div class="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+               style="background-color: #DC2626;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-white" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+
+          <!-- Textos -->
+          <div class="space-y-2">
+            <p class="text-2xl font-bold text-surface-900 tracking-tight">Código no reconocido</p>
+            <p class="text-sm text-surface-500 font-medium leading-relaxed">
+              El código QR escaneado no corresponde al socio titular asociado a esta reservación.
+              Verifique que el socio esté usando su propio código.
+            </p>
+          </div>
+
+          <!-- Código escaneado -->
+          <div v-if="store.codigoEscaneado"
+               class="w-full px-4 py-3 rounded-xl border border-surface-100 text-left"
+               style="background-color: #F1F5F9;">
+            <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Código escaneado</p>
+            <p class="text-sm font-bold text-surface-900 font-mono tracking-widest">
+              {{ store.codigoEscaneado }}
+            </p>
+          </div>
+
+        </div>
       </div>
 
-      <div>
-        <p class="font-bold text-lg" :class="exito ? 'text-green-800' : 'text-red-800'">
-          {{ exito ? 'Registro exitoso' : 'Error al registrar' }}
-        </p>
-        <p class="text-sm mt-1" :class="exito ? 'text-green-600' : 'text-red-500'">
-          {{ ultimoResultado?.message ?? store.error ?? '' }}
-        </p>
-      </div>
-
-      <!-- Código escaneado -->
-      <div v-if="store.codigoEscaneado" class="px-4 py-2 rounded-xl bg-white/70 border"
-        :class="exito ? 'border-green-200' : 'border-red-200'"
+      <!-- Botón Escanear otro código -->
+      <button
+        @click="continuarEscaneando"
+        class="w-full py-4 rounded-2xl font-bold text-sm bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98] transition-all focus:outline-none"
       >
-        <p class="text-xs font-bold tracking-widest" :class="exito ? 'text-green-700' : 'text-red-600'">
-          {{ store.codigoEscaneado }}
-        </p>
+        Escanear otro código
+      </button>
+
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- ERROR GENÉRICO                                                 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <template v-else>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-surface-100 overflow-hidden">
+
+        <div class="h-1.5 w-full bg-linear-to-r from-red-300 to-red-500" />
+
+        <div class="px-6 pt-8 pb-7 flex flex-col items-center text-center gap-5">
+
+          <div class="w-20 h-20 rounded-full bg-red-50 border border-red-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-red-500" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+
+          <div class="space-y-1.5">
+            <p class="text-2xl font-bold text-surface-900 tracking-tight">No se pudo registrar</p>
+            <p class="text-sm text-surface-500 font-medium leading-relaxed">
+              {{ ultimoResultado?.message ?? store.error ?? 'Ocurrió un error inesperado. Intente de nuevo.' }}
+            </p>
+          </div>
+
+          <div v-if="store.codigoEscaneado"
+               class="w-full px-4 py-3 rounded-xl border border-surface-100 text-left"
+               style="background-color: #F1F5F9;">
+            <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Código escaneado</p>
+            <p class="text-sm font-bold text-surface-900 font-mono tracking-widest">
+              {{ store.codigoEscaneado }}
+            </p>
+          </div>
+
+        </div>
       </div>
-    </div>
 
-    <!-- Historial de registros de la sesión actual -->
-    <div v-if="store.resultados.length > 1">
-      <p class="text-xs font-bold text-surface-500 uppercase tracking-widest mb-2">
-        Historial de esta sesión ({{ store.resultados.length }})
-      </p>
-      <ul class="space-y-2 max-h-52 overflow-y-auto">
-        <li
-          v-for="(r, i) in store.resultados"
-          :key="i"
-          class="flex items-center justify-between px-4 py-3 rounded-xl border bg-white text-sm"
-          :class="r.success ? 'border-green-100' : 'border-red-100'"
-        >
-          <span class="font-bold text-surface-900 tracking-wider">{{ r.data?.codigo ?? '—' }}</span>
-          <span class="text-xs font-semibold" :class="r.success ? 'text-green-600' : 'text-red-500'">
-            {{ r.success ? '✓ OK' : '✗ Error' }}
-          </span>
-        </li>
-      </ul>
-    </div>
+      <!-- Etiqueta de contexto -->
+      <div class="flex items-center justify-center">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-100 text-surface-500 text-xs font-semibold">
+          <span class="w-1.5 h-1.5 rounded-full bg-surface-400"></span>
+          {{ labelCategoria }}
+        </span>
+      </div>
 
-    <!-- Chip de contexto -->
-    <div class="flex items-center justify-center gap-2">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-100 text-surface-500 text-xs font-semibold">
-        <span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>
-        {{ labelCategoria }}
-      </span>
-    </div>
+      <button
+        @click="continuarEscaneando"
+        class="w-full py-4 rounded-2xl font-bold text-sm bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98] transition-all focus:outline-none"
+      >
+        Escanear otro código
+      </button>
 
-    <!-- CTA principal -->
-    <button
-      @click="continuarEscaneando"
-      class="w-full py-4 rounded-2xl font-bold text-sm bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98] transition-all focus:outline-none"
-    >
-      Escanear otro código
-    </button>
+    </template>
 
   </div>
 </template>

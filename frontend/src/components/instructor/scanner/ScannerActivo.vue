@@ -8,21 +8,62 @@ const store = useScannerStore()
 const camaraError        = ref('')
 const streamReady        = ref(false)
 const isProcessing       = ref(false)
+const detected           = ref(false)   // flash inmediato al leer el QR
 const solicitandoPermiso = ref(false)
-// Incrementar esta key fuerza el re-montaje de QrcodeStream tras obtener permiso
-const streamKey = ref(0)
+const streamKey          = ref(0)
 
 const isManual = ref(store.metodoIngreso === 'MANUAL')
-
-// El escáner se pausa reactivamente cuando el store marca aforo lleno
 const scannerPaused = computed(() => store.aforoLleno)
 
+// ── Web Audio beep ─────────────────────────────────────────────────────────
+function playBeep(type = 'success') {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)()
+
+        const osc  = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+
+        if (type === 'success') {
+            // Doble tono ascendente limpio — clásico beep de escáner
+            osc.type      = 'sine'
+            osc.frequency.setValueAtTime(880, ctx.currentTime)
+            osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.08)
+            gain.gain.setValueAtTime(0.35, ctx.currentTime)
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22)
+            osc.start(ctx.currentTime)
+            osc.stop(ctx.currentTime + 0.22)
+        } else {
+            // Tono descendente breve — indica problema
+            osc.type      = 'sawtooth'
+            osc.frequency.setValueAtTime(520, ctx.currentTime)
+            osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.18)
+            gain.gain.setValueAtTime(0.25, ctx.currentTime)
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22)
+            osc.start(ctx.currentTime)
+            osc.stop(ctx.currentTime + 0.22)
+        }
+
+        osc.onended = () => ctx.close()
+    } catch {
+        // Silencio en entornos sin Web Audio (SSR, safari restrictivo, etc.)
+    }
+}
+
+// ── Handlers de cámara ─────────────────────────────────────────────────────
 function onCameraOn() {
     streamReady.value = true
 }
 
 async function onDetect(detectedCodes) {
     if (isProcessing.value || !detectedCodes?.length) return
+
+    // Flash inmediato de detección
+    detected.value = true
+    playBeep('success')
+    setTimeout(() => { detected.value = false }, 500)
+
     isProcessing.value = true
     await store.procesarCodigo(detectedCodes[0].rawValue)
     setTimeout(() => { isProcessing.value = false }, 2000)
@@ -38,8 +79,6 @@ function onError(err) {
     }
     camaraError.value = MENSAJES[err.name] ?? `Error de cámara: ${err.message}`
     streamReady.value = false
-    // NO forzar isManual = true aquí: el error se muestra dentro del panel de
-    // cámara con un botón para cambiar manualmente. Forzarlo causaba el flashazo.
 }
 
 function switchToCamera() {
@@ -51,21 +90,16 @@ function switchToCamera() {
 async function solicitarPermiso() {
     solicitandoPermiso.value = true
     try {
-        // Verificar si el permiso ya fue denegado explícitamente
         if (navigator.permissions) {
             const result = await navigator.permissions.query({ name: 'camera' })
             if (result.state === 'denied') {
-                // El navegador no mostrará el diálogo; redirigir a configuración
                 camaraError.value = 'Permiso de cámara denegado. Actívalo manualmente en Configuración del sitio en tu navegador.'
                 solicitandoPermiso.value = false
                 return
             }
         }
-        // Pedir permiso explícitamente al navegador
         const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-        // Liberar el track inmediatamente — QrcodeStream abrirá su propia instancia
         stream.getTracks().forEach(t => t.stop())
-        // Limpiar error y re-montar QrcodeStream con nueva key
         camaraError.value = ''
         streamReady.value = false
         streamKey.value++
@@ -85,6 +119,7 @@ function switchToManual() {
 }
 
 async function onSubmitManual(codigo) {
+    playBeep('success')
     await store.procesarCodigo(codigo)
 }
 </script>
@@ -106,7 +141,7 @@ async function onSubmitManual(codigo) {
       </div>
     </Transition>
 
-    <!-- Tab switcher — tonos azules premium -->
+    <!-- Tab switcher -->
     <div class="flex bg-primary-950/5 p-1 rounded-2xl gap-1">
       <button
         @click="switchToCamera"
@@ -149,7 +184,6 @@ async function onSubmitManual(codigo) {
           <p class="text-xs font-semibold text-red-700 leading-relaxed">{{ camaraError }}</p>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <!-- Solicitar permisos: lanza getUserMedia y re-monta el stream -->
           <button
             @click="solicitarPermiso"
             :disabled="solicitandoPermiso"
@@ -167,7 +201,6 @@ async function onSubmitManual(codigo) {
               Solicitar permisos
             </template>
           </button>
-          <!-- Fallback manual -->
           <button
             @click="switchToManual"
             class="py-2.5 rounded-xl bg-primary-50 border border-primary-200 text-xs font-bold text-primary-700 hover:bg-primary-100 active:scale-[0.98] transition-all focus:outline-none"
@@ -202,33 +235,75 @@ async function onSubmitManual(codigo) {
           </div>
         </Transition>
 
-        <!-- Overlay del visor: solo cuando el stream está listo -->
+        <!-- Overlay del visor -->
         <template v-if="streamReady">
+          <!-- Viñeta oscura en los bordes -->
           <div class="absolute inset-0 pointer-events-none"
             style="background: radial-gradient(ellipse 62% 62% at 50% 50%, transparent 58%, rgba(0,0,0,0.55) 100%)"
           />
+
+          <!-- Flash de detección: pulso verde que cubre todo el visor -->
+          <Transition name="detect-flash">
+            <div
+              v-if="detected"
+              class="absolute inset-0 z-30 pointer-events-none rounded-3xl"
+              style="background: rgba(34,197,94,0.28);"
+            />
+          </Transition>
+
+          <!-- Marco esquinero + línea de escaneo -->
           <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
             <div class="relative" style="width: 64%; height: 64%">
-              <span class="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] rounded-tl-xl transition-colors duration-300"
-                :class="isProcessing ? 'border-green-400' : 'border-primary-400'" />
-              <span class="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] rounded-tr-xl transition-colors duration-300"
-                :class="isProcessing ? 'border-green-400' : 'border-primary-400'" />
-              <span class="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] rounded-bl-xl transition-colors duration-300"
-                :class="isProcessing ? 'border-green-400' : 'border-primary-400'" />
-              <span class="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] rounded-br-xl transition-colors duration-300"
-                :class="isProcessing ? 'border-green-400' : 'border-primary-400'" />
+
+              <!-- Esquinas — se agrandan y cambian a verde en detección -->
+              <span
+                class="absolute top-0 left-0 border-t-[4px] border-l-[4px] rounded-tl-xl transition-all duration-200"
+                :class="detected
+                  ? 'w-10 h-10 border-green-400 shadow-[0_0_14px_rgba(74,222,128,0.9)]'
+                  : isProcessing
+                    ? 'w-7 h-7 border-green-400'
+                    : 'w-7 h-7 border-primary-400'"
+              />
+              <span
+                class="absolute top-0 right-0 border-t-[4px] border-r-[4px] rounded-tr-xl transition-all duration-200"
+                :class="detected
+                  ? 'w-10 h-10 border-green-400 shadow-[0_0_14px_rgba(74,222,128,0.9)]'
+                  : isProcessing
+                    ? 'w-7 h-7 border-green-400'
+                    : 'w-7 h-7 border-primary-400'"
+              />
+              <span
+                class="absolute bottom-0 left-0 border-b-[4px] border-l-[4px] rounded-bl-xl transition-all duration-200"
+                :class="detected
+                  ? 'w-10 h-10 border-green-400 shadow-[0_0_14px_rgba(74,222,128,0.9)]'
+                  : isProcessing
+                    ? 'w-7 h-7 border-green-400'
+                    : 'w-7 h-7 border-primary-400'"
+              />
+              <span
+                class="absolute bottom-0 right-0 border-b-[4px] border-r-[4px] rounded-br-xl transition-all duration-200"
+                :class="detected
+                  ? 'w-10 h-10 border-green-400 shadow-[0_0_14px_rgba(74,222,128,0.9)]'
+                  : isProcessing
+                    ? 'w-7 h-7 border-green-400'
+                    : 'w-7 h-7 border-primary-400'"
+              />
+
+              <!-- Línea de escaneo — se oculta mientras se procesa -->
               <div
-                v-if="!isProcessing"
+                v-if="!isProcessing && !detected"
                 class="absolute left-2 right-2 h-0.5 rounded-full bg-primary-400 shadow-[0_0_10px_rgba(96,165,250,0.9)] animate-scan-line"
               />
             </div>
           </div>
+
+          <!-- Overlay de procesando (después del flash) -->
           <Transition
             enter-active-class="transition-opacity duration-150"
             enter-from-class="opacity-0"
             enter-to-class="opacity-100"
           >
-            <div v-if="isProcessing" class="absolute inset-0 bg-black/50 flex items-center justify-center z-20 pointer-events-none">
+            <div v-if="isProcessing && !detected" class="absolute inset-0 bg-black/50 flex items-center justify-center z-20 pointer-events-none">
               <div class="flex flex-col items-center gap-3">
                 <div class="w-10 h-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                 <p class="text-white text-xs font-bold tracking-wide">Procesando…</p>
@@ -267,4 +342,10 @@ async function onSubmitManual(codigo) {
   92%  { opacity: 1; }
   100% { top: 100%; opacity: 0; }
 }
+
+/* Flash de detección */
+.detect-flash-enter-active { transition: opacity 0.05s ease-out; }
+.detect-flash-leave-active { transition: opacity 0.35s ease-out; }
+.detect-flash-enter-from   { opacity: 0; }
+.detect-flash-leave-to     { opacity: 0; }
 </style>

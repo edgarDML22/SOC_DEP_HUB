@@ -56,7 +56,7 @@ class SesionInstructorController extends Controller
 
         // --- Reservaciones ---------------------------------------------------
         $reservaciones = Reservacion::whereDate('fecha_reserva', $hoy)
-            ->where('estatus_operativo', 'ACTIVA')
+            ->whereIn('estatus_operativo', ['ACTIVA', 'COMPLETADA'])
             ->whereRaw("hora_fin::time > NOW()::time")
             ->with([
                 'espacioFisico:id_espacio,nombre_espacio',
@@ -65,7 +65,7 @@ class SesionInstructorController extends Controller
             ->orderBy('hora_inicio')
             ->get()
             ->map(function ($r) {
-                $socio        = SocioTitular::select('id_socio', 'nombre_completo')->find($r->id_socio_titular);
+                $socio        = SocioTitular::select('id_socio', 'nombre_completo', 'numero_accion')->find($r->id_socio_titular);
                 $acompanantes = $r->acompanantes_draft ?? [];
 
                 return [
@@ -75,6 +75,7 @@ class SesionInstructorController extends Controller
                     'hora_inicio'       => substr($r->hora_inicio ?? '', 0, 5),
                     'hora_fin'          => substr($r->hora_fin ?? '', 0, 5),
                     'socio_nombre'      => $socio?->nombre_completo ?? 'Socio',
+                    'numero_accion'     => $socio?->numero_accion,
                     'num_acompanantes'  => count($acompanantes),
                     'acompanantes'      => $acompanantes,
                     'estatus_operativo' => $r->estatus_operativo,

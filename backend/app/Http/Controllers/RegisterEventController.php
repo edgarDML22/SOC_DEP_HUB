@@ -129,18 +129,20 @@ class RegisterEventController extends Controller
         // ── Marcar la reserva como completada ────────────────────────────────
         $reserva->update(['estatus_operativo' => 'COMPLETADA']);
 
-        $nombre = $this->resolverNombre($idTitularReserva, 'SOCIO');
+        $socio  = SocioTitular::select('nombre_completo', 'numero_accion')->find($idTitularReserva);
+        $nombre = $socio?->nombre_completo ?? "Socio #{$idTitularReserva}";
 
         return response()->json([
             'success' => true,
             'message' => 'Ingreso registrado correctamente. Reservación completada.',
             'data'    => [
-                'id_reserva'    => $reserva->id_reserva,
-                'id_usuario'    => $idTitularReserva,
-                'nombre'        => $nombre,
-                'tipo_usuario'  => 'SOCIO',
-                'codigo_qr'     => $codigoQr->codigo,
-                'estatus'       => 'COMPLETADA',
+                'id_reserva'     => $reserva->id_reserva,
+                'id_usuario'     => $idTitularReserva,
+                'nombre'         => $nombre,
+                'numero_accion'  => $socio?->numero_accion,
+                'tipo_usuario'   => 'SOCIO',
+                'codigo_qr'      => $codigoQr->codigo,
+                'estatus'        => 'COMPLETADA',
             ],
         ], 200);
     }

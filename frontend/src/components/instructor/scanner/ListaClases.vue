@@ -130,7 +130,7 @@ async function seleccionar(sesion) {
             class="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all focus:outline-none"
             :class="s.estatus_sesion === 'EN_CURSO'
               ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm shadow-primary-600/20 active:scale-[0.98]'
-              : 'bg-surface-100 text-surface-300 cursor-not-allowed'"
+              : 'bg-surface-200 text-surface-500 cursor-not-allowed'"
           >
             <template v-if="s.estatus_sesion === 'EN_CURSO' && store.listaLoading && store.sesionActivaId === s.id_sesion">
               <span class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />

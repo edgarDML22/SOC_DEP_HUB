@@ -1,5 +1,5 @@
 <script setup>
-import { onUnmounted } from 'vue'
+import { onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useScannerStore } from '@/stores/profiles/scannerStore'
 import HubHeader          from '@/components/instructor/scanner/HubHeader.vue'
@@ -14,6 +14,11 @@ import PaseLista          from '@/components/instructor/scanner/PaseLista.vue'
 
 const store  = useScannerStore()
 const router = useRouter()
+
+// Ocultar "Volver" en OUTPUT exitoso — el botón "Listo" cierra el flujo
+const ocultarVolver = computed(() =>
+    store.paso === 'OUTPUT' && store.resultados[0]?.success === true
+)
 
 function handleVolver() {
     if (store.paso === 'MENU') {
@@ -30,7 +35,12 @@ onUnmounted(() => store.resetHub())
   <main class="w-full bg-surface-50 min-h-screen font-sans pb-24 md:pb-8">
     <div class="max-w-lg mx-auto p-4 md:p-8">
 
-      <HubHeader :paso="store.paso" @volver="handleVolver" />
+      <HubHeader
+        :paso="store.paso"
+        :ocultar-volver="ocultarVolver"
+        :categoria="store.paso !== 'MENU' ? store.categoriaActiva : null"
+        @volver="handleVolver"
+      />
 
       <Transition name="hub-slide" mode="out-in">
         <MenuCategorias     v-if="store.paso === 'MENU'"                         :key="'menu'" />

@@ -10,7 +10,7 @@ const agendaStore = useAgendaStore();
 const { itemsInstructor, loadingInstructor, errorInstructor } = storeToRefs(agendaStore);
 
 onMounted(() => {
-  agendaStore.fetchInstructorAgenda();
+  agendaStore.fetchInstructorAgenda({ force: true });
 });
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
@@ -50,7 +50,10 @@ const formatFechaLarga = (iso) => {
 
 // ── Filtrado por tab ─────────────────────────────────────────────────────────
 const itemsHoy = computed(() =>
-  itemsInstructor.value.filter(i => i.fecha === hoyStr.value)
+  itemsInstructor.value
+    .filter(i => i.fecha === hoyStr.value)
+    .slice()
+    .sort((a, b) => (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? ''))
 );
 
 const agrupadosProximas = computed(() => {
