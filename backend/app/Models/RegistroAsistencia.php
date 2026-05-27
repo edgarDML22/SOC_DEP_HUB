@@ -18,7 +18,8 @@ class RegistroAsistencia extends Model
         'id_usuario',
         'tipo_usuario',
         'metodo_registro',
-        'asistencia', 
+        'asistencia',
+        'fecha_hora_registro',
     ];
 
     protected $casts = [

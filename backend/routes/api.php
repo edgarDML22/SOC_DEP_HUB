@@ -296,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // US-32/33: Hub QR — datos del día y pase de lista
     Route::get('/v1/instructor/datos-hoy', [SesionInstructorController::class, 'datosHoy']);
     Route::get('/v1/instructor/sesiones/{idSesion}/lista-inscriptos', [SesionInstructorController::class, 'listaInscriptos']);
+    Route::get('/v1/instructor/sesiones/{idSesion}/qr-lookup/{codigo}', [SesionInstructorController::class, 'qrLookup']);
     Route::post('/v1/instructor/sesiones/{idSesion}/confirmar-asistencia', [SesionInstructorController::class, 'confirmarAsistencia']);
 
     // SDH-23: Register event (Asistencia de sesión)

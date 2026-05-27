@@ -11,6 +11,7 @@ import SeleccionMetodo    from '@/components/instructor/scanner/SeleccionMetodo.
 import ScannerActivo      from '@/components/instructor/scanner/ScannerActivo.vue'
 import ResultadoOutput    from '@/components/instructor/scanner/ResultadoOutput.vue'
 import PaseLista          from '@/components/instructor/scanner/PaseLista.vue'
+import ConfirmacionPreviaAsistencia from '@/components/instructor/scanner/ConfirmacionPreviaAsistencia.vue'
 
 const store  = useScannerStore()
 const router = useRouter()
@@ -51,6 +52,8 @@ onUnmounted(() => store.resetHub())
         <ScannerActivo      v-else-if="store.paso === 'ESCANER_ACTIVO'"          :key="'escaner'" />
         <!-- PASE_LISTA: pase de lista completo para Mis Clases (cerradas y abiertas) -->
         <PaseLista          v-else-if="store.paso === 'PASE_LISTA'"              :key="'pase-lista'" />
+        <!-- CONFIRMACION_PREVIA: revisión final antes del POST consolidado -->
+        <ConfirmacionPreviaAsistencia v-else-if="store.paso === 'CONFIRMACION_PREVIA'" :key="'confirmacion'" />
         <!-- OUTPUT: resultado simple para Reservaciones y Torneos -->
         <ResultadoOutput    v-else-if="store.paso === 'OUTPUT'"                  :key="'output'" />
         <!-- fallback seguro -->

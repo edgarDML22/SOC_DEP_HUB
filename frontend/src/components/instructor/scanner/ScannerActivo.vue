@@ -310,8 +310,82 @@ async function onSubmitManual(codigo) {
               </div>
             </div>
           </Transition>
+
+          <!-- Overlay de lookup dinámico (sesiones abiertas: GET /qr-lookup) -->
+          <Transition
+            enter-active-class="transition-all duration-200"
+            leave-active-class="transition-all duration-200"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="store.lookupLoading"
+              class="absolute inset-0 bg-surface-900/70 backdrop-blur-sm flex items-center justify-center z-40 pointer-events-none"
+            >
+              <div class="bg-white/95 rounded-2xl px-6 py-5 flex flex-col items-center gap-3 shadow-2xl">
+                <div class="relative w-12 h-12">
+                  <div class="absolute inset-0 rounded-full border-2 border-primary-100" />
+                  <div class="absolute inset-0 rounded-full border-2 border-transparent border-t-primary-600 animate-spin" />
+                </div>
+                <div class="text-center">
+                  <p class="text-xs font-bold text-surface-900 tracking-wide">Verificando código…</p>
+                  <p
+                    v-if="store.codigoEnLookup"
+                    class="text-[11px] font-mono font-semibold tracking-widest text-primary-600 mt-1"
+                  >
+                    {{ store.codigoEnLookup }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </template>
       </div>
+
+      <!-- ── Alerta contextual (éxito / warning / error) ─────────────────── -->
+      <Transition
+        enter-active-class="transition-all duration-200"
+        leave-active-class="transition-all duration-200"
+        enter-from-class="opacity-0 -translate-y-1"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-1"
+      >
+        <div
+          v-if="store.alertaEscaneo"
+          class="flex items-center gap-2.5 px-4 py-3 rounded-2xl border"
+          :class="{
+            'bg-green-50 border-green-200':  store.alertaEscaneo.tipo === 'success',
+            'bg-amber-50 border-amber-200':  store.alertaEscaneo.tipo === 'warning',
+            'bg-red-50 border-red-200':      store.alertaEscaneo.tipo === 'error',
+          }"
+        >
+          <!-- Icono según tipo -->
+          <svg v-if="store.alertaEscaneo.tipo === 'success'"
+            xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <svg v-else-if="store.alertaEscaneo.tipo === 'warning'"
+            xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <svg v-else
+            xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+
+          <p
+            class="text-xs font-semibold leading-tight"
+            :class="{
+              'text-green-700': store.alertaEscaneo.tipo === 'success',
+              'text-amber-700': store.alertaEscaneo.tipo === 'warning',
+              'text-red-700':   store.alertaEscaneo.tipo === 'error',
+            }"
+          >
+            {{ store.alertaEscaneo.mensaje }}
+          </p>
+        </div>
+      </Transition>
 
       <p v-if="streamReady && !camaraError" class="text-[11px] font-semibold text-slate-600 text-center uppercase">
         Asegúrate de tener buena iluminación y la cámara habilitada
@@ -327,6 +401,52 @@ async function onSubmitManual(codigo) {
     <div v-if="store.loading" class="flex items-center justify-center gap-2 text-surface-500 text-sm font-medium py-2">
       <div class="w-4 h-4 rounded-full border-2 border-surface-300 border-t-primary-500 animate-spin" />
       Registrando asistencia…
+    </div>
+
+    <!-- ── Acciones de pase de lista (solo Mis Clases) ─────────────────────── -->
+    <div v-if="store.esCategoriaClases" class="pt-2 space-y-2">
+
+      <!-- Ver lista de asistencia -->
+      <button
+        type="button"
+        @click="store.paso = 'PASE_LISTA'"
+        class="w-full flex items-center justify-between gap-2 py-3 px-4 rounded-2xl border border-primary-200 bg-primary-50 hover:bg-primary-100 text-primary-700 font-bold text-sm active:scale-[0.98] transition-all duration-150 focus:outline-none"
+      >
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          Ver lista de asistencia
+        </span>
+        <span
+          v-if="store.listaInscritos.length > 0"
+          class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary-100 text-primary-700 tabular-nums"
+        >
+          {{ store.inscritosConfirmados.length }}/{{ store.listaInscritos.length }}
+        </span>
+      </button>
+
+      <!-- Confirmar Lista → CONFIRMACION_PREVIA -->
+      <button
+        type="button"
+        @click="store.paso = 'CONFIRMACION_PREVIA'"
+        :disabled="store.inscritosConfirmados.length === 0"
+        class="w-full py-4 rounded-2xl font-bold text-sm transition-all duration-150 focus:outline-none flex items-center justify-center gap-2"
+        :class="store.inscritosConfirmados.length === 0
+          ? 'bg-surface-100 text-surface-300 cursor-not-allowed'
+          : 'bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98]'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>Confirmar Lista</span>
+        <span
+          v-if="store.inscritosConfirmados.length > 0"
+          class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/20 tabular-nums"
+        >
+          {{ store.inscritosConfirmados.length }}
+        </span>
+      </button>
     </div>
 
   </div>

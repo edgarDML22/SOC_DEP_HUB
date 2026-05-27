@@ -2,10 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Models\InscripcionClase;
+use App\Models\MiembrosFamiliares;
+use App\Models\RegistroAsistencia;
+use App\Models\SesionActiva;
+use App\Models\SocioTitular;
+use App\Notifications\NoShowPenalization;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Máquina de estados automática para sesiones de clases programadas.
@@ -48,6 +55,11 @@ class UpdateSessionStatus extends Command
         // sea marcada EN_CURSO momentáneamente en la misma corrida.
         $finalizadas = $this->finalizarSesiones($ahora, $hoy);
         $iniciadas   = $this->iniciarSesiones($ahora, $hoy);
+
+        // Procesar no-shows solo si hubo sesiones recién finalizadas
+        if ($finalizadas > 0) {
+            $this->procesarNoShows($ahora, $hoy);
+        }
 
         $this->line("[{$ahora->format('H:i:s')}] FINALIZADA: +{$finalizadas} | EN_CURSO: +{$iniciadas}");
 
@@ -107,41 +119,128 @@ class UpdateSessionStatus extends Command
         }
 
         return $afectadas;
+    }
 
-        /*
-         * =====================================================================
-         * TODO (US-33 / US-35) — Evaluación de No-Shows automáticos
-         * =====================================================================
-         * En una versión futura, inmediatamente después del UPDATE anterior,
-         * este método deberá evaluar y registrar los No-Shows automáticos
-         * para las clases CERRADAS (requiere_inscripcion = true).
-         *
-         * Lógica prevista:
-         *   1. Para cada sesión recién marcada FINALIZADA con requiere_inscripcion = true,
-         *      obtener todas las inscripciones en estatus CONFIRMADA (no ASISTIO,
-         *      no FALTA) de la tabla inscripciones_clases.
-         *
-         *   2. Para cada inscripción CONFIRMADA, verificar si el id_usuario
-         *      aparece en la tabla registros_asistencia con id_sesion coincidente
-         *      y un estatus de presencia positivo.
-         *
-         *   3. Si el socio NO figura en registros_asistencia → marcar la inscripción
-         *      como FALTA (No-Show automático) e incrementar contador_no_shows en
-         *      socios_titulares para el socio titular responsable.
-         *
-         *   4. Llamar a Sanciones::aplicarSancionesReservas($socioId) para aplicar
-         *      las penalizaciones según las reglas de negocio vigentes.
-         *
-         *   5. El mismo flujo aplica para miembro_familiar: obtener el socio_id del
-         *      miembro desde miembros_familiares y acumular la falta al titular.
-         *
-         *   6. Los invitados (id_usuario < 0) quedan excluidos de la penalización
-         *      automática, igual que en la cancelación manual.
-         *
-         * GUARDIA CRÍTICA: No ejecutar si lista_asistencia_enviada = true — en ese
-         * caso el instructor ya marcó los estatus manualmente y no deben sobreescribirse.
-         * =====================================================================
-         */
+    // -------------------------------------------------------------------------
+    // No-Shows: sesiones CERRADAS recién finalizadas sin lista confirmada
+    // -------------------------------------------------------------------------
+
+    /**
+     * Para cada sesión cerrada (requiere_inscripcion=true) recién marcada FINALIZADA
+     * cuyo instructor NO envió la lista manualmente, inserta registros de falta
+     * e incrementa el contador del socio titular responsable.
+     *
+     * GUARDIA CRÍTICA: lista_asistencia_enviada = true significa que el instructor
+     * ya registró presencias manualmente → no se sobreescriben esos datos.
+     */
+    private function procesarNoShows(Carbon $ahora, string $hoy): void
+    {
+        // Sesiones cerradas recién finalizadas sin confirmación manual del instructor
+        $sesiones = SesionActiva::withoutGlobalScopes()
+            ->where('fecha_sesion', $hoy)
+            ->where('estatus_sesion', 'FINALIZADA')
+            ->where('requiere_inscripcion', true)
+            ->where('lista_asistencia_enviada', false)
+            ->get(['id_sesion']);
+
+        if ($sesiones->isEmpty()) {
+            return;
+        }
+
+        $idsSesiones = $sesiones->pluck('id_sesion');
+
+        // IDs de usuarios que SÍ tienen registro de asistencia positivo, por sesión
+        // Estructura: ['id_sesion' => Set<id_usuario>, ...]
+        $presentes = RegistroAsistencia::whereIn('id_sesion', $idsSesiones)
+            ->where('asistencia', true)
+            ->get(['id_sesion', 'id_usuario'])
+            ->groupBy('id_sesion')
+            ->map(fn($rows) => $rows->pluck('id_usuario')->flip()); // flip para O(1) lookup
+
+        // Inscripciones CONFIRMADAS en esas sesiones (no ASISTIO, no FALTA ya procesada)
+        InscripcionClase::whereIn('id_sesion', $idsSesiones)
+            ->where('estatus_inscripcion', 'CONFIRMADA')
+            ->whereNotIn('tipo_usuario', ['invitado']) // invitados no se penalizan
+            ->chunkById(200, function ($inscripciones) use ($presentes, $ahora) {
+                foreach ($inscripciones as $inscripcion) {
+                    $yaPresente = isset($presentes[$inscripcion->id_sesion])
+                        && $presentes[$inscripcion->id_sesion]->has($inscripcion->id_usuario);
+
+                    if ($yaPresente) {
+                        continue;
+                    }
+
+                    DB::transaction(function () use ($inscripcion, $ahora) {
+                        // Registrar la falta
+                        RegistroAsistencia::create([
+                            'id_sesion'           => $inscripcion->id_sesion,
+                            'id_usuario'          => $inscripcion->id_usuario,
+                            'tipo_usuario'        => $inscripcion->tipo_usuario,
+                            'asistencia'          => false,
+                            'metodo_registro'     => 'SIN_REGISTRO',
+                            'fecha_hora_registro' => $ahora,
+                        ]);
+
+                        // Actualizar estatus de la inscripción
+                        $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
+
+                        // Resolver el socio titular responsable de la penalización
+                        $socioId = $this->resolverSocioResponsable(
+                            $inscripcion->id_usuario,
+                            $inscripcion->tipo_usuario
+                        );
+
+                        if (!$socioId) {
+                            return;
+                        }
+
+                        $socio = SocioTitular::find($socioId);
+                        if (!$socio) {
+                            return;
+                        }
+
+                        $socio->increment('contador_no_shows');
+                        $socio->refresh();
+
+                        // Aplicar penalización al alcanzar 3 no-shows acumulados
+                        if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'SUSPENDIDO') {
+                            $socio->update([
+                                'estatus_cuenta'              => 'SUSPENDIDO',
+                                'fecha_fin_penalizacion_reserva' => now('America/Mexico_City')
+                                                                        ->addDays(7)
+                                                                        ->startOfDay(),
+                            ]);
+                        }
+
+                        // Notificación de no-show (falla silenciosa para no romper el cron)
+                        if ($socio->correo_electronico) {
+                            try {
+                                Notification::route('mail', $socio->correo_electronico)
+                                    ->notify(new NoShowPenalization('de la clase'));
+                            } catch (\Throwable $e) {
+                                Log::warning("sessions:update-status [NO-SHOW] Fallo notificación socio #{$socioId}: {$e->getMessage()}");
+                            }
+                        }
+                    });
+                }
+            }, 'id_inscripcion');
+
+        $this->line("  → No-shows procesados para sesiones en {$hoy}");
+    }
+
+    /**
+     * Para miembros_familiares, la penalización recae sobre su socio titular.
+     * Para socios_titulares, se penaliza directamente.
+     */
+    private function resolverSocioResponsable(int $idUsuario, string $tipoUsuario): ?int
+    {
+        return match (strtolower($tipoUsuario)) {
+            'socio_titular'    => $idUsuario,
+            'miembro_familiar' => MiembrosFamiliares::select('socio_id')
+                                    ->find($idUsuario)
+                                    ?->socio_id,
+            default            => null,
+        };
     }
 
     // -------------------------------------------------------------------------
