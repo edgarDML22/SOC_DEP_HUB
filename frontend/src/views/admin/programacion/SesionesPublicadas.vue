@@ -131,6 +131,12 @@ const sesionSeleccionada = ref(null)
 const tempEstatus        = ref('DISPONIBLE')
 const isSaving           = ref(false)
 
+// Solo lectura cuando la sesión ya está en curso o finalizada
+const esSoloLectura = computed(() =>
+  sesionSeleccionada.value?.estatus_sesion === 'EN_CURSO' ||
+  sesionSeleccionada.value?.estatus_sesion === 'FINALIZADA'
+)
+
 // ─── Modal de confirmación de cancelación ───────────────────────────────────
 const showConfirmCancelacion = ref(false)
 
@@ -729,11 +735,15 @@ defineExpose({ fetchSesiones })
             <!-- ── Encabezado ── -->
             <div
               class="px-7 pt-6 pb-5 text-white relative shrink-0"
-              :class="tempEstatus === 'CANCELADA'
-                ? 'bg-linear-to-br from-rose-500 to-red-700'
-                : sesionSeleccionada?.requiere_inscripcion
-                  ? 'bg-linear-to-br from-violet-600 to-purple-800'
-                  : 'bg-linear-to-br from-emerald-500 to-teal-700'"
+              :class="sesionSeleccionada?.estatus_sesion === 'EN_CURSO'
+                ? 'bg-linear-to-br from-orange-400 to-orange-600'
+                : sesionSeleccionada?.estatus_sesion === 'FINALIZADA'
+                  ? 'bg-linear-to-br from-blue-500 to-blue-700'
+                  : tempEstatus === 'CANCELADA'
+                    ? 'bg-linear-to-br from-rose-500 to-red-700'
+                    : sesionSeleccionada?.requiere_inscripcion
+                      ? 'bg-linear-to-br from-violet-600 to-purple-800'
+                      : 'bg-linear-to-br from-emerald-500 to-teal-700'"
             >
               <button
                 @click="cerrarModal"
@@ -1078,8 +1088,8 @@ defineExpose({ fetchSesiones })
                 </div>
               </div>
 
-              <!-- Estatus selector — solo DISPONIBLE / CANCELADA -->
-              <div>
+              <!-- Estatus selector — oculto si la sesión está EN_CURSO o FINALIZADA -->
+              <div v-if="!esSoloLectura">
                 <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Cambiar estatus</p>
                 <div class="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 gap-1">
                   <button type="button" @click="tempEstatus = 'DISPONIBLE'"
@@ -1101,33 +1111,72 @@ defineExpose({ fetchSesiones })
                 </div>
               </div>
 
+              <!-- Banner solo lectura — visible si EN_CURSO o FINALIZADA -->
+              <div v-else
+                class="flex items-center gap-3 px-4 py-3 rounded-2xl border"
+                :class="sesionSeleccionada?.estatus_sesion === 'EN_CURSO'
+                  ? 'bg-orange-50 border-orange-200'
+                  : 'bg-blue-50 border-blue-200'"
+              >
+                <svg class="w-4 h-4 shrink-0"
+                  :class="sesionSeleccionada?.estatus_sesion === 'EN_CURSO' ? 'text-orange-500' : 'text-blue-500'"
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-xs font-bold"
+                  :class="sesionSeleccionada?.estatus_sesion === 'EN_CURSO' ? 'text-orange-700' : 'text-blue-700'">
+                  {{ sesionSeleccionada?.estatus_sesion === 'EN_CURSO'
+                    ? 'La sesión está en curso. No se puede modificar el estatus.'
+                    : 'La sesión ya finalizó. Esta vista es de solo lectura.' }}
+                </p>
+              </div>
+
             </div>
 
             <!-- ── Footer ── -->
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60 shrink-0">
-              <button
-                type="button"
-                @click="cerrarModal"
-                :disabled="isSaving"
-                class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                @click="guardarCambios"
-                :disabled="isSaving"
-                class="px-6 py-2.5 text-xs font-black text-white bg-slate-900 hover:bg-slate-800 active:scale-95 rounded-xl transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
-              >
-                <svg v-if="isSaving" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Guardar cambios
-              </button>
+
+              <!-- Solo lectura: un único botón Cerrar -->
+              <template v-if="esSoloLectura">
+                <button
+                  type="button"
+                  @click="cerrarModal"
+                  class="px-6 py-2.5 text-xs font-black text-white rounded-xl transition-all shadow-sm"
+                  :class="sesionSeleccionada?.estatus_sesion === 'EN_CURSO'
+                    ? 'bg-orange-500 hover:bg-orange-600 active:scale-95'
+                    : 'bg-blue-600 hover:bg-blue-700 active:scale-95'"
+                >
+                  Cerrar
+                </button>
+              </template>
+
+              <!-- Editable: Cancelar + Guardar -->
+              <template v-else>
+                <button
+                  type="button"
+                  @click="cerrarModal"
+                  :disabled="isSaving"
+                  class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  @click="guardarCambios"
+                  :disabled="isSaving"
+                  class="px-6 py-2.5 text-xs font-black text-white bg-slate-900 hover:bg-slate-800 active:scale-95 rounded-xl transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  <svg v-if="isSaving" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Guardar cambios
+                </button>
+              </template>
+
             </div>
 
           </div>
