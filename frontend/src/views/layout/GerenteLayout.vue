@@ -33,7 +33,7 @@ onMounted(() => {
     <main class="flex-1 flex flex-col min-h-0 relative">
       <GerenteTopBar class="shrink-0" />
       
-      <div class="flex-1 overflow-y-auto min-h-0 relative bg-slate-50/50">
+      <div class="flex-1 overflow-y-auto min-h-0 relative bg-surface-50">
         
         <router-view />
         

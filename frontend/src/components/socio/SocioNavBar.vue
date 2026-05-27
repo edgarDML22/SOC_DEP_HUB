@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
 import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr } from '@/components/icons';
+import DarkModeToggle from '@/components/ui/DarkModeToggle.vue'
 
 const profileStore       = useProfileStore()
 const notifStore         = useNotificacionesStore()
@@ -206,7 +207,7 @@ onUnmounted(() => {
 
     <!-- ── DESKTOP ── -->
     <nav class="hidden md:flex w-full fixed top-0 z-100 px-4 pt-4 pb-4 backdrop-blur-sm pointer-events-none justify-center">
-      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
+      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 dark:bg-surface-100/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
 
         <router-link to="/socio/home" class="flex items-center gap-3 shrink-0 group">
           <div class="p-1 bg-white rounded-xl shadow-sm border border-surface-100 group-hover:scale-105 transition-transform">
@@ -236,6 +237,9 @@ onUnmounted(() => {
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
+          <!-- BOTÓN DE MODO OSCURO (DESKTOP) -->
+          <DarkModeToggle />
+
           <!-- ── Campanita Desktop ── -->
           <div class="relative" ref="notifDropdownDesktop">
             <button
@@ -249,7 +253,7 @@ onUnmounted(() => {
 
             <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
               <div v-if="showNotifications"
-                class="absolute top-14 right-0 w-80 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
+                class="absolute top-14 right-0 w-80 bg-white dark:bg-surface-100 rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
                 <div class="flex items-center justify-between px-5 pt-5 pb-3">
                   <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
                   <button v-if="tieneNoLeidas"
@@ -314,7 +318,7 @@ onUnmounted(() => {
               <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto" class="w-full h-full object-cover" />
               <span v-else>{{ profileStore.userInitials }}</span>
             </button>
-            <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
+            <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white dark:bg-surface-100 rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
               <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100 flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg overflow-hidden bg-primary-600 flex items-center justify-center shrink-0 text-white text-xs font-bold shadow-sm">
                   <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto" class="w-full h-full object-cover" />
@@ -347,14 +351,19 @@ onUnmounted(() => {
     </nav>
 
     <!-- ── MOBILE ── -->
-    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
+    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
       <div class="flex items-center gap-3">
         <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
         <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
       </div>
 
-      <!-- ── Campanita Mobile ── -->
-      <div class="relative" ref="notifDropdownMobile">
+      <!-- Contenedor del Toggle + Notificaciones en Móvil -->
+      <div class="flex items-center gap-3">
+        <!-- BOTÓN DE MODO OSCURO (MOBILE) -->
+        <DarkModeToggle />
+
+        <!-- ── Campanita Mobile ── -->
+        <div class="relative" ref="notifDropdownMobile">
         <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
           <IconBell class="w-5 h-5" :class="tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
           <span v-if="tieneNoLeidas"
@@ -363,7 +372,7 @@ onUnmounted(() => {
 
         <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
           <div v-if="showNotifications"
-            class="absolute top-12 right-0 w-80 bg-white rounded-2xl border border-surface-200 shadow-2xl z-60 overflow-hidden">
+            class="absolute top-12 right-0 w-80 bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 shadow-2xl z-60 overflow-hidden">
             <div class="flex items-center justify-between px-5 pt-5 pb-3">
               <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
               <button v-if="tieneNoLeidas"
@@ -422,9 +431,10 @@ onUnmounted(() => {
         </Transition>
       </div>
     </div>
+  </div>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
       <div class="flex items-center justify-between h-[64px] pb-1 gap-1">
         <router-link to="/socio/home" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
           <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"/>

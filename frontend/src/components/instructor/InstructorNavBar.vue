@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useInstructorStore } from '@/stores/profiles/instructorStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
 import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby, IconQr } from '@/components/icons';
+import DarkModeToggle from '@/components/ui/DarkModeToggle.vue'
 
 const profileStore = useInstructorStore();
 const notifStore = useNotificacionesStore();
@@ -56,7 +57,7 @@ onUnmounted(() => {
     <!-- DESKTOP: FLOATING ISLAND NAVIGATION       -->
     <!-- ========================================= -->
     <nav class="hidden md:flex w-full fixed top-0 z-100 px-4 pt-4 pb-4 backdrop-blur-sm pointer-events-none justify-center">
-      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
+      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 dark:bg-surface-100/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
         
         <!-- Izquierda: Logo -->
         <router-link to="/instructor/home" class="flex items-center gap-3 shrink-0 group">
@@ -102,6 +103,9 @@ onUnmounted(() => {
 
         <!-- Derecha: Perfil & Notificaciones -->
         <div class="flex items-center gap-3 shrink-0">
+            <!-- BOTÓN DE MODO OSCURO (DESKTOP) -->
+            <DarkModeToggle />
+
             <!-- Notificaciones -->
             <div class="relative" ref="notifDropdownDesktop">
                 <button class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 hover:bg-surface-100 hover:text-surface-900 active:scale-95 transition-all" @click="toggleNotifications">
@@ -110,7 +114,7 @@ onUnmounted(() => {
                 </button>
 
                 <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
-                    <div v-if="showNotifications" class="absolute top-14 right-0 w-80 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-5 z-50 overflow-hidden">
+                    <div v-if="showNotifications" class="absolute top-14 right-0 w-80 bg-white dark:bg-surface-100 rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-5 z-50 overflow-hidden">
                         <div class="flex items-center justify-between mb-2">
                             <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
                             <button v-if="notifStore.tieneNoLeidas" @click="notifStore.marcarTodasLeidas" class="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors">Marcar todas leídas</button>
@@ -142,7 +146,7 @@ onUnmounted(() => {
                     <span v-else>{{ profileStore.userInitials }}</span>
                 </button>
 
-                <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
+                <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white dark:bg-surface-100 rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
                     <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100">
                         <span class="block text-xs font-medium text-surface-500 uppercase tracking-wider mb-1">Mi Cuenta</span>
                         <strong class="block text-sm font-bold text-surface-900">{{ profileStore.userInitials }} (Instructor)</strong>
@@ -183,21 +187,26 @@ onUnmounted(() => {
     <!-- ========================================= -->
     
     <!-- Top Bar (Mobile) - Logo & Notifications -->
-    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
+    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
             <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
             <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
         </div>
         
-        <div class="relative" ref="notifDropdownMobile">
-            <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
+        <!-- Contenedor del Toggle + Notificaciones en Móvil -->
+        <div class="flex items-center gap-3">
+            <!-- BOTÓN DE MODO OSCURO (MOBILE) -->
+            <DarkModeToggle />
+
+            <div class="relative" ref="notifDropdownMobile">
+                <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
                 <IconBell class="w-5 h-5" :class="notifStore.tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
                 <span v-if="notifStore.tieneNoLeidas" class="absolute top-2 right-2.5 bg-primary-600 h-2 w-2 rounded-full border border-surface-50 ring-[1.5px] ring-white"></span>
             </button>
 
             <!-- Notificaciones Dropdown (Móvil) -->
             <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
-                <div v-if="showNotifications" class="absolute top-12 right-0 w-80 bg-white rounded-2xl border border-surface-200 shadow-2xl p-5 z-60 overflow-hidden">
+                <div v-if="showNotifications" class="absolute top-12 right-0 w-80 bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 shadow-2xl p-5 z-60 overflow-hidden">
                    <div class="flex items-center justify-between mb-2">
                        <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
                        <button v-if="notifStore.tieneNoLeidas" @click="notifStore.marcarTodasLeidas" class="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors">Marcar todas leídas</button>
@@ -221,10 +230,11 @@ onUnmounted(() => {
                 </div>
             </Transition>
         </div>
+      </div>
     </div>
 
     <!-- Bottom Navigation Bar (Mobile) -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
         <div class="flex items-center justify-around h-[64px] pb-1 gap-1">
             
             <router-link to="/instructor/home" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
