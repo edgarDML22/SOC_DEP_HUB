@@ -2,6 +2,10 @@
 import { ref, computed } from 'vue'
 import { QR_REGEX } from '@/utils/qrValidator'
 
+defineProps({
+  disabled: { type: Boolean, default: false },
+})
+
 const emit = defineEmits(['submit'])
 
 const codigo = ref('')
@@ -34,12 +38,13 @@ function validar() {
         v-model="codigo"
         @input="onInput"
         @keyup.enter="validar"
+        :disabled="disabled"
         maxlength="8"
         autocomplete="off"
         autocorrect="off"
         spellcheck="false"
-        placeholder="Ej: OS1A2B3C"
-        class="w-full px-5 py-4 text-2xl font-bold tracking-widest text-center rounded-2xl border-2 bg-white transition-all duration-150 focus:outline-none focus:ring-4"
+        placeholder="Ej: QS1A2B3C"
+        class="w-full px-5 py-4 text-2xl font-bold tracking-widest text-center rounded-2xl border-2 bg-white transition-all duration-150 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed"
         :class="claseInput"
         style="text-transform: uppercase"
       />
@@ -68,21 +73,21 @@ function validar() {
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        Debe iniciar con OS, MF u OI seguido de 6 caracteres alfanuméricos
+        Debe iniciar con QS, MF u OI seguido de 6 caracteres alfanuméricos
       </p>
     </Transition>
 
     <!-- Pista de formato -->
     <p v-if="!mostrarError" class="text-[11px] font-medium text-surface-400 text-center">
-      Formato: <span class="font-bold tracking-wider">OS</span> · <span class="font-bold tracking-wider">MF</span> · <span class="font-bold tracking-wider">OI</span> + 6 caracteres
+      Formato: <span class="font-bold tracking-wider">QS</span> · <span class="font-bold tracking-wider">MF</span> · <span class="font-bold tracking-wider">OI</span> + 6 caracteres
     </p>
 
     <!-- Botón Validar -->
     <button
       @click="validar"
-      :disabled="!esValido"
+      :disabled="!esValido || disabled"
       class="w-full py-4 rounded-2xl font-bold text-sm transition-all duration-150 focus:outline-none"
-      :class="esValido
+      :class="esValido && !disabled
         ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98]'
         : 'bg-surface-100 text-surface-300 cursor-not-allowed'"
     >

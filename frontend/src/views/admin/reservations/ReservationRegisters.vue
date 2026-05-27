@@ -49,7 +49,7 @@ const clearFilters = () => {
 const statusOrder = {
     'ACTIVA': 1,
     'PENDIENTE': 2,
-    'FINALIZADA': 3,
+    'COMPLETADA': 3,
     'CANCELADA': 4,
     'NO_SHOW': 5
 }
@@ -157,7 +157,7 @@ const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
         case 'ACTIVA': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
         case 'PENDIENTE': return 'bg-amber-50 text-amber-700 border-amber-200'
-        case 'FINALIZADA': return 'bg-blue-50 text-blue-700 border-blue-200'
+        case 'COMPLETADA': return 'bg-primary-50 text-primary-700 border-primary-200'
         case 'CANCELADA': return 'bg-red-50 text-red-700 border-red-200'
         case 'NO_SHOW': return 'bg-slate-100 text-slate-500 border-slate-200'
         default: return 'bg-slate-100 text-slate-500 border-slate-200'
@@ -171,6 +171,29 @@ const formatDate = (dateString) => {
     return `${parts[2]}-${parts[1]}-${parts[0]}`
 }
 
+const formatNiceDate = (dateString) => {
+    if (!dateString) return ''
+    const parts = dateString.split('-')
+    if (parts.length !== 3) return dateString
+    const year = parts[0]
+    const monthIndex = parseInt(parts[1], 10) - 1
+    const day = parseInt(parts[2], 10)
+    const months = [
+        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ]
+    const monthName = months[monthIndex] || parts[1]
+    return `${day} ${monthName} ${year}`
+}
+
+const formatTimeHM = (timeString) => {
+    if (!timeString) return ''
+    const parts = timeString.split(':')
+    if (parts.length < 2) return timeString
+    return `${parts[0]}:${parts[1]}`
+}
+
+
 const getModalidadLabel = (modalidad) => {
     const labels = {
         'ACOMPANANTES': 'Acompañantes',
@@ -183,7 +206,7 @@ const getStatusLabel = (status) => {
     const labels = {
         'ACTIVA': 'Activa',
         'PENDIENTE': 'Pendiente',
-        'FINALIZADA': 'Finalizada',
+        'COMPLETADA': 'Completada',
         'CANCELADA': 'Cancelada',
         'NO_SHOW': 'No Show',
     }
@@ -210,6 +233,53 @@ const exportColumns = [
     { label: 'Horario', field: 'horario' },
     { label: 'Estatus', field: 'estatus_format' },
 ]
+
+const getDisciplineColorClasses = (name) => {
+  const cleanName = String(name || '').toUpperCase().trim();
+  
+  if (cleanName.includes('TENIS')) {
+    return { bg: 'bg-emerald-50 border-emerald-200/60', icon: 'text-emerald-600' };
+  }
+  if (cleanName.includes('MEDITAC') || cleanName.includes('YOGA') || cleanName.includes('PILATES')) {
+    return { bg: 'bg-purple-50 border-purple-200/60', icon: 'text-purple-600' };
+  }
+  if (cleanName.includes('SPINNING') || cleanName.includes('CYCLE') || cleanName.includes('BICI')) {
+    return { bg: 'bg-blue-50 border-blue-200/60', icon: 'text-blue-600' };
+  }
+  if (cleanName.includes('ZUMBA') || cleanName.includes('BAILE') || cleanName.includes('DANCE')) {
+    return { bg: 'bg-rose-50 border-rose-200/60', icon: 'text-rose-600' };
+  }
+  if (cleanName.includes('GYM') || cleanName.includes('FITNESS') || cleanName.includes('INSTRUCTOR') || cleanName.includes('FUNCIONAL') || cleanName.includes('CROSSFIT')) {
+    return { bg: 'bg-amber-50 border-amber-200/60', icon: 'text-amber-600' };
+  }
+  if (cleanName.includes('NATAC') || cleanName.includes('ALBERCA') || cleanName.includes('SWIM')) {
+    return { bg: 'bg-sky-50 border-sky-200/60', icon: 'text-sky-600' };
+  }
+  if (cleanName.includes('PADEL') || cleanName.includes('PÁDEL') || cleanName.includes('SQUASH')) {
+    return { bg: 'bg-teal-50 border-teal-200/60', icon: 'text-teal-600' };
+  }
+  if (cleanName.includes('FUTBOL') || cleanName.includes('FÚTBOL') || cleanName.includes('SOCCER')) {
+    return { bg: 'bg-green-50 border-green-200/60', icon: 'text-green-600' };
+  }
+  if (cleanName.includes('BASKET') || cleanName.includes('BÁSQUET') || cleanName.includes('BALONCESTO')) {
+    return { bg: 'bg-orange-50 border-orange-200/60', icon: 'text-orange-600' };
+  }
+  if (cleanName.includes('BOX') || cleanName.includes('KICKBOX') || cleanName.includes('KARATE') || cleanName.includes('COMBATE')) {
+    return { bg: 'bg-red-50 border-red-200/60', icon: 'text-red-600' };
+  }
+
+  const hashes = [
+    { bg: 'bg-blue-50 border-blue-200/60', icon: 'text-blue-600' },
+    { bg: 'bg-emerald-50 border-emerald-200/60', icon: 'text-emerald-600' },
+    { bg: 'bg-purple-50 border-purple-200/60', icon: 'text-purple-600' },
+    { bg: 'bg-rose-50 border-rose-200/60', icon: 'text-rose-600' },
+    { bg: 'bg-amber-50 border-amber-200/60', icon: 'text-amber-600' },
+    { bg: 'bg-sky-50 border-sky-200/60', icon: 'text-sky-600' },
+    { bg: 'bg-teal-50 border-teal-200/60', icon: 'text-teal-600' }
+  ];
+  const charCodeSum = cleanName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return hashes[charCodeSum % hashes.length];
+};
 </script>
 
 <template>
@@ -322,16 +392,17 @@ const exportColumns = [
                 <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
                     <tr>
                         <th scope="col" class="px-6 py-4 text-left font-extrabold">Titular / Acción</th>
-                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Espacio / Disciplina</th>
-                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Modalidad</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Espacio</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Disciplina</th>
                         <th scope="col" class="px-6 py-4 text-left font-extrabold">Fecha / Hora</th>
+                        <th scope="col" class="px-6 py-4 text-left font-extrabold">Modalidad</th>
                         <th scope="col" class="px-6 py-4 text-left font-extrabold">Estatus</th>
                         <th scope="col" class="px-6 py-4 text-right font-extrabold">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedReservaciones.length === 0" class="bg-white border-b border-surface-100">
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 font-medium">
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-500 font-medium">
                             No se encontraron reservaciones con los filtros actuales.
                         </td>
                     </tr>
@@ -342,17 +413,22 @@ const exportColumns = [
                         </td>
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-800">{{ reserva.nombre_espacio }}</div>
-                            <div class="text-slate-500 text-xs mt-0.5">{{ reserva.nombre_disciplina }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                  :class="[getDisciplineColorClasses(reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina).bg, getDisciplineColorClasses(reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina).icon]">
+                                {{ reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-bold text-slate-800">{{ formatNiceDate(reserva.fecha_reserva) }}</div>
+                            <div class="text-slate-500 text-xs mt-0.5">{{ formatTimeHM(reserva.hora_inicio) }} - {{ formatTimeHM(reserva.hora_fin) }}</div>
                         </td>
                         <td class="px-6 py-4">
                             <span class="px-2.5 py-1 text-[11px] font-bold tracking-wide rounded-md border" 
                                   :class="reserva.modalidad === 'ACOMPANANTES' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-700 border-slate-200'">
                                 {{ getModalidadLabel(reserva.modalidad) }}
                             </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="font-bold text-slate-800">{{ formatDate(reserva.fecha_reserva) }}</div>
-                            <div class="text-slate-500 text-xs mt-0.5">{{ reserva.hora_inicio }} - {{ reserva.hora_fin }}</div>
                         </td>
                         <td class="px-6 py-4">
                             <span class="px-2.5 py-1 text-[11px] font-bold tracking-wide rounded-md border" :class="getStatusColor(reserva.estatus_operativo)">

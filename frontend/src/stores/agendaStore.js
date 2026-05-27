@@ -58,7 +58,8 @@ export const useAgendaStore = defineStore('agenda', () => {
   }
 
   // ── Acciones: Instructor all-in-one ───────────────────────────────────────
-  const fetchInstructorAgenda = async () => {
+  const fetchInstructorAgenda = async ({ force = false } = {}) => {
+    if (!force && itemsInstructor.value.length > 0) return
     loadingInstructor.value = true
     errorInstructor.value = null
     try {

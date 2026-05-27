@@ -68,7 +68,12 @@ class InstructorAgendaService
         $sesiones = SesionActiva::withoutGlobalScopes()
             ->whereBetween('fecha_sesion', [$desde, $hasta])
             ->where('fecha_sesion', '>=', $hoy)
-            ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
+            ->where(function ($q) use ($hoy) {
+                // Hoy: mostrar todas independientemente del estatus
+                // Días futuros: excluir canceladas y finalizadas
+                $q->where('fecha_sesion', $hoy)
+                  ->orWhereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA']);
+            })
             ->where('id_instructor', $idInstructor)
             ->whereHas('actividadPlantilla.plantilla', fn($p) =>
                 $p->where('publicada', true)

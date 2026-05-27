@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, defineEmits } from 'vue';
+import { ref, computed, watch, defineEmits, onUnmounted } from 'vue';
 import { useAlerts } from '@/composables/useAlerts';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
@@ -192,10 +192,22 @@ const closeDetails = () => {
     selectedReserva.value = null;
 };
 
+watch(showModal, (newVal) => {
+    if (newVal) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+});
+
+onUnmounted(() => {
+    document.body.style.overflow = '';
+});
+
 const getStatusConfig = (status) => {
     const configs = {
         'ACTIVA':     { label: 'ACTIVA',     class: 'bg-green-50 text-green-700 border-green-200' },
-        'COMPLETADA': { label: 'COMPLETADA', class: 'bg-blue-50 text-blue-700 border-blue-200' },
+        'COMPLETADA': { label: 'COMPLETADA', class: 'bg-primary-50 text-primary-700 border-primary-200' },
         'CANCELADA':  { label: 'CANCELADA',  class: 'bg-orange-50 text-orange-700 border-orange-200' },
         'NO_SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
         'NO SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
@@ -374,7 +386,7 @@ const selectTab = (id) => {
 
         <!-- MODAL DE DETALLES -->
         <Transition name="fade">
-            <div v-if="showModal" class="fixed inset-0 z-100 flex items-center justify-center p-4">
+            <div v-if="showModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm" @click="closeDetails"></div>
 
                 <div

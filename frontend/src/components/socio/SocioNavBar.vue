@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
@@ -82,6 +82,20 @@ const abrirDetalle = async (notif) => {
 const cerrarDetalle = () => {
   notifSeleccionada.value = null
 }
+
+watch(notifSeleccionada, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+// Ensures overflow is reset if the component is destroyed while the modal is open
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // Helpers de presentación
 const labelServicio = (estatus) => {
@@ -195,9 +209,6 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 </script>
 
 <template>
@@ -211,9 +222,9 @@ onUnmounted(() => {
 
         <router-link to="/socio/home" class="flex items-center gap-3 shrink-0 group">
           <div class="p-1 bg-white rounded-xl shadow-sm border border-surface-100 group-hover:scale-105 transition-transform">
-            <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
+            <img src="../../assets/LogoSocDep.png" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
           </div>
-          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">SOC-DEP</span>
+          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">Soc-Dep Hub</span>
         </router-link>
 
         <div class="flex items-center gap-1 lg:gap-2 justify-center flex-1 mx-4">
@@ -353,8 +364,8 @@ onUnmounted(() => {
     <!-- ── MOBILE ── -->
     <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
       <div class="flex items-center gap-3">
-        <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
-        <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
+        <img src="../../assets/LogoSocDep.png" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
+        <span class="font-bold text-lg text-surface-900 tracking-tight">Soc-Dep Hub</span>
       </div>
 
       <!-- Contenedor del Toggle + Notificaciones en Móvil -->
@@ -483,7 +494,7 @@ onUnmounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="notifSeleccionada"
-          class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="cerrarDetalle"
         >
           <Transition

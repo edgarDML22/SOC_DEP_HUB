@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import { useProfileStore } from '@/stores/profiles/socioStore';
 import { useFamilyStore } from '@/stores/community/familyStore';
 import { IconUser, IconGuests, IconCalendar } from '@/components/icons';
@@ -40,9 +40,16 @@ watch(
       }
       selectedFamiliarId.value = '';
       rankingDeclarado.value = 0;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
   }
 );
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 
 onMounted(async () => {
   if (!profileStore.profileData) {
@@ -195,7 +202,7 @@ const handleClose = () => {
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+    class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
     @click.self="handleClose"
   >
     <div

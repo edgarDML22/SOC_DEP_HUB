@@ -12,6 +12,10 @@ onMounted(() => store.fetchDatosMenu())
 const cargando = computed(() =>
     store.sesionesLoading || store.reservacionesLoading || store.encuentrosLoading
 )
+
+const reservasActivas = computed(() =>
+    store.reservacionesHoy.filter(r => r.estatus_operativo === 'ACTIVA')
+)
 </script>
 
 <template>
@@ -88,7 +92,7 @@ const cargando = computed(() =>
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-50 border border-primary-100 text-xs font-semibold text-primary-700"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse"></span>
-          {{ store.reservacionesHoy.length }} {{ store.reservacionesHoy.length === 1 ? 'reserva' : 'reservas' }} pendientes
+          {{ reservasActivas.length }} {{ reservasActivas.length === 1 ? 'reserva' : 'reservas' }} pendientes
         </span>
         <span
           v-if="store.hayEncuentros"

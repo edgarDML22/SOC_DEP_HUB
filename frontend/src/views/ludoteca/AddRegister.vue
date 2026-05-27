@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import api from '@/services/api'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useAlerts } from '@/composables/useAlerts'
@@ -27,6 +27,21 @@ const mostrarAlerta = (title, message, type = 'success') => {
 const cerrarAlerta = () => {
   alertModal.value.visible = false
 }
+
+watch(
+  () => alertModal.value.visible,
+  (newVal) => {
+    if (newVal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+  }
+)
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 // Cargar miembros familiares
 const cargarMiembros = async () => {
@@ -169,7 +184,7 @@ onMounted(() => {
     </div>
 
     <!-- Modal Alerta Minimalista (Éxito / Fallo) -->
-    <div v-if="alertModal.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/30 backdrop-blur-[2px] p-4" @click.self="cerrarAlerta">
+    <div v-if="alertModal.visible" class="fixed inset-0 z-[200] flex items-center justify-center bg-surface-900/60 backdrop-blur-sm p-4" @click.self="cerrarAlerta">
       <div class="bg-white w-full max-w-sm rounded-2xl border border-[#EAEAEA] p-6 shadow-lg animate-fade-in flex flex-col items-center text-center">
         <!-- Icono de Éxito -->
         <div v-if="alertModal.type === 'success'" class="w-12 h-12 rounded-xl bg-[#EDF3EC] flex items-center justify-center text-[#346538] mb-4">

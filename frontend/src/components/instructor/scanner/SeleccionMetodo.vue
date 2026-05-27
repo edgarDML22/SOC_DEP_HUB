@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useScannerStore } from '@/stores/profiles/scannerStore'
+import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
 
 const store = useScannerStore()
 
@@ -11,19 +12,50 @@ const LABEL_CATEGORIA = {
 }
 const labelCategoria = computed(() => LABEL_CATEGORIA[store.categoriaActiva] ?? '')
 
-// Contexto de lo que se seleccionó en la lista previa
-const contexto = computed(() => {
+// Nombre de disciplina para el ícono dinámico
+const disciplinaNombre = computed(() => {
+    if (store.esCategoriaClases) {
+        return store.sesionesHoy.find(x => x.id_sesion === store.sesionActivaId)?.disciplina ?? ''
+    }
+    if (store.esCategoriaReservas) {
+        return store.reservaActiva?.disciplina ?? ''
+    }
+    if (store.esCategoriaTorneo) {
+        return store.encuentroActivo?.disciplina ?? ''
+    }
+    return ''
+})
+
+// Línea principal del banner (disciplina · horario)
+const contextoLinea1 = computed(() => {
     if (store.esCategoriaClases) {
         const s = store.sesionesHoy.find(x => x.id_sesion === store.sesionActivaId)
-        return s ? `${s.disciplina} · ${s.hora_inicio}–${s.hora_fin}` : ''
+        return s?.disciplina ?? ''
     }
     if (store.esCategoriaReservas) {
         const r = store.reservaActiva
-        return r ? `${r.socio_nombre} · ${r.hora_inicio}–${r.hora_fin}` : ''
+        return r?.socio_nombre ?? ''
     }
     if (store.esCategoriaTorneo) {
         const e = store.encuentroActivo
         return e ? `${e.competidor_1} vs ${e.competidor_2}` : ''
+    }
+    return ''
+})
+
+// Línea secundaria (espacio · horario)
+const contextoLinea2 = computed(() => {
+    if (store.esCategoriaClases) {
+        const s = store.sesionesHoy.find(x => x.id_sesion === store.sesionActivaId)
+        return s ? `${s.espacio} · ${s.hora_inicio}–${s.hora_fin}` : ''
+    }
+    if (store.esCategoriaReservas) {
+        const r = store.reservaActiva
+        return r ? `${r.espacio} · ${r.hora_inicio}–${r.hora_fin}` : ''
+    }
+    if (store.esCategoriaTorneo) {
+        const e = store.encuentroActivo
+        return e ? `${e.espacio ?? ''} · ${e.hora_inicio ?? ''}` : ''
     }
     return ''
 })
@@ -32,29 +64,41 @@ const contexto = computed(() => {
 <template>
   <div class="space-y-6">
 
-    <!-- Chip de contexto: qué sesión/reserva/encuentro está seleccionado -->
+    <!-- ── Banner premium de sesión/reserva seleccionada ─────────────────── -->
     <div
-      v-if="contexto"
-      class="flex items-center gap-2 px-4 py-3 bg-primary-50 border border-primary-200 rounded-2xl"
+      v-if="contextoLinea1"
+      class="flex items-center gap-3.5 px-4 py-3.5 bg-linear-to-r from-primary-600 to-primary-700 rounded-2xl shadow-md shadow-primary-600/20"
     >
-      <div class="w-2 h-2 rounded-full bg-primary-500 shrink-0 animate-pulse" />
-      <div class="min-w-0">
-        <p class="text-[10px] font-bold text-primary-500 uppercase tracking-widest">{{ labelCategoria }}</p>
-        <p class="text-sm font-bold text-primary-800 truncate leading-tight mt-0.5">{{ contexto }}</p>
+      <!-- Ícono dinámico de disciplina -->
+      <div class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+        <DisciplineIcon :name="disciplinaNombre" class="w-6 h-6 text-white" />
       </div>
+
+      <!-- Texto -->
+      <div class="min-w-0 flex-1">
+        <p class="text-[10px] font-bold text-primary-200 uppercase tracking-widest leading-none mb-0.5">
+          {{ labelCategoria }}
+        </p>
+        <p class="text-sm font-bold text-white truncate leading-tight">{{ contextoLinea1 }}</p>
+        <p v-if="contextoLinea2" class="text-xs text-primary-200 truncate leading-tight mt-0.5">
+          {{ contextoLinea2 }}
+        </p>
+      </div>
+
+      <!-- Indicador activo -->
+      <div class="w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
     </div>
 
-    <!-- Botones de método -->
+    <!-- ── Tarjetas de método ─────────────────────────────────────────────── -->
     <div>
-      <p class="text-xs font-bold text-surface-500 uppercase tracking-widest mb-3">
-        Método de escaneo
-      </p>
+      <p class="text-sm font-semibold text-slate-900 mb-3">Método de Ingreso</p>
 
       <div class="grid grid-cols-2 gap-3">
+
         <!-- Cámara -->
         <button
           @click="store.seleccionarMetodo('CAMARA')"
-          class="flex flex-col items-center gap-3 p-5 rounded-2xl border bg-white shadow-sm hover:border-primary-400 hover:shadow-md hover:shadow-primary-600/5 active:scale-[0.97] transition-all duration-150 focus:outline-none group cursor-pointer"
+          class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white shadow-md shadow-slate-200/80 hover:shadow-lg hover:shadow-primary-600/10 border border-slate-200 hover:border-primary-300 active:scale-[0.97] transition-all duration-200 focus:outline-none group cursor-pointer"
         >
           <div class="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -63,15 +107,15 @@ const contexto = computed(() => {
             </svg>
           </div>
           <div class="text-center">
-            <p class="font-bold text-sm text-surface-900">Cámara</p>
-            <p class="text-[11px] text-surface-400 mt-0.5">Escaneo automático</p>
+            <p class="font-bold text-sm text-slate-800">Cámara</p>
+            <p class="text-[11px] text-slate-500 font-medium mt-0.5">Escaneo automático</p>
           </div>
         </button>
 
         <!-- Manual -->
         <button
           @click="store.seleccionarMetodo('MANUAL')"
-          class="flex flex-col items-center gap-3 p-5 rounded-2xl border bg-white shadow-sm hover:border-primary-400 hover:shadow-md hover:shadow-primary-600/5 active:scale-[0.97] transition-all duration-150 focus:outline-none group cursor-pointer"
+          class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white shadow-md shadow-slate-200/80 hover:shadow-lg hover:shadow-primary-600/10 border border-slate-200 hover:border-primary-300 active:scale-[0.97] transition-all duration-200 focus:outline-none group cursor-pointer"
         >
           <div class="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -79,10 +123,11 @@ const contexto = computed(() => {
             </svg>
           </div>
           <div class="text-center">
-            <p class="font-bold text-sm text-surface-900">Manual</p>
-            <p class="text-[11px] text-surface-400 mt-0.5">Ingresa el código</p>
+            <p class="font-bold text-sm text-slate-800">Manual</p>
+            <p class="text-[11px] text-slate-500 font-medium mt-0.5">Ingresa el código</p>
           </div>
         </button>
+
       </div>
     </div>
 

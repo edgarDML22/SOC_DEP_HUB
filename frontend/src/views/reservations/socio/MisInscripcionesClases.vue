@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useActividadesStore } from '@/stores/actividadesStore'
 import { useFamilyStore } from '@/stores/community/familyStore'
 import { useGuestStore } from '@/stores/community/guestStore'
@@ -31,8 +31,23 @@ const showDetailsModal = ref(false)
 const selectedInscripcion = ref(null)
 
 // Modal de ver inscritos y cancelación selectiva
+// Modal de ver inscritos y cancelación selectiva
 const selectedSesionCancelacion = ref(null)
 const selectedSesionVerInscritos = ref(null)
+
+const toggleScroll = () => {
+  if (showDetailsModal.value || selectedSesionCancelacion.value || selectedSesionVerInscritos.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}
+
+watch([showDetailsModal, selectedSesionCancelacion, selectedSesionVerInscritos], toggleScroll)
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 const enrolleesForCancel = computed(() => {
   if (!selectedSesionCancelacion.value) return []
@@ -396,7 +411,7 @@ function getCardAccent(tipoClase) {
 
     <!-- MODAL DE DETALLES — showDetailsModal / selectedInscripcion / closeDetails sin cambios -->
     <Transition name="fade">
-      <div v-if="showDetailsModal && selectedInscripcion" class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div v-if="showDetailsModal && selectedInscripcion" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="closeDetails"></div>
         <div class="relative bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in">
           <!-- Header azul de marca -->
@@ -468,7 +483,7 @@ function getCardAccent(tipoClase) {
     <!-- Modal de Cancelación Selectiva — selectedSesionCancelacion / enrolleesForCancel sin cambios -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="selectedSesionCancelacion" class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div v-if="selectedSesionCancelacion" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="selectedSesionCancelacion = null"></div>
           <div class="relative bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in">
             <!-- Header azul de marca -->
@@ -560,7 +575,7 @@ function getCardAccent(tipoClase) {
     <!-- Modal Ver Inscritos — selectedSesionVerInscritos / enrolleesForView sin cambios -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="selectedSesionVerInscritos" class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div v-if="selectedSesionVerInscritos" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="selectedSesionVerInscritos = null"></div>
           <div class="relative bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in">
             <!-- Header azul de marca -->

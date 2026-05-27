@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAdminStore } from '@/stores/profiles/adminStore';
 import { useActividadesStore } from '@/stores/actividadesStore';
 import { useTournamentStore } from '@/stores/tournamentStore';
+import { useReservacionAdminStore } from '@/stores/admin/reservationAdminStore';
 import { IconGuests, IconTarget, IconCalendar, IconGrid, IconBaby, IconTrophy } from '@/components/icons';
 import api from '@/services/api';
 import BaseChart from '@/components/admin/BaseChart.vue';
@@ -12,6 +13,7 @@ import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue';
 const profileStore = useAdminStore();
 const actividadesStore = useActividadesStore();
 const torneoStore = useTournamentStore();
+const reservacionAdminStore = useReservacionAdminStore();
 let abortController = new AbortController();
 const isMounted = ref(false);
 const isLoading = ref(true);
@@ -76,6 +78,20 @@ const clasesDeHoy = computed(() => {
     if (!isAFuture && isBFuture) return 1;
 
     // Sort chronologically ascending
+    return aTime.localeCompare(bTime);
+  });
+});
+
+const reservasProximasHoy = computed(() => {
+  const list = reservacionAdminStore.reservaciones || [];
+  return [...list].sort((a, b) => {
+    const order = { 'ACTIVA': 1, 'COMPLETADA': 2, 'NO_SHOW': 3, 'CANCELADA': 4 };
+    const oA = order[a.estatus_operativo] || 99;
+    const oB = order[b.estatus_operativo] || 99;
+    if (oA !== oB) return oA - oB;
+    
+    const aTime = a.hora_inicio || '00:00:00';
+    const bTime = b.hora_inicio || '00:00:00';
     return aTime.localeCompare(bTime);
   });
 });
@@ -145,11 +161,13 @@ const loadAdminSessions = async () => {
 
 onMounted(() => {
   isMounted.value = true;
+  const hoyMexico = getHoyMexicoString();
   // Disparamos todo al mismo tiempo en paralelo. ¡Carga inmediata!
   Promise.all([
     loadDashboardStats(),
     loadAdminSessions(),
-    torneoStore.fetchTorneos({ estatus: 'EN_CURSO' })
+    torneoStore.fetchTorneos({ estatus: 'EN_CURSO' }),
+    reservacionAdminStore.fetchReservaciones({ fecha_inicio: hoyMexico, fecha_fin: hoyMexico })
   ]);
 });
 
@@ -170,26 +188,15 @@ const chartReservasHoy = computed(() => {
       data: statsData.value.reservas_hoy_hora.data,
       backgroundColor: (context) => {
         const { ctx, chartArea } = context.chart;
-        const colorsMap = [
-          ['#6366f1', '#4338ca'], // Indigo
-          ['#10b981', '#047857'], // Emerald
-          ['#f59e0b', '#b45309'], // Amber
-          ['#ec4899', '#be185d'], // Pink
-          ['#06b6d4', '#0e7490'], // Cyan
-          ['#8b5cf6', '#6d28d9'], // Violet
-          ['#f43f5e', '#be123c'], // Rose
-          ['#64748b', '#475569']  // Slate
-        ];
-        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
-        const pair = colorsMap[index % colorsMap.length];
-        if (!chartArea) return pair[0];
+        if (!chartArea) return '#2563eb';
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-        gradient.addColorStop(0, pair[1]);
-        gradient.addColorStop(1, pair[0]);
+        gradient.addColorStop(0, '#1e40af');
+        gradient.addColorStop(1, '#60a5fa');
         return gradient;
       },
-      borderRadius: 8,
-      borderSkipped: false
+      borderRadius: 6,
+      borderSkipped: false,
+      maxBarThickness: 40
     }]
   };
 });
@@ -198,23 +205,33 @@ const optionsReservasHoy = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { display: false }
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#111827',
+      titleFont: { size: 11, weight: '700' },
+      bodyFont: { size: 12, weight: '600' },
+      padding: 10,
+      cornerRadius: 8,
+      displayColors: false
+    }
   },
   scales: {
     y: {
       beginAtZero: true,
-      ticks: { precision: 0, color: '#64748b' },
-      grid: { color: '#f1f5f9' },
+      ticks: { precision: 0, color: '#9ca3af', font: { size: 11, weight: '600' } },
+      grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+      border: { display: false },
       title: {
         display: true,
         text: 'Reservaciones',
-        font: { size: 11, weight: '600' },
-        color: '#475569'
+        font: { size: 10, weight: '700' },
+        color: '#6b7280'
       }
     },
     x: {
       grid: { display: false },
-      ticks: { color: '#64748b' }
+      border: { display: false },
+      ticks: { color: '#9ca3af', font: { size: 11, weight: '600' } }
     }
   }
 };
@@ -234,14 +251,14 @@ const chartEstatusOperativo = computed(() => {
         const colorsMap = {
           'CONFIRMADA': ['#60a5fa', '#2563eb'], // Blue gradient
           'ACTIVA': ['#34d399', '#059669'],     // Emerald gradient
-          'FINALIZADA': ['#cbd5e1', '#94a3b8'], // Slate/Gray gradient
+          'FINALIZADA': ['#c4b5fd', '#7c3aed'], // Purple/Violet gradient
           'PENDIENTE': ['#fcd34d', '#d97706'],  // Amber gradient
           'NO_SHOW': ['#fda4af', '#e11d48']     // Rose gradient
         };
         const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
         const rawLabel = statsData.value.estatus_operativo.labels[index];
         const key = String(rawLabel || '').toUpperCase();
-        const pair = colorsMap[key] || ['#cbd5e1', '#94a3b8'];
+        const pair = colorsMap[key] || ['#c4b5fd', '#7c3aed'];
         if (!chartArea) return pair[0];
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
         gradient.addColorStop(0, pair[1]);
@@ -277,26 +294,14 @@ const chartTopEspacios = computed(() => {
       data: statsData.value.top_espacios.data,
       backgroundColor: (context) => {
         const { ctx, chartArea } = context.chart;
-        const colorsMap = [
-          ['#6366f1', '#4338ca'], // Indigo
-          ['#10b981', '#047857'], // Emerald
-          ['#f59e0b', '#b45309'], // Amber
-          ['#ec4899', '#be185d'], // Pink
-          ['#06b6d4', '#0e7490'], // Cyan
-          ['#8b5cf6', '#6d28d9'], // Violet
-          ['#f43f5e', '#be123c'], // Rose
-          ['#64748b', '#475569']  // Slate
-        ];
-        const index = typeof context.dataIndex === 'number' ? context.dataIndex : 0;
-        const pair = colorsMap[index % colorsMap.length];
-        if (!chartArea) return pair[0];
-        const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0); // Horizontal gradient!
-        gradient.addColorStop(0, pair[1]);
-        gradient.addColorStop(1, pair[0]);
+        if (!chartArea) return '#2563eb';
+        const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+        gradient.addColorStop(0, '#1e40af');
+        gradient.addColorStop(1, '#60a5fa');
         return gradient;
       },
-      borderRadius: 6,
-      barThickness: 20
+      borderRadius: 5,
+      barThickness: 18
     }]
   };
 });
@@ -306,23 +311,33 @@ const optionsTopEspacios = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { display: false }
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#111827',
+      titleFont: { size: 11, weight: '700' },
+      bodyFont: { size: 12, weight: '600' },
+      padding: 10,
+      cornerRadius: 8,
+      displayColors: false
+    }
   },
   scales: {
     x: {
       beginAtZero: true,
-      ticks: { precision: 0, color: '#64748b' },
-      grid: { color: '#f1f5f9' },
+      ticks: { precision: 0, color: '#9ca3af', font: { size: 11, weight: '600' } },
+      grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+      border: { display: false },
       title: {
         display: true,
         text: 'Reservas',
-        font: { size: 11, weight: '600' },
-        color: '#475569'
+        font: { size: 10, weight: '700' },
+        color: '#6b7280'
       }
     },
     y: {
       grid: { display: false },
-      ticks: { color: '#64748b' }
+      border: { display: false },
+      ticks: { color: '#374151', font: { size: 11, weight: '700' } }
     }
   }
 };
@@ -332,13 +347,10 @@ const individualReservasHora = computed(() => {
   if (!statsData.value?.reservas_hoy_hora) return [];
   const labels = statsData.value.reservas_hoy_hora.labels;
   const data = statsData.value.reservas_hoy_hora.data;
-  const colorsMap = [
-    '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#f43f5e', '#64748b'
-  ];
   return labels.map((label, idx) => ({
     label: `${label}h`,
     value: data[idx],
-    color: colorsMap[idx % colorsMap.length]
+    color: '#2563eb'
   }));
 });
 
@@ -351,13 +363,10 @@ const individualTopEspacios = computed(() => {
   if (!statsData.value?.top_espacios) return [];
   const labels = statsData.value.top_espacios.labels;
   const data = statsData.value.top_espacios.data;
-  const colorsMap = [
-    '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#f43f5e', '#64748b'
-  ];
   return labels.map((label, idx) => ({
     label,
     value: data[idx],
-    color: colorsMap[idx % colorsMap.length]
+    color: '#2563eb'
   }));
 });
 
@@ -373,7 +382,7 @@ const individualEstatusOperativo = computed(() => {
   const colorsMap = {
     'CONFIRMADA': '#2563eb',
     'ACTIVA': '#059669',
-    'FINALIZADA': '#94a3b8',
+    'FINALIZADA': '#7c3aed',
     'PENDIENTE': '#d97706',
     'NO_SHOW': '#e11d48'
   };
@@ -382,7 +391,7 @@ const individualEstatusOperativo = computed(() => {
     return {
       label: label.replace('_', ' '),
       value: data[idx],
-      color: colorsMap[key] || '#94a3b8'
+      color: colorsMap[key] || '#7c3aed'
     };
   });
 });
@@ -420,16 +429,71 @@ const formatEstatus = (estatus) => {
     'DISPONIBLE': 'Disponible',
     'EN_CURSO': 'En Curso',
     'FINALIZADA': 'Finalizada',
-    'CANCELADA': 'Cancelada'
+    'CANCELADA': 'Cancelada',
+    'ACTIVA': 'Activa',
+    'PENDIENTE': 'Pendiente',
+    'COMPLETADA': 'Completada',
+    'NO_SHOW': 'No Show'
   };
   return labels[estatus] || estatus;
 };
 
 const ESTATUS_COLORS = {
-  'DISPONIBLE': 'bg-blue-50 text-blue-700 border-blue-150',
-  'EN_CURSO': 'bg-emerald-50 text-emerald-700 border-emerald-150',
-  'FINALIZADA': 'bg-slate-50 text-slate-600 border-slate-200',
-  'CANCELADA': 'bg-rose-50 text-rose-700 border-rose-150'
+  'DISPONIBLE': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'EN_CURSO':   'bg-orange-50 text-orange-700 border-orange-200',
+  'FINALIZADA': 'bg-blue-50 text-blue-700 border-blue-200',
+  'CANCELADA':  'bg-red-50 text-red-700 border-red-200',
+  'ACTIVA':     'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'PENDIENTE':  'bg-amber-50 text-amber-700 border-amber-200',
+  'COMPLETADA': 'bg-blue-50 text-blue-700 border-blue-200',
+  'NO_SHOW':    'bg-slate-100 text-slate-500 border-slate-200'
+};
+
+const getDisciplineColorClasses = (name) => {
+  const cleanName = String(name || '').toUpperCase().trim();
+  
+  if (cleanName.includes('TENIS')) {
+    return { bg: 'bg-emerald-50 border-emerald-200/60', icon: 'text-emerald-600' };
+  }
+  if (cleanName.includes('MEDITAC') || cleanName.includes('YOGA') || cleanName.includes('PILATES')) {
+    return { bg: 'bg-purple-50 border-purple-200/60', icon: 'text-purple-600' };
+  }
+  if (cleanName.includes('SPINNING') || cleanName.includes('CYCLE') || cleanName.includes('BICI')) {
+    return { bg: 'bg-blue-50 border-blue-200/60', icon: 'text-blue-600' };
+  }
+  if (cleanName.includes('ZUMBA') || cleanName.includes('BAILE') || cleanName.includes('DANCE')) {
+    return { bg: 'bg-rose-50 border-rose-200/60', icon: 'text-rose-600' };
+  }
+  if (cleanName.includes('GYM') || cleanName.includes('FITNESS') || cleanName.includes('INSTRUCTOR') || cleanName.includes('FUNCIONAL') || cleanName.includes('CROSSFIT')) {
+    return { bg: 'bg-amber-50 border-amber-200/60', icon: 'text-amber-600' };
+  }
+  if (cleanName.includes('NATAC') || cleanName.includes('ALBERCA') || cleanName.includes('SWIM')) {
+    return { bg: 'bg-sky-50 border-sky-200/60', icon: 'text-sky-600' };
+  }
+  if (cleanName.includes('PADEL') || cleanName.includes('PÁDEL') || cleanName.includes('SQUASH')) {
+    return { bg: 'bg-teal-50 border-teal-200/60', icon: 'text-teal-600' };
+  }
+  if (cleanName.includes('FUTBOL') || cleanName.includes('FÚTBOL') || cleanName.includes('SOCCER')) {
+    return { bg: 'bg-green-50 border-green-200/60', icon: 'text-green-600' };
+  }
+  if (cleanName.includes('BASKET') || cleanName.includes('BÁSQUET') || cleanName.includes('BALONCESTO')) {
+    return { bg: 'bg-orange-50 border-orange-200/60', icon: 'text-orange-600' };
+  }
+  if (cleanName.includes('BOX') || cleanName.includes('KICKBOX') || cleanName.includes('KARATE') || cleanName.includes('COMBATE')) {
+    return { bg: 'bg-red-50 border-red-200/60', icon: 'text-red-600' };
+  }
+
+  const hashes = [
+    { bg: 'bg-blue-50 border-blue-200/60', icon: 'text-blue-600' },
+    { bg: 'bg-emerald-50 border-emerald-200/60', icon: 'text-emerald-600' },
+    { bg: 'bg-purple-50 border-purple-200/60', icon: 'text-purple-600' },
+    { bg: 'bg-rose-50 border-rose-200/60', icon: 'text-rose-600' },
+    { bg: 'bg-amber-50 border-amber-200/60', icon: 'text-amber-600' },
+    { bg: 'bg-sky-50 border-sky-200/60', icon: 'text-sky-600' },
+    { bg: 'bg-teal-50 border-teal-200/60', icon: 'text-teal-600' }
+  ];
+  const charCodeSum = cleanName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return hashes[charCodeSum % hashes.length];
 };
 </script>
 
@@ -441,7 +505,7 @@ const ESTATUS_COLORS = {
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 class="text-3xl font-black text-surface-900 tracking-tight m-0">
-            {{ greeting }}, <span class="text-primary-600">{{ profileStore.fullName?.split(' ')[0] || 'Administrador' }}</span> 👋
+            {{ greeting }}, <span class="text-primary-600">{{ profileStore.fullName?.split(' ')[0] || 'Administrador' }}</span>
           </h1>
           <p class="text-sm font-medium text-surface-500 mt-2 m-0 max-w-xl">
             Te damos la bienvenida al Panel de Control de Gerencia. Aquí puedes administrar y monitorear las operaciones del club en vivo.
@@ -572,7 +636,7 @@ const ESTATUS_COLORS = {
              :class="{'border-red-200 bg-red-50/5': statsData.ludoteca_kpis.alertas_tiempo > 0}">
           <div class="relative flex items-center gap-4">
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"
-                 :class="statsData.ludoteca_kpis.alertas_tiempo > 0 ? 'bg-red-100 text-red-600' : 'bg-slate-50 text-slate-400'">
+                 :class="statsData.ludoteca_kpis.alertas_tiempo > 0 ? 'bg-red-100 text-red-600' : 'bg-amber-50 text-amber-500'">
               <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -607,76 +671,77 @@ const ESTATUS_COLORS = {
       </div>
 
       <!-- BENTO GRID DE GRÁFICOS -->
-      <div v-else-if="statsData" class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div v-else-if="statsData" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <!-- Tarjeta Fused 60% (Afluencia + Top Espacios) -->
-        <div class="lg:col-span-3 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col min-h-[400px] hover:shadow-md transition-all duration-300">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <div>
-              <h3 class="text-base font-black text-surface-900 leading-tight">Monitoreo de Afluencia y Espacios</h3>
-              <p class="text-xs font-medium text-surface-400 mt-0.5">Analíticas de movimiento y demanda de hoy.</p>
-            </div>
-            
-            <!-- Selector de Tab -->
-            <div class="flex bg-slate-100 rounded-xl p-0.5 border border-slate-200 shadow-inner">
-              <button @click="activeFusedTab = 'afluencia'"
-                      class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
-                      :class="activeFusedTab === 'afluencia' ? 'bg-surface-900 text-white shadow-sm scale-[1.02]' : 'text-surface-500 hover:text-surface-700 bg-transparent'">
-                Afluencia
-              </button>
-              <button @click="activeFusedTab = 'espacios'"
-                      class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
-                      :class="activeFusedTab === 'espacios' ? 'bg-surface-900 text-white shadow-sm scale-[1.02]' : 'text-surface-500 hover:text-surface-700 bg-transparent'">
-                Espacios
-              </button>
-            </div>
+        <!-- Tarjeta Reservas Proximas (Hoy) -->
+        <div class="lg:col-span-1 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col min-h-[400px] hover:shadow-md transition-all duration-300">
+          <div class="mb-4">
+            <h3 class="text-base font-black text-surface-900 leading-tight">Reservas Próximas (Hoy)</h3>
+            <p class="text-xs font-medium text-surface-400 mt-0.5">Listado de reservas On Demand del día.</p>
           </div>
           
-          <div class="flex-1 min-h-[220px]">
-            <!-- Vista Afluencia -->
-            <div v-show="activeFusedTab === 'afluencia'" class="h-full">
-              <BaseChart v-if="chartReservasHoy" type="bar" :data="chartReservasHoy" :options="optionsReservasHoy" />
-              <div v-else class="h-full flex items-center justify-center text-slate-400 text-sm font-bold bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
-                Sin reservaciones registradas para el día de hoy
-              </div>
+          <div class="max-h-[365px] overflow-y-auto pr-1 scrollbar-thin space-y-3">
+            <div v-if="reservacionAdminStore.loading.reservaciones" class="h-full flex flex-col items-center justify-center text-slate-400">
+              <LoadingSpinner class="w-8 h-8 mb-2" />
+              <span class="text-xs font-bold">Cargando reservas…</span>
             </div>
             
-            <!-- Vista Top Espacios -->
-            <div v-show="activeFusedTab === 'espacios'" class="h-full">
-              <BaseChart v-if="chartTopEspacios" type="bar" :data="chartTopEspacios" :options="optionsTopEspacios" />
-              <div v-else class="h-full flex items-center justify-center text-slate-400 text-sm font-bold bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
-                Sin reservaciones de espacios hoy
-              </div>
+            <div v-else-if="reservasProximasHoy.length === 0" class="h-full flex flex-col items-center justify-center text-slate-400 py-12">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p class="text-xs font-bold text-slate-400">No hay reservas próximas hoy</p>
             </div>
-          </div>
-
-          <!-- Desglose de Totales y Métricas Individuales (Afluencia / Espacios) -->
-          <div class="mt-6 border-t border-surface-100 pt-4" v-if="activeFusedTab === 'afluencia' ? (chartReservasHoy && individualReservasHora.length) : (chartTopEspacios && individualTopEspacios.length)">
-            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest">
-                {{ activeFusedTab === 'afluencia' ? 'Desglose por Hora' : 'Desglose por Espacio' }}
-              </span>
-              <span class="text-xs font-bold text-surface-500 bg-surface-50 px-3 py-1 rounded-full border border-surface-100 shadow-sm">
-                Total Reservas: <span class="text-surface-900 font-black">
-                  {{ activeFusedTab === 'afluencia' ? totalReservasHora : totalTopEspacios }}
-                </span>
-              </span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
-              <div v-for="(val, idx) in (activeFusedTab === 'afluencia' ? individualReservasHora : individualTopEspacios)" :key="idx" 
-                class="flex items-center justify-between p-2.5 bg-surface-50/50 hover:bg-surface-50 hover:border-surface-200 rounded-2xl border border-surface-100 transition-all">
-                <div class="flex items-center gap-2 truncate min-w-0">
-                  <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: val.color || '#94a3b8' }"></span>
-                  <span class="text-xs font-bold text-surface-600 truncate">{{ val.label }}</span>
+            
+            <div v-else class="space-y-2">
+              <div v-for="reserva in reservasProximasHoy" :key="reserva.id_reserva"
+                   class="flex items-center justify-between p-3.5 bg-white hover:bg-surface-50 transition-colors rounded-xl border border-surface-200 gap-3 group">
+                <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-300"
+                       :class="getDisciplineColorClasses(reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina).bg">
+                    <DisciplineIcon :name="reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina"
+                                    class="w-5 h-5 fill-current transition-all duration-300"
+                                    :class="getDisciplineColorClasses(reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina).icon" />
+                  </div>
+                  <div class="min-w-0 flex flex-col gap-1 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-bold text-surface-900 text-sm truncate" :title="reserva.nombre_titular">
+                        {{ reserva.nombre_titular }}
+                      </span>
+                      <span v-if="reserva.modalidad" class="px-1.5 py-0.5 rounded border text-[9px] uppercase font-bold tracking-wide"
+                            :class="reserva.modalidad === 'ACOMPANANTES' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-700 border-slate-200'">
+                        {{ reserva.modalidad === 'ACOMPANANTES' ? 'Acompañantes' : 'Individual' }}
+                      </span>
+                    </div>
+                    
+                    <div class="flex items-center flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                      <div class="flex items-center gap-1.5 text-xs text-surface-600 font-semibold bg-surface-50 px-2 py-0.5 rounded-md border border-surface-100">
+                         <span>{{ reserva.espacio_fisico?.nombre_espacio || reserva.nombre_espacio || 'N/A' }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-xs font-bold text-surface-500">
+                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                         <span>{{ reserva.hora_inicio?.slice(0, 5) }} – {{ reserva.hora_fin?.slice(0, 5) }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-xs font-semibold text-surface-500">
+                         <span class="w-1.5 h-1.5 rounded-full bg-surface-300"></span>
+                         <span class="capitalize">{{ (reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina || 'Multi-Deporte').toLowerCase() }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <span class="text-xs font-black text-surface-900 ml-2 bg-white px-2 py-0.5 rounded-lg border border-surface-100 shadow-2xs">{{ val.value }}</span>
+                <div class="flex items-center shrink-0">
+                  <span class="inline-flex px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shrink-0"
+                        :class="ESTATUS_COLORS[reserva.estatus_operativo] || 'bg-surface-50 text-surface-600 border-surface-200'">
+                    {{ formatEstatus(reserva.estatus_operativo) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tarjeta Actividades de Hoy 40% (Alineado al lado) -->
-        <div class="lg:col-span-2 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col min-h-[400px] hover:shadow-md transition-all duration-300">
+        <!-- Tarjeta Actividades de Hoy -->
+        <div class="lg:col-span-1 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col min-h-[400px] hover:shadow-md transition-all duration-300">
           <div class="mb-4">
             <h3 class="text-base font-black text-surface-900 leading-tight">Actividades de Hoy</h3>
             <p class="text-xs font-medium text-surface-400 mt-0.5">Programación y disciplinas del día en vivo.</p>
@@ -695,28 +760,31 @@ const ESTATUS_COLORS = {
               <p class="text-xs font-bold text-slate-400">No hay actividades programadas hoy</p>
             </div>
             
-            <div v-else class="space-y-2.5">
+            <div v-else class="space-y-2">
               <div v-for="sesion in clasesDeHoy" :key="sesion.id_sesion"
-                   class="flex items-center justify-between p-3.5 bg-white hover:bg-slate-50/80 transition-all rounded-2xl border border-slate-200 gap-3 group shadow-2xs">
+                   class="flex items-center justify-between p-3 bg-white hover:bg-surface-50 transition-colors rounded-xl border border-surface-200 gap-3 group">
                 <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold uppercase shrink-0 border border-slate-200 shadow-2xs group-hover:scale-105 transition-transform">
-                    {{ (sesion.nombre_actividad || sesion.disciplina)?.charAt(0) || 'A' }}
+                  <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-300"
+                       :class="getDisciplineColorClasses(sesion.nombre_actividad || sesion.disciplina).bg">
+                    <DisciplineIcon :name="sesion.nombre_actividad || sesion.disciplina"
+                                    class="w-5 h-5 fill-current transition-all duration-300"
+                                    :class="getDisciplineColorClasses(sesion.nombre_actividad || sesion.disciplina).icon" />
                   </div>
                   <div class="min-w-0">
-                    <div class="font-bold text-slate-800 text-xs truncate" :title="sesion.nombre_actividad || sesion.disciplina">
+                    <div class="font-bold text-surface-800 text-xs truncate" :title="sesion.nombre_actividad || sesion.disciplina">
                       {{ sesion.nombre_actividad || sesion.disciplina }}
                     </div>
-                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5 truncate">
+                    <div class="text-[10px] text-surface-400 font-medium mt-0.5 truncate">
                       {{ sesion.hora_inicio?.slice(0, 5) }} – {{ sesion.hora_fin?.slice(0, 5) }} · {{ (typeof sesion.instructor === 'object' ? sesion.instructor?.nombre : sesion.instructor) || 'Sin instructor' }}
                     </div>
                   </div>
                 </div>
                 <div class="flex flex-col items-end gap-1.5 shrink-0">
-                  <span class="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shrink-0"
-                        :class="ESTATUS_COLORS[sesion.estatus_sesion] || 'bg-slate-50 text-slate-600 border-slate-200'">
+                  <span class="inline-flex px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border shrink-0"
+                        :class="ESTATUS_COLORS[sesion.estatus_sesion] || 'bg-surface-50 text-surface-600 border-surface-200'">
                     {{ formatEstatus(sesion.estatus_sesion) }}
                   </span>
-                  <span class="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-[9px] font-black text-slate-500 shadow-2xs">
+                  <span class="text-[10px] font-bold text-surface-400 tabular-nums">
                     {{ sesion.cantidad_inscritos }} inscritos
                   </span>
                 </div>
@@ -726,7 +794,7 @@ const ESTATUS_COLORS = {
         </div>
 
         <!-- Gráfico Estatus Operativo (Doughnut Chart) -->
-        <div class="lg:col-span-2 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col hover:shadow-md transition-all duration-300 min-h-[360px]">
+        <div class="lg:col-span-1 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col hover:shadow-md transition-all duration-300 min-h-[360px]">
           <div class="mb-4">
             <h3 class="text-base font-black text-surface-900 leading-tight">Estatus Operativo de Hoy</h3>
             <p class="text-xs font-medium text-surface-400 mt-0.5">Asistencias vs No-Shows de hoy.</p>
@@ -759,25 +827,25 @@ const ESTATUS_COLORS = {
           </div>
         </div>
 
-        <!-- Seccion Bento de Torneos Activos (Alineado estéticamente) -->
-        <div class="lg:col-span-3 bg-white rounded-[2rem] border border-surface-200 shadow-sm p-6 lg:p-8 flex flex-col hover:shadow-md transition-all duration-300 min-h-[360px]">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <!-- Seccion Bento de Torneos Activos -->
+        <div class="lg:col-span-1 bg-white rounded-2xl border border-surface-200 p-6 lg:p-8 flex flex-col transition-all duration-300 min-h-[360px]">
+          <div class="flex items-center justify-between mb-6">
             <div>
-              <h3 class="text-base font-black text-surface-900 leading-tight">Torneos Activos</h3>
-              <p class="text-xs font-medium text-surface-400 mt-0.5">Monitoreo de torneos y copas vigentes del club.</p>
+              <h3 class="text-sm font-black text-surface-900 leading-tight tracking-tight">Torneos Activos</h3>
+              <p class="text-[11px] font-medium text-surface-400 mt-1">Monitoreo de torneos y copas vigentes del club.</p>
             </div>
-            <router-link to="/admin/reports/tournaments-analytics" class="text-xs font-black text-slate-900 hover:text-slate-700 transition-colors shrink-0">
+            <router-link to="/admin/reports/tournaments-analytics" class="text-[11px] font-bold text-surface-500 hover:text-surface-900 transition-colors shrink-0">
               Ver analíticas &rarr;
             </router-link>
           </div>
           
           <div v-if="torneoStore.loading" class="flex-1 flex flex-col items-center justify-center py-8">
             <LoadingSpinner class="w-8 h-8 mb-2" />
-            <span class="text-xs font-bold text-slate-400">Cargando torneos activos…</span>
+            <span class="text-xs font-bold text-surface-400">Cargando torneos activos…</span>
           </div>
 
-          <div v-else-if="torneosActivos.length === 0" class="flex-1 flex flex-col items-center justify-center py-8 text-slate-400">
-            <IconTrophy class="w-10 h-10 text-slate-300 mb-2 shrink-0" />
+          <div v-else-if="torneosActivos.length === 0" class="flex-1 flex flex-col items-center justify-center py-8 text-surface-400">
+            <IconTrophy class="w-10 h-10 text-surface-300 mb-2 shrink-0" />
             <span class="text-xs font-bold">No hay torneos activos en este momento</span>
           </div>
 
@@ -786,60 +854,50 @@ const ESTATUS_COLORS = {
               v-for="torneo in torneosActivos"
               :key="torneo.id_torneo"
               to="/admin/reports/tournaments-analytics"
-              class="group bg-slate-50/50 hover:bg-white rounded-2xl border border-slate-200 hover:border-slate-350 p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-99 transition-all duration-300 flex items-center justify-between text-left cursor-pointer relative overflow-hidden"
+              class="group bg-white hover:bg-surface-50 rounded-xl border border-surface-200 hover:border-surface-300 p-4 transition-all duration-200 cursor-pointer"
             >
-              <!-- Left Accent Line -->
-              <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-900"></div>
-
-              <!-- Left part: Icon & Name & Category -->
-              <div class="flex items-center gap-3.5 min-w-0 pl-2">
-                <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center border border-slate-200 shrink-0 shadow-2xs">
-                  <DisciplineIcon :name="torneo.disciplina?.nombre_disciplina" class="w-4.5 h-4.5 fill-current text-slate-700" />
-                </div>
-                <div class="min-w-0">
-                  <div class="text-[9px] font-black text-slate-900 uppercase tracking-widest leading-none truncate">
-                    {{ torneo.disciplina?.nombre_disciplina || 'Multi-Deporte' }}
+              <!-- Top row: icon, name, access badge -->
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-200 shrink-0">
+                    <IconTrophy class="w-5 h-5 text-amber-500" />
                   </div>
-                  <h4 class="text-xs font-black text-slate-950 mt-1 leading-tight tracking-tight truncate" :title="torneo.nombre_torneo">
-                    {{ torneo.nombre_torneo }}
-                  </h4>
-                  <div class="text-[9px] font-bold text-slate-400 mt-0.5 leading-none">
-                    Cat: {{ torneo.categoria?.nombre_categoria }} · Rama: {{ torneo.categoria?.genero_requerido === 'M' ? 'Varonil' : (torneo.categoria?.genero_requerido === 'F' ? 'Femenil' : 'Mixto') }}
+                  <div class="min-w-0">
+                    <h4 class="text-xs font-black text-surface-900 leading-tight truncate" :title="torneo.nombre_torneo">
+                      {{ torneo.nombre_torneo }}
+                    </h4>
+                    <div class="text-[10px] font-medium text-surface-400 mt-0.5">
+                      {{ torneo.disciplina?.nombre_disciplina || 'Multi-Deporte' }}
+                    </div>
                   </div>
                 </div>
+                <span class="bg-surface-900 text-white text-[8px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap shrink-0">
+                  {{ torneo.tipo_acceso }}
+                </span>
               </div>
 
-              <!-- Right part: Date, progress, access & Action -->
-              <div class="flex items-center gap-5 sm:gap-7 shrink-0 pr-3">
-                <!-- Date Block -->
-                <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                  <IconCalendar class="w-4 h-4 text-slate-400 shrink-0" />
-                  <span class="truncate">Inicia: <span class="text-slate-800 font-black">{{ formatFecha(torneo.fecha_inicio) }}</span></span>
+              <!-- Bottom row: metadata chips -->
+              <div class="flex items-center gap-4 flex-wrap">
+                <!-- Rama -->
+                <div class="text-[10px] font-medium text-surface-500">
+                  <span class="font-bold text-surface-700">{{ torneo.categoria?.genero_requerido === 'M' ? 'Varonil' : (torneo.categoria?.genero_requerido === 'F' ? 'Femenil' : 'Mixto') }}</span>
                 </div>
 
-                <!-- Progress Bar / Cupos -->
-                <div class="w-28 sm:w-36 flex flex-col justify-center">
-                  <div class="flex justify-between text-[9px] font-bold text-slate-500 mb-1">
-                    <span>Cupos</span>
-                    <span class="text-slate-900 font-black">{{ torneo.inscritos_actual }}/{{ torneo.cupo_maximo }}</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden shadow-inner border border-slate-200/50">
+                <!-- Date -->
+                <div class="text-[10px] font-medium text-surface-500">
+                  <span class="text-surface-400">Inicia:</span> <span class="font-bold text-surface-700">{{ formatFecha(torneo.fecha_inicio) }}</span>
+                </div>
+
+                <!-- Progress -->
+                <div class="flex items-center gap-2 ml-auto">
+                  <span class="text-[10px] font-bold text-surface-500 tabular-nums">{{ torneo.inscritos_actual }}/{{ torneo.cupo_maximo }}</span>
+                  <div class="w-20 bg-surface-100 rounded-full h-1.5 overflow-hidden border border-surface-200/50">
                     <div
                       :class="getProgressBarColor(getCupoPercentage(torneo))"
                       class="h-full rounded-full transition-all duration-500"
                       :style="{ width: getCupoPercentage(torneo) + '%' }"
                     ></div>
                   </div>
-                </div>
-
-                <!-- Access badge & Action link -->
-                <div class="flex items-center gap-3">
-                  <span class="bg-slate-900 border border-slate-950 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs whitespace-nowrap">
-                    {{ torneo.tipo_acceso }}
-                  </span>
-                  <span class="text-[10px] font-black text-slate-900 group-hover:text-slate-700 transition-colors whitespace-nowrap">
-                    Ver Detalles &rarr;
-                  </span>
                 </div>
               </div>
             </router-link>
