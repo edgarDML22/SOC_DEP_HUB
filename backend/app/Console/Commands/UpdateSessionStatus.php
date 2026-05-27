@@ -72,7 +72,16 @@ class UpdateSessionStatus extends Command
     private function finalizarSesiones(Carbon $ahora, string $hoy): int
     {
         // hora_fin debe ser <= (ahora - 20 min) para que el margen de gracia haya expirado.
-        $corte = $ahora->copy()->subMinutes(20)->format('H:i:s');
+        $momentoCorte = $ahora->copy()->subMinutes(20);
+
+        // Guard de medianoche: si restar 20 minutos cruza a un día anterior,
+        // significa que llevamos < 20 min en este día y ninguna sesión puede haber
+        // terminado aún — salimos sin tocar nada para evitar falsos positivos.
+        if ($momentoCorte->toDateString() !== $hoy) {
+            return 0;
+        }
+
+        $corte = $momentoCorte->format('H:i:s');
 
         $afectadas = DB::table('sesiones_activas as sa')
             ->join('actividades_plantilla as ap', 'ap.id_actividad_plantilla', '=', 'sa.id_actividad_plantilla')
@@ -157,9 +166,19 @@ class UpdateSessionStatus extends Command
     private function iniciarSesiones(Carbon $ahora, string $hoy): int
     {
         // La sesión arranca en ≤ 15 min desde ahora.
-        $ventanaInicio = $ahora->copy()->addMinutes(15)->format('H:i:s');
+        $momentoVentana = $ahora->copy()->addMinutes(15);
+        // Si añadir 15 min cruza a mañana, capamos la ventana a fin del día actual
+        // para evitar activar sesiones del día siguiente.
+        $ventanaInicio = $momentoVentana->toDateString() === $hoy
+            ? $momentoVentana->format('H:i:s')
+            : '23:59:59';
+
         // El margen post-hora_fin no ha expirado (sesión aún "viva").
-        $corteViva     = $ahora->copy()->subMinutes(20)->format('H:i:s');
+        // Si restar 20 min cruza a ayer, usamos '00:00:00' para no excluir nada.
+        $momentoCorteViva = $ahora->copy()->subMinutes(20);
+        $corteViva        = $momentoCorteViva->toDateString() === $hoy
+            ? $momentoCorteViva->format('H:i:s')
+            : '00:00:00';
 
         $afectadas = DB::table('sesiones_activas as sa')
             ->join('actividades_plantilla as ap', 'ap.id_actividad_plantilla', '=', 'sa.id_actividad_plantilla')
