@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useScannerStore } from '@/stores/profiles/scannerStore'
 import ContadorAforo from './ContadorAforo.vue'
 import ListaAsistencia from './ListaAsistencia.vue'
+import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
 
 const store = useScannerStore()
 
@@ -41,23 +42,47 @@ function irAConfirmacion() {
     <!-- ── Chip de sesión activa ──────────────────────────────────────────── -->
     <div
       v-if="sesion"
-      class="flex items-center gap-3 px-4 py-3 bg-primary-50 border border-primary-100 rounded-2xl mx-4 mt-4"
+      class="mx-4 mt-4 relative bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-4 shadow-lg shadow-primary-900/15 overflow-hidden border border-primary-500"
     >
-      <div class="w-2 h-2 rounded-full bg-primary-500 shrink-0 animate-pulse" />
-      <div class="min-w-0 flex-1">
-        <p class="text-[10px] font-bold text-primary-500 uppercase tracking-widest">Pase de lista activo</p>
-        <p class="text-sm font-bold text-primary-800 truncate leading-tight mt-0.5">
-          {{ sesion.disciplina }} · {{ sesion.hora_inicio }}–{{ sesion.hora_fin }}
-        </p>
+      <!-- Decorative background -->
+      <div class="absolute -right-6 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+      
+      <div class="relative z-10 flex items-start gap-3.5">
+        <!-- Animated Discipline Icon -->
+        <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center shrink-0 shadow-inner relative">
+          <!-- Glow pulse -->
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-xl bg-white opacity-40"></span>
+          </div>
+          <DisciplineIcon :name="sesion.disciplina" class="w-7 h-7 text-white drop-shadow-md z-10" />
+        </div>
+
+        <div class="min-w-0 flex-1 pt-0.5">
+          <p class="text-[9px] font-extrabold text-primary-200 uppercase tracking-[0.15em] mb-1">
+            Pase de lista activo
+          </p>
+          <p class="text-base font-black text-white truncate leading-none drop-shadow-sm">
+            {{ sesion.disciplina }}
+          </p>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-white/90 bg-black/15 px-2 py-0.5 rounded-md backdrop-blur-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ sesion.hora_inicio }} – {{ sesion.hora_fin }}
+            </span>
+          </div>
+        </div>
+
+        <span
+          class="shrink-0 text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md shadow-sm"
+          :class="store.esSesionCerrada
+            ? 'bg-violet-600 text-white'
+            : 'bg-emerald-100 text-emerald-800'"
+        >
+          {{ store.esSesionCerrada ? 'Cerrada' : 'Abierta' }}
+        </span>
       </div>
-      <span
-        class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
-        :class="store.esSesionCerrada
-          ? 'bg-primary-100 text-primary-700'
-          : 'bg-surface-100 text-surface-500'"
-      >
-        {{ store.esSesionCerrada ? 'Clase cerrada' : 'Clase abierta' }}
-      </span>
     </div>
 
     <!-- ── Contador de aforo (solo abierta con cupo) ──────────────────────── -->
@@ -127,13 +152,16 @@ function irAConfirmacion() {
       />
     </div>
 
-    <!-- ── Acciones inferiores ────────────────────────────────────────────── -->
-    <div class="px-4 pb-6 pt-3 border-t border-primary-950/8 space-y-2 bg-white">
+    <!-- ── Spacer para botones fijos ──────────────────────────────────────── -->
+    <div class="h-36 shrink-0"></div>
+
+    <!-- ── Acciones inferiores (Fijas) ────────────────────────────────────── -->
+    <div class="fixed bottom-[84px] md:bottom-8 left-0 right-0 max-w-lg mx-auto px-4 pb-4 pt-4 border-t md:border border-primary-950/10 space-y-2.5 bg-white/90 backdrop-blur-xl md:rounded-3xl shadow-[0_-12px_24px_rgba(0,0,0,0.06)] z-40">
       <button
         type="button"
         @click="seguirEscaneando"
         :disabled="store.aforoLleno"
-        class="w-full py-3 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 font-bold text-sm hover:bg-primary-100 active:scale-[0.98] transition-all duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+        class="w-full py-3.5 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 font-bold text-sm hover:bg-primary-100 active:scale-[0.98] transition-all duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm"
       >
         Escanear
       </button>
@@ -144,13 +172,13 @@ function irAConfirmacion() {
         :disabled="totalNuevos === 0"
         class="w-full py-4 rounded-2xl font-bold text-sm transition-all duration-150 focus:outline-none flex items-center justify-center gap-2"
         :class="totalNuevos === 0
-          ? 'bg-surface-100 text-surface-300 cursor-not-allowed'
-          : 'bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98]'"
+          ? 'bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200'
+          : 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-600/30 active:scale-[0.98]'"
       >
         <span>Confirmar Lista</span>
         <span
-          class="text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums"
-          :class="totalNuevos === 0 ? 'bg-surface-200/60' : 'bg-white/20'"
+          class="text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums shadow-inner"
+          :class="totalNuevos === 0 ? 'bg-surface-200 text-surface-500' : 'bg-white/25 text-white'"
         >
           {{ totalNuevos }}
         </span>

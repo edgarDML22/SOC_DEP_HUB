@@ -363,6 +363,7 @@ export const useScannerStore = defineStore('scanner', () => {
                     tipo_usuario:      res.data.tipo_usuario,
                     nombre:            res.data.nombre,
                     codigo_qr:         res.data.codigo_qr,
+                    foto_perfil:       res.data.foto_perfil,
                     estado_asistencia: 'NUEVO_CONFIRMADO',
                 })
                 codigosYaVistos.value.add(codigo)
@@ -449,6 +450,7 @@ export const useScannerStore = defineStore('scanner', () => {
                 tipo_usuario:   i.tipo_usuario,
                 nombre:         i.nombre,
                 codigo_qr:      i.codigo_qr,
+                foto_perfil:    i.foto_perfil,
                 estado_asistencia: i.asistencia === true ? 'YA_REGISTRADO' : 'PENDIENTE',
             }))
 

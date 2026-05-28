@@ -1,9 +1,13 @@
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
     participantes: { type: Array, required: true },
     emptyTitulo:   { type: String, default: 'Sin participantes' },
     emptyMensaje:  { type: String, default: '' },
 })
+
+const failedImages = ref(new Set())
 
 const TIPO_LABEL = {
     socio_titular:    'Socio',
@@ -13,8 +17,8 @@ const TIPO_LABEL = {
 
 const TIPO_STYLE = {
     socio_titular:    'bg-primary-50 text-primary-700',
-    miembro_familiar: 'bg-violet-50 text-violet-700',
-    invitado:         'bg-amber-50 text-amber-700',
+    miembro_familiar: 'bg-yellow-100 text-yellow-800',
+    invitado:         'bg-surface-100 text-surface-700',
 }
 
 // ---- Variantes visuales por estado_asistencia ---------------------------
@@ -64,45 +68,60 @@ const CHIP_LABEL = {
       <li
         v-for="(p, i) in participantes"
         :key="p.codigo_qr ?? `${p.tipo_usuario}-${p.id_usuario}-${i}`"
-        class="flex items-center gap-3 px-4 py-3 rounded-2xl border bg-white transition-all duration-200"
-        :class="ITEM_STYLE[p.estado_asistencia] ?? 'border-surface-100'"
+        class="flex items-center gap-3.5 px-4 py-3 rounded-2xl border bg-white transition-all duration-200 hover:shadow-sm"
+        :class="ITEM_STYLE[p.estado_asistencia] ?? 'border-surface-200/60 hover:border-primary-200'"
       >
-        <!-- Indicador de estado -->
-        <div
-          class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-          :class="ICON_BG_STYLE[p.estado_asistencia] ?? 'bg-surface-100'"
-        >
-          <!-- Check verde para nuevos confirmados -->
-          <svg
-            v-if="p.estado_asistencia === 'NUEVO_CONFIRMADO'"
-            xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-600"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+        <!-- Avatar + Status Badge -->
+        <div class="relative shrink-0">
+          <div class="w-10 h-10 rounded-full overflow-hidden border border-surface-200 bg-surface-50 shrink-0 shadow-sm">
+            <img 
+              v-if="p.tipo_usuario === 'socio_titular' && p.foto_perfil && !failedImages.has(p.id_usuario)" 
+              :src="p.foto_perfil" 
+              class="w-full h-full object-cover" 
+              alt="Foto" 
+              @error="failedImages.add(p.id_usuario)"
+            />
+            <div v-else class="w-full h-full flex items-center justify-center bg-primary-50 text-primary-700 font-bold text-sm">
+              {{ p.nombre.charAt(0).toUpperCase() }}
+            </div>
+          </div>
+          
+          <!-- Status Badge -->
+          <div 
+            class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center shadow-sm"
+            :class="ICON_BG_STYLE[p.estado_asistencia] ?? 'bg-surface-200'"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <!-- Ícono de "histórico/registrado previo" en azul -->
-          <svg
-            v-else-if="p.estado_asistencia === 'YA_REGISTRADO'"
-            xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <!-- Punto gris para pendientes -->
-          <span v-else class="w-2 h-2 rounded-full bg-surface-300" />
+            <svg
+              v-if="p.estado_asistencia === 'NUEVO_CONFIRMADO'"
+              xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-green-700"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg
+              v-else-if="p.estado_asistencia === 'YA_REGISTRADO'"
+              xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-blue-700"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span v-else class="w-1.5 h-1.5 rounded-full bg-surface-400" />
+          </div>
         </div>
 
         <!-- Nombre + código -->
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
+          <div class="flex flex-col gap-0.5">
             <p class="text-sm font-bold text-surface-900 truncate leading-tight">{{ p.nombre }}</p>
-            <span
-              v-if="TIPO_LABEL[p.tipo_usuario]"
-              class="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md"
-              :class="TIPO_STYLE[p.tipo_usuario] ?? 'bg-surface-100 text-surface-500'"
-            >
-              {{ TIPO_LABEL[p.tipo_usuario] }}
-            </span>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span
+                v-if="TIPO_LABEL[p.tipo_usuario]"
+                class="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md"
+                :class="TIPO_STYLE[p.tipo_usuario] ?? 'bg-surface-100 text-surface-500'"
+              >
+                {{ TIPO_LABEL[p.tipo_usuario] }}
+              </span>
+            </div>
           </div>
         </div>
 

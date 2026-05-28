@@ -335,20 +335,21 @@ function getMenuItems(p) {
       icon: '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg>',
       action: () => openUnpublish(p)
     })
-    
-    items.push({
-      label: 'Exportar PDF',
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
-      action: async () => {
-        try {
-          await store.exportarPdf(p.id_plantilla)
-          toastSuccess('PDF generado exitosamente')
-        } catch (e) {
-          toastError('Error al generar el PDF')
-        }
-      }
-    })
   }
+
+  items.push({
+    label: 'Exportar PDF',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+    action: async () => {
+      try {
+        await store.exportarPdf(p.id_plantilla)
+        toastSuccess('PDF generado exitosamente')
+      } catch (e) {
+        toastError('Error al generar el PDF')
+      }
+    },
+    disabled: (p.total_actividades ?? 0) === 0
+  })
 
   items.push({ separator: true })
 

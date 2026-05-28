@@ -4,9 +4,10 @@ import { useProfileLogic } from "./profileStore";
 import api from "@/services/api";
 
 export const useInstructorStore = defineStore("instructorProfile", () => {
-    const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, logout, getSupportLink } = useProfileLogic('/instructor/profile');
+    const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, uploadPhoto, logout, getSupportLink } = useProfileLogic('/instructor/profile');
 
     const idInstructor = computed(() => profileData.value?.id_instructor || null);
+    const fotoPerfil = computed(() => profileData.value?.foto_perfil || null);
 
     const status = computed(() => profileData.value?.estatus_cuenta || profileData.value?.estatus || "");
     const email = computed(() => profileData.value?.correo_electronico || "");
@@ -73,6 +74,8 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         updateProfile,
         logout,
         getSupportLink,
+        fotoPerfil,
+        uploadPhoto,
         homeSessionsCache,
         homeSessionsLoading,
         fetchHomeSessions,

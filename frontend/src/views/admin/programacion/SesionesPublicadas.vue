@@ -166,6 +166,16 @@ async function fetchAsistencia(id_sesion) {
   try {
     const { data } = await api.get(`/programacion/sesiones-activas/${id_sesion}/asistencia`)
     asistencia.value = data.data ?? []
+    
+    // Sincronizar la cantidad de inscritos con la lista real devuelta por la API
+    const totalReal = asistencia.value.length
+    if (sesionSeleccionada.value && sesionSeleccionada.value.id_sesion === id_sesion) {
+      sesionSeleccionada.value.cantidad_inscritos = totalReal
+    }
+    const original = sesiones.value.find(s => s.id_sesion === id_sesion)
+    if (original) {
+      original.cantidad_inscritos = totalReal
+    }
   } catch {
     asistencia.value = []
   } finally {

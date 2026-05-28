@@ -211,6 +211,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
     Route::get('/v1/spaces/{id}', [EspacioFisicoController::class, 'show']);
     Route::post('/v1/spaces/create', [EspacioFisicoController::class, 'store']);
+    Route::put('/v1/spaces/update/{id}', [EspacioFisicoController::class, 'update']);
     Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 

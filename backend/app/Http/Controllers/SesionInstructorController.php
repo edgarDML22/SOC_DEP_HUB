@@ -210,6 +210,7 @@ class SesionInstructorController extends Controller
                                         ),
                     'codigo_qr'      => $codigoQr,
                     'asistencia'     => $asistencia,
+                    'foto_perfil'    => $this->resolverFotoPerfil($inscripcion->id_usuario, $inscripcion->tipo_usuario),
                 ];
             })
             // Pendientes primero, confirmados al final
@@ -277,6 +278,7 @@ class SesionInstructorController extends Controller
                                         $codigoQr->usuario_id,
                                         $codigoQr->tipo_usuario
                                     ),
+                    'foto_perfil'  => $this->resolverFotoPerfil($codigoQr->usuario_id, $codigoQr->tipo_usuario),
                     'codigo_qr'    => $codigoNormalizado,
                 ]);
             }
@@ -318,6 +320,7 @@ class SesionInstructorController extends Controller
                 'id_usuario'   => $invitado->id_invitado,
                 'tipo_usuario' => 'invitado',
                 'nombre'       => $invitado->nombre_invitado,
+                'foto_perfil'  => null,
                 'codigo_qr'    => $codigoNormalizado,
             ]);
         }
@@ -478,6 +481,14 @@ class SesionInstructorController extends Controller
                                             ?->nombre_invitado ?? "Invitado #{$idUsuario}",
             default                  => "Usuario #{$idUsuario}",
         };
+    }
+
+    private function resolverFotoPerfil(int $idUsuario, string $tipoUsuario): ?string
+    {
+        if (strtolower($tipoUsuario) === 'socio_titular' || strtolower($tipoUsuario) === 'socio') {
+            return (string) cloudinary()->image("socios/profiles/socio_{$idUsuario}")->version(time())->toUrl();
+        }
+        return null;
     }
 
     private function resolverNombreCompetidor(EncuentrosTorneo $e, int $num): string

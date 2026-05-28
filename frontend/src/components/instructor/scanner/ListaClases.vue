@@ -49,32 +49,35 @@ async function seleccionar(sesion) {
       <div
         v-for="s in store.sesionesHoy"
         :key="s.id_sesion"
-        class="relative bg-white rounded-2xl shadow-sm overflow-hidden transition-all duration-150"
+        class="group relative bg-white rounded-3xl overflow-hidden transition-all duration-300"
         :class="[
           s.estatus_sesion === 'EN_CURSO'
-            ? 'hover:shadow-md hover:shadow-primary-600/8 cursor-pointer'
-            : 'cursor-not-allowed',
+            ? 'hover:shadow-xl hover:shadow-primary-900/5 cursor-pointer hover:-translate-y-0.5'
+            : 'cursor-not-allowed opacity-80',
           store.sesionActivaId === s.id_sesion
-            ? 'ring-2 ring-primary-300 shadow-md shadow-primary-600/10'
-            : 'border border-surface-200',
+            ? 'ring-2 ring-primary-500 shadow-xl shadow-primary-900/10'
+            : 'border border-surface-200/80 shadow-sm',
         ]"
         @click="seleccionar(s)"
       >
-        <!-- Barra lateral siempre azul -->
-        <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-primary-600" />
+        <!-- Active Indicator / Decorative Top Bar -->
+        <div class="absolute top-0 left-0 w-full h-1.5 transition-colors duration-300"
+             :class="store.sesionActivaId === s.id_sesion ? 'bg-gradient-to-r from-primary-400 to-primary-600' : 'bg-transparent group-hover:bg-primary-100'"
+        ></div>
 
-        <div class="pl-5 pr-4 pt-4 pb-3">
+        <div class="px-5 pt-5 pb-4">
 
-          <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start justify-between gap-4">
             <!-- Ícono dinámico de disciplina + datos -->
-            <div class="flex items-center gap-3 flex-1 min-w-0">
-              <div class="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-                <DisciplineIcon :name="s.disciplina" class="w-5 h-5" />
+            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors duration-300"
+                   :class="store.sesionActivaId === s.id_sesion ? 'bg-primary-600 text-white' : 'bg-primary-50/80 text-primary-600 group-hover:bg-primary-100'">
+                <DisciplineIcon :name="s.disciplina" class="w-6 h-6" />
               </div>
-              <div class="min-w-0">
-                <p class="font-bold text-surface-900 text-sm leading-tight truncate">{{ s.disciplina }}</p>
-                <p class="text-xs text-surface-500 mt-0.5 truncate flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <div class="min-w-0 pt-0.5">
+                <p class="font-extrabold text-surface-900 text-base tracking-tight leading-tight truncate">{{ s.disciplina }}</p>
+                <p class="text-[11px] font-medium text-surface-500 mt-1 truncate flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
@@ -84,42 +87,45 @@ async function seleccionar(sesion) {
             </div>
 
             <!-- Derecha: pill tipo + chip estatus + horario -->
-            <div class="flex flex-col items-end gap-1.5 shrink-0">
+            <div class="flex flex-col items-end gap-2 shrink-0">
               <div class="flex items-center gap-1.5">
                 <!-- Pill Abierta / Cerrada -->
-                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
                   :class="s.requiere_inscripcion
-                    ? 'bg-violet-100 text-violet-800 border border-violet-300'
-                    : 'bg-emerald-100 text-emerald-800 border border-emerald-300'"
+                    ? 'bg-violet-100 text-violet-700'
+                    : 'bg-emerald-100 text-emerald-700'"
                 >
                   {{ s.requiere_inscripcion ? 'Cerrada' : 'Abierta' }}
                 </span>
                 <!-- Chip de estatus -->
                 <span
-                  class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  :class="[chip(s.estatus_sesion).bg, chip(s.estatus_sesion).text, chip(s.estatus_sesion).border]"
+                  class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
+                  :class="[chip(s.estatus_sesion).bg, chip(s.estatus_sesion).text]"
                 >
                   <span class="w-1.5 h-1.5 rounded-full" :class="chip(s.estatus_sesion).dot" />
                   {{ chip(s.estatus_sesion).label }}
                 </span>
               </div>
-              <span class="text-[11px] font-semibold text-surface-500 tabular-nums">
+              <span class="text-[12px] font-bold text-surface-700 tabular-nums bg-surface-50 px-2 py-0.5 rounded-lg border border-surface-100">
                 {{ s.hora_inicio }} – {{ s.hora_fin }}
               </span>
             </div>
           </div>
 
           <!-- Barra de aforo -->
-          <div class="mt-3 flex items-center gap-2">
-            <div class="flex-1 h-1.5 bg-surface-100 rounded-full overflow-hidden">
+          <div class="mt-4 flex items-center gap-3">
+            <div class="flex-1 h-2 bg-surface-100 rounded-full overflow-hidden shadow-inner">
               <div
-                class="h-full rounded-full transition-all duration-500"
-                :class="pct(s.cantidad_inscritos, s.cupo_maximo) >= 90 ? 'bg-red-400' : 'bg-primary-400'"
+                class="h-full rounded-full transition-all duration-700 ease-out relative"
+                :class="pct(s.cantidad_inscritos, s.cupo_maximo) >= 90 ? 'bg-red-500' : 'bg-gradient-to-r from-primary-400 to-primary-600'"
                 :style="{ width: pct(s.cantidad_inscritos, s.cupo_maximo) + '%' }"
-              />
+              >
+                <!-- subtle shimmer effect on the bar -->
+                <div class="absolute top-0 left-0 right-0 bottom-0 bg-white/20"></div>
+              </div>
             </div>
-            <span class="text-[11px] font-semibold text-surface-400 tabular-nums shrink-0">
-              {{ s.cantidad_inscritos }}/{{ s.cupo_maximo }}
+            <span class="text-xs font-bold text-surface-500 tabular-nums shrink-0">
+              <span class="text-surface-900">{{ s.cantidad_inscritos }}</span> / {{ s.cupo_maximo }}
             </span>
           </div>
 
@@ -127,17 +133,17 @@ async function seleccionar(sesion) {
           <button
             @click.stop="seleccionar(s)"
             :disabled="s.estatus_sesion !== 'EN_CURSO' || store.listaLoading"
-            class="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all focus:outline-none"
+            class="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold transition-all duration-200 focus:outline-none relative overflow-hidden"
             :class="s.estatus_sesion === 'EN_CURSO'
-              ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm shadow-primary-600/20 active:scale-[0.98]'
-              : 'bg-surface-200 text-surface-500 cursor-not-allowed'"
+              ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-600/30 hover:shadow-primary-600/40 active:scale-[0.98]'
+              : 'bg-surface-100 text-surface-400 cursor-not-allowed'"
           >
             <template v-if="s.estatus_sesion === 'EN_CURSO' && store.listaLoading && store.sesionActivaId === s.id_sesion">
-              <span class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span class="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               Cargando lista…
             </template>
             <template v-else-if="s.estatus_sesion === 'EN_CURSO'">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
               Iniciar pase de lista

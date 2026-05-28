@@ -33,7 +33,7 @@ onUnmounted(() => store.resetHub())
 </script>
 
 <template>
-  <main class="w-full bg-surface-50 min-h-screen font-sans pb-24 md:pb-8">
+  <main class="w-full bg-surface-50 min-h-screen font-sans pb-32 md:pb-8">
     <div class="max-w-lg mx-auto p-4 md:p-8">
 
       <HubHeader
@@ -51,11 +51,11 @@ onUnmounted(() => store.resetHub())
         <SeleccionMetodo    v-else-if="store.paso === 'SELECCION_METODO'"        :key="'metodo'" />
         <ScannerActivo      v-else-if="store.paso === 'ESCANER_ACTIVO'"          :key="'escaner'" />
         <!-- PASE_LISTA: pase de lista completo para Mis Clases (cerradas y abiertas) -->
-        <PaseLista          v-else-if="store.paso === 'PASE_LISTA'"              :key="'pase-lista'" />
+        <PaseLista          v-else-if="store.paso === 'PASE_LISTA'"              class="flex-1" :key="'pase-lista'" />
         <!-- CONFIRMACION_PREVIA: revisión final antes del POST consolidado -->
-        <ConfirmacionPreviaAsistencia v-else-if="store.paso === 'CONFIRMACION_PREVIA'" :key="'confirmacion'" />
+        <ConfirmacionPreviaAsistencia v-else-if="store.paso === 'CONFIRMACION_PREVIA'" class="flex-1" :key="'confirmacion'" />
         <!-- OUTPUT: resultado simple para Reservaciones y Torneos -->
-        <ResultadoOutput    v-else-if="store.paso === 'OUTPUT'"                  :key="'output'" />
+        <ResultadoOutput    v-else-if="store.paso === 'OUTPUT'"                  class="flex-1" :key="'output'" />
         <!-- fallback seguro -->
         <MenuCategorias     v-else :key="'fallback'" />
       </Transition>

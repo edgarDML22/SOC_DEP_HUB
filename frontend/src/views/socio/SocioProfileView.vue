@@ -136,9 +136,17 @@ const cropAndUpload = () => {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    ctx.beginPath();
-    ctx.arc(200, 200, 200, 0, Math.PI * 2);
-    ctx.clip();
+    // Dibujar fondo difuminado (estilo cover) tomando los colores de la imagen original
+    ctx.filter = 'blur(15px)';
+    const imgRatio = imgElement.naturalWidth / imgElement.naturalHeight;
+    let bgW = 400, bgH = 400;
+    if (imgRatio > 1) {
+      bgW = 400 * imgRatio;
+    } else {
+      bgH = 400 / imgRatio;
+    }
+    ctx.drawImage(imgElement, (400 - bgW) / 2, (400 - bgH) / 2, bgW, bgH);
+    ctx.filter = 'none'; // Restaurar para que la foto principal no salga borrosa
 
     const ratio = 400 / 300;
 

@@ -247,33 +247,49 @@ class ProfileController extends Controller
             ], 401);
         }
 
-        if ($usuario->rol !== 'socio_titular') {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        $rol = strtolower($usuario->rol ?? '');
+        if (!in_array($rol, ['socio_titular', 'instructor'])) {
+            return response()->json(['success' => false, 'message' => 'No autorizado. Rol: ' . ($usuario->rol ?? 'null')], 403);
         }
 
         $request->validate([
             'foto_perfil' => 'required|image|max:2048',
         ]);
 
-        $idSocio = $usuario->user_id;
+        $id = $usuario->user_id;
+
+        if ($rol === 'socio_titular') {
+            $folder = 'socios/profiles';
+            $publicId = 'socio_' . $id;
+            $url = $this->getFotoPerfilUrl($id);
+        } else {
+            $folder = 'instructors/profiles';
+            $publicId = 'instructor_' . $id;
+            $url = $this->getInstructorFotoPerfilUrl($id);
+        }
 
         // Subir la imagen a Cloudinary en la carpeta especificada
         $file = $request->file('foto_perfil');
         cloudinary()->uploadApi()->upload($file->getRealPath(), [
-            'folder' => 'socios/profiles',
-            'public_id' => 'socio_' . $idSocio,
+            'folder' => $folder,
+            'public_id' => $publicId,
             'overwrite' => true,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Foto de perfil actualizada correctamente',
-            'foto_perfil' => $this->getFotoPerfilUrl($idSocio)
+            'foto_perfil' => $url
         ]);
     }
 
     private function getFotoPerfilUrl($idSocio)
     {
         return (string) cloudinary()->image("socios/profiles/socio_{$idSocio}")->version(time())->toUrl();
+    }
+
+    private function getInstructorFotoPerfilUrl($idInstructor)
+    {
+        return (string) cloudinary()->image("instructors/profiles/instructor_{$idInstructor}")->version(time())->toUrl();
     }
 }

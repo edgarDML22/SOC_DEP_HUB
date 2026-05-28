@@ -286,7 +286,7 @@ const getProgressBarColor = (pct) => {
       <div>
         <h3 class="text-xl md:text-2xl font-bold text-surface-900 mb-5 tracking-tight">Acciones rápidas</h3>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 md:gap-5">
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
 
           <!-- ── ACTIVIDADES PROGRAMADAS (sin restricción) ── -->
           <router-link to="/socio/classes"
@@ -336,15 +336,6 @@ const getProgressBarColor = (pct) => {
             <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Consultar<br>Torneos</span>
           </router-link>
 
-          <!-- ── COMUNIDAD (sin restricción) ── -->
-          <router-link to="/socio/community"
-            class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
-            <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
-              <IconGuests class="w-7 h-7 md:w-8 md:h-8" />
-            </div>
-            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Gestionar<br>Comunidad</span>
-          </router-link>
-
           <!-- ── ACCESO LUDOTECA ── -->
           <div class="flex flex-col gap-1.5 h-full">
             <!-- Tarjeta activa -->
@@ -375,15 +366,6 @@ const getProgressBarColor = (pct) => {
             </p>
           </div>
 
-          <!-- ── HISTORIAL (sin restricción) ── -->
-          <router-link to="/socio/history"
-            class="group bg-white rounded-3xl border border-surface-200 p-5 md:p-6 aspect-square flex flex-col items-center justify-center text-center shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 ease-out">
-            <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors mb-4 mt-2">
-              <IconClock class="w-7 h-7 md:w-8 md:h-8" />
-            </div>
-            <span class="font-medium text-surface-900 text-sm md:text-base group-hover:text-primary-700 transition-colors leading-normal">Consultar<br>Historial</span>
-          </router-link>
-
         </div>
       </div>
 
@@ -399,104 +381,116 @@ const getProgressBarColor = (pct) => {
         </div>
 
         <!-- Rejilla de Torneos -->
-        <div v-if="torneosActivosProximos.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div v-if="torneosActivosProximos.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <router-link
             v-for="torneo in torneosActivosProximos"
             :key="torneo.id_torneo"
             to="/socio/tournaments"
-            class="group bg-white rounded-3xl border border-surface-200 p-5 shadow-sm hover:shadow-xl hover:border-primary-200 hover:-translate-y-1.5 active:scale-98 transition-all duration-300 flex flex-col justify-between text-left cursor-pointer relative overflow-hidden"
+            class="group relative bg-white rounded-[1.5rem] md:rounded-[2rem] border border-surface-200 p-6 shadow-sm hover:shadow-xl hover:shadow-primary-600/5 hover:border-primary-300 hover:-translate-y-1 transition-all duration-300 flex flex-col text-left cursor-pointer overflow-hidden"
           >
-            <!-- Top Accent Line -->
-            <div class="absolute top-0 left-0 right-0 h-1 bg-primary-600"></div>
+            <!-- Decorative Glow -->
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-primary-100 rounded-full blur-3xl opacity-40 group-hover:opacity-70 transition-opacity duration-500 pointer-events-none"></div>
 
-            <div class="space-y-4">
-              <!-- Header & Access Badge -->
-              <div class="flex justify-between items-start pt-1">
-                <div class="flex items-center gap-2 min-w-0">
-                  <div class="w-8 h-8 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100/40 shrink-0">
-                    <DisciplineIcon :name="torneo.disciplina?.nombre_disciplina" class="w-4.5 h-4.5 fill-current text-primary-600" />
+            <div class="relative z-10 flex flex-col h-full">
+              <!-- Header: Icon & Tags -->
+              <div class="flex items-start justify-between mb-5 gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-2xl bg-linear-to-br from-primary-50 to-primary-100/50 text-primary-600 flex items-center justify-center border border-primary-100 shrink-0 group-hover:scale-105 group-hover:shadow-md group-hover:shadow-primary-500/10 transition-all duration-300">
+                    <DisciplineIcon :name="torneo.disciplina?.nombre_disciplina" class="w-6 h-6 fill-current" />
                   </div>
-                  <div class="flex flex-col min-w-0">
-                    <span class="text-[10px] font-extrabold text-primary-600 uppercase tracking-widest leading-none truncate">
+                  <div>
+                    <span class="block text-[11px] font-black text-primary-600 uppercase tracking-widest leading-none mb-1.5">
                       {{ torneo.disciplina?.nombre_disciplina || 'Multi-Deporte' }}
                     </span>
-                    <span class="text-[9px] font-bold text-surface-400 mt-1 leading-none">
+                    <span class="inline-flex items-center text-[10px] font-bold text-surface-600 bg-surface-100/80 px-2 py-0.5 rounded-md border border-surface-200/50">
                       Rama: {{ torneo.categoria?.genero_requerido === 'M' ? 'Varonil' : (torneo.categoria?.genero_requerido === 'F' ? 'Femenil' : 'Mixto') }}
                     </span>
                   </div>
                 </div>
-                <div class="flex flex-col items-end gap-1 shrink-0">
-                  <span class="bg-primary-50/70 border border-primary-100 text-primary-700 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+
+                <div class="flex flex-col items-end gap-1.5 shrink-0">
+                  <span class="bg-primary-50 text-primary-700 border border-primary-100/50 text-[10px] font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-sm">
                     {{ torneo.tipo_acceso }}
                   </span>
                   <span
-                    class="text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border shadow-xs"
+                    class="text-[10px] font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-wider border shadow-sm"
                     :class="torneo.estatus_torneo === 'EN_INSCRIPCION' 
-                      ? 'bg-blue-50 text-blue-700 border-blue-150'
+                      ? 'bg-blue-50 text-blue-700 border-blue-100'
                       : (torneo.estatus_torneo === 'EN_CURSO'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-150'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                         : (torneo.estatus_torneo === 'FINALIZADO'
                           ? 'bg-surface-100 text-surface-600 border-surface-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-150'))"
+                          : 'bg-amber-50 text-amber-700 border-amber-100'))"
                   >
                     {{ torneo.estatus_torneo === 'EN_CURSO' ? 'En Curso' : (torneo.estatus_torneo === 'EN_INSCRIPCION' ? 'Abierto' : (torneo.estatus_torneo === 'FINALIZADO' ? 'Finalizado' : 'Programado')) }}
                   </span>
                 </div>
               </div>
 
-              <!-- Title & Category -->
-              <div>
-                <h4 class="text-sm font-extrabold text-surface-900 leading-snug tracking-tight line-clamp-1 m-0">
+              <!-- Body: Title & Category & Date -->
+              <div class="mb-6 flex-1">
+                <h4 class="text-lg font-extrabold text-surface-900 leading-tight mb-2 group-hover:text-primary-700 transition-colors line-clamp-2">
                   {{ torneo.nombre_torneo }}
                 </h4>
-                <p class="text-[11px] font-bold text-surface-500 mt-1 line-clamp-1 m-0">
-                  Cat: <span class="text-surface-700 font-extrabold">{{ torneo.categoria?.nombre_categoria }}</span>
-                  <span class="text-surface-400 font-medium"> • {{ torneo.categoria?.edad_minima }}-{{ torneo.categoria?.edad_maxima }} años</span>
-                </p>
-              </div>
-
-              <!-- Date Block -->
-              <div class="flex items-center gap-1.5 text-[11px] font-bold text-surface-500">
-                <IconCalendar class="w-4 h-4 text-surface-400 shrink-0" />
-                <span>Inicia: <span class="text-surface-800 font-extrabold">{{ formatFecha(torneo.fecha_inicio) }}</span></span>
-              </div>
-
-              <!-- Progress Bar / Cupos -->
-              <div class="space-y-1 pt-1 mt-auto">
-                <div class="flex justify-between text-[10px] font-bold text-surface-500">
-                  <span>Cupos ocupados</span>
-                  <span class="text-surface-850 font-extrabold">{{ torneo.inscritos_actual }} / {{ torneo.cupo_maximo }}</span>
+                <div class="flex items-center gap-2 text-sm text-surface-500 mb-4 font-medium">
+                  <span class="font-bold text-surface-800">{{ torneo.categoria?.nombre_categoria }}</span>
+                  <span class="w-1 h-1 rounded-full bg-surface-300"></span>
+                  <span>{{ torneo.categoria?.edad_minima }} - {{ torneo.categoria?.edad_maxima }} años</span>
                 </div>
-                <div class="w-full bg-surface-100 rounded-full h-1.5 overflow-hidden shadow-inner">
-                  <div
-                    :class="getProgressBarColor(getCupoPercentage(torneo))"
-                    class="h-full rounded-full transition-all duration-500"
-                    :style="{ width: getCupoPercentage(torneo) + '%' }"
-                  ></div>
+                
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-50 rounded-xl border border-surface-100/80 text-[11px] font-bold text-surface-600 shadow-xs">
+                  <div class="w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-xs border border-surface-100 shrink-0">
+                    <IconCalendar class="w-3 h-3 text-primary-500" />
+                  </div>
+                  Inicia: <span class="text-surface-800 font-extrabold">{{ formatFecha(torneo.fecha_inicio) }}</span>
                 </div>
               </div>
-            </div>
 
-            <!-- Action Status at the Bottom -->
-            <div class="mt-4 pt-3 border-t border-surface-100 flex items-center justify-between">
-              <span v-if="torneo.estatus_torneo === 'FINALIZADO'" class="text-surface-500 font-extrabold text-[11px] flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Torneo Concluido
-              </span>
-              <span v-else-if="torneo.ya_inscrito" class="text-emerald-600 font-extrabold text-[11px] flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Ya Inscrito
-              </span>
-              <span v-else-if="torneo.inscritos_actual >= torneo.cupo_maximo" class="text-rose-500 font-extrabold text-[11px]">
-                Cupo Lleno
-              </span>
-              <span v-else class="text-primary-600 group-hover:text-primary-700 font-extrabold text-[11px] flex items-center gap-1">
-                Inscribirme &rarr;
-              </span>
+              <!-- Footer: Progress & Action -->
+              <div class="mt-auto">
+                <div class="mb-5">
+                  <div class="flex justify-between items-end mb-2">
+                    <span class="text-[10px] font-extrabold text-surface-500 uppercase tracking-wider">Cupos ocupados</span>
+                    <span class="text-sm font-black text-surface-900">{{ torneo.inscritos_actual }}<span class="text-surface-400 font-bold text-[11px] ml-0.5">/ {{ torneo.cupo_maximo }}</span></span>
+                  </div>
+                  <div class="w-full bg-surface-100/80 rounded-full h-2.5 overflow-hidden ring-1 ring-inset ring-surface-200/50">
+                    <div
+                      :class="getProgressBarColor(getCupoPercentage(torneo))"
+                      class="h-full rounded-full transition-all duration-1000 ease-out"
+                      :style="{ width: getCupoPercentage(torneo) + '%' }"
+                    ></div>
+                  </div>
+                </div>
+                
+                <div class="pt-4 border-t border-surface-100 flex items-center justify-between">
+                  <span v-if="torneo.estatus_torneo === 'FINALIZADO'" class="text-surface-500 font-bold text-xs flex items-center gap-1.5 px-3 py-1.5 bg-surface-50 rounded-xl border border-surface-100 w-full justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Torneo Concluido
+                  </span>
+                  <span v-else-if="torneo.ya_inscrito" class="text-emerald-700 font-bold text-xs flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100 w-full justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Ya Inscrito
+                  </span>
+                  <span v-else-if="torneo.inscritos_actual >= torneo.cupo_maximo" class="text-rose-600 font-bold text-xs flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 rounded-xl border border-rose-100 w-full justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    Cupo Lleno
+                  </span>
+                  <span v-else class="text-primary-600 group-hover:text-primary-700 font-bold text-sm flex items-center justify-between w-full transition-colors">
+                    <span>Inscribirme</span>
+                    <div class="w-7 h-7 rounded-full bg-primary-50 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </div>
+                  </span>
+                </div>
+              </div>
             </div>
           </router-link>
         </div>

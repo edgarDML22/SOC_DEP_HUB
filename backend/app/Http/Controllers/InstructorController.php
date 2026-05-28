@@ -167,6 +167,7 @@ class InstructorController extends Controller
                     'hora_inicio' => substr($turnoHoy->hora_inicio, 0, 5),
                     'hora_fin'    => substr($turnoHoy->hora_fin, 0, 5),
                 ] : null,
+                'foto_perfil' => (string) cloudinary()->image("instructors/profiles/instructor_{$instructor->id_instructor}")->version(time())->toUrl()
             ]
         ], 200);
     }
