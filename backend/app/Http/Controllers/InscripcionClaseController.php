@@ -47,13 +47,19 @@ class InscripcionClaseController extends Controller
      */
     public function indexSesiones(Request $request): JsonResponse
     {
-        $tz  = 'America/Mexico_City';
+        $tz = 'America/Mexico_City';
         $hoy = Carbon::now($tz)->toDateString();
         $fin = Carbon::now($tz)->addDays(30)->toDateString();
 
         $query = SesionActiva::withoutGlobalScopes()
             ->whereBetween('fecha_sesion', [$hoy, $fin])
-            ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO'])
+            ->where(function ($q) use ($hoy) {
+                $q->where('fecha_sesion', $hoy)
+                  ->orWhere(function ($sub) use ($hoy) {
+                      $sub->where('fecha_sesion', '>', $hoy)
+                          ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO']);
+                  });
+            })
             ->with([
                 'disciplina:id_disciplina,nombre_disciplina',
                 'instructorPrincipal:id_instructor,nombre_completo',
@@ -61,9 +67,9 @@ class InscripcionClaseController extends Controller
             ])
             ->whereHas('actividadPlantilla.plantilla', function ($q) {
                 $q->where('estatus_plantilla', true)
-                  ->where('publicada', true)
-                  ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
-                  ->whereColumn('plantillas_programacion.fecha_fin', '>=', 'sesiones_activas.fecha_sesion');
+                    ->where('publicada', true)
+                    ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+                    ->whereColumn('plantillas_programacion.fecha_fin', '>=', 'sesiones_activas.fecha_sesion');
             });
 
         // ── Filtros opcionales ────────────────────────────────────────────────
@@ -88,8 +94,15 @@ class InscripcionClaseController extends Controller
         $ahora = Carbon::now($tz);
 
         $sesiones = $query->orderBy('fecha_sesion')->get()
-            ->filter(function ($s) use ($ahora) {
-                if (!$s->hora_inicio) return false;
+            ->filter(function ($s) use ($ahora, $hoy) {
+                if (!$s->hora_inicio)
+                    return false;
+                
+                // Si la sesión es de hoy, la mostramos independientemente de la hora (incluso pasadas, finalizadas, canceladas, etc.)
+                if ($s->fecha_sesion === $hoy) {
+                    return true;
+                }
+
                 $fechaHora = Carbon::parse("{$s->fecha_sesion} {$s->hora_inicio}", 'America/Mexico_City');
                 return $fechaHora->greaterThanOrEqualTo($ahora);
             })
@@ -102,28 +115,28 @@ class InscripcionClaseController extends Controller
                 }
 
                 return [
-                    'id_sesion'            => $s->id_sesion,
-                    'fecha_sesion'         => $s->fecha_sesion,
-                    'estatus_sesion'       => $s->estatus_sesion,
-                    'cantidad_inscritos'   => $s->cantidad_inscritos,
-                    'es_cupo_lleno'        => $s->es_cupo_lleno,
-                    'hora_inicio'          => $s->hora_inicio ? substr($s->hora_inicio, 0, 5) : null,
-                    'hora_fin'             => $s->hora_fin ? substr($s->hora_fin, 0, 5) : null,
-                    'cupo_maximo'          => $s->cupo_maximo,
-                    'disponible'           => $disponible,
+                    'id_sesion' => $s->id_sesion,
+                    'fecha_sesion' => $s->fecha_sesion,
+                    'estatus_sesion' => $s->estatus_sesion,
+                    'cantidad_inscritos' => $s->cantidad_inscritos,
+                    'es_cupo_lleno' => $s->es_cupo_lleno,
+                    'hora_inicio' => $s->hora_inicio ? substr($s->hora_inicio, 0, 5) : null,
+                    'hora_fin' => $s->hora_fin ? substr($s->hora_fin, 0, 5) : null,
+                    'cupo_maximo' => $s->cupo_maximo,
+                    'disponible' => $disponible,
                     'requiere_inscripcion' => $requiereInscripcion,
-                    'tipo_clase'           => $requiereInscripcion ? 'Cerrada' : 'Abierta',
-                    'nombre_actividad'     => $s->disciplina?->nombre_disciplina ?? 'Actividad',
-                    'dia_semana'           => $s->dia_semana,
-                    'disciplina'           => [
-                        'id'     => $s->disciplina?->id_disciplina,
+                    'tipo_clase' => $requiereInscripcion ? 'Cerrada' : 'Abierta',
+                    'nombre_actividad' => $s->disciplina?->nombre_disciplina ?? 'Actividad',
+                    'dia_semana' => $s->dia_semana,
+                    'disciplina' => [
+                        'id' => $s->disciplina?->id_disciplina,
                         'nombre' => $s->disciplina?->nombre_disciplina,
                     ],
-                    'instructor'           => [
-                        'id'     => $s->instructorPrincipal?->id_instructor,
+                    'instructor' => [
+                        'id' => $s->instructorPrincipal?->id_instructor,
                         'nombre' => $s->instructorPrincipal?->nombre_completo,
                     ],
-                    'espacio'              => $s->espacio?->nombre_espacio,
+                    'espacio' => $s->espacio?->nombre_espacio,
                 ];
             })
             ->values();
@@ -141,7 +154,7 @@ class InscripcionClaseController extends Controller
      */
     public function listarInstructores(): JsonResponse
     {
-        $tz  = 'America/Mexico_City';
+        $tz = 'America/Mexico_City';
         $hoy = Carbon::now($tz)->toDateString();
         $fin = Carbon::now($tz)->addDays(30)->toDateString();
 
@@ -159,7 +172,7 @@ class InscripcionClaseController extends Controller
             ->orderBy('nombre_completo')
             ->get()
             ->map(fn($i) => [
-                'id'     => $i->id_instructor,
+                'id' => $i->id_instructor,
                 'nombre' => $i->nombre_completo,
             ]);
 
@@ -173,9 +186,9 @@ class InscripcionClaseController extends Controller
      */
     public function misInscripciones(Request $request): JsonResponse
     {
-        $user   = $request->user();
+        $user = $request->user();
         $userId = $user->user_id;
-        $rol    = $user->rol;
+        $rol = $user->rol;
 
         if ($rol === 'socio_titular') {
             $miembrosIds = MiembrosFamiliares::where('socio_id', $userId)->pluck('id_miembro')->toArray();
@@ -191,71 +204,71 @@ class InscripcionClaseController extends Controller
                     $sub->where('tipo_usuario', 'socio_titular')
                         ->where('id_usuario', $userId);
                 })
-                ->orWhere(function ($sub) use ($miembrosIds) {
-                    $sub->where('tipo_usuario', 'miembro_familiar')
-                        ->whereIn('id_usuario', $miembrosIds);
-                })
-                ->orWhere(function ($sub) use ($negativePasesIds) {
-                    $sub->where('tipo_usuario', 'socio_titular')
-                        ->whereIn('id_usuario', $negativePasesIds);
-                });
+                    ->orWhere(function ($sub) use ($miembrosIds) {
+                        $sub->where('tipo_usuario', 'miembro_familiar')
+                            ->whereIn('id_usuario', $miembrosIds);
+                    })
+                    ->orWhere(function ($sub) use ($negativePasesIds) {
+                        $sub->where('tipo_usuario', 'socio_titular')
+                            ->whereIn('id_usuario', $negativePasesIds);
+                    });
             });
         } else {
             $query = InscripcionClase::where('id_usuario', $userId)->where('tipo_usuario', 'miembro_familiar');
         }
 
         $inscripciones = $query->with([
-                'sesion' => fn($q) => $q->withoutGlobalScopes()
-                    ->select([
-                        'id_sesion',
-                        'id_disciplina',
-                        'id_espacio',
-                        'id_instructor',
-                        'fecha_sesion',
-                        'estatus_sesion',
-                        'hora_inicio',
-                        'hora_fin',
-                        'requiere_inscripcion',
-                    ])
-                    ->with([
-                        'disciplina:id_disciplina,nombre_disciplina',
-                        'espacio:id_espacio,nombre_espacio',
-                        'instructorPrincipal:id_instructor,nombre_completo',
-                    ]),
-                'miembroFamiliar:id_miembro,nombre_completo,parentesco',
-                'paseInvitado.invitado:id_invitado,nombre_invitado',
-            ])
+            'sesion' => fn($q) => $q->withoutGlobalScopes()
+                ->select([
+                    'id_sesion',
+                    'id_disciplina',
+                    'id_espacio',
+                    'id_instructor',
+                    'fecha_sesion',
+                    'estatus_sesion',
+                    'hora_inicio',
+                    'hora_fin',
+                    'requiere_inscripcion',
+                ])
+                ->with([
+                    'disciplina:id_disciplina,nombre_disciplina',
+                    'espacio:id_espacio,nombre_espacio',
+                    'instructorPrincipal:id_instructor,nombre_completo',
+                ]),
+            'miembroFamiliar:id_miembro,nombre_completo,parentesco',
+            'paseInvitado.invitado:id_invitado,nombre_invitado',
+        ])
             ->orderByDesc('fecha_transaccion')
             ->get()
             ->map(function ($i) {
-                $sesion              = $i->sesion;
+                $sesion = $i->sesion;
                 $requiereInscripcion = (bool) $sesion?->requiere_inscripcion;
 
                 return [
-                    'id_inscripcion'       => $i->id_inscripcion,
-                    'id_sesion'            => $sesion?->id_sesion,
-                    'estatus_inscripcion'  => $i->estatus_inscripcion,
-                    'fecha_transaccion'    => $i->fecha_transaccion,
-                    'tipo_usuario'         => ($i->id_usuario < 0) ? 'invitado' : $i->tipo_usuario,
-                    'familiar'             => $i->miembroFamiliar ? [
-                        'id'         => $i->miembroFamiliar->id_miembro,
-                        'nombre'     => $i->miembroFamiliar->nombre_completo,
+                    'id_inscripcion' => $i->id_inscripcion,
+                    'id_sesion' => $sesion?->id_sesion,
+                    'estatus_inscripcion' => $i->estatus_inscripcion,
+                    'fecha_transaccion' => $i->fecha_transaccion,
+                    'tipo_usuario' => ($i->id_usuario < 0) ? 'invitado' : $i->tipo_usuario,
+                    'familiar' => $i->miembroFamiliar ? [
+                        'id' => $i->miembroFamiliar->id_miembro,
+                        'nombre' => $i->miembroFamiliar->nombre_completo,
                         'parentesco' => $i->miembroFamiliar->parentesco,
                     ] : null,
-                    'invitado'             => $i->paseInvitado?->invitado ? [
+                    'invitado' => $i->paseInvitado?->invitado ? [
                         'id_pase' => $i->paseInvitado->id_pase,
-                        'nombre'  => $i->paseInvitado->invitado->nombre_invitado,
+                        'nombre' => $i->paseInvitado->invitado->nombre_invitado,
                     ] : null,
-                    'fecha_sesion'         => $sesion?->fecha_sesion,
-                    'estatus_sesion'       => $sesion?->estatus_sesion,
-                    'hora_inicio'          => $sesion?->hora_inicio ? substr($sesion->hora_inicio, 0, 5) : null,
-                    'hora_fin'             => $sesion?->hora_fin ? substr($sesion->hora_fin, 0, 5) : null,
-                    'nombre_actividad'     => $sesion?->disciplina?->nombre_disciplina ?? 'Actividad',
-                    'disciplina'           => $sesion?->disciplina?->nombre_disciplina,
-                    'instructor'           => $sesion?->instructorPrincipal?->nombre_completo,
-                    'espacio'              => $sesion?->espacio?->nombre_espacio,
+                    'fecha_sesion' => $sesion?->fecha_sesion,
+                    'estatus_sesion' => $sesion?->estatus_sesion,
+                    'hora_inicio' => $sesion?->hora_inicio ? substr($sesion->hora_inicio, 0, 5) : null,
+                    'hora_fin' => $sesion?->hora_fin ? substr($sesion->hora_fin, 0, 5) : null,
+                    'nombre_actividad' => $sesion?->disciplina?->nombre_disciplina ?? 'Actividad',
+                    'disciplina' => $sesion?->disciplina?->nombre_disciplina,
+                    'instructor' => $sesion?->instructorPrincipal?->nombre_completo,
+                    'espacio' => $sesion?->espacio?->nombre_espacio,
                     'requiere_inscripcion' => $requiereInscripcion,
-                    'tipo_clase'           => $requiereInscripcion ? 'Cerrada' : 'Abierta',
+                    'tipo_clase' => $requiereInscripcion ? 'Cerrada' : 'Abierta',
                 ];
             });
 
@@ -278,8 +291,8 @@ class InscripcionClaseController extends Controller
 
         return response()->json([
             'data' => [
-                'inscrito'            => $inscripcion !== null,
-                'id_inscripcion'      => $inscripcion?->id_inscripcion,
+                'inscrito' => $inscripcion !== null,
+                'id_inscripcion' => $inscripcion?->id_inscripcion,
                 'estatus_inscripcion' => $inscripcion?->estatus_inscripcion,
             ],
         ], 200);
@@ -306,12 +319,12 @@ class InscripcionClaseController extends Controller
      */
     public function inscribir(Request $request, int $id_sesion): JsonResponse
     {
-        $user   = $request->user();
+        $user = $request->user();
         $userId = $user->user_id;
-        $rol    = $user->rol;
+        $rol = $user->rol;
 
         $idMiembroFamiliar = $request->input('id_miembro_familiar');
-        $idPaseInvitado    = $request->input('id_pase_invitado');
+        $idPaseInvitado = $request->input('id_pase_invitado');
 
         // ── 1. Cargar sesión — todo desde el snapshot, sin JOIN a actividadPlantilla ──
         $sesion = SesionActiva::withoutGlobalScopes()->find($id_sesion);
@@ -329,7 +342,7 @@ class InscripcionClaseController extends Controller
             $socio = SocioTitular::find($userId);
         } elseif ($rol === 'miembro_familiar') {
             $miembro = MiembrosFamiliares::where('id_miembro', $userId)->first();
-            $socio   = $miembro ? SocioTitular::find($miembro->socio_id) : null;
+            $socio = $miembro ? SocioTitular::find($miembro->socio_id) : null;
         } else {
             return response()->json(['message' => 'Rol no autorizado para inscripción.'], 403);
         }
@@ -339,8 +352,8 @@ class InscripcionClaseController extends Controller
         }
 
         // ── 3. Determinar tipo y subject de inscripción ────────────────────────
-        $subjectId        = $userId;
-        $tipoUsuario      = $rol === 'socio_titular' ? 'socio_titular' : 'miembro_familiar';
+        $subjectId = $userId;
+        $tipoUsuario = $rol === 'socio_titular' ? 'socio_titular' : 'miembro_familiar';
 
         if ($idMiembroFamiliar) {
             // Inscribir a un familiar del socio titular autenticado
@@ -354,8 +367,8 @@ class InscripcionClaseController extends Controller
                 return response()->json(['message' => 'El miembro familiar no pertenece a tu cuenta.'], 403);
             }
 
-            $subjectId        = $familiar->id_miembro;
-            $tipoUsuario      = 'miembro_familiar';
+            $subjectId = $familiar->id_miembro;
+            $tipoUsuario = 'miembro_familiar';
 
         } elseif ($idPaseInvitado) {
             // Inscribir a un invitado con pase activo
@@ -382,7 +395,7 @@ class InscripcionClaseController extends Controller
                 return response()->json(['message' => 'Este pase de invitado no pertenece a tu cuenta.'], 403);
             }
 
-            $subjectId   = -$pase->id_pase;
+            $subjectId = -$pase->id_pase;
             $tipoUsuario = 'invitado';
         }
 
@@ -398,23 +411,26 @@ class InscripcionClaseController extends Controller
 
         // ── 5. Validar colisión de horarios en su agenda ──────────────────────
         $nuevoInicio = $sesion->hora_inicio;
-        $nuevoFin    = $sesion->hora_fin;
+        $nuevoFin = $sesion->hora_fin;
         $fechaSesion = $sesion->fecha_sesion;
 
         if ($nuevoInicio && $nuevoFin) {
             $colisiones = InscripcionClase::where('id_usuario', $subjectId)
                 ->whereNotIn('estatus_inscripcion', ['CANCELADA', 'FALTA'])
-                ->whereHas('sesion', fn($q) =>
+                ->whereHas(
+                    'sesion',
+                    fn($q) =>
                     $q->withoutGlobalScopes()->where('fecha_sesion', $fechaSesion)
                 )
-                ->with(['sesion' => fn($q) =>
-                    $q->withoutGlobalScopes()->select(['id_sesion', 'hora_inicio', 'hora_fin'])
+                ->with([
+                    'sesion' => fn($q) =>
+                        $q->withoutGlobalScopes()->select(['id_sesion', 'hora_inicio', 'hora_fin'])
                 ])
                 ->get();
 
             foreach ($colisiones as $colision) {
                 $existInicio = $colision->sesion?->hora_inicio;
-                $existFin    = $colision->sesion?->hora_fin;
+                $existFin = $colision->sesion?->hora_fin;
 
                 if ($existInicio && $existFin && $existInicio < $nuevoFin && $nuevoInicio < $existFin) {
                     return response()->json([
@@ -434,12 +450,12 @@ class InscripcionClaseController extends Controller
             $dbTipoUsuario = $subjectId < 0 ? 'socio_titular' : $tipoUsuario;
 
             $inscripcion = InscripcionClase::create([
-                'id_sesion'           => $sesion->id_sesion,
-                'id_usuario'          => $subjectId,
-                'tipo_usuario'        => $dbTipoUsuario,
-                'fecha_transaccion'   => now('America/Mexico_City')->toDateTimeString(),
+                'id_sesion' => $sesion->id_sesion,
+                'id_usuario' => $subjectId,
+                'tipo_usuario' => $dbTipoUsuario,
+                'fecha_transaccion' => now('America/Mexico_City')->toDateTimeString(),
                 'estatus_inscripcion' => 'CONFIRMADA',
-                'bloqueo_temporal'    => false,
+                'bloqueo_temporal' => false,
             ]);
 
             SesionActiva::withoutGlobalScopes()
@@ -452,11 +468,11 @@ class InscripcionClaseController extends Controller
 
         return response()->json([
             'message' => 'Inscripción realizada correctamente.',
-            'data'    => [
-                'id_inscripcion'      => $inscripcion->id_inscripcion,
+            'data' => [
+                'id_inscripcion' => $inscripcion->id_inscripcion,
                 'estatus_inscripcion' => $inscripcion->estatus_inscripcion,
-                'fecha_transaccion'   => $inscripcion->fecha_transaccion,
-                'tipo_usuario'        => $subjectId < 0 ? 'invitado' : $inscripcion->tipo_usuario,
+                'fecha_transaccion' => $inscripcion->fecha_transaccion,
+                'tipo_usuario' => $subjectId < 0 ? 'invitado' : $inscripcion->tipo_usuario,
             ],
         ], 201);
     }
@@ -478,7 +494,7 @@ class InscripcionClaseController extends Controller
     public function cancelar(Request $request, int $id_inscripcion): JsonResponse
     {
         $userId = $request->user()->user_id;
-        $rol    = $request->user()->rol;
+        $rol = $request->user()->rol;
 
         $inscripcion = InscripcionClase::find($id_inscripcion);
 
@@ -542,8 +558,8 @@ class InscripcionClaseController extends Controller
         }
 
         // ── Determinar si aplica penalización ─────────────────────────────────
-        $esCerrada    = (bool) ($sesion?->requiere_inscripcion ?? false);
-        $esInvitado   = $inscripcion->id_usuario < 0;
+        $esCerrada = (bool) ($sesion?->requiere_inscripcion ?? false);
+        $esInvitado = $inscripcion->id_usuario < 0;
         $hayPenalizacion = $esCerrada && !$esInvitado && $minutosRestantes < 120;
 
         $nuevoEstatus = $hayPenalizacion ? 'FALTA' : 'CANCELADA';
@@ -579,11 +595,11 @@ class InscripcionClaseController extends Controller
         }
 
         return response()->json([
-            'message'      => $hayPenalizacion
+            'message' => $hayPenalizacion
                 ? 'Inscripción cancelada tardíamente. Se registró un No Show en tu cuenta.'
                 : 'Inscripción cancelada correctamente.',
             'nuevo_estatus' => $nuevoEstatus,
-            'penalizacion'  => $hayPenalizacion,
+            'penalizacion' => $hayPenalizacion,
         ], 200);
     }
 }

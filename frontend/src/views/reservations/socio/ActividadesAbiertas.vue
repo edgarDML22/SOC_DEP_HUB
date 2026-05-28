@@ -138,6 +138,19 @@ function formatFecha(f) {
 
 // Etiqueta de tipo por tab
 const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
+
+const ESTATUS_SESION_MAP = {
+  DISPONIBLE: { class: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Disponible' },
+  LLENO: { class: 'bg-orange-50 text-orange-700 border-orange-200', label: 'Cupo Lleno' },
+  EN_CURSO: { class: 'bg-amber-50 text-amber-700 border-amber-200', label: 'En Curso' },
+  FINALIZADA: { class: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Finalizada' },
+  CANCELADA: { class: 'bg-red-50 text-red-700 border-red-200', label: 'Cancelada' },
+  CANCELADA_POR_TORNEO: { class: 'bg-red-50 text-red-700 border-red-200', label: 'Cancelada por Torneo' },
+}
+
+function getEstatusSesionBadge(estatus) {
+  return ESTATUS_SESION_MAP[estatus] ?? { class: 'bg-slate-50 text-slate-600 border-slate-200', label: estatus || 'Programada' }
+}
 </script>
 
 <template>
@@ -280,11 +293,18 @@ const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
             <h3 class="text-sm font-bold text-slate-900 leading-snug line-clamp-2 flex-1" :title="sesion.nombre_actividad">
               {{ sesion.nombre_actividad }}
             </h3>
-            <!-- esSocioInscrito() reactivo sin cambios -->
-            <span v-if="esSocioInscrito(sesion.id_sesion)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold uppercase tracking-wider shrink-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-              Ya inscrito
-            </span>
+            <div class="flex flex-col items-end gap-1.5 shrink-0">
+              <!-- esSocioInscrito() reactivo sin cambios -->
+              <span v-if="esSocioInscrito(sesion.id_sesion)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                Ya inscrito
+              </span>
+              <!-- Estatus de la Sesión -->
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border tracking-wider uppercase shrink-0"
+                :class="getEstatusSesionBadge(sesion.estatus_sesion).class">
+                {{ getEstatusSesionBadge(sesion.estatus_sesion).label }}
+              </span>
+            </div>
           </div>
 
           <div class="mx-5 border-t border-slate-100"></div>
@@ -337,7 +357,7 @@ const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
               </div>
             </div>
 
-            <!-- Footer de acción — isSesionCompletamenteInscrita() / abrirModalInscripcion() / :disabled sin cambios -->
+             <!-- Footer de acción -->
             <div class="pt-2">
               <div
                 v-if="isSesionCompletamenteInscrita(sesion.id_sesion)"
@@ -347,6 +367,33 @@ const tabLabels = { titular: 'Yo', familiar: 'Familiar', invitado: 'Invitado' }
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 Inscrito
+              </div>
+              <div
+                v-else-if="sesion.estatus_sesion === 'CANCELADA' || sesion.estatus_sesion === 'CANCELADA_POR_TORNEO'"
+                class="w-full flex items-center justify-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-2.5 text-xs font-bold cursor-not-allowed"
+              >
+                Clase Cancelada
+              </div>
+              <div
+                v-else-if="sesion.estatus_sesion === 'FINALIZADA'"
+                class="w-full flex items-center justify-center gap-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-4 py-2.5 text-xs font-bold cursor-not-allowed"
+              >
+                Clase Finalizada
+              </div>
+              <div
+                v-else-if="sesion.estatus_sesion === 'EN_CURSO'"
+                class="w-full flex items-center justify-center gap-2 bg-amber-50 border border-amber-200 text-amber-600 rounded-xl px-4 py-2.5 text-xs font-bold cursor-not-allowed"
+              >
+                Clase en Curso
+              </div>
+              <div
+                v-else-if="sesion.es_cupo_lleno || sesion.estatus_sesion === 'LLENO'"
+                class="w-full flex items-center justify-center gap-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl px-4 py-2.5 text-xs font-bold cursor-not-allowed"
+              >
+                <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Cupo agotado
               </div>
               <button
                 v-else

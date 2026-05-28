@@ -12,6 +12,7 @@ import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
+import ImportExcelButton from '@/components/admin/socio/ImportExcelButton.vue'
 import PenalizacionModal from '@/components/admin/socio/PenalizacionModal.vue'
 import { IconFilter, IconChevronDown, IconAlertCircle, IconWarning, IconHistory, IconLayers } from '@/components/icons'
 import EstatusCuentaModal from '@/components/admin/socio/EstatusCuentaModal.vue'
@@ -607,6 +608,8 @@ onMounted(fetchSocios)
                       Limpiar filtros
                     </button>
                   </Transition>
+
+                  <ImportExcelButton @import-complete="fetchSocios" class="w-full md:w-auto" />
 
                   <ExportCsvButton :data="filteredSocios" filename="socios-titulares"
                     :columns="[

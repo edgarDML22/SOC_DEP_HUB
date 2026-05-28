@@ -14,20 +14,20 @@ import api from '@/services/api'
  */
 export const useActividadesStore = defineStore('actividades', () => {
   // ── Estado ──────────────────────────────────────────────────────────────────
-  const sesiones             = ref([])
-  const misInscripciones     = ref([])
-  const instructores         = ref([])   // lista para el filtro de instructores
-  const loading              = ref(false)
+  const sesiones = ref([])
+  const misInscripciones = ref([])
+  const instructores = ref([])   // lista para el filtro de instructores
+  const loading = ref(false)
   const loadingInscripciones = ref(false)
-  const loadingAccion        = ref(false)
-  const error                = ref(null)
-  const errorInscripciones   = ref(null)
+  const loadingAccion = ref(false)
+  const error = ref(null)
+  const errorInscripciones = ref(null)
 
   // Filtros reactivos
-  const filtroDisciplinaId  = ref(null)
-  const filtroInstructorId  = ref(null)
-  const filtroDiaSemana     = ref(null)
-  const filtroHora          = ref('')
+  const filtroDisciplinaId = ref(null)
+  const filtroInstructorId = ref(null)
+  const filtroDiaSemana = ref(null)
+  const filtroHora = ref('')
 
   // ── Computed ─────────────────────────────────────────────────────────────────
 
@@ -56,20 +56,27 @@ export const useActividadesStore = defineStore('actividades', () => {
     const ahoraMexico = getAhoraMexico()
 
     const list = sesiones.value.filter(s => {
-      // 1. Filtrar las que ya empezaron o pasaron hoy
+      // 1. Filtrar las que ya empezaron o pasaron hoy (excepto si son del día de hoy)
       if (s.fecha_sesion && s.hora_inicio) {
-        const fechaHoraSesion = new Date(`${s.fecha_sesion}T${s.hora_inicio}`)
-        if (fechaHoraSesion < ahoraMexico) return false
+        const y = ahoraMexico.getFullYear()
+        const m = String(ahoraMexico.getMonth() + 1).padStart(2, '0')
+        const d = String(ahoraMexico.getDate()).padStart(2, '0')
+        const hoyStr = `${y}-${m}-${d}`
+
+        if (s.fecha_sesion !== hoyStr) {
+          const fechaHoraSesion = new Date(`${s.fecha_sesion}T${s.hora_inicio}`)
+          if (fechaHoraSesion < ahoraMexico) return false
+        }
       }
 
       // 2. Filtros normales
-      const matchDisciplina  = !filtroDisciplinaId.value
+      const matchDisciplina = !filtroDisciplinaId.value
         || s.disciplina?.id === filtroDisciplinaId.value
-      const matchInstructor  = !filtroInstructorId.value
+      const matchInstructor = !filtroInstructorId.value
         || s.instructor?.id === filtroInstructorId.value
-      const matchDia         = !filtroDiaSemana.value
+      const matchDia = !filtroDiaSemana.value
         || s.dia_semana === filtroDiaSemana.value
-      const matchHora        = !filtroHora.value
+      const matchHora = !filtroHora.value
         || (s.hora_inicio && s.hora_inicio.startsWith(filtroHora.value))
       return matchDisciplina && matchInstructor && matchDia && matchHora
     })
@@ -119,7 +126,7 @@ export const useActividadesStore = defineStore('actividades', () => {
 
   /** Lista de días de semana únicos en las sesiones */
   const diasDisponibles = computed(() => {
-    const ORDEN = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
+    const ORDEN = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']
     const set = new Set(sesiones.value.map(s => s.dia_semana).filter(Boolean))
     return ORDEN.filter(d => set.has(d))
   })
@@ -172,7 +179,7 @@ export const useActividadesStore = defineStore('actividades', () => {
     try {
       const res = await api.get('actividades/mis-inscripciones')
       const data = res.data?.data ?? []
-      
+
       // Ordenar cronológicamente (la más próxima al inicio primero)
       data.sort((a, b) => {
         const dateA = a.fecha_sesion || '9999-12-31'
@@ -181,7 +188,7 @@ export const useActividadesStore = defineStore('actividades', () => {
         const timeB = b.hora_inicio || '00:00:00'
         return dateA.localeCompare(dateB) || timeA.localeCompare(timeB)
       })
-      
+
       misInscripciones.value = data
     } catch (err) {
       errorInscripciones.value = err.response?.data?.message || 'Error al cargar tus inscripciones.'
@@ -203,7 +210,7 @@ export const useActividadesStore = defineStore('actividades', () => {
     try {
       const payload = {}
       if (opts.id_miembro_familiar) payload.id_miembro_familiar = opts.id_miembro_familiar
-      if (opts.id_pase_invitado)    payload.id_pase_invitado    = opts.id_pase_invitado
+      if (opts.id_pase_invitado) payload.id_pase_invitado = opts.id_pase_invitado
 
       const res = await api.post(`actividades/sesiones/${id_sesion}/inscribir`, payload)
 
@@ -262,8 +269,8 @@ export const useActividadesStore = defineStore('actividades', () => {
   function resetFiltros() {
     filtroDisciplinaId.value = null
     filtroInstructorId.value = null
-    filtroDiaSemana.value    = null
-    filtroHora.value         = ''
+    filtroDiaSemana.value = null
+    filtroHora.value = ''
   }
 
   return {
