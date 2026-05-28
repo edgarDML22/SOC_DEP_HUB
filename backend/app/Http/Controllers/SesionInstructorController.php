@@ -157,11 +157,24 @@ class SesionInstructorController extends Controller
         $registros = RegistroAsistencia::where('id_sesion', $idSesion)
             ->pluck('asistencia', 'id_usuario');
 
+        // Extraer solo IDs de socios y familiares (excluyendo invitados para esta query)
+        $idsSociosFamiliares = $inscritos
+            ->whereIn('tipo_usuario', ['socio_titular', 'miembro_familiar'])
+            ->pluck('id_usuario')
+            ->unique()
+            ->values();
+
         // Códigos QR activos de socios y familiares — 1 query
-        $idsUsuarios = $inscritos->pluck('id_usuario')->unique()->values();
-        $codigos = CodigoQr::whereIn('usuario_id', $idsUsuarios)
+        $codigosDb = CodigoQr::whereIn('usuario_id', $idsSociosFamiliares)
+            ->whereIn('tipo_usuario', ['SOCIO', 'FAMILIAR']) // Seguro para el ENUM de PostgreSQL
             ->where('estatus', 'ACTIVO')
-            ->pluck('codigo', 'usuario_id');
+            ->get(['codigo', 'usuario_id', 'tipo_usuario']);
+
+        $codigos = [];
+        foreach ($codigosDb as $qr) {
+            $tipo = $qr->tipo_usuario === 'SOCIO' ? 'socio_titular' : 'miembro_familiar';
+            $codigos[$qr->usuario_id][$tipo] = $qr->codigo;
+        }
 
         // Para invitados: el código QR vive en la tabla invitados directamente
         // Se resuelve solo para los inscritos de tipo invitado
@@ -180,7 +193,7 @@ class SesionInstructorController extends Controller
 
                 $codigoQr = $esInvitado
                     ? $codigosInvitados->get($inscripcion->id_usuario)
-                    : $codigos->get($inscripcion->id_usuario);
+                    : ($codigos[$inscripcion->id_usuario][$inscripcion->tipo_usuario] ?? null);
 
                 // asistencia es booleano: true = confirmado, false = pendiente o falta
                 // null del pluck se convierte a false — "sin registro" y "pendiente" son
