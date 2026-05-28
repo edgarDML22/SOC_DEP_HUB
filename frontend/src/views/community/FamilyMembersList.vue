@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFamilyStore } from '@/stores/community/familyStore'
-import { useAlerts } from '@/composables/useAlerts' 
+import { useAlerts } from '@/composables/useAlerts'
 import IconQR from '@/components/icons/IconQr.vue'
+import { IconCalendar, IconGender, IconMail } from '@/components/icons'
 
 const router = useRouter()
 const familyStore = useFamilyStore()
@@ -57,12 +58,18 @@ const selectedMember = ref(null)
 const abrirModalQR = (m) => {
   selectedMember.value = m
   showQrModal.value = true
+  document.body.style.overflow = 'hidden'
 }
 
 const cerrarModalQR = () => {
   showQrModal.value = false
   selectedMember.value = null
+  document.body.style.overflow = ''
 }
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 const generarQrUrl = (codigo) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(codigo)}`
@@ -163,26 +170,19 @@ const copiarImagenAlPortapapeles = async (url) => {
           </div>
 
           <!-- Body de tarjeta -->
-          <div class="flex-1 flex flex-col gap-2 text-sm text-surface-600 mb-4 font-medium">
-            <div v-if="m.fecha_nacimiento" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-              </svg>
+          <div class="flex-1 flex flex-col gap-2.5 text-sm text-surface-600 mb-4 font-medium">
+            <div v-if="m.fecha_nacimiento" class="flex items-center gap-2.5">
+              <IconCalendar class="w-4 h-4 shrink-0 text-primary-600" />
               <span>{{ formatearFecha(m.fecha_nacimiento) }}</span>
             </div>
             
-            <div v-if="m.genero" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-              </svg>
+            <div v-if="m.genero" class="flex items-center gap-2.5">
+              <IconGender class="w-4 h-4 shrink-0 text-primary-600" />
               <span>{{ formatearGenero(m.genero) }}</span>
             </div>
 
-            <div v-if="m.correo" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-              </svg>
+            <div v-if="m.correo" class="flex items-center gap-2.5">
+              <IconMail class="w-4 h-4 shrink-0 text-primary-600" />
               <span class="truncate" :title="m.correo">{{ m.correo }}</span>
             </div>
           </div>
@@ -234,7 +234,7 @@ const copiarImagenAlPortapapeles = async (url) => {
             <!-- Body -->
             <div class="p-6 flex flex-col items-center">
               <div class="mb-4 text-center">
-                <span class="text-2xl font-black text-slate-800 tracking-[0.25em] uppercase font-mono">
+                <span class="text-2xl font-black text-slate-800 uppercase qr-code-text">
                   {{ selectedMember.codigo_qr }}
                 </span>
               </div>
@@ -283,6 +283,14 @@ const copiarImagenAlPortapapeles = async (url) => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&display=swap');
+
+.qr-code-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+}
+
 /* Animaciones suaves */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

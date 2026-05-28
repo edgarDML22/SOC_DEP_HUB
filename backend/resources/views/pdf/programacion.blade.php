@@ -58,12 +58,7 @@
             font-weight: bold;
             font-style: normal;
         }
-        @font-face {
-            font-family: 'FontAwesome';
-            src: url("{{ resource_path('fonts/fa-solid-900.ttf') }}") format('truetype');
-            font-weight: 900;
-            font-style: normal;
-        }
+        /* Los iconos de disciplinas ahora son SVGs inline — ya no se necesita FontAwesome */
 
         @page {
             size: 1920px 1080px;
@@ -191,15 +186,15 @@
             display: inline-block;
             vertical-align: middle;
             margin-right: 12px;
+            width: 32px;
+            height: 32px;
+            line-height: 1;
         }
 
-        .discipline-icon {
-            font-family: 'FontAwesome' !important;
-            font-weight: 900;
-            font-size: 32px;
-            color: #0d3a77;
+        .discipline-icon-container svg {
+            width: 32px;
+            height: 32px;
             vertical-align: middle;
-            line-height: 1;
             display: inline-block;
         }
 
@@ -283,128 +278,73 @@
     }
 
     if (!function_exists('getDisciplineIconHtml')) {
+        /**
+         * Devuelve el SVG inline de la disciplina para el PDF.
+         * Los iconos son los mismos que se usan en el frontend (DisciplineIcon.vue).
+         * Los archivos SVG se encuentran en resources/icons/disciplines/.
+         */
         function getDisciplineIconHtml($name) {
             $n = strtolower(trim($name));
+            $iconFile = 'default';
 
-            // ── Mapeo EXACTO por nombre de disciplina (26 disciplinas) ──────────
-            // Codepoints de FontAwesome 6 Free Solid
-            $exactMap = [
-                // 1
-                'spinning'                 => '\uf84a', // person-biking
-                // 2
-                'padel'                    => '\uf45d', // table-tennis-paddle-ball
-                // 3
-                'zumba'                    => '\uf51f', // compact-disc
-                // 4
-                'futbol adultos'           => '\uf1e3', // futbol
-                // 5
-                'ludoteca'                 => '\uf12e', // puzzle-piece
-                // 6
-                'entrenamiento funcional'  => '\uf21e', // heart-pulse
-                // 7
-                'gym uso libre'            => '\uf44b', // dumbbell
-                // 8
-                'barre'                    => '\uf54b', // shoe-prints
-                // 9
-                'voleibol'                 => '\uf45f', // volleyball
-                // 10
-                'jazz'                     => '\uf86f', // guitar
-                // 11
-                'higiene de columna'       => '\uf5d7', // bone
-                // 12
-                'frontenis'                => '\uf45d', // table-tennis-paddle-ball
-                // 13
-                'meditacion'               => '\uf679', // om
-                'meditación'               => '\uf679',
-                // 14
-                'basquetbol'               => '\uf434', // basketball
-                'basketball'               => '\uf434',
-                // 15
-                'tenis'                    => '\uf45d', // table-tennis-paddle-ball
-                // 16
-                'baile'                    => '\uf001', // music
-                // 17
-                'futbol infantil'          => '\uf1e3', // futbol
-                // 18
-                'pilates'                  => '\uf5bb', // spa
-                // 19
-                'squash'                   => '\uf45d', // table-tennis-paddle-ball
-                // 20
-                'gimnasia olimpica'        => '\uf5a2', // medal
-                'gimnasia olímpica'        => '\uf5a2',
-                // 21
-                'natacion'                 => '\uf5c4', // person-swimming
-                'natación'                 => '\uf5c4',
-                // 22
-                'gym instructor'           => '\uf7f3', // clipboard-user
-                // 23
-                'acondicionamiento fisico' => '\uf2f2', // stopwatch
-                'acondicionamiento físico' => '\uf2f2',
-                // 24
-                'yoga'                     => '\uf6ad', // yin-yang
-                // 25
-                'tae kwon do'              => '\uf504', // user-ninja
-                // 26
-                'aerobics'                 => '\uf70c', // person-running
-            ];
-
-            // Buscar primero por nombre exacto
-            $codepoint = null;
-            if (isset($exactMap[$n])) {
-                $codepoint = $exactMap[$n];
+            // ── Mapeo a los componentes Vue Reales ──────────
+            if (strpos($n, 'basquetbol') !== false || strpos($n, 'baloncesto') !== false || strpos($n, 'basketball') !== false) {
+                $iconFile = 'basquetbol';
+            } elseif (strpos($n, 'frontenis') !== false) {
+                $iconFile = 'frontenis';
+            } elseif (strpos($n, 'futbol') !== false || strpos($n, 'fútbol') !== false || strpos($n, 'soccer') !== false) {
+                $iconFile = 'futbol';
+            } elseif (strpos($n, 'padel') !== false || strpos($n, 'pádel') !== false) {
+                $iconFile = 'padel';
+            } elseif (strpos($n, 'squash') !== false) {
+                $iconFile = 'squash';
+            } elseif (strpos($n, 'tenis') !== false || strpos($n, 'tennis') !== false) {
+                $iconFile = 'tenis';
+            } elseif (strpos($n, 'voleibol') !== false || strpos($n, 'volleyball') !== false) {
+                $iconFile = 'voleibol';
+            } elseif (strpos($n, 'aerobics') !== false || strpos($n, 'acondicionamiento') !== false || strpos($n, 'entrenamiento') !== false) {
+                $iconFile = 'aerobic';
+            } elseif (strpos($n, 'jazz') !== false) {
+                $iconFile = 'jazz';
+            } elseif (strpos($n, 'zumba') !== false) {
+                $iconFile = 'zumba';
+            } elseif (strpos($n, 'baile') !== false) {
+                $iconFile = 'dance';
+            } elseif (strpos($n, 'meditación') !== false || strpos($n, 'meditacion') !== false) {
+                $iconFile = 'meditation';
+            } elseif (strpos($n, 'pilates') !== false) {
+                $iconFile = 'pilates';
+            } elseif (strpos($n, 'barre') !== false) {
+                $iconFile = 'barre';
+            } elseif (strpos($n, 'yoga') !== false) {
+                $iconFile = 'yoga';
+            } elseif (strpos($n, 'columna') !== false) {
+                $iconFile = 'higiene_columna';
+            } elseif (strpos($n, 'gym') !== false || strpos($n, 'gimnasio') !== false || strpos($n, 'pesas') !== false || strpos($n, 'fuerza') !== false || strpos($n, 'crossfit') !== false || strpos($n, 'funcional') !== false) {
+                $iconFile = 'gym';
+            } elseif (strpos($n, 'tae kwon do') !== false || strpos($n, 'artes marciales') !== false || strpos($n, 'karate') !== false || strpos($n, 'box') !== false) {
+                $iconFile = 'martial_arts';
+            } elseif (strpos($n, 'spinning') !== false || strpos($n, 'bici') !== false) {
+                $iconFile = 'spinning';
+            } elseif (strpos($n, 'gimnasia') !== false) {
+                $iconFile = 'gymnastics';
+            } elseif (strpos($n, 'natación') !== false || strpos($n, 'natacion') !== false || strpos($n, 'acuatico') !== false || strpos($n, 'acuático') !== false || strpos($n, 'alberca') !== false) {
+                $iconFile = 'swimming';
             }
 
-            // Si no coincide exactamente, buscar por palabra clave (fallback)
-            if (!$codepoint) {
-                $keywords = [
-                    'futbol'    => '\uf1e3',
-                    'soccer'    => '\uf1e3',
-                    'basket'    => '\uf434',
-                    'voleibol'  => '\uf45f',
-                    'tenis'     => '\uf45d',
-                    'tennis'    => '\uf45d',
-                    'padel'     => '\uf45d',
-                    'squash'    => '\uf45d',
-                    'frontenis' => '\uf45d',
-                    'spinning'  => '\uf84a',
-                    'bici'      => '\uf84a',
-                    'ciclismo'  => '\uf84a',
-                    'tae kwon'  => '\uf6de',
-                    'karate'    => '\uf6de',
-                    'marciales' => '\uf6de',
-                    'yoga'      => '\uf6ad',
-                    'pilates'   => '\uf6ad',
-                    'meditac'   => '\uf6ad',
-                    'barre'     => '\uf554',
-                    'aerobic'   => '\uf70c',
-                    'funcional' => '\uf44b',
-                    'acondiciona' => '\uf70c',
-                    'zumba'     => '\uf001',
-                    'baile'     => '\uf001',
-                    'jazz'      => '\uf86f',
-                    'natac'     => '\uf5c4',
-                    'gimnasia'  => '\uf5a2',
-                    'gym'       => '\uf44b',
-                    'ludoteca'  => '\uf1ae',
-                    'columna'   => '\uf481',
-                ];
-                foreach ($keywords as $kw => $code) {
-                    if (strpos($n, $kw) !== false) {
-                        $codepoint = $code;
-                        break;
-                    }
-                }
+            // Leer el archivo PNG pre-renderizado del backend (72x72px)
+            // Usamos PNG porque DomPDF tiene bugs conocidos con SVGs (ignora width/height
+            // y usa el viewBox nativo, causando iconos gigantes o diminutos).
+            // Los PNGs se generan con: node scripts/convert_svgs_to_png.js
+            $pngPath = resource_path("icons/disciplines/{$iconFile}.png");
+            if (!file_exists($pngPath)) {
+                $pngPath = resource_path('icons/disciplines/default.png');
             }
 
-            // Icono genérico si no hay coincidencia
-            if (!$codepoint) {
-                $codepoint = '\uf005'; // star (FontAwesome default)
-            }
+            $pngContent = file_get_contents($pngPath);
+            $base64 = base64_encode($pngContent);
 
-            // Convertir el codepoint \uXXXX a entidad HTML &#xXXXX;
-            $hex = str_replace('\u', '', $codepoint);
-
-            return '<span class="discipline-icon">&#x' . $hex . ';</span>';
+            return '<img src="data:image/png;base64,' . $base64 . '" width="36" height="36" style="width: 36px; height: 36px; display: inline-block; vertical-align: middle; margin-right: 12px; margin-bottom: 4px;" />';
         }
     }
     @endphp
@@ -446,9 +386,7 @@
         @foreach($matutino as $disciplinaName => $grupo)
             <div class="discipline-section">
                 <div class="discipline-header">
-                    <span class="discipline-icon-container">
-                        {!! getDisciplineIconHtml($disciplinaName) !!}
-                    </span>
+                    {!! getDisciplineIconHtml($disciplinaName) !!}
                     <h3 class="discipline-title">{{ $disciplinaName }}</h3>
                 </div>
 
@@ -509,9 +447,7 @@
         @foreach($vespertino as $disciplinaName => $grupo)
             <div class="discipline-section">
                 <div class="discipline-header">
-                    <span class="discipline-icon-container">
-                        {!! getDisciplineIconHtml($disciplinaName) !!}
-                    </span>
+                    {!! getDisciplineIconHtml($disciplinaName) !!}
                     <h3 class="discipline-title">{{ $disciplinaName }}</h3>
                 </div>
 
