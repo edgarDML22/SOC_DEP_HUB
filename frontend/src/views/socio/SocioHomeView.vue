@@ -226,7 +226,7 @@ const getProgressBarColor = (pct) => {
                 Próxima Reserva
               </span>
             </div>
-            <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">Cero reservas activas</h3>
+            <h3 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">0 reservas activas</h3>
             <p class="text-primary-100 font-medium text-sm md:text-base opacity-90 max-w-sm leading-relaxed">
               Elige el espacio que necesites y reserva tu horario.
             </p>

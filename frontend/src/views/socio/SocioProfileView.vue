@@ -25,6 +25,8 @@ const customAlert = reactive({
   type: 'error' // 'error' | 'success'
 });
 
+const fotoError = ref(false);
+
 const showCustomAlert = (title, message, type = 'error') => {
   customAlert.title = title;
   customAlert.message = message;
@@ -320,11 +322,18 @@ const formatearFecha = (fecha) => {
               <input type="file" ref="fileInput" accept="image/*" @change="handleFileChange" class="hidden" />
               
               <!-- Imagen de perfil -->
-              <div class="w-full h-full rounded-full overflow-hidden border-2 border-white/40 shadow-md bg-white/10 flex items-center justify-center transition-all duration-300 group-hover:border-white group-hover:scale-105">
-                <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto de perfil" class="w-full h-full object-cover" />
-                <div v-else class="text-3xl font-bold text-white uppercase select-none">
+              <div class="w-full h-full rounded-full overflow-hidden border-2 border-white/40 shadow-md bg-white/10 flex items-center justify-center transition-all duration-300 group-hover:border-white group-hover:scale-105 relative">
+                <div class="absolute inset-0 flex items-center justify-center text-3xl font-bold text-white uppercase select-none z-0">
                   {{ profileStore.userInitials }}
                 </div>
+                <img 
+                  v-if="profileStore.fotoPerfil" 
+                  :src="profileStore.fotoPerfil" 
+                  @error="fotoError = true; $event.target.style.display = 'none'" 
+                  @load="fotoError = false; $event.target.style.display = 'block'"
+                  alt="Perfil" 
+                  class="absolute inset-0 w-full h-full object-cover z-10 bg-primary-600" 
+                />
               </div>
 
               <!-- Overlay interactivo para "Cambiar Foto" -->
@@ -367,7 +376,7 @@ const formatearFecha = (fecha) => {
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                   <circle cx="12" cy="13" r="4"/>
                 </svg>
-                <span>{{ profileStore.fotoPerfil ? 'Cambiar foto de perfil' : 'Agregar foto de perfil' }}</span>
+                <span>{{ (profileStore.fotoPerfil && !fotoError) ? 'Cambiar foto de perfil' : 'Agregar foto de perfil' }}</span>
               </button>
             </div>
           </div>

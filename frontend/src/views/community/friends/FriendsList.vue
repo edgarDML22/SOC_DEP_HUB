@@ -226,8 +226,15 @@ const eliminarAmigo = async (amigo) => {
         >
           <!-- Header tarjeta -->
           <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
-              {{ amigo.nombre_amigo?.charAt(0) || '?' }}
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0 relative overflow-hidden">
+              <span class="z-0">{{ amigo.nombre_amigo?.charAt(0) || '?' }}</span>
+              <img 
+                v-if="amigo.foto_amigo" 
+                :src="amigo.foto_amigo" 
+                @error="$event.target.style.display = 'none'" 
+                class="absolute inset-0 w-full h-full object-cover z-10 bg-white"
+                alt="Perfil"
+              />
             </div>
             <h3 class="text-base font-bold text-surface-900 m-0 truncate flex-1 min-w-0" :title="amigo.nombre_amigo">
               {{ amigo.nombre_amigo }}

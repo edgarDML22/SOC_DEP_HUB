@@ -139,8 +139,15 @@ async function enviarSolicitud(socio) {
           >
             <!-- Info Izquierda -->
             <div class="flex items-center gap-4 min-w-0">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
-                {{ socio.nombre?.charAt(0) || '?' }}
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0 relative overflow-hidden">
+                <span class="z-0">{{ socio.nombre?.charAt(0) || '?' }}</span>
+                <img 
+                  v-if="socio.foto_perfil" 
+                  :src="socio.foto_perfil" 
+                  @error="$event.target.style.display = 'none'" 
+                  class="absolute inset-0 w-full h-full object-cover z-10 bg-white"
+                  alt="Perfil"
+                />
               </div>
               <div class="flex flex-col min-w-0">
                 <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="socio.nombre">{{ socio.nombre }}</h3>
