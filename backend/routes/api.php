@@ -55,6 +55,7 @@ use App\Models\Torneo;
 use App\Http\Controllers\RefereeAvailabilityController;
 use App\Http\Controllers\MatchAssignmentController;
 use App\Http\Controllers\SesionInstructorController;
+use App\Http\Controllers\ExcelImportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -186,6 +187,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/socios/search', [SocioController::class, 'search']);
     Route::get('/v1/socios/{id}', [SocioController::class, 'show']);
     Route::put('/v1/socios/update/{id}', [SocioController::class, 'update']);
+    Route::post('/v1/socios/import-excel', [ExcelImportController::class, 'importSocios']);
 
     // CRUD DISCIPLINAS
     Route::get('/v1/disciplinas/all', [DisciplinaController::class, 'index']);

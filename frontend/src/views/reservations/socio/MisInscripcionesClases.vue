@@ -221,6 +221,19 @@ const inscripcionesFiltradas = computed(() => {
 function getCardAccent(tipoClase) {
   return tipoClase === 'Cerrada' ? 'border-l-violet-500' : 'border-l-emerald-500'
 }
+
+const ESTATUS_SESION_MAP = {
+  DISPONIBLE: { class: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Disponible' },
+  LLENO: { class: 'bg-orange-50 text-orange-700 border-orange-200', label: 'Cupo Lleno' },
+  EN_CURSO: { class: 'bg-amber-50 text-amber-700 border-amber-200', label: 'En Curso' },
+  FINALIZADA: { class: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Finalizada' },
+  CANCELADA: { class: 'bg-red-50 text-red-700 border-red-200', label: 'Cancelada' },
+  CANCELADA_POR_TORNEO: { class: 'bg-red-50 text-red-700 border-red-200', label: 'Cancelada por Torneo' },
+}
+
+function getEstatusSesionBadge(estatus) {
+  return ESTATUS_SESION_MAP[estatus] ?? { class: 'bg-slate-50 text-slate-600 border-slate-200', label: estatus || 'Programada' }
+}
 </script>
 
 <template>
@@ -358,15 +371,23 @@ function getCardAccent(tipoClase) {
 
           <!-- Acciones -->
           <div class="px-5 pb-4 pt-2 mt-auto flex items-center justify-between gap-2 border-t border-slate-100">
-            <!-- Badge tipo clase -->
-            <span
-              class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md border"
-              :class="inscripcion.tipo_clase === 'Cerrada'
-                ? 'bg-violet-50 border-violet-200 text-violet-700'
-                : 'bg-emerald-50 border-emerald-200 text-emerald-700'"
-            >
-              {{ inscripcion.tipo_clase }}
-            </span>
+            <!-- Badge tipo clase + estatus clase -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span
+                class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md border"
+                :class="inscripcion.tipo_clase === 'Cerrada'
+                  ? 'bg-violet-50 border-violet-200 text-violet-700'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-700'"
+              >
+                {{ inscripcion.tipo_clase }}
+              </span>
+              <span
+                class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md border"
+                :class="getEstatusSesionBadge(inscripcion.estatus_sesion).class"
+              >
+                {{ getEstatusSesionBadge(inscripcion.estatus_sesion).label }}
+              </span>
+            </div>
             <div class="flex items-center gap-2">
             <!-- Cancelar inscripción — v-if cancelables sin cambios -->
             <button
@@ -424,7 +445,12 @@ function getCardAccent(tipoClase) {
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-base font-extrabold text-white leading-none">Detalles de la Clase</h3>
-              <p class="text-blue-100 text-xs font-medium mt-0.5">{{ formatFecha(selectedInscripcion.fecha_sesion) }}</p>
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
+                <p class="text-blue-100 text-xs font-medium">{{ formatFecha(selectedInscripcion.fecha_sesion) }}</p>
+                <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-white/20 text-white border border-white/30">
+                  {{ getEstatusSesionBadge(selectedInscripcion.estatus_sesion).label }}
+                </span>
+              </div>
             </div>
             <button @click="closeDetails"
               class="w-8 h-8 bg-white/15 hover:bg-white/25 rounded-full flex items-center justify-center transition-colors focus:outline-none shrink-0"
