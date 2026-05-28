@@ -27,7 +27,6 @@ const claseInput = computed(() => {
 function validar() {
   if (!esValido.value) return
   emit('submit', codigo.value)
-  codigo.value = ''
 }
 </script>
 

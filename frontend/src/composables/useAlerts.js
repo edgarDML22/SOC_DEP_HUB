@@ -124,10 +124,10 @@ export const useAlerts = () => {
     }
 
     // Modal de Error
-    const errorModal = (title, text) => {
+    const errorModal = (title, html) => {
         return swalApp.fire({
             title: title,
-            text: text,
+            html: html,
             icon: 'error',
             iconColor: 'var(--color-state-error)',
             confirmButtonText: 'Entendido'

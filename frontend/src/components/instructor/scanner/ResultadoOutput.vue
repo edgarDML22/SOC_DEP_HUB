@@ -24,9 +24,9 @@ const LABEL_CATEGORIA = {
 const labelCategoria = computed(() => LABEL_CATEGORIA[store.categoriaActiva] ?? '')
 
 async function handleListo() {
-  // Refrescar la caché de datos para reflejar cambios (reservas completadas, etc.)
   store.resetHub()
-  await router.push('/instructor/home')
+  await store.refreshDatosMenu()
+  await router.push('/instructor/qr')
 }
 
 function continuarEscaneando() {
@@ -69,11 +69,11 @@ function continuarEscaneando() {
           <!-- Total de participantes registrados -->
           <div class="w-full px-5 py-4 rounded-xl bg-green-50 border border-green-100 flex items-center justify-between">
             <div class="text-left">
-              <p class="text-[10px] font-bold text-green-700/70 uppercase tracking-widest mb-0.5">
+              <p class="text-xs font-bold text-green-700 uppercase tracking-widest mb-1">
                 Participantes registrados
               </p>
-              <p class="text-xs font-semibold text-green-800/80">
-                Asistencia asentada en el sistema
+              <p class="text-[11px] font-semibold text-green-800 leading-snug">
+                Asistencia registrada en el sistema
               </p>
             </div>
             <p class="text-3xl font-bold text-green-700 tabular-nums">
@@ -83,14 +83,29 @@ function continuarEscaneando() {
 
           <!-- Contexto de sesión -->
           <div v-if="store.sesionActiva"
-               class="w-full px-4 py-3 rounded-xl bg-surface-50 border border-surface-100 text-left">
-            <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Sesión</p>
-            <p class="text-sm font-bold text-surface-900 leading-tight">
+               class="w-full px-4 py-3.5 rounded-xl border border-blue-100 text-left"
+               style="background-color: #EFF6FF;">
+            <div class="flex items-center gap-1.5 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-400" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Sesión</p>
+            </div>
+            <p class="text-base font-bold text-blue-900 leading-tight">
               {{ store.sesionActiva.disciplina }}
             </p>
-            <p class="text-[11px] font-semibold text-surface-500 mt-0.5 tabular-nums">
-              {{ store.sesionActiva.hora_inicio }}–{{ store.sesionActiva.hora_fin }}
-            </p>
+            <div class="flex items-center gap-1 mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-400" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-xs font-semibold text-blue-600 tabular-nums">
+                {{ store.sesionActiva.hora_inicio }}–{{ store.sesionActiva.hora_fin }}
+              </p>
+            </div>
           </div>
 
         </div>
@@ -322,7 +337,7 @@ function continuarEscaneando() {
                class="w-full px-4 py-3 rounded-xl border border-surface-100 text-left"
                style="background-color: #F1F5F9;">
             <p class="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Código escaneado</p>
-            <p class="text-sm font-bold text-surface-900 font-mono tracking-widest">
+            <p class="text-base font-mono font-black tracking-widest text-surface-900">
               {{ store.codigoEscaneado }}
             </p>
           </div>

@@ -125,7 +125,7 @@ async function handleConfirmarInscripcion() {
       customClass: { popup: 'swal-border-radius', confirmButton: 'btn-primary' }
     })
   } else {
-    await errorModal('Error de Inscripción', `No se pudo inscribir a ningún participante:<br>${errores.join('<br>')}`)
+    await errorModal('No se pudo completar la inscripción', `Los siguientes participantes tienen un conflicto de horario con otra clase en su agenda:<br><br>${errores.map(e => `· ${e}`).join('<br>')}`)
   }
 }
 

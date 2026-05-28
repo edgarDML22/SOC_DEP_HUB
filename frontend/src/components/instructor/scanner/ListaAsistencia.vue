@@ -16,6 +16,34 @@ const TIPO_STYLE = {
     miembro_familiar: 'bg-violet-50 text-violet-700',
     invitado:         'bg-amber-50 text-amber-700',
 }
+
+// ---- Variantes visuales por estado_asistencia ---------------------------
+// PENDIENTE        → gris neutral
+// NUEVO_CONFIRMADO → verde brillante (escaneado en esta sesión del Hub)
+// YA_REGISTRADO    → azul (asistencia previa, no es escaneo reciente)
+const ITEM_STYLE = {
+    PENDIENTE:        'border-surface-100',
+    NUEVO_CONFIRMADO: 'border-green-100 bg-green-50/40',
+    YA_REGISTRADO:    'border-blue-100 bg-blue-50/40',
+}
+
+const ICON_BG_STYLE = {
+    PENDIENTE:        'bg-surface-100',
+    NUEVO_CONFIRMADO: 'bg-green-100',
+    YA_REGISTRADO:    'bg-blue-100',
+}
+
+const CHIP_STYLE = {
+    PENDIENTE:        'bg-surface-100 text-surface-500',
+    NUEVO_CONFIRMADO: 'bg-green-100 text-green-700',
+    YA_REGISTRADO:    'bg-blue-100 text-blue-700',
+}
+
+const CHIP_LABEL = {
+    PENDIENTE:        'Pendiente',
+    NUEVO_CONFIRMADO: 'Confirmado',
+    YA_REGISTRADO:    'Previo',
+}
 </script>
 
 <template>
@@ -37,20 +65,30 @@ const TIPO_STYLE = {
         v-for="(p, i) in participantes"
         :key="p.codigo_qr ?? `${p.tipo_usuario}-${p.id_usuario}-${i}`"
         class="flex items-center gap-3 px-4 py-3 rounded-2xl border bg-white transition-all duration-200"
-        :class="p.asistencia
-          ? 'border-green-100 bg-green-50/40'
-          : 'border-surface-100'"
+        :class="ITEM_STYLE[p.estado_asistencia] ?? 'border-surface-100'"
       >
         <!-- Indicador de estado -->
         <div
           class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-          :class="p.asistencia ? 'bg-green-100' : 'bg-surface-100'"
+          :class="ICON_BG_STYLE[p.estado_asistencia] ?? 'bg-surface-100'"
         >
-          <svg v-if="p.asistencia"
+          <!-- Check verde para nuevos confirmados -->
+          <svg
+            v-if="p.estado_asistencia === 'NUEVO_CONFIRMADO'"
             xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-600"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
           </svg>
+          <!-- Ícono de "histórico/registrado previo" en azul -->
+          <svg
+            v-else-if="p.estado_asistencia === 'YA_REGISTRADO'"
+            xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <!-- Punto gris para pendientes -->
           <span v-else class="w-2 h-2 rounded-full bg-surface-300" />
         </div>
 
@@ -66,22 +104,14 @@ const TIPO_STYLE = {
               {{ TIPO_LABEL[p.tipo_usuario] }}
             </span>
           </div>
-          <p
-            class="text-[11px] font-mono font-semibold tracking-widest mt-0.5"
-            :class="p.asistencia ? 'text-green-600' : 'text-surface-400'"
-          >
-            {{ p.codigo_qr ?? '—' }}
-          </p>
         </div>
 
         <!-- Chip de estado -->
         <span
           class="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
-          :class="p.asistencia
-            ? 'bg-green-100 text-green-700'
-            : 'bg-surface-100 text-surface-500'"
+          :class="CHIP_STYLE[p.estado_asistencia] ?? 'bg-surface-100 text-surface-500'"
         >
-          {{ p.asistencia ? 'Confirmado' : 'Pendiente' }}
+          {{ CHIP_LABEL[p.estado_asistencia] ?? 'Pendiente' }}
         </span>
       </li>
     </ul>

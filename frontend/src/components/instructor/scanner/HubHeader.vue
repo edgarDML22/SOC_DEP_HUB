@@ -25,7 +25,7 @@ const TITULOS = {
     LIST_TORNEO:        'Encuentros Torneo',
     SELECCION_METODO:   'Método de Ingreso',
     ESCANER_ACTIVO:     'Escanear Código',
-    PASE_LISTA:         'Pase de Lista',
+    PASE_LISTA:         'Lista de Participantes',
     OUTPUT:             'Resultado',
 }
 
@@ -36,7 +36,7 @@ const SUBTITULOS = {
     LIST_TORNEO:        'Selecciona el encuentro a registrar',
     SELECCION_METODO:   'Elige cómo deseas ingresar el código QR',
     ESCANER_ACTIVO:     'Apunta la cámara o escribe el código del socio',
-    PASE_LISTA:         'Confirma la asistencia cuando hayas terminado',
+    PASE_LISTA:         'Revisa y confirma la asistencia de la sesión',
     OUTPUT:             'Registro procesado',
 }
 

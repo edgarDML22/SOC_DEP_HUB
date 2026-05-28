@@ -6,7 +6,10 @@ import ListaAsistencia from './ListaAsistencia.vue'
 const store = useScannerStore()
 
 const sesion       = computed(() => store.sesionActiva)
-const confirmados  = computed(() => store.inscritosConfirmados)
+// Solo los nuevos confirmados de ESTE Hub viajan al backend.
+// Los 'YA_REGISTRADO' (asistencia previa) NO se incluyen aquí para evitar
+// duplicados / envíos en cero.
+const confirmados  = computed(() => store.inscritosNuevos)
 const totalConfirm = computed(() => confirmados.value.length)
 const puedeEnviar  = computed(() => totalConfirm.value > 0 && !store.loading)
 
@@ -24,37 +27,32 @@ function enviar() {
   <div class="flex flex-col h-full">
 
     <!-- ── Banner informativo ─────────────────────────────────────────────── -->
-    <div class="mx-4 mt-4 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex gap-3">
-      <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+    <div class="mx-4 mt-4 bg-primary-50 border border-primary-100 rounded-2xl px-4 py-3.5">
+
+      <!-- Sesión: etiqueta secundaria -->
+      <p v-if="sesion" class="text-[10px] font-bold text-primary-400 uppercase tracking-widest mb-2">
+        {{ sesion.disciplina }}&ensp;·&ensp;{{ sesion.hora_inicio }}–{{ sesion.hora_fin }}
+      </p>
+
+      <!-- Contador + label: 30% del protagonismo -->
+      <div class="flex items-baseline gap-2">
+        <span class="text-3xl font-extrabold text-primary-700 tabular-nums leading-none">{{ totalConfirm }}</span>
+        <span class="text-sm font-semibold text-primary-600">
+          asistencia{{ totalConfirm === 1 ? '' : 's' }} nueva{{ totalConfirm === 1 ? '' : 's' }} por enviar
+        </span>
       </div>
-      <div class="min-w-0">
-        <p class="text-sm font-bold text-blue-900 leading-tight">Lista final de asistencia</p>
-        <p class="text-xs text-blue-700/80 mt-1 leading-relaxed">
-          {{ totalConfirm }} participante{{ totalConfirm === 1 ? '' : 's' }} será{{ totalConfirm === 1 ? '' : 'n' }}
-          registrado{{ totalConfirm === 1 ? '' : 's' }}. Esta acción no puede deshacerse.
-        </p>
-      </div>
+
+      <!-- Aviso mínimo -->
+      <p class="text-[11px] text-primary-400 mt-2 leading-relaxed">
+        Los registros previos no se reenvían. Esta acción no puede deshacerse.
+      </p>
     </div>
 
-    <!-- ── Contexto de sesión ─────────────────────────────────────────────── -->
-    <div v-if="sesion" class="flex items-center gap-2 px-5 mt-3">
-      <span class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
-        {{ sesion.disciplina }}
-      </span>
-      <span class="text-surface-300">·</span>
-      <span class="text-[10px] font-bold text-surface-400 tabular-nums">
-        {{ sesion.hora_inicio }}–{{ sesion.hora_fin }}
-      </span>
-    </div>
-
-    <!-- ── Lista de confirmados ───────────────────────────────────────────── -->
+    <!-- ── Lista de confirmados (solo nuevos) ─────────────────────────────── -->
     <div class="flex-1 overflow-y-auto px-4 mt-3 pb-2">
       <ListaAsistencia
         :participantes="confirmados"
-        empty-titulo="No hay confirmados"
+        empty-titulo="No hay nuevos por confirmar"
         empty-mensaje="Vuelve atrás para registrar asistencia."
       />
     </div>
@@ -66,9 +64,13 @@ function enviar() {
         type="button"
         @click="volverAEditar"
         :disabled="store.loading"
-        class="w-full py-3 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 font-bold text-sm hover:bg-primary-100 active:scale-[0.98] transition-all duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+        class="w-full py-3 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 font-bold text-sm hover:bg-primary-100 active:scale-[0.98] transition-all duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
       >
-        Volver a editar
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Volver a escanear
       </button>
 
       <button

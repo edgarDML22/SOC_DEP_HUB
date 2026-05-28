@@ -369,14 +369,6 @@ class SesionInstructorController extends Controller
             ], 409);
         }
 
-        // Guardia: idempotencia — si el instructor ya confirmó, no re-procesar
-        if ($sesion->lista_asistencia_enviada) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Esta sesión ya fue confirmada anteriormente.',
-                'codigo'  => 'LISTA_YA_ENVIADA',
-            ], 409);
-        }
 
         return DB::transaction(function () use ($request, $sesion) {
             $erroresParciales = [];
@@ -409,7 +401,7 @@ class SesionInstructorController extends Controller
                             'id_usuario'          => $idUsuario,
                             'tipo_usuario'        => $tipoUsuario,
                             'asistencia'          => true,
-                            'metodo_registro'     => $request->metodo,
+                            'metodo_registro'     => $request->metodo === 'INGRESO_MANUAL' ? 'MANUAL' : $request->metodo,
                             'fecha_hora_registro' => now(),
                         ]);
 

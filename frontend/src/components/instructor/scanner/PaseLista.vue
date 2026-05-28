@@ -6,26 +6,31 @@ import ListaAsistencia from './ListaAsistencia.vue'
 
 const store = useScannerStore()
 
-// Segmento activo: 'INSCRITOS' (pendientes) | 'CONFIRMADOS'
+// Segmento activo: 'INSCRITOS' (pendientes) | 'CONFIRMADOS' (históricos + nuevos)
 const segmento = ref('INSCRITOS')
 
 const sesion = computed(() => store.sesionActiva)
 
 const participantesVisibles = computed(() =>
     segmento.value === 'INSCRITOS'
-        ? store.inscritosNoConfirmados
-        : store.inscritosConfirmados
+        ? store.inscritosPendientes
+        : [...store.inscritosHistoricos, ...store.inscritosNuevos]
 )
 
-const totalPendientes  = computed(() => store.inscritosNoConfirmados.length)
-const totalConfirmados = computed(() => store.inscritosConfirmados.length)
+const totalPendientes  = computed(() => store.inscritosPendientes.length)
+// Sumar históricos (asistencia previa) + nuevos (escaneados en esta sesión del Hub)
+const totalConfirmados = computed(
+    () => store.inscritosHistoricos.length + store.inscritosNuevos.length
+)
+// El botón "Confirmar Lista" SOLO envía los nuevos escaneados en este Hub
+const totalNuevos      = computed(() => store.inscritosNuevos.length)
 
 function seguirEscaneando() {
     store.paso = 'ESCANER_ACTIVO'
 }
 
 function irAConfirmacion() {
-    if (totalConfirmados.value === 0) return
+    if (totalNuevos.value === 0) return
     store.paso = 'CONFIRMACION_PREVIA'
 }
 </script>
@@ -130,24 +135,24 @@ function irAConfirmacion() {
         :disabled="store.aforoLleno"
         class="w-full py-3 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 font-bold text-sm hover:bg-primary-100 active:scale-[0.98] transition-all duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
       >
-        Seguir escaneando
+        Escanear
       </button>
 
       <button
         type="button"
         @click="irAConfirmacion"
-        :disabled="totalConfirmados === 0"
+        :disabled="totalNuevos === 0"
         class="w-full py-4 rounded-2xl font-bold text-sm transition-all duration-150 focus:outline-none flex items-center justify-center gap-2"
-        :class="totalConfirmados === 0
+        :class="totalNuevos === 0
           ? 'bg-surface-100 text-surface-300 cursor-not-allowed'
           : 'bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-600/20 active:scale-[0.98]'"
       >
         <span>Confirmar Lista</span>
         <span
-          v-if="totalConfirmados > 0"
-          class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/20 tabular-nums"
+          class="text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums"
+          :class="totalNuevos === 0 ? 'bg-surface-200/60' : 'bg-white/20'"
         >
-          {{ totalConfirmados }}
+          {{ totalNuevos }}
         </span>
       </button>
     </div>
