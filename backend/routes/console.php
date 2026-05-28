@@ -59,6 +59,6 @@ Schedule::command('queue:work --queue=default,torneo-cancelacion --stop-when-emp
 // Condición de negocio: plantilla publicada y vigente para la fecha de la sesión.
 // Lecturas de hora_inicio / hora_fin desde el snapshot de sesiones_activas (sin JOIN a plantilla).
 Schedule::command('sessions:update-status')
-    ->everyMinute()
+    ->everyFiveMinutes()
     ->withoutOverlapping()
     ->timezone('America/Mexico_City');

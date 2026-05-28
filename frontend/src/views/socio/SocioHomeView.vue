@@ -103,6 +103,31 @@ const handleClick = async (action) => {
   }
 };
 
+const actividadEnCurso = computed(() => {
+  const act = agendaStore.proximaActividad
+  if (!act?.fecha || !act?.hora_inicio || !act?.hora_fin) return false
+  const hoy = new Date().toLocaleDateString('en-CA')
+  if (act.fecha !== hoy) return false
+  const now = new Date()
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const [hi, mi] = act.hora_inicio.split(':').map(Number)
+  const [hf, mf] = act.hora_fin.split(':').map(Number)
+  return nowMin >= hi * 60 + mi && nowMin < hf * 60 + mf
+})
+
+const actividadDistancia = computed(() => {
+  if (actividadEnCurso.value) return 'EN CURSO'
+  const fecha = agendaStore.proximaActividad?.fecha
+  if (!fecha) return null
+  const hoy = new Date().toLocaleDateString('en-CA')
+  if (fecha === hoy) return 'HOY'
+  const msDay = 86_400_000
+  const diff = Math.round((new Date(fecha + 'T12:00:00') - new Date(hoy + 'T12:00:00')) / msDay)
+  if (diff === 1) return 'MAÑANA'
+  if (diff > 1)   return `${diff} DÍAS`
+  return null
+})
+
 const torneosActivosProximos = computed(() => {
   return [...torneoStore.disponibles].slice(0, 3);
 });
@@ -161,6 +186,19 @@ const getProgressBarColor = (pct) => {
         <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
 
+        <!-- Badge temporal / esquina superior derecha -->
+        <div v-if="actividadDistancia" class="absolute top-5 right-5 md:top-6 md:right-6 z-20">
+          <span
+            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest border"
+            :class="actividadEnCurso || actividadDistancia === 'HOY'
+              ? 'bg-white text-primary-700 border-white'
+              : 'bg-white/15 text-white border-white/30'"
+          >
+            <span v-if="actividadEnCurso" class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0"></span>
+            {{ actividadDistancia }}
+          </span>
+        </div>
+
         <div class="relative z-10 flex-1">
           <div v-if="agendaStore.proximaActividad">
             <div class="flex items-center gap-3 mb-4">
@@ -168,7 +206,7 @@ const getProgressBarColor = (pct) => {
                 {{ agendaStore.proximaActividad.tipo.replace('_', ' ') }}
               </span>
               <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
-                Próxima actividad
+                {{ actividadEnCurso ? 'En Curso' : 'Próxima actividad' }}
               </span>
             </div>
             <div class="flex items-center gap-3 mb-2 text-white">

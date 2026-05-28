@@ -67,26 +67,61 @@ const contextoLinea2 = computed(() => {
     <!-- ── Banner premium de sesión/reserva seleccionada ─────────────────── -->
     <div
       v-if="contextoLinea1"
-      class="flex items-center gap-3.5 px-4 py-3.5 bg-linear-to-r from-primary-600 to-primary-700 rounded-2xl shadow-md shadow-primary-600/20"
+      class="bg-linear-to-r from-primary-600 to-primary-700 rounded-2xl shadow-md shadow-primary-600/20 overflow-hidden"
     >
-      <!-- Ícono dinámico de disciplina -->
-      <div class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-        <DisciplineIcon :name="disciplinaNombre" class="w-6 h-6 text-white" />
+      <div class="flex items-center gap-3.5 px-4 py-3.5">
+        <!-- Ícono dinámico de disciplina -->
+        <div class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+          <DisciplineIcon :name="disciplinaNombre" class="w-6 h-6 text-white" />
+        </div>
+
+        <!-- Texto -->
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] font-bold text-primary-200 uppercase tracking-widest leading-none mb-0.5">
+            {{ labelCategoria }}
+          </p>
+          <p class="text-sm font-bold text-white truncate leading-tight">{{ contextoLinea1 }}</p>
+          <p v-if="contextoLinea2" class="text-xs text-primary-200 truncate leading-tight mt-0.5">
+            {{ contextoLinea2 }}
+          </p>
+        </div>
+
+        <!-- Indicador activo -->
+        <div class="w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
       </div>
 
-      <!-- Texto -->
-      <div class="min-w-0 flex-1">
-        <p class="text-[10px] font-bold text-primary-200 uppercase tracking-widest leading-none mb-0.5">
-          {{ labelCategoria }}
-        </p>
-        <p class="text-sm font-bold text-white truncate leading-tight">{{ contextoLinea1 }}</p>
-        <p v-if="contextoLinea2" class="text-xs text-primary-200 truncate leading-tight mt-0.5">
-          {{ contextoLinea2 }}
-        </p>
-      </div>
+      <!-- Atajo a Lista de Asistencia (solo Mis Clases) -->
+      <button
+        v-if="store.esCategoriaClases"
+        type="button"
+        @click="store.paso = 'PASE_LISTA'"
+        :disabled="store.listaLoading"
+        class="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 active:bg-white/20 border-t border-white/15 transition-colors duration-150 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+          <span class="text-xs font-bold text-white tracking-wide truncate">
+            Lista de Asistencia
+          </span>
+          <span
+            v-if="!store.listaLoading && store.listaInscritos.length > 0"
+            class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white tabular-nums shrink-0"
+          >
+            {{ store.inscritosConfirmados.length }}/{{ store.listaInscritos.length }}
+          </span>
+        </div>
 
-      <!-- Indicador activo -->
-      <div class="w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
+        <div class="flex items-center gap-1 shrink-0">
+          <span v-if="store.listaLoading" class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </button>
     </div>
 
     <!-- ── Tarjetas de método ─────────────────────────────────────────────── -->

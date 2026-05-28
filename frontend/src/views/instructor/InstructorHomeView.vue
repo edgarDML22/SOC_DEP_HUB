@@ -69,7 +69,20 @@ const turnoLudotecaActivo = computed(() => {
   return finMs > nowMs
 })
 
+const proximaEnCurso = computed(() => {
+  const act = proximaActividadInstructor.value
+  if (!act?.fecha || !act?.hora_inicio || !act?.hora_fin) return false
+  const hoy = new Date().toLocaleDateString('en-CA')
+  if (act.fecha !== hoy) return false
+  const now = new Date()
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const [hi, mi] = act.hora_inicio.split(':').map(Number)
+  const [hf, mf] = act.hora_fin.split(':').map(Number)
+  return nowMin >= hi * 60 + mi && nowMin < hf * 60 + mf
+})
+
 const proximaDistancia = computed(() => {
+  if (proximaEnCurso.value) return 'EN CURSO'
   const fecha = proximaActividadInstructor.value?.fecha
   if (!fecha) return null
   const hoy     = new Date().toLocaleDateString('en-CA')
@@ -166,11 +179,14 @@ onMounted(async () => {
             <!-- Badge de distancia temporal -->
             <div v-if="proximaDistancia" class="absolute top-5 right-5 md:top-6 md:right-6 z-20">
               <span
-                class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest border"
-                :class="proximaDistancia === 'HOY'
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest border"
+                :class="proximaEnCurso
                   ? 'bg-white text-primary-700 border-white'
-                  : 'bg-white/15 text-white border-white/30'"
+                  : proximaDistancia === 'HOY'
+                    ? 'bg-white text-primary-700 border-white'
+                    : 'bg-white/15 text-white border-white/30'"
               >
+                <span v-if="proximaEnCurso" class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0"></span>
                 {{ proximaDistancia }}
               </span>
             </div>
@@ -178,7 +194,7 @@ onMounted(async () => {
             <div class="relative z-10 flex-1">
               <div class="flex items-center gap-3 mb-4">
                 <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
-                  Próxima Actividad
+                  {{ proximaEnCurso ? 'En Curso' : 'Próxima Actividad' }}
                 </span>
                 <span v-if="proximaActividadInstructor" class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
                   {{ proximaBadgeLabel }}

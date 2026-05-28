@@ -44,12 +44,17 @@ class AgendaUnificadaService
             array_values($agrupados)
         );
 
-        // Próxima actividad: primer ítem cuya fecha+hora sea >= ahora (Mexico City)
         $ahora = Carbon::now('America/Mexico_City');
-        $proximaActividad = collect($items)->first(function ($item) use ($ahora) {
-            $dt = Carbon::parse("{$item['fecha']} {$item['hora_inicio']}", 'America/Mexico_City');
-            return $dt->gte($ahora);
+        $enCurso = collect($items)->first(function ($item) use ($ahora) {
+            $inicio = Carbon::parse("{$item['fecha']} {$item['hora_inicio']}", 'America/Mexico_City');
+            $fin    = $item['hora_fin']
+                ? Carbon::parse("{$item['fecha']} {$item['hora_fin']}", 'America/Mexico_City')
+                : null;
+            return $inicio->lte($ahora) && ($fin === null || $fin->gte($ahora));
         });
+        $proximaActividad = $enCurso ?? collect($items)->first(
+            fn($item) => Carbon::parse("{$item['fecha']} {$item['hora_inicio']}", 'America/Mexico_City')->gt($ahora)
+        );
 
         return [
             'proxima_actividad' => $proximaActividad,

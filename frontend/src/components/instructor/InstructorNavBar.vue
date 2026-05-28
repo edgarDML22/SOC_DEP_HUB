@@ -78,7 +78,7 @@ onUnmounted(() => {
             </router-link>
 
             <router-link to="/instructor/qr" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
-                <IconQr class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Escanear QR
+                <IconQr class="w-[18px] h-[18px] group-[.router-link-active]:text-white"/> Asistencia
             </router-link>
 
             <router-link to="/instructor/encuentros" class="group flex items-center gap-2 font-medium text-surface-500 px-4 py-2 rounded-xl transition-all active:scale-95 hover:bg-surface-100 hover:text-surface-900 [&.router-link-active]:bg-primary-600 [&.router-link-active]:text-white [&.router-link-active]:shadow-md [&.router-link-active]:font-bold">
@@ -258,7 +258,7 @@ onUnmounted(() => {
                 <div class="w-14 h-14 rounded-full bg-linear-to-br from-primary-800 to-primary-600 shadow-[0_6px_24px_rgba(37,99,235,0.45)] flex items-center justify-center ring-4 ring-white">
                     <IconQr class="w-7 h-7 text-white drop-shadow-sm" />
                 </div>
-                <span class="text-[11px] font-bold text-primary-700 mt-1 tracking-wide">Escanear</span>
+                <span class="text-[11px] font-bold text-primary-700 mt-1 tracking-wide">Asistencia</span>
             </router-link>
 
             <!-- Pestaña de Ludoteca Protegida Móvil -->
