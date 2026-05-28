@@ -434,7 +434,7 @@ class ExcelImportController extends Controller
                 foreach (array_chunk(array_values($sociosToInsert), 500) as $chunk) { SocioTitular::insert($chunk); }
                 $insertedSocios = SocioTitular::whereIn('numero_accion', array_keys($sociosToInsert))->get(['id_socio', 'numero_accion'])->keyBy('numero_accion');
                 $usersToInsert = [];
-                $defaultHashedPassword = bcrypt('socdep1234'); // Pre-calcular el hash una sola vez fuera del bucle
+                $defaultHashedPassword = bcrypt('password'); // Pre-calcular el hash una sola vez fuera del bucle
                 foreach ($insertedSocios as $numAccion => $socioModel) {
                     $partnerData = $sociosToInsert[$numAccion];
                     $usersToInsert[] = [

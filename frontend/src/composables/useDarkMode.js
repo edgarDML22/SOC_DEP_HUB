@@ -1,8 +1,7 @@
 import { ref } from 'vue'
 
 const isDark = ref(
-  localStorage.getItem('theme') === 'dark' ||
-  (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  localStorage.getItem('theme') === 'dark'
 )
 
 const updateTheme = () => {
