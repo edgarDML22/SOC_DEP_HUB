@@ -257,20 +257,13 @@ class ProfileController extends Controller
 
         $idSocio = $usuario->user_id;
 
-        // Eliminar cualquier foto de perfil anterior para evitar duplicados con otras extensiones (búsqueda dinámica)
-        $files = \Illuminate\Support\Facades\Storage::disk('public')->files('perfiles');
-        foreach ($files as $f) {
-            if (preg_match('/^perfiles\/socio_' . $idSocio . '\.[a-zA-Z0-9]+$/i', $f)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($f);
-            }
-        }
-
-        // Guardar la nueva foto
+        // Subir la imagen a Cloudinary en la carpeta especificada
         $file = $request->file('foto_perfil');
-        $ext = $file->getClientOriginalExtension();
-        $filename = "socio_{$idSocio}.{$ext}";
-        
-        $path = $file->storeAs('perfiles', $filename, 'public');
+        cloudinary()->uploadApi()->upload($file->getRealPath(), [
+            'folder' => 'socios/profiles',
+            'public_id' => 'socio_' . $idSocio,
+            'overwrite' => true,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -281,13 +274,6 @@ class ProfileController extends Controller
 
     private function getFotoPerfilUrl($idSocio)
     {
-        $files = \Illuminate\Support\Facades\Storage::disk('public')->files('perfiles');
-        foreach ($files as $f) {
-            if (preg_match('/^perfiles\/socio_' . $idSocio . '\.([a-zA-Z0-9]+)$/i', $f, $matches)) {
-                $baseUrl = request()->getSchemeAndHttpHost();
-                return $baseUrl . '/storage/' . $f . '?t=' . time();
-            }
-        }
-        return null;
+        return (string) cloudinary()->image("socios/profiles/socio_{$idSocio}")->version(time())->toUrl();
     }
 }

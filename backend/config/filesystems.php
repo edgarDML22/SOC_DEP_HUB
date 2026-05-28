@@ -60,6 +60,11 @@ return [
             'root' => '/torneos-storage',
         ],
 
+        'cloudinary' => [
+            'driver' => 'cloudinary',
+            'url' => env('CLOUDINARY_URL'),
+        ],
+
     ],
 
     /*
