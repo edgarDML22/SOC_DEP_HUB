@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
     libicu-dev \
+    libonig-dev \
     zip \
     unzip \
     git \
@@ -18,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 # Configuramos e instalamos las extensiones nativas de PHP
 # pcntl y sockets son requeridas por Laravel Octane / RoadRunner
 RUN docker-php-ext-configure intl
-RUN docker-php-ext-install pdo_pgsql zip intl pcntl sockets
+RUN docker-php-ext-install pdo_pgsql zip intl pcntl sockets mbstring
 
 # Instalamos las librerías del sistema necesarias para GD y otras extensiones
 RUN apt-get update && apt-get install -y \

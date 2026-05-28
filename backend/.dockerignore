@@ -1,3 +1,21 @@
+# Symlink que apunta fuera del contexto de build — causa "invalid file request"
+public/storage
+
+# Archivos que no necesitan estar en la imagen
+.env
+.env.backup
+.env.production
+.phpunit.cache
+.phpunit.result.cache
+node_modules
+storage/*.key
+.git
+.idea
+.vscode
+.fleet
+rr
+.rr.yaml
+torneos-storage/
 vendor
 node_modules
 .env
