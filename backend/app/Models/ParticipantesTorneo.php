@@ -14,6 +14,12 @@ class ParticipantesTorneo extends Model
     protected $appends = ['nombre_completo'];
 
     protected $fillable = [
+        'id_categoria',
+        'tipo_entidad',
+        'referencia_id',
+        'siembra_ranking',
+        'fecha_inscripcion',
+        'estatus_participacion',
         'id_torneo',
         'id_categoria',
         'tipo_entidad',

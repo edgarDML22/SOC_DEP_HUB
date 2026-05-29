@@ -1,71 +1,93 @@
 <?php
 
-use App\Http\Controllers\AgendaEspacioController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+
+// Models
 use App\Models\SocioTitular;
+use App\Models\Torneo;
+
+// Auth & System Controllers
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\ResetPasswordController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AsistenciaController;
-use App\Http\Controllers\ReservacionController;
-use App\Http\Controllers\SocioController;
-use App\Http\Controllers\EspacioFisicoController;
-use App\Http\Controllers\TorneoController;
-use App\Http\Controllers\UpdateStatusTorneo;
-use App\Http\Controllers\CreateCategories;
-use App\Http\Controllers\InstructorController;
-use App\Http\Controllers\ResultadoController;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\GuestPassController;
-use App\Http\Controllers\GuestStatusController;
-use App\Http\Controllers\AdminFamilyController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\SessionController;
+
+// Users & Entities Controllers
+use App\Http\Controllers\SocioController;
+use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\BootstrapController;
+use App\Http\Controllers\AdminFamilyController;
+use App\Http\Controllers\MiembrosFamiliaresController;
+use App\Http\Controllers\MiembrosFamiliaresList;
 use App\Http\Controllers\FriendsController;
+use App\Http\Controllers\GuestPassController;
+use App\Http\Controllers\GuestStatusController;
+
+// Spaces & Disciplines Controllers
+use App\Http\Controllers\AgendaEspacioController;
+use App\Http\Controllers\EspacioFisicoController;
+use App\Http\Controllers\DisciplinaController;
+use App\Http\Controllers\CategoriaDisciplinaController;
+use App\Http\Controllers\CreateCategories;
+use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\CategoriaTorneoController;
+
+// Reservations & Operations Controllers
+use App\Http\Controllers\ReservacionController;
+use App\Http\Controllers\ReservationAdminController;
+use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\RegisterEventController;
+use App\Http\Controllers\Sanciones;
+use App\Http\Controllers\NotificacionController;
+
+// Ludoteca Controllers
 use App\Http\Controllers\LudotecaController;
 use App\Http\Controllers\LudotecaStatusController;
 use App\Http\Controllers\LudotecaRegisterController;
-use App\Http\Controllers\MiembrosFamiliaresList;
-use App\Http\Controllers\MiembrosFamiliaresController;
-use App\Http\Controllers\RegisterEventController;
-use App\Http\Controllers\DisciplinaController;
-use App\Http\Controllers\CategoriaDisciplinaController;
 use App\Http\Controllers\AdminLudotecaController;
 use App\Http\Controllers\EncuestaLudotecaController;
-use App\Http\Controllers\CategoriaController;
-use App\Http\Controllers\BIController;
-use App\Http\Controllers\ReservationAdminController;
-use App\Http\Controllers\UserAdminController;
-use App\Http\Controllers\BootstrapController;
+
+// Tournaments Controllers
+use App\Http\Controllers\TorneoController;
+use App\Http\Controllers\UpdateStatusTorneo;
+use App\Http\Controllers\ResultadoController;
+use App\Http\Controllers\PreRegisterController;
 use App\Http\Controllers\InternalRegistrationController;
 use App\Http\Controllers\SocioTournamentController;
 use App\Http\Controllers\SocioAgendaController;
 use App\Http\Controllers\InstructorEncuentrosController;
-use App\Http\Controllers\InstructorAgendaController;
-use App\Http\Controllers\PreRegisterController;
+use App\Http\Controllers\RefereeAvailabilityController;
+use App\Http\Controllers\MatchAssignmentController;
+use App\Http\Controllers\EquipoTorneoController;
+use App\Actions\Torneo\GenerarBracketAction;
+
+// Programming & Activities Controllers (Sprint 5)
 use App\Http\Controllers\PlantillaProgramacionController;
 use App\Http\Controllers\ProgramacionDependenciasController;
 use App\Http\Controllers\SesionActivaController;
 use App\Http\Controllers\InscripcionClaseController;
-use App\Actions\Torneo\GenerarBracketAction;
-use App\Models\Torneo;
-use App\Http\Controllers\RefereeAvailabilityController;
-use App\Http\Controllers\MatchAssignmentController;
+use App\Http\Controllers\InstructorAgendaController;
 use App\Http\Controllers\SesionInstructorController;
+
+// Analytics & Data Controllers
+use App\Http\Controllers\BIController;
 use App\Http\Controllers\ExcelImportController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|----------------------------------------------------------------
 |
 | Aquí es donde registras las rutas API para tu aplicación.
 |
 */
+
 if (app()->environment('local')) {
     Route::patch('/test-cancelar-torneo/{id}', function ($id) {
         $torneo = \App\Models\Torneo::findOrFail($id);
@@ -80,7 +102,6 @@ if (app()->environment('local')) {
     });
 }
 
-
 // ==========================================
 // RUTAS PÚBLICAS
 // ==========================================
@@ -94,23 +115,16 @@ Route::post('/v1/auth/forgot-password', [ForgotPasswordController::class, 'sendR
 // SDH-77: Endpoint para restablecimiento de contraseña
 Route::post('/v1/auth/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
-
-
 Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
-// SDH-17: Endpoint para crear reservaciones
+
+// SDH-17: Endpoint para crear reservaciones (On Demand público)
 Route::post('/v1/reservations', [ReservacionController::class, 'store']);
+
 // SDH 187: Actualizar estatus de la cuenta del socio
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
-
-
-
-Route::post('/v1/reservations', [ReservacionController::class, 'store']);// Miembros Familiares
-// Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
-
-// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 
 
 // SDH-164 protec por middleware que el insturctor que tenga el turno pueda acceder a estas rutas
@@ -123,21 +137,25 @@ Route::middleware(['check.turno'])->group(function () {
 });
 
 Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
-
 Route::post('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'store']);
 
+
+// ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
+
 // Ruta por defecto que incluye Laravel
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
 Route::patch('v1/ludoteca/estancia/{id}/status', [LudotecaStatusController::class, 'updateStatus']);
+
 // Grupo protegido con Sanctum
 // SDH-1102: Logout fuera del grupo auth — el controller maneja tokens inválidos o ausentes
 Route::post('/v1/auth/logout', [AuthController::class, 'logout']);
 
-//SDH-267: Pre-registro de torneos (Mapeado correctamente a PreRegisterController en la línea 96)
+//SDH-267: Pre-registro de torneos (Mapeado correctamente a PreRegisterController)
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -154,17 +172,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/user', function (Request $request) {
         return $request->user();
     });
-    //  Consultar disponibilidad de espacios y clases
 
     // Validación de QR para Asistencia
     Route::post('/v1/asistencia/validar-qr', [AsistenciaController::class, 'validarAcceso']);
 
-    //CRUD INSTRUCTORES
+    // CRUD INSTRUCTORES
     // Para instructor
     // Dashboard dinámico del instructor
     Route::get('/v1/instructor/dashboard', [InstructorController::class, 'getDashboardData']);
     // Profile del instructor
     Route::get('/v1/instructor/profile', [InstructorController::class, 'getProfileData']);
+
     // Para admin
     // Get all instructors
     Route::get('/v1/instructors/all', [InstructorController::class, 'getAllInstructors']);
@@ -176,7 +194,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/v1/instructors/update/{id}', [InstructorController::class, 'update']);
     // Delete instructor (Logical delete/Inactivate)
     Route::delete('/v1/instructors/delete/{id}', [InstructorController::class, 'destroy']);
-
+    
     // Meticulous Status Management
     Route::get('/v1/instructors/{id}/status-impact', [InstructorController::class, 'getActivitiesImpact']);
     Route::get('/v1/activities/{activityId}/substitutes', [InstructorController::class, 'getCandidateSubstitutes']);
@@ -205,7 +223,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/v1/disciplinas-categories/delete/{id}', [CategoriaDisciplinaController::class, 'destroy']);
     Route::get('/v1/categorias/{id}/verificar-eliminacion', [CategoriaDisciplinaController::class, 'verify_delete']);
 
-
     // CRUD ESPACIOS
     Route::get('/v1/spaces/availability', [EspacioFisicoController::class, 'getAvailability']);
     Route::get('/v1/spaces/all', [EspacioFisicoController::class, 'index']);
@@ -215,24 +232,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/v1/espacios/{id}/estatus', [EspacioFisicoController::class, 'update']);
     Route::delete('/v1/spaces/delete/{id}', [EspacioFisicoController::class, 'destroy']);
 
-    // Rutas de utilidad/negocio
+    // Rutas de utilidad/negocio de Reservaciones
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
     Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
 
     // RESERVACIONES ON DEMAND
-    Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-
     Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);
-
     Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
-
     Route::post('/v1/reservations/discard', [ReservacionController::class, 'discard']);
-
-
     Route::get('/v1/reservations/draft/active', [ReservacionController::class, 'getActiveDraft']);
     Route::get('/v1/reservations/my-list', [ReservacionController::class, 'myReservations']);
     Route::get('/v1/reservations/admin/list', [ReservationAdminController::class, 'index']);
+    
     // SDH 226: Obtener filtros de metadatos para reservaciones
     Route::get('/v1/reservations/admin/filters-meta', [ReservationAdminController::class, 'filterMeta']);
     Route::get('/v1/reservations/admin/stats', [ReservationAdminController::class, 'getStats']);
@@ -245,19 +257,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/admin/bi/reports/auditoria', [BIController::class, 'getAuditoriaStats']);
     Route::get('/v1/admin/bi/reports/tournaments', [BIController::class, 'getTournamentsStats']);
 
-    //Ruta para actualizar el perfil del usuario
+    // Ruta para actualizar el perfil del usuario
     Route::post('/v1/profile/update', [ProfileController::class, 'update']);
     Route::post('/v1/profile/upload-photo', [ProfileController::class, 'uploadPhoto']);
 
-    Route::get(
-        '/v1/ludoteca/encuesta/{idHistorial}',
-        [EncuestaLudotecaController::class, 'obtenerEncuesta']
-    );
-
-    Route::post(
-        '/v1/ludoteca/encuesta/{idHistorial}',
-        [EncuestaLudotecaController::class, 'guardarEncuesta']
-    );
+    // Ludoteca Encuesta
+    Route::get('/v1/ludoteca/encuesta/{idHistorial}', [EncuestaLudotecaController::class, 'obtenerEncuesta']);
+    Route::post('/v1/ludoteca/encuesta/{idHistorial}', [EncuestaLudotecaController::class, 'guardarEncuesta']);
 
     // GUESTS 
     Route::post('/v1/guest-create', [GuestStatusController::class, 'store']);
@@ -266,7 +272,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/v1/guests/{id}', [GuestStatusController::class, 'destroy']);
     Route::put('/v1/guests/{id}/restore', [GuestStatusController::class, 'restore']);
     Route::put('/v1/guests/{id}/toggle-pass', [GuestStatusController::class, 'togglePass']);
-
+    Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
 
     // FAMILY MEMBERS (Socio autenticado)
     Route::get('/v1/family-member-list', [MiembrosFamiliaresController::class, 'show']);
@@ -282,8 +288,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [AdminFamilyController::class, 'destroy']);
     });
 
-
-
     // FRIENDS
     Route::get('/v1/friends-list', [FriendsController::class, 'show']);
     Route::post('/v1/friend-add', [FriendsController::class, 'store']);
@@ -292,10 +296,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/friend-accept', [FriendsController::class, 'accept']);
     Route::post('/v1/friend-reject', [FriendsController::class, 'reject']);
 
-
+    // Instructor Hub
     Route::get('/v1/instructor/sessions', [SessionController::class, 'index']);
     Route::get('/v1/instructor/encuentros-torneo', [InstructorEncuentrosController::class, 'index']);
     Route::get('/v1/instructor/mi-agenda', [InstructorAgendaController::class, 'miAgenda']);
+
     // US-32/33: Hub QR — datos del día y pase de lista
     Route::get('/v1/instructor/datos-hoy', [SesionInstructorController::class, 'datosHoy']);
     Route::get('/v1/instructor/sesiones/{idSesion}/lista-inscriptos', [SesionInstructorController::class, 'listaInscriptos']);
@@ -304,14 +309,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
-    Route::put('/v1/guests/passes/{id}/cancel', [GuestPassController::class, 'cancelPass']);
-    //SDH 273 PReregistros
+
+    // SDH 273 Preregistros Torneos
     Route::post('/v1/pre-registros/{id}/aprobar', [PreRegisterController::class, 'aprobar']);
     Route::post('/v1/pre-registros/{id}/rechazar', [PreRegisterController::class, 'rechazar']);
+
     // ==========================================
     // LUDOTECA (RUTAS PROTEGIDAS)
     // ==========================================
-
     Route::prefix('v1/ludoteca')->group(function () {
         // Operativas (instructor / socio)
         Route::get('validar-tutor', [LudotecaController::class, 'validarTutor']);
@@ -319,7 +324,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('list', [MiembrosFamiliaresList::class, 'show']);
         Route::post('ingreso', [LudotecaStatusController::class, 'checkIn']);
 
-        // Administrativas (gerente )
+        // Administrativas (gerente)
         Route::post('admin/turnos', [AdminLudotecaController::class, 'store']);
         Route::get('admin/turnos', [AdminLudotecaController::class, 'getTurnos']);
         Route::delete('admin/turnos/{id}', [AdminLudotecaController::class, 'destroy']);
@@ -331,44 +336,29 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     //SDH-248:CRUD GERENTES
-    Route::prefix('v1/admin/users')
-        ->middleware('auth:sanctum')
-        ->group(function () {
-
-            Route::get('/', [UserAdminController::class, 'index']);
-
-            Route::post('/', [UserAdminController::class, 'store']);
-
-            Route::put('/{id}', [UserAdminController::class, 'update']);
-
-            Route::patch(
-                '/{id}/toggle-activo',
-                [UserAdminController::class, 'toggleActivo']
-            );
-        });
-
+    Route::prefix('v1/admin/users')->group(function () {
+        Route::get('/', [UserAdminController::class, 'index']);
+        Route::post('/', [UserAdminController::class, 'store']);
+        Route::put('/{id}', [UserAdminController::class, 'update']);
+        Route::patch('/{id}/toggle-activo', [UserAdminController::class, 'toggleActivo']);
+    });
 
     Route::get('/v1/socio/ludoteca/status', [LudotecaStatusController::class, 'getChildrenStatus']);
 
     // RUTAS DE SANCIONES
-    Route::post('/v1/sanciones/ludoteca', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesAPI']);
-    Route::post('/v1/sanciones/reservas', [\App\Http\Controllers\Sanciones::class, 'aplicarSancionesReservasAPI']);
+    Route::post('/v1/sanciones/ludoteca', [Sanciones::class, 'aplicarSancionesAPI']);
+    Route::post('/v1/sanciones/reservas', [Sanciones::class, 'aplicarSancionesReservasAPI']);
 
     // RUTAS DE NOTIFICACIONES (socio autenticado)
-    Route::get('/v1/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index']);
-    Route::patch('/v1/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarLeida']);
-    Route::patch('/v1/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasLeidas']);
+    Route::get('/v1/notificaciones', [NotificacionController::class, 'index']);
+    Route::patch('/v1/notificaciones/{id}/leer', [NotificacionController::class, 'marcarLeida']);
+    Route::patch('/v1/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas']);
 
     //TORNEOS ACTUALIZACION, SDH 267
-
     Route::prefix('v1/torneos')->group(function () {
-
         Route::post('/', [TorneoController::class, 'store']);
-
         Route::get('/', [TorneoController::class, 'index']);
-
-        Route::get('/categorias', [\App\Http\Controllers\CategoriaTorneoController::class, 'index']);
-
+        Route::get('/categorias', [CategoriaTorneoController::class, 'index']);
         Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
 
         //SDH-268:VER TORNEO
@@ -380,8 +370,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id_torneo}/available-referees', [RefereeAvailabilityController::class, 'available']);
     });
 
-
-
     Route::prefix('v1/encuentros')->group(function () {
         Route::patch('/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
@@ -389,34 +377,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);
     });
 
-
-
-
     // TORNEOS: Inscripción interna directa (bypassing MongoDB)
     Route::post('/v1/torneos/{id}/inscripciones', [InternalRegistrationController::class, 'store']);
 
     // TORNEOS: Hub del Socio (disponibles e historial)
     Route::get('/v1/socio/agenda', [SocioAgendaController::class, 'index']);
+
     // US-28 / SDH-348,349,350: Agenda unificada del socio (reservas + clases)
     Route::get('/v1/socio/mi-agenda', [SocioAgendaController::class, 'miAgenda']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
     //RUTAS PRE REGISTROS
-    // Obtener preregistros
     Route::get('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'index']);
-
-    // Aprobar preregistro
     Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
-
-    // Rechazar preregistro
     Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
-
-    // Descargar/visualizar documento del preregistro
     Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+
     //RESULTADOS TORNEOS
     Route::get('/v1/instructor/encuentros-torneo', [ResultadoController::class, 'misEncuentros']);
-
     Route::get('/v1/subgerente/resultados-pendientes', [ResultadoController::class, 'resultadosPendientes']);
 
     // ==========================================
@@ -428,10 +407,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('dependencias', [ProgramacionDependenciasController::class, 'index']);
 
         Route::prefix('drafts')->group(function () {
-            Route::get('/activo',      [PlantillaProgramacionController::class, 'showDraftActivo']);
-            Route::put('/activo',      [PlantillaProgramacionController::class, 'updateDraftActivo']);
+            Route::get('/activo', [PlantillaProgramacionController::class, 'showDraftActivo']);
+            Route::put('/activo', [PlantillaProgramacionController::class, 'updateDraftActivo']);
             Route::post('/consolidar', [PlantillaProgramacionController::class, 'consolidar']);
-            Route::post('/publicar',   [PlantillaProgramacionController::class, 'publicar']);
+            Route::post('/publicar', [PlantillaProgramacionController::class, 'publicar']);
         });
 
         Route::prefix('plantillas')->group(function () {
@@ -454,8 +433,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
         Route::patch('sesiones-activas/{id}', [SesionActivaController::class, 'update']);
         Route::get('sesiones-activas/{id}/asistencia', [SesionActivaController::class, 'asistencia']);
-
-        
     });
 
     // SDH-308: Actividades Programadas e Inscripciones
@@ -468,9 +445,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('inscripciones/{id_inscripcion}', [InscripcionClaseController::class, 'cancelar']);
     });
 
+    // ==========================================
+    // TORNEOS Y EQUIPOS (Integrado desde API develop)
+    // ==========================================
+    Route::get('/v1/equipos/{id_equipo}', [EquipoTorneoController::class, 'show']);
+    Route::post('/v1/torneos/{id_torneo}/equipos', [EquipoTorneoController::class, 'crearEquipo']);
+    Route::patch('/v1/torneos/{id_torneo}/equipos/{id_equipo}/responder', [EquipoTorneoController::class, 'responderInvitacion']);
+    Route::patch('/v1/equipos/reasignar', [EquipoTorneoController::class, 'reasignarCompanero']);
+
 });
-
-
-
-
-
