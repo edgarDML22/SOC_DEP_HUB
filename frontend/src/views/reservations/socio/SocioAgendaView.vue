@@ -197,8 +197,9 @@ const agruparPorFecha = (actividades) => {
     <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8">
       <div class="max-w-7xl mx-auto">
 
-        <div v-if="loadingSocio" class="flex justify-center py-16">
-          <div class="w-10 h-10 rounded-full border-3 border-surface-200 border-t-primary-500 animate-spin"/>
+        <div v-if="loadingSocio" class="flex flex-col items-center py-20">
+          <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+          <p class="text-slate-500 font-semibold text-sm">Cargando agenda...</p>
         </div>
 
         <div v-else-if="errorSocio" class="p-6 bg-red-50 border border-red-200 rounded-2xl text-center text-red-700 text-sm font-medium">

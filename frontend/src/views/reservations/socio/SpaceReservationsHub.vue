@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useProfileStore } from '@/stores/profiles/socioStore';
+import { nextTick } from 'vue';
 import OnDemand from './OnDemand.vue';
 import Manage from './Manage.vue';
 
@@ -37,6 +38,15 @@ const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
 };
+
+// Animación v-show tabs
+const tabAnimClass = ref('vshow-animate');
+watch(activeView, () => {
+  tabAnimClass.value = '';
+  nextTick(() => {
+    tabAnimClass.value = 'vshow-animate';
+  });
+});
 </script>
 
 <template>
@@ -99,8 +109,12 @@ const formatDate = (dateString) => {
 
     <!-- Área de Contenido Condicional — v-show para preservar estado y evitar re-mounts -->
     <div class="w-full">
-      <OnDemand v-show="activeView === 'hacer-reserva'" @switch-tab="activeView = $event" />
-      <Manage v-show="activeView === 'mis-reservas'" @switch-tab="activeView = $event" />
+      <div v-show="activeView === 'hacer-reserva'" :class="tabAnimClass">
+        <OnDemand @switch-tab="activeView = $event" />
+      </div>
+      <div v-show="activeView === 'mis-reservas'" :class="tabAnimClass">
+        <Manage @switch-tab="activeView = $event" />
+      </div>
     </div>
 
   </div>

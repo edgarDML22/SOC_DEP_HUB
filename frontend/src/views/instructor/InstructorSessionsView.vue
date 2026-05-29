@@ -75,9 +75,9 @@ const handleSessionClick = (sesion) => {
       </div>
 
       <!-- Estado de Carga -->
-      <section v-if="isLoading" class="flex flex-col items-center justify-center p-12">
-        <div class="w-8 h-8 rounded-full border-2 border-surface-200 border-t-primary-500 animate-spin"/>
-        <p class="text-surface-500 font-medium mt-4">Cargando agenda semanal...</p>
+      <section v-if="isLoading" class="flex flex-col items-center py-20">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+        <p class="text-slate-500 font-semibold text-sm">Cargando agenda semanal...</p>
       </section>
 
       <!-- Estado de Error -->

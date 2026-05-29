@@ -254,9 +254,8 @@ const selectTab = (id) => {
 
             <!-- LOADING STATE -->
             <div v-if="cargando && misReservacionesTotales.length === 0" class="flex flex-col items-center py-20">
-                <div class="w-10 h-10 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin">
-                </div>
-                <p class="mt-4 text-surface-500 font-medium">Cargando tus reservaciones...</p>
+                <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+                <p class="text-slate-500 font-semibold text-sm">Cargando tus reservaciones...</p>
             </div>
 
             <!-- EMPTY STATE -->

@@ -375,7 +375,7 @@ const handleLogout = () => {
 
       </div>
     </div>
-  </main>
+
     <!-- ══════════════════════════════════════════
          MODAL DE CORTE DE IMAGEN (WhatsApp Style)
     ══════════════════════════════════════════ -->
@@ -550,4 +550,5 @@ const handleLogout = () => {
         </div>
       </Transition>
     </Teleport>
+  </main>
 </template>

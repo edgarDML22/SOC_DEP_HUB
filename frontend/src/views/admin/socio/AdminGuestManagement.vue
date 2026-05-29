@@ -480,7 +480,7 @@ const handleDeleteGuest = async () => {
         </div>
       </div>
     </div>
-  </main>
+
 
   <!-- MODAL: CREAR/EDITAR INVITADO -->
   <Teleport to="body">
@@ -755,4 +755,5 @@ const handleDeleteGuest = async () => {
       </div>
     </Transition>
   </Teleport>
+  </main>
 </template>

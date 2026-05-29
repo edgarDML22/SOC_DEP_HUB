@@ -122,9 +122,9 @@ const copiarImagenAlPortapapeles = async (url) => {
       </div>
 
       <!-- Estado de Carga -->
-      <div v-if="familyStore.loading" class="text-center py-16 flex flex-col items-center gap-4">
-        <div class="w-10 h-10 border-4 border-surface-100 border-t-primary-600 rounded-full animate-spin"></div>
-        <p class="text-surface-500 font-semibold animate-pulse">Cargando familiares...</p>
+      <div v-if="familyStore.loading" class="flex flex-col items-center py-20">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+        <p class="text-slate-500 font-semibold text-sm">Cargando familiares...</p>
       </div>
 
       <!-- Empty State -->
@@ -146,18 +146,18 @@ const copiarImagenAlPortapapeles = async (url) => {
           class="bg-white rounded-[24px] p-6 shadow-sm border border-surface-100 transition-all hover:shadow-md hover:-translate-y-1 flex flex-col h-full group"
         >
           <!-- Header de tarjeta -->
-          <div class="flex justify-between items-start mb-5">
-            <div class="flex items-center gap-4">
+          <div class="flex justify-between items-center mb-5 gap-3">
+            <div class="flex items-center gap-4 min-w-0 flex-1">
               <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
                 {{  m.nombre_completo ? m.nombre_completo.charAt(0) : '?' }}
               </div>
-              <div class="flex flex-col min-w-0">
+              <div class="flex flex-col min-w-0 flex-1">
                 <h3 class="text-lg font-bold text-surface-900 m-0 truncate leading-tight" :title="m.nombre_completo">
                   {{ m.nombre_completo }}
                 </h3>
               </div>
             </div>
-            <span :class="getParentescoColor(m.parentesco)" class="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border">
+            <span :class="getParentescoColor(m.parentesco)" class="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border shrink-0">
               {{ m.parentesco || 'FAMILIAR' }}
             </span>
           </div>

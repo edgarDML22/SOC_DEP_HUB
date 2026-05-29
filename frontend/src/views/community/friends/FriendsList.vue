@@ -202,8 +202,9 @@ const eliminarAmigo = async (amigo) => {
       </div>
 
       <!-- Loading -->
-      <div v-if="friendStore.loading" class="text-center py-12 text-surface-500 font-medium">
-        <span class="animate-pulse">Cargando...</span>
+      <div v-if="friendStore.loading" class="flex flex-col items-center py-20">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+        <p class="text-slate-500 font-semibold text-sm">Cargando...</p>
       </div>
 
       <!-- Empty State -->

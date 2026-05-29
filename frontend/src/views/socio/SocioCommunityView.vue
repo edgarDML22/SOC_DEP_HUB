@@ -45,7 +45,11 @@ const activeTab = computed(() => {
 
     <!-- Router View (Los hijos tienen sus propios márgenes) -->
     <div class="w-full">
-        <router-view />
+        <router-view v-slot="{ Component, route }">
+          <Transition name="tab-fade" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </Transition>
+        </router-view>
     </div>
 
   </div>

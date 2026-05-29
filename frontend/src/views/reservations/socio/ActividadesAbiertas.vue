@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import { useActividadesStore } from '@/stores/actividadesStore'
 import { useFamilyStore } from '@/stores/community/familyStore'
 import { useGuestStore } from '@/stores/community/guestStore'
@@ -11,6 +11,19 @@ const guestStore = useGuestStore()
 const { successModal, errorModal, showLoading, closeLoading } = useAlerts()
 
 const selectedSesionInscripcion = ref(null)
+
+// Evitar scroll en el body cuando el modal está abierto
+watch(selectedSesionInscripcion, (newVal) => {
+  if (newVal) {
+    document.body.classList.add('overflow-hidden')
+  } else {
+    document.body.classList.remove('overflow-hidden')
+  }
+})
+
+onUnmounted(() => {
+  document.body.classList.remove('overflow-hidden')
+})
 
 // Selección en el modal — lógica sin cambios
 const inscripcionTipo = ref('titular') // 'titular' | 'familiar' | 'invitado'

@@ -154,8 +154,9 @@ const cerrarAsistencia = () => {
       <div class="max-w-7xl mx-auto">
 
         <!-- Loading -->
-        <div v-if="loadingInstructor" class="flex justify-center py-16">
-          <div class="w-10 h-10 rounded-full border-3 border-surface-200 border-t-primary-500 animate-spin"/>
+        <div v-if="loadingInstructor" class="flex flex-col items-center py-20">
+          <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+          <p class="text-slate-500 font-semibold text-sm">Cargando agenda...</p>
         </div>
 
         <!-- Error -->
@@ -163,8 +164,12 @@ const cerrarAsistencia = () => {
           {{ errorInstructor }}
         </div>
 
+        <!-- ── CONTENIDO DE TABS CON TRANSICIÓN ── -->
+        <Transition v-else name="tab-fade" mode="out-in">
+          <div :key="activeTab">
+
         <!-- ── TAB HOY ──────────────────────────────────────────────────────── -->
-        <div v-else-if="activeTab === 'hoy'" class="space-y-4">
+        <div v-if="activeTab === 'hoy'" class="space-y-4">
           <div v-if="itemsHoy.length === 0" class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm">
             <p class="text-surface-900 font-bold text-lg">Día Libre</p>
             <p class="text-surface-500 font-medium text-sm text-center max-w-xs mt-1">
@@ -380,6 +385,9 @@ const cerrarAsistencia = () => {
             </div>
           </div>
         </div>
+
+          </div>
+        </Transition>
 
       </div>
     </div>

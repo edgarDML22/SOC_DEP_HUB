@@ -146,11 +146,9 @@ const hayEncuentros = computed(() => encuentros.value.length > 0);
       </div>
 
       <!-- ── Estado de carga ──────────────────────────────── -->
-      <section v-if="isLoading" class="flex flex-col items-center justify-center p-12 mt-10">
-        <div class="w-10 h-10 rounded-full border-[3px] border-surface-200 border-t-primary-500 animate-spin"/>
-        <p class="text-surface-500 font-semibold mt-4 text-sm tracking-wide">
-          Cargando tus encuentros de hoy...
-        </p>
+      <section v-if="isLoading" class="flex flex-col items-center py-20 mt-10">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+        <p class="text-slate-500 font-semibold text-sm">Cargando tus encuentros de hoy...</p>
       </section>
 
       <!-- ── Error ────────────────────────────────────────── -->
@@ -326,7 +324,6 @@ const hayEncuentros = computed(() => encuentros.value.length > 0);
       </section>
 
     </div>
-  </main>
 
   <!-- ── Modal Reportar Resultado ────────────────────────── -->
   <ReportResultModal
@@ -335,4 +332,5 @@ const hayEncuentros = computed(() => encuentros.value.length > 0);
     @close="showModal = false; selectedMatch = null"
     @updated="handleUpdated"
   />
+  </main>
 </template>
