@@ -126,21 +126,27 @@ class UpdateSessionStatus extends Command
     // -------------------------------------------------------------------------
 
     /**
-     * Para cada sesión cerrada (requiere_inscripcion=true) recién marcada FINALIZADA
-     * cuyo instructor NO envió la lista manualmente, inserta registros de falta
-     * e incrementa el contador del socio titular responsable.
+     * Para cada sesión cerrada (requiere_inscripcion=true) recién marcada FINALIZADA,
+     * convierte toda inscripción que siga en CONFIRMADA → FALTA, inserta su registro
+     * de no-show en registros_asistencia e incrementa el contador del socio titular
+     * responsable.
      *
-     * GUARDIA CRÍTICA: lista_asistencia_enviada = true significa que el instructor
-     * ya registró presencias manualmente → no se sobreescriben esos datos.
+     * Se procesa SIEMPRE (sin filtrar por lista_asistencia_enviada): los inscritos
+     * que el instructor marcó presentes ya pasaron a ASISTIO y no entran en el filtro
+     * estatus_inscripcion=CONFIRMADA, por lo que no hay riesgo de sobreescribir nada.
+     * Esto garantiza que en sesiones FINALIZADAS no queden inscripciones colgando
+     * en CONFIRMADA — el modal de gestión solo verá ASISTENCIA y NO-SHOW.
      */
     private function procesarNoShows(Carbon $ahora, string $hoy): void
     {
-        // Sesiones cerradas recién finalizadas sin confirmación manual del instructor
+        // Sesiones cerradas recién finalizadas — se procesan SIEMPRE, sin importar
+        // si el instructor envió o no la lista de asistencia. Cualquier inscripción
+        // que aún esté CONFIRMADA en una sesión finalizada es, por definición, un no-show:
+        // el instructor tuvo su ventana para marcarlo presente y no lo hizo.
         $sesiones = SesionActiva::withoutGlobalScopes()
             ->where('fecha_sesion', $hoy)
             ->where('estatus_sesion', 'FINALIZADA')
             ->where('requiere_inscripcion', true)
-            ->where('lista_asistencia_enviada', false)
             ->get(['id_sesion']);
 
         if ($sesiones->isEmpty()) {

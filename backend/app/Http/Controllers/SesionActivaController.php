@@ -215,7 +215,7 @@ class SesionActivaController extends Controller
         SesionActiva::withoutGlobalScopes()->findOrFail($id);
 
         $inscripciones = \App\Models\InscripcionClase::where('id_sesion', $id)
-            ->whereIn('estatus_inscripcion', ['CONFIRMADA', 'ASISTIO', 'FALTA'])
+            ->whereIn(\DB::raw('estatus_inscripcion::text'), ['CONFIRMADA', 'ASISTIO', 'FALTA'])
             ->with([
                 'socio:id_socio,nombre_completo,numero_accion',
                 'miembroFamiliar:id_miembro,nombre_completo,socio_id',
@@ -243,8 +243,8 @@ class SesionActivaController extends Controller
 
             return [
                 'id_inscripcion'      => $ic->id_inscripcion,
-                'tipo_usuario'        => strtoupper($ic->tipo_usuario),
-                'estatus_inscripcion' => $ic->estatus_inscripcion,
+                'tipo_usuario'        => strtoupper((string) $ic->tipo_usuario),
+                'estatus_inscripcion' => strtoupper((string) $ic->estatus_inscripcion),
                 'fecha_transaccion'   => $ic->fecha_transaccion,
                 'nombre_completo'     => $nombre,
                 'numero_accion'       => $accion,
