@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useActividadesStore } from '@/stores/actividadesStore';
 import { useBootstrapStore } from '@/stores/profiles/bootstrapStore';
@@ -40,6 +40,15 @@ onMounted(async () => {
     store.fetchInstructores(),
     bootstrapStore.fetchSocioData(),
   ]);
+});
+
+// Animación v-show tabs
+const tabAnimClass = ref('vshow-animate');
+watch(activeView, () => {
+  tabAnimClass.value = '';
+  nextTick(() => {
+    tabAnimClass.value = 'vshow-animate';
+  });
 });
 </script>
 
@@ -108,13 +117,13 @@ onMounted(async () => {
 
     <!-- Área de Contenido — v-show para preservar estado, sin cambios -->
     <div class="w-full relative z-10">
-      <div v-show="activeView === 'mis-inscripciones'">
+      <div v-show="activeView === 'mis-inscripciones'" :class="tabAnimClass">
         <MisInscripcionesClases />
       </div>
-      <div v-show="activeView === 'actividades-abiertas'">
+      <div v-show="activeView === 'actividades-abiertas'" :class="tabAnimClass">
         <ActividadesAbiertas />
       </div>
-      <div v-show="activeView === 'actividades-cerradas'">
+      <div v-show="activeView === 'actividades-cerradas'" :class="tabAnimClass">
         <ActividadesCerradas />
       </div>
     </div>

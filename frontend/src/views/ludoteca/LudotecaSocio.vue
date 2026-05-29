@@ -20,8 +20,9 @@ onMounted(async () => {
   <div class="min-h-screen w-full bg-surface-50 font-sans p-4 md:p-6 lg:p-8 pb-24 md:pb-8 flex flex-col items-center">
     
     
-    <div v-if="validando" class="flex justify-center p-12 w-full">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    <div v-if="validando" class="flex flex-col items-center py-20 w-full">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+        <p class="text-slate-500 font-semibold text-sm">Validando...</p>
     </div>
 
     
@@ -57,7 +58,11 @@ onMounted(async () => {
       </div>
 
       <div class="w-full">
-        <router-view />
+        <router-view v-slot="{ Component, route }">
+          <Transition name="tab-fade" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </Transition>
+        </router-view>
       </div>
 
     </div>

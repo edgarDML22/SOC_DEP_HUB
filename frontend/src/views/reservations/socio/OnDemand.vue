@@ -364,11 +364,9 @@ onUnmounted(() => { if (observer) observer.disconnect(); });
                 <span>{{ errorNavegacion }}</span>
             </div>
 
-            <div v-if="cargando" class="text-center py-24 text-surface-500">
-                <div
-                    class="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4">
-                </div>
-                <span class="font-bold tracking-wider uppercase text-sm">Cargando...</span>
+            <div v-if="cargando" class="flex flex-col items-center py-24">
+                <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+                <p class="text-slate-500 font-semibold text-sm">Cargando...</p>
             </div>
 
             <div v-else>

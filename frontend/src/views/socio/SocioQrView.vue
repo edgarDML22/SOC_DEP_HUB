@@ -64,9 +64,9 @@ const copiarImagenAlPortapapeles = async (url) => {
           }}</strong>. Contacta a administración para activar tu pase.</p>
         </div>
 
-        <div v-if="loading" class="py-20 flex flex-col items-center gap-4">
-          <div class="w-12 h-12 border-4 border-surface-100 border-t-primary-600 rounded-full animate-spin"></div>
-          <p class="text-surface-500 font-medium animate-pulse">Obteniendo credencial...</p>
+        <div v-if="loading" class="flex flex-col items-center py-20">
+          <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+          <p class="text-slate-500 font-semibold text-sm">Obteniendo credencial...</p>
         </div>
 
         <div v-else-if="qrPayload" class="w-full flex flex-col items-center">

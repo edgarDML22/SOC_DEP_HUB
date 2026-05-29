@@ -114,8 +114,9 @@ onMounted(async () => {
     <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
 
       <!-- ESTADO DE CARGA -->
-      <div v-if="isLoading" class="flex justify-center items-center py-20">
-        <div class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-surface-200 border-t-primary-500 animate-spin"/>
+      <div v-if="isLoading" class="flex flex-col items-center py-20">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+        <p class="text-slate-500 font-semibold text-sm">Cargando...</p>
       </div>
 
       <template v-else>

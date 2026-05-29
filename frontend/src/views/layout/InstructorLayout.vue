@@ -1,7 +1,11 @@
 <template>
     <div class="layout-wrapper">
         <InstructorNavBar />
-        <router-view />
+        <router-view v-slot="{ Component, route }">
+          <Transition name="mobile-fade" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </Transition>
+        </router-view>
     </div>
 </template>
 

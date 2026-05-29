@@ -6,7 +6,11 @@
       
       <!-- Este main es el que asegura que el perfil tome todo el espacio sobrante -->
       <main class="flex-1 w-full flex flex-col">
-          <router-view />
+          <router-view v-slot="{ Component, route }">
+            <Transition name="mobile-fade" mode="out-in">
+              <component :is="Component" :key="route.path" />
+            </Transition>
+          </router-view>
       </main>
   </div>
 </template>

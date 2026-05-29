@@ -240,3 +240,69 @@ body, header, aside, main, nav, .card, button, a, span, p, h1, h2, h3, h4, h5, h
   }
 
 }
+
+/* =========================================================================
+   TRANSICIONES DE NAVEGACIÓN — Socio & Instructor (Mobile-First)
+   Animaciones ligeras, hardware-accelerated, compatible con modo oscuro.
+   ========================================================================= */
+
+/* ── 1. mobile-fade: Transición de ruta principal (fade + slide-up 4px) ── */
+.mobile-fade-enter-active {
+  transition: opacity 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.mobile-fade-leave-active {
+  transition: opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.mobile-fade-enter-from {
+  opacity: 0;
+  transform: translate3d(0, 4px, 0);
+}
+.mobile-fade-enter-to {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.mobile-fade-leave-from {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.mobile-fade-leave-to {
+  opacity: 0;
+  transform: translate3d(0, -2px, 0);
+}
+
+/* ── 2. tab-fade: Transición de pestañas internas (crossfade puro) ── */
+.tab-fade-enter-active {
+  transition: opacity 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-fade-leave-active {
+  transition: opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-fade-enter-from {
+  opacity: 0;
+}
+.tab-fade-enter-to {
+  opacity: 1;
+}
+.tab-fade-leave-from {
+  opacity: 1;
+}
+.tab-fade-leave-to {
+  opacity: 0;
+}
+
+/* ── 3. vshow-fade-in: Para tabs v-show (no se puede usar <Transition>) ── */
+@keyframes vshow-fade-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 3px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.vshow-animate {
+  animation: vshow-fade-in 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
