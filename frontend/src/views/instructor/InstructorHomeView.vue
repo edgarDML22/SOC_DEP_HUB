@@ -193,11 +193,11 @@ onMounted(async () => {
             </div>
 
             <div class="relative z-10 flex-1">
-              <div class="flex items-center gap-3 mb-4">
-                <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+              <div class="flex flex-wrap items-center gap-2 md:gap-3 mb-4 pr-20 md:pr-0">
+                <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold uppercase tracking-wider shadow-sm">
                   {{ proximaEnCurso ? 'En Curso' : 'Próxima Actividad' }}
                 </span>
-                <span v-if="proximaActividadInstructor" class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+                <span v-if="proximaActividadInstructor" class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold uppercase tracking-wider shadow-sm">
                   {{ proximaBadgeLabel }}
                 </span>
               </div>

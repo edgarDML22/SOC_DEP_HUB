@@ -130,7 +130,7 @@ export const useReservationStore = defineStore("reservation", () => {
       })
     );
 
-    return [...new Set(nombresDisciplinas)].filter((d) => d !== "N/A");
+    return [...new Set(nombresDisciplinas)].filter((d) => d !== "N/A" && !d.toLowerCase().includes("acondicionamiento"));
   });
 
   const espaciosPorDisciplina = computed(() => {
