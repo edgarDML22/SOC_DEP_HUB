@@ -124,7 +124,7 @@ class MiembrosFamiliaresController extends Controller
                     'codigo'           => $codigoString,
                     'usuario_id'       => $miembro->id_miembro,
                     'tipo_usuario'     => 'FAMILIAR',
-                    'estatus'          => 'EXPIRADO',
+                    'estatus'          => 'ACTIVO',
                     'fecha_activacion' => now(),
                     'created_at'       => now(),
                     'updated_at'       => now()

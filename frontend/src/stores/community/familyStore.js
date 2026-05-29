@@ -28,7 +28,9 @@ export const useFamilyStore = defineStore("family", {
       const res = await api.post("family-member-create", payload);
       const nuevo = res.data.data;
       if (nuevo) {
-        nuevo.codigo_qr = res.data.qr_url ? nuevo.codigo_qr : "QR_NO_ENCONTRADO";
+        const qrUrl = res.data.qr_url || "";
+        const match = qrUrl.match(/data=([^&]+)/);
+        nuevo.codigo_qr = match ? decodeURIComponent(match[1]) : "QR_NO_ENCONTRADO";
         this.miembrosFamiliares.push(nuevo);
       }
       return res;

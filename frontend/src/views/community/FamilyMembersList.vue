@@ -108,13 +108,6 @@ const copiarImagenAlPortapapeles = async (url) => {
             <p class="text-surface-500 font-medium text-sm md:text-base m-0">Gestiona los accesos de tu círculo familiar</p>
           </div>
           
-          <router-link 
-            :to="{ name: 'family-members-add' }" 
-            class="bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm text-center w-full md:w-auto flex items-center justify-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7v14"/></svg>
-            Agregar Familiar
-          </router-link>
         </div>
       </div>
 

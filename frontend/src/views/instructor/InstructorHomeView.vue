@@ -279,23 +279,6 @@ onMounted(async () => {
         <!-- ACCESOS RÁPIDOS: Sesiones + Arbitraje -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
 
-          <!-- Módulo de Gestión de Sesiones -->
-          <router-link
-            to="/instructor/sessions"
-            class="group bg-white border border-surface-100 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <div class="w-11 h-11 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-colors duration-200">
-              <IconClock class="w-5 h-5" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-bold text-surface-900 text-sm leading-tight">Gestión de Sesiones</p>
-              <p class="text-surface-500 text-xs mt-0.5 leading-snug">Asistencias, listas y escaneo QR</p>
-            </div>
-            <svg class="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-            </svg>
-          </router-link>
-
           <!-- Arbitraje de Torneos -->
           <router-link
             to="/instructor/encuentros"
