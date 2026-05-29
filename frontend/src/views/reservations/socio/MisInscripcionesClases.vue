@@ -431,7 +431,8 @@ function getEstatusSesionBadge(estatus) {
 
 
     <!-- MODAL DE DETALLES — showDetailsModal / selectedInscripcion / closeDetails sin cambios -->
-    <Transition name="fade">
+    <Teleport to="body">
+      <Transition name="fade">
       <div v-if="showDetailsModal && selectedInscripcion" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="closeDetails"></div>
         <div class="relative bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in">
@@ -505,6 +506,7 @@ function getEstatusSesionBadge(estatus) {
         </div>
       </div>
     </Transition>
+    </Teleport>
 
     <!-- Modal de Cancelación Selectiva — selectedSesionCancelacion / enrolleesForCancel sin cambios -->
     <Teleport to="body">

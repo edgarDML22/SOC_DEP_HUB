@@ -175,12 +175,12 @@ const formatTime = (timeString) => {
       <div v-else-if="store.isTurnoActivo" class="animate-fade-in space-y-5">
 
         <!-- Segmented control -->
-        <div class="flex p-1.5 bg-surface-100 rounded-2xl shadow-inner border border-surface-200">
+        <div class="flex p-1.5 bg-surface-100 rounded-2xl shadow-inner border border-surface-200 overflow-x-auto scrollbar-thin">
 
           <!-- Activos -->
           <button
             @click="activeTab = 'activos'"
-            class="flex-1 flex items-center justify-center gap-2 py-3 px-2 text-sm font-bold rounded-xl transition-all focus:outline-none"
+            class="flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-3 px-2 text-xs md:text-sm font-bold rounded-xl transition-all focus:outline-none shrink-0 whitespace-nowrap"
             :class="activeTab === 'activos'
               ? 'bg-primary-600 text-white shadow-md scale-[1.02]'
               : 'text-surface-500 hover:bg-white/60 hover:text-surface-700'"
@@ -198,7 +198,7 @@ const formatTime = (timeString) => {
           <!-- Inactivos -->
           <button
             @click="activeTab = 'inactivos'"
-            class="flex-1 flex items-center justify-center gap-2 py-3 px-2 text-sm font-bold rounded-xl transition-all focus:outline-none"
+            class="flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-3 px-2 text-xs md:text-sm font-bold rounded-xl transition-all focus:outline-none shrink-0 whitespace-nowrap"
             :class="activeTab === 'inactivos'
               ? 'bg-primary-600 text-white shadow-md scale-[1.02]'
               : 'text-surface-500 hover:bg-white/60 hover:text-surface-700'"
@@ -212,7 +212,7 @@ const formatTime = (timeString) => {
           <!-- Entregados -->
           <button
             @click="activeTab = 'entregados'"
-            class="flex-1 flex items-center justify-center gap-2 py-3 px-2 text-sm font-bold rounded-xl transition-all focus:outline-none"
+            class="flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-3 px-2 text-xs md:text-sm font-bold rounded-xl transition-all focus:outline-none shrink-0 whitespace-nowrap"
             :class="activeTab === 'entregados'
               ? 'bg-primary-600 text-white shadow-md scale-[1.02]'
               : 'text-surface-500 hover:bg-white/60 hover:text-surface-700'"

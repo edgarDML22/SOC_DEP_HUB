@@ -201,11 +201,11 @@ const getProgressBarColor = (pct) => {
 
         <div class="relative z-10 flex-1">
           <div v-if="agendaStore.proximaActividad">
-            <div class="flex items-center gap-3 mb-4">
-              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+            <div class="flex flex-wrap items-center gap-2 md:gap-3 mb-4 pr-20 md:pr-0">
+              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold uppercase tracking-wider shadow-sm">
                 {{ agendaStore.proximaActividad.tipo.replace('_', ' ') }}
               </span>
-              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm">
+              <span class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold uppercase tracking-wider shadow-sm">
                 {{ actividadEnCurso ? 'En Curso' : 'Próxima actividad' }}
               </span>
             </div>
