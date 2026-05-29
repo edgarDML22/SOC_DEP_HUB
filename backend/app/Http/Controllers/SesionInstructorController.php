@@ -12,10 +12,12 @@ use App\Models\RegistroAsistencia;
 use App\Models\Reservacion;
 use App\Models\SesionActiva;
 use App\Models\SocioTitular;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SesionInstructorController extends Controller
 {
@@ -26,7 +28,7 @@ class SesionInstructorController extends Controller
      */
     public function datosHoy(): JsonResponse
     {
-        $idInstructor = auth()->user()->instructor?->id_instructor;
+        $idInstructor = $this->idInstructorActual();
         $hoy          = Carbon::today();
 
         // --- Sesiones --------------------------------------------------------
@@ -140,7 +142,7 @@ class SesionInstructorController extends Controller
     {
         $sesion = SesionActiva::withoutGlobalScopes()->findOrFail($idSesion);
 
-        $idInstructor = auth()->user()->instructor?->id_instructor;
+        $idInstructor = $this->idInstructorActual();
         abort_if(
             $sesion->id_instructor !== $idInstructor,
             403,
@@ -152,10 +154,21 @@ class SesionInstructorController extends Controller
             ->whereNotIn('estatus_inscripcion', ['CANCELADA'])
             ->get();
 
-        // Registros de asistencia existentes, pluck para O(1) lookup — 1 query
-        // Valor: true = presente, false = falta registrada
-        $registros = RegistroAsistencia::where('id_sesion', $idSesion)
-            ->pluck('asistencia', 'id_usuario');
+        // Registros de asistencia existentes — clave compuesta tipo:id para no
+        // confundir un socio_titular con id=N y un miembro_familiar con id=N.
+        // Valor: true = presente, false = falta registrada.
+        $registrosRaw = RegistroAsistencia::where('id_sesion', $idSesion)
+            ->get(['id_usuario', 'tipo_usuario', 'asistencia']);
+
+        // Normalizar tipo_usuario del registro (MAYUSCULAS) al snake_case de inscripciones
+        $registros = $registrosRaw->mapWithKeys(function ($r) {
+            $tipoNorm = match (strtoupper($r->tipo_usuario)) {
+                'SOCIO_TITULAR'    => 'socio_titular',
+                'MIEMBRO_FAMILIAR' => 'miembro_familiar',
+                default            => strtolower($r->tipo_usuario),
+            };
+            return ["{$tipoNorm}:{$r->id_usuario}" => (bool) $r->asistencia];
+        });
 
         // Extraer solo IDs de socios y familiares (excluyendo invitados para esta query)
         $idsSociosFamiliares = $inscritos
@@ -195,10 +208,9 @@ class SesionInstructorController extends Controller
                     ? $codigosInvitados->get($inscripcion->id_usuario)
                     : ($codigos[$inscripcion->id_usuario][$inscripcion->tipo_usuario] ?? null);
 
-                // asistencia es booleano: true = confirmado, false = pendiente o falta
-                // null del pluck se convierte a false — "sin registro" y "pendiente" son
-                // indistinguibles para el frontend (ambos aparecen como no confirmados)
-                $asistencia = (bool) ($registros->get($inscripcion->id_usuario, false));
+                // Lookup por clave compuesta tipo:id para independencia entre tipos
+                $claveAsistencia = "{$inscripcion->tipo_usuario}:{$inscripcion->id_usuario}";
+                $asistencia = (bool) ($registros->get($claveAsistencia, false));
 
                 return [
                     'id_inscripcion' => $inscripcion->id_inscripcion,
@@ -237,7 +249,7 @@ class SesionInstructorController extends Controller
     {
         $sesion = SesionActiva::withoutGlobalScopes()->findOrFail($idSesion);
 
-        $idInstructor = auth()->user()->instructor?->id_instructor;
+        $idInstructor = $this->idInstructorActual();
         abort_if(
             $sesion->id_instructor !== $idInstructor,
             403,
@@ -350,13 +362,13 @@ class SesionInstructorController extends Controller
             'confirmados'               => ['required', 'array', 'min:1'],
             'confirmados.*.id_usuario'  => ['required', 'integer'],
             'confirmados.*.tipo_usuario'=> ['required', 'string'],
-            'confirmados.*.codigo_qr'   => ['required', 'string'],
-            'metodo'                    => ['required', 'in:ESCANER_QR,INGRESO_MANUAL'],
+            'confirmados.*.codigo_qr'   => ['nullable', 'string'],
+            'metodo'                    => ['required', 'in:ESCANER_QR,MANUAL,SIN_REGISTRO'],
         ]);
 
         $sesion = SesionActiva::withoutGlobalScopes()->findOrFail($idSesion);
 
-        $idInstructor = auth()->user()->instructor?->id_instructor;
+        $idInstructor = $this->idInstructorActual();
         abort_if(
             $sesion->id_instructor !== $idInstructor,
             403,
@@ -377,48 +389,62 @@ class SesionInstructorController extends Controller
             $erroresParciales = [];
             $registrados      = 0;
 
-            // Cargar usuarios ya con registro positivo para deduplicación en memoria
+            // Cargar pares (id_usuario, tipo_usuario) ya registrados para deduplicación.
+            // La clave compuesta es necesaria porque id_usuario no es globalmente único:
+            // un socio_titular con id=1 y un miembro_familiar con id=1 son personas distintas.
+            // Clave: SOCIO_TITULAR:<id> para coincidir con $tipoInscripcion usado abajo
             $yaRegistrados = RegistroAsistencia::where('id_sesion', $sesion->id_sesion)
                 ->where('asistencia', true)
-                ->pluck('id_usuario')
-                ->flip(); // flip → O(1) lookup
+                ->get(['id_usuario', 'tipo_usuario'])
+                ->mapWithKeys(fn($r) => [strtoupper($r->tipo_usuario) . ":{$r->id_usuario}" => true]);
 
             foreach ($request->confirmados as $confirmado) {
                 $idUsuario   = (int) $confirmado['id_usuario'];
-                $tipoUsuario = $this->normalizarTipoUsuarioAsistencia($confirmado['tipo_usuario']);
-                $codigoQr    = strtoupper($confirmado['codigo_qr']);
+                // registros_asistencia → MAYUSCULAS (SOCIO_TITULAR, MIEMBRO_FAMILIAR, INVITADO)
+                // inscripciones_clases → minusculas (socio_titular, miembro_familiar, invitado)
+                $tipoRegistro    = $this->normalizarTipoUsuarioAsistencia($confirmado['tipo_usuario']);
+                $tipoInscripcion = strtolower($confirmado['tipo_usuario']);
+                $codigoQr        = strtoupper($confirmado['codigo_qr'] ?? '');
+                $claveUnica      = "{$tipoRegistro}:{$idUsuario}";
 
-                // Skip silencioso para duplicados — idempotencia a nivel de fila
-                if ($yaRegistrados->has($idUsuario)) {
+                if ($yaRegistrados->has($claveUnica)) {
                     continue;
                 }
 
-                // Savepoint por iteración: en Postgres, si un INSERT falla dentro de
-                // una transacción, ésta queda abortada y cualquier statement posterior
-                // dispara SQLSTATE 25P02. DB::transaction anidado crea SAVEPOINTs que
-                // permiten hacer rollback parcial y continuar con la transacción padre.
                 try {
-                    DB::transaction(function () use ($sesion, $idUsuario, $tipoUsuario, $request) {
+                    DB::transaction(function () use ($sesion, $idUsuario, $tipoRegistro, $tipoInscripcion, $request) {
                         RegistroAsistencia::create([
                             'id_sesion'           => $sesion->id_sesion,
                             'id_usuario'          => $idUsuario,
-                            'tipo_usuario'        => $tipoUsuario,
+                            'tipo_usuario'        => $tipoRegistro,
                             'asistencia'          => true,
-                            'metodo_registro'     => $request->metodo === 'INGRESO_MANUAL' ? 'MANUAL' : $request->metodo,
+                            'metodo_registro'     => $request->metodo,
                             'fecha_hora_registro' => now(),
                         ]);
 
-                        // Actualizar inscripción a ASISTIO si existe (sesiones cerradas)
-                        InscripcionClase::where('id_sesion', $sesion->id_sesion)
-                            ->where('id_usuario', $idUsuario)
-                            ->whereIn('estatus_inscripcion', ['CONFIRMADA'])
-                            ->update(['estatus_inscripcion' => 'ASISTIO']);
+                        Log::info('UPDATE inscripciones_clases params', [
+                            'id_sesion'        => $sesion->id_sesion,
+                            'id_usuario'       => $idUsuario,
+                            'tipo_inscripcion' => $tipoInscripcion,
+                            'tipo_registro'    => $tipoRegistro,
+                            'confirmado_raw'   => $confirmado ?? null,
+                        ]);
+
+                        DB::statement(
+                            'UPDATE inscripciones_clases
+                             SET estatus_inscripcion = ?
+                             WHERE id_sesion = ?
+                               AND id_usuario = ?
+                               AND tipo_usuario = ?
+                               AND estatus_inscripcion IN (?, ?)',
+                            ['ASISTIO', $sesion->id_sesion, $idUsuario, $tipoInscripcion, 'CONFIRMADA', 'LISTA_ESPERA']
+                        );
                     });
 
-                    $yaRegistrados->put($idUsuario, true);
+                    $yaRegistrados->put($claveUnica, true);
                     $registrados++;
                 } catch (\Throwable $e) {
-                    \Log::warning('confirmarAsistencia: fallo en registro individual', [
+                    Log::warning('confirmarAsistencia: fallo en registro individual', [
                         'id_sesion'  => $sesion->id_sesion,
                         'id_usuario' => $idUsuario,
                         'codigo_qr'  => $codigoQr,
@@ -428,8 +454,9 @@ class SesionInstructorController extends Controller
                 }
             }
 
-            // Marcar la lista como enviada independientemente de errores parciales
-            $sesion->update(['lista_asistencia_enviada' => true]);
+            if ($registrados > 0) {
+                $sesion->update(['lista_asistencia_enviada' => true]);
+            }
 
             if (!empty($erroresParciales)) {
                 return response()->json([
@@ -451,6 +478,14 @@ class SesionInstructorController extends Controller
     // -------------------------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------------------------
+
+    /** @return int|null id_instructor del usuario autenticado */
+    private function idInstructorActual(): ?int
+    {
+        /** @var User $user */
+        $user = auth()->user();
+        return $user->instructor?->id_instructor;
+    }
 
     /**
      * Normaliza tipo_usuario al enum_tipo_usuario_registro_asistencia

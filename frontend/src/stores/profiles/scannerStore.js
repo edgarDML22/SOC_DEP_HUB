@@ -302,7 +302,7 @@ export const useScannerStore = defineStore('scanner', () => {
             }
 
             if (inscrito.estado_asistencia === 'YA_REGISTRADO') {
-                setAlerta('warning', 'Participante ya tenía asistencia registrada')
+                setAlerta('warning', 'Este participante ya tiene su asistencia registrada.')
                 return
             }
 
@@ -331,7 +331,7 @@ export const useScannerStore = defineStore('scanner', () => {
             const existente = listaInscritos.value.find(i => i.codigo_qr === codigo)
             if (existente) {
                 if (existente.estado_asistencia === 'YA_REGISTRADO') {
-                    setAlerta('warning', 'Participante ya tenía asistencia registrada')
+                    setAlerta('warning', 'Este participante ya tiene su asistencia registrada.')
                 } else {
                     setAlerta('warning', 'Participante ya fue confirmado en esta sesión')
                 }
@@ -495,7 +495,7 @@ export const useScannerStore = defineStore('scanner', () => {
                         tipo_usuario: c.tipo_usuario,
                         codigo_qr:    c.codigo_qr,
                     })),
-                    metodo: metodoIngreso.value === 'CAMARA' ? 'ESCANER_QR' : 'INGRESO_MANUAL',
+                    metodo: metodoIngreso.value === 'CAMARA' ? 'ESCANER_QR' : 'MANUAL',
                 }
             )
 
