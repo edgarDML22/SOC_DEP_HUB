@@ -80,23 +80,36 @@ export function useProfileLogic(endpointUrl = '/profile') {
         }
     };
 
+    const uploadPhoto = async (file) => {
+        isLoading.value = true;
+        try {
+            const formData = new FormData();
+            formData.append("foto_perfil", file);
+
+            const response = await api.post("/profile/upload-photo", formData, {
+                headers: { 
+                    Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                    "Content-Type": "multipart/form-data"
+                },
+            });
+
+            if (response.data.success) {
+                profileData.value = null; // Forzar recarga del perfil
+                await fetchProfile();
+                return { success: true, foto_perfil: response.data.foto_perfil };
+            }
+        } catch (error) {
+            console.error("Error al subir foto de perfil:", error);
+            return { success: false, error: error.response?.data?.message || "Error al subir." };
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     const logout = () => {
-        // Fire-and-forget: no esperamos al servidor para limpiar la sesión local
         api.post("/auth/logout").catch(() => { });
-
-        profileData.value = null;
-        profilePromise = null;
-
-        useFriendStore().reset();
-        useFamilyStore().$reset();
-        useGuestStore().$reset();
-        useNotificacionesStore().reset();
-        useReservationStore().resetearReserva();
-        useQrStore().reset();
-        useBootstrapStore().reset();
-
         localStorage.clear();
-        router.push("/login");
+        window.location.href = "/login";
     };
 
     const getSupportLink = async () => {
@@ -120,6 +133,7 @@ export function useProfileLogic(endpointUrl = '/profile') {
         formatText,
         fetchProfile,
         updateProfile,
+        uploadPhoto,
         logout,
         getSupportLink
     };

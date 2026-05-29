@@ -173,7 +173,8 @@ export const useScheduleStore = defineStore("schedule", () => {
     /**
      * Obtiene los encuentros de un torneo específico.
      */
-    const fetchEncuentrosTorneo = async (idTorneo) => {
+    const fetchEncuentrosTorneo = async (idTorneo, force = false) => {
+        if (torneoSeleccionado.value?.id_torneo === idTorneo && encuentros.value.length > 0 && !force) return;
         loadingStates.value.encuentros = true;
         error.value = null;
         try {
@@ -218,7 +219,8 @@ export const useScheduleStore = defineStore("schedule", () => {
     /**
      * Obtiene TODOS los árbitros/instructores designados para un torneo (sin filtro horario).
      */
-    const fetchArbitrosTorneo = async (idTorneo) => {
+    const fetchArbitrosTorneo = async (idTorneo, force = false) => {
+        if (arbitrosTotales.value.length > 0 && torneoSeleccionado.value?.id_torneo === idTorneo && !force) return;
         loadingStates.value.arbitros = true;
         try {
             const res = await api.get(`/torneos/${idTorneo}/referees`);
@@ -308,12 +310,13 @@ export const useScheduleStore = defineStore("schedule", () => {
     /**
      * Obtiene lista ligera de todos los torneos con sus encuentros para la vista general.
      */
-    const fetchTodosLosTorneos = async () => {
+    const fetchTodosLosTorneos = async (force = false) => {
+        if (todosLosTorneos.value.length > 0 && !force) return;
         loadingStates.value.torneos = true;
         error.value = null;
         try {
-            // Primero obtenemos la lista paginada de torneos
-            const listRes = await api.get("/torneos", { params: { per_page: 100 } });
+            // Obtenemos todos los torneos y sus encuentros en una sola llamada optimizada
+            const listRes = await api.get("/torneos", { params: { per_page: 100, with_encuentros: 1 } });
             const listData = listRes.data?.data ?? listRes.data;
 
             let torneosList = [];
@@ -323,42 +326,16 @@ export const useScheduleStore = defineStore("schedule", () => {
                 torneosList = listData;
             }
 
-            // Para cada torneo con estado activo, obtener sus encuentros en paralelo
-            const activeTorneos = torneosList.filter(t =>
-                ['PROGRAMADO', 'EN_CURSO'].includes(t.estado || t.estatus_torneo)
-            );
-
-            const promises = activeTorneos.map(async (torneo) => {
+            // Ya no es necesario hacer N+1 llamadas paralelas!
+            // Simplemente mapeamos los torneos y sus encuentros.
+            todosLosTorneos.value = torneosList.map(torneo => {
                 const id = torneo.id_torneo || torneo.id;
-                try {
-                    const detailRes = await api.get(`/torneos/${id}`);
-                    const detail = detailRes.data?.data ?? detailRes.data;
-                    const bracket = detail.bracket || {};
-
-                    let flat = [];
-                    if (Array.isArray(bracket)) {
-                        flat = bracket;
-                    } else {
-                        Object.values(bracket).forEach(matches => {
-                            if (Array.isArray(matches)) flat.push(...matches);
-                        });
-                    }
-
-                    return {
-                        ...torneo,
-                        id_torneo: id,
-                        _encuentros: flat,
-                    };
-                } catch {
-                    return {
-                        ...torneo,
-                        id_torneo: id,
-                        _encuentros: [],
-                    };
-                }
+                return {
+                    ...torneo,
+                    id_torneo: id,
+                    _encuentros: torneo._encuentros || [],
+                };
             });
-
-            todosLosTorneos.value = await Promise.all(promises);
         } catch (err) {
             console.error("Error fetching todos los torneos:", err);
             error.value = "Error al cargar los torneos.";

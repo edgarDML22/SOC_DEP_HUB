@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActividadPlantilla;
 use App\Models\EncuentrosTorneo;
+use App\Models\SesionActiva;
 use App\Models\Torneo;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -77,10 +78,62 @@ class MatchAssignmentController extends Controller
             ], 422);
         }
 
-        // VALIDACIÓN CRONOLÓGICA (Task 5)
-        $faseIndex = $this->getFaseIndex($encuentro->fase_bracket);
         $horaInicioNueva = Carbon::parse($request->fecha_hora_inicio);
         $horaFinNueva = Carbon::parse($request->fecha_hora_fin);
+
+        // VALIDACIÓN: Colisión de cancha/espacio físico
+        $fecha = $horaInicioNueva->toDateString();
+        $horaInicioStr = $horaInicioNueva->format('H:i:s');
+        $horaFinStr = $horaFinNueva->format('H:i:s');
+
+        // 1. Conflicto con otros encuentros de torneo en el mismo espacio y horario
+        $conflictoOtroEncuentro = EncuentrosTorneo::where('id_espacio', $request->id_espacio)
+            ->where('id_encuentro', '!=', $id_encuentro)
+            ->whereNotIn('estatus_encuentro', ['BYE', 'FINALIZADO'])
+            ->whereNotNull('fecha_hora_inicio')
+            ->whereNotNull('fecha_hora_fin')
+            ->where('fecha_hora_inicio', '<', $request->fecha_hora_fin)
+            ->where('fecha_hora_fin', '>', $request->fecha_hora_inicio)
+            ->exists();
+
+        if ($conflictoOtroEncuentro) {
+            return response()->json([
+                'message' => 'La cancha ya está ocupada por otro encuentro de torneo en ese horario.'
+            ], 409);
+        }
+
+        // 2. Conflicto con sesiones de clase programadas en el mismo espacio y horario
+        $conflictoSesionActiva = SesionActiva::where('fecha_sesion', $fecha)
+            ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
+            ->whereHas('actividadPlantilla', function ($q) use ($request, $horaInicioStr, $horaFinStr) {
+                $q->where('id_espacio', $request->id_espacio)
+                  ->where('hora_inicio', '<', $horaFinStr)
+                  ->where('hora_fin', '>', $horaInicioStr);
+            })
+            ->exists();
+
+        if ($conflictoSesionActiva) {
+            return response()->json([
+                'message' => 'La cancha ya está ocupada por una sesión de clase programada en ese horario.'
+            ], 409);
+        }
+
+        // 3. Conflicto con reservaciones activas de socios en el mismo espacio y horario
+        $conflictoReservaSocio = \App\Models\Reservacion::where('id_espacio', $request->id_espacio)
+            ->where('fecha_reserva', $fecha)
+            ->whereIn('estatus_operativo', ['ACTIVA', 'PENDIENTE'])
+            ->where('hora_inicio', '<', $horaFinStr)
+            ->where('hora_fin', '>', $horaInicioStr)
+            ->exists();
+
+        if ($conflictoReservaSocio) {
+            return response()->json([
+                'message' => 'La cancha ya está ocupada por una reserva activa de un socio en ese horario.'
+            ], 409);
+        }
+
+        // VALIDACIÓN CRONOLÓGICA (Task 5)
+        $faseIndex = $this->getFaseIndex($encuentro->fase_bracket);
 
         if ($faseIndex !== 99) {
             $otrosEncuentros = EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)

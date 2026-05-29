@@ -56,6 +56,8 @@ const onClickOutside = (e) => {
 
 watch(isOpen, (val) => {
   if (!menuRef.value) return
+  
+  // 1. Elevate row z-index and set position relative
   const row = menuRef.value.closest('tr') || menuRef.value.parentElement
   if (row) {
     if (val) {
@@ -65,6 +67,39 @@ watch(isOpen, (val) => {
       row.style.zIndex = ''
       row.style.position = ''
     }
+  }
+
+  // 2. Adjust overflow of ancestors to prevent clipping the absolute dropdown
+  let parent = menuRef.value.parentElement
+  while (parent && parent !== document.body) {
+    const style = window.getComputedStyle(parent)
+    const hasOverflow = 
+      style.overflow === 'hidden' || style.overflow === 'auto' || style.overflow === 'scroll' ||
+      style.overflowX === 'hidden' || style.overflowX === 'auto' || style.overflowX === 'scroll' ||
+      style.overflowY === 'hidden' || style.overflowY === 'auto' || style.overflowY === 'scroll'
+      
+    if (hasOverflow) {
+      if (val) {
+        if (parent.dataset.origOverflow === undefined) {
+          parent.dataset.origOverflow = parent.style.overflow || ''
+          parent.dataset.origOverflowX = parent.style.overflowX || ''
+          parent.dataset.origOverflowY = parent.style.overflowY || ''
+        }
+        parent.style.setProperty('overflow', 'visible', 'important')
+        parent.style.setProperty('overflow-x', 'visible', 'important')
+        parent.style.setProperty('overflow-y', 'visible', 'important')
+      } else {
+        if (parent.dataset.origOverflow !== undefined) {
+          parent.style.overflow = parent.dataset.origOverflow
+          parent.style.overflowX = parent.dataset.origOverflowX
+          parent.style.overflowY = parent.dataset.origOverflowY
+          delete parent.dataset.origOverflow
+          delete parent.dataset.origOverflowX
+          delete parent.dataset.origOverflowY
+        }
+      }
+    }
+    parent = parent.parentElement
   }
 })
 
@@ -120,9 +155,11 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
             class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
                    transition-colors text-left
                    disabled:opacity-40 disabled:cursor-not-allowed"
-            :class="item.destructive
-              ? 'text-red-600 hover:bg-red-50'
-              : 'text-surface-700 hover:bg-surface-50'"
+            :class="item.customClass
+              ? item.customClass
+              : item.destructive
+                ? 'text-red-600 hover:bg-red-50'
+                : 'text-surface-700 hover:bg-surface-50'"
             type="button"
           >
             <!-- Icono opcional (HTML/SVG raw o slot) -->

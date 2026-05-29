@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useFriendStore } from '@/stores/community/friendStore'
 import { useAlerts } from '@/composables/useAlerts'
+import { IconCalendar } from '@/components/icons'
 
 const friendStore = useFriendStore()
 const { toastInfo, showLoading, closeLoading, successModal, errorModal, confirmDelete, confirmWarning } = useAlerts()
@@ -225,8 +226,15 @@ const eliminarAmigo = async (amigo) => {
         >
           <!-- Header tarjeta -->
           <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
-              {{ amigo.nombre_amigo?.charAt(0) || '?' }}
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0 relative overflow-hidden">
+              <span class="z-0">{{ amigo.nombre_amigo?.charAt(0) || '?' }}</span>
+              <img 
+                v-if="amigo.foto_amigo" 
+                :src="amigo.foto_amigo" 
+                @error="$event.target.style.display = 'none'" 
+                class="absolute inset-0 w-full h-full object-cover z-10 bg-white"
+                alt="Perfil"
+              />
             </div>
             <h3 class="text-base font-bold text-surface-900 m-0 truncate flex-1 min-w-0" :title="amigo.nombre_amigo">
               {{ amigo.nombre_amigo }}
@@ -238,11 +246,9 @@ const eliminarAmigo = async (amigo) => {
           </div>
 
           <!-- Body -->
-          <div class="flex-1 flex flex-col gap-2 text-sm text-surface-600 mb-4 font-medium">
-            <div v-if="amigo.created_at" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-              </svg>
+          <div class="flex-1 flex flex-col gap-2.5 text-sm text-surface-600 mb-4 font-medium">
+            <div v-if="amigo.created_at" class="flex items-center gap-2.5">
+              <IconCalendar class="w-4 h-4 shrink-0 text-primary-600" />
               <span>{{ formatearFecha(amigo.created_at) }}</span>
             </div>
           </div>

@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGuestStore } from '@/stores/community/guestStore'
 import { useAlerts } from '@/composables/useAlerts' 
 import IconQR from '@/components/icons/IconQr.vue'
+import { IconPhone, IconMail, IconCalendar } from '@/components/icons'
 
 const router = useRouter()
 const { toastInfo } = useAlerts()
@@ -67,12 +68,18 @@ const selectedGuest = ref(null)
 const abrirModalQR = (inv) => {
   selectedGuest.value = inv
   showQrModal.value = true
+  document.body.style.overflow = 'hidden'
 }
 
 const cerrarModalQR = () => {
   showQrModal.value = false
   selectedGuest.value = null
+  document.body.style.overflow = ''
 }
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 const generarQrUrl = (codigo) => {
   const data = JSON.stringify({ codigo_qr: codigo, tipo: 'invitado' })
@@ -158,60 +165,57 @@ const copiarImagenAlPortapapeles = async (url) => {
         <div 
           v-for="inv in invitadosFiltrados" 
           :key="inv.id" 
-          class="bg-white rounded-2xl p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col h-full"
+          class="bg-white rounded-[24px] p-6 shadow-sm border border-surface-100 transition-all hover:shadow-md hover:-translate-y-1 flex flex-col h-full group"
         >
           <!-- Header de tarjeta -->
           <div class="flex items-start gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-surface-100 text-primary-700 font-medium text-lg uppercase shrink-0">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0">
               {{ inv.nombre?.charAt(0) || '?' }}
             </div>
             <div class="flex-1 flex flex-col min-w-0">
               <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="inv.nombre">{{ inv.nombre }}</h3>
               <div class="mt-1">
-                 <span 
-                   class="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-medium border"
-                   :class="{
-                     'bg-green-50 text-green-700 border-green-200': inv.estatus_acceso === 'ACTIVO',
-                     'bg-red-50 text-red-700 border-red-200': inv.estatus_acceso === 'EXPIRADO' || inv.estatus_acceso === 'INACTIVO'
-                   }"
-                 >
-                   {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
-                 </span>
+                  <span 
+                    v-if="inv.estatus_acceso === 'ACTIVO'"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border bg-green-50 text-green-700 border-green-200 tracking-wide uppercase"
+                  >
+                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0"></span>
+                    Activo
+                  </span>
+                  <span 
+                    v-else
+                    class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold border bg-red-50 text-red-700 border-red-200 tracking-wide uppercase"
+                  >
+                    {{ inv.estatus_acceso === 'EXPIRADO' ? 'EXPIRADO' : inv.estatus_acceso }}
+                  </span>
               </div>
             </div>
           </div>
 
           <!-- Body de tarjeta -->
-          <div class="flex-1 flex flex-col gap-3 text-sm text-surface-600 mb-5 font-medium">
-            <div v-if="inv.telefono" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-              </svg>
+          <div class="flex-1 flex flex-col gap-2.5 text-xs md:text-sm text-surface-600 mb-4 font-medium min-w-0">
+            <div v-if="inv.telefono" class="flex items-center gap-2.5">
+              <IconPhone class="w-4 h-4 shrink-0 text-primary-600" />
               <span class="truncate">{{ inv.telefono }}</span>
             </div>
-            <div v-if="inv.correo" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-              </svg>
+            <div v-if="inv.correo" class="flex items-center gap-2.5">
+              <IconMail class="w-4 h-4 shrink-0 text-primary-600" />
               <span class="truncate" :title="inv.correo">{{ inv.correo }}</span>
             </div>
-            <div v-if="inv.fecha_expiracion" class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-surface-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-              </svg>
+            <div v-if="inv.fecha_expiracion" class="flex items-center gap-2.5">
+              <IconCalendar class="w-4 h-4 shrink-0 text-primary-600" />
               <span>Expira: {{ inv.fecha_expiracion }}</span>
             </div>
           </div>
 
           <!-- Footer de tarjeta -->
-          <div class="mt-auto" v-if="inv.estatus_acceso === 'ACTIVO'">
+          <div class="mt-auto pt-4 border-t border-surface-50 flex justify-end" v-if="inv.estatus_acceso === 'ACTIVO'">
             <button 
               @click="abrirModalQR(inv)" 
-              class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md focus:outline-none"
+              title="Ver codigo QR"
+              class="w-10 h-10 bg-primary-50 hover:bg-primary-100 text-primary-600 border border-primary-100 rounded-xl transition-all flex items-center justify-center active:scale-90 focus:outline-none shadow-sm group/btn"
             >
-              <IconQR class="w-4 h-4 text-white" />
-              Ver código QR
+              <IconQR class="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
             </button>
           </div>
         </div>
@@ -219,34 +223,102 @@ const copiarImagenAlPortapapeles = async (url) => {
     </div>
 
     <!-- Modal QR -->
-    <div v-if="showQrModal" class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all" @mousedown.self="cerrarModalQR">
-      <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
-        <h3 class="text-xl font-bold text-surface-900 mb-2">Código QR de Acceso</h3>
-        <p class="text-surface-600 font-medium text-sm mb-6">Este es el código QR de <strong class="text-surface-900 font-medium">{{ selectedGuest.nombre }}</strong></p>
-        
-        <div class="bg-surface-50 p-4 border border-dashed border-surface-300 rounded-xl mb-6 flex justify-center w-full">
-          <img 
-            :src="generarQrUrl(selectedGuest.codigo_qr)" 
-            alt="QR Code" 
-            class="w-48 h-48 md:w-56 md:h-56 rounded-lg bg-white object-contain" 
-          />
-        </div>
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showQrModal && selectedGuest" class="fixed inset-0 z-200 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="cerrarModalQR"></div>
+          <div class="relative bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in flex flex-col">
+            
+            <!-- Header premium -->
+            <div class="bg-primary-600 px-6 pt-6 pb-5 flex items-center gap-4 text-white">
+              <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h1v1h-1zM17 14h1v1h-1zM14 17h1v1h-1zM17 17h1v1h-1zM20 14v.5M20 17h.5M20 20H14v-3"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base font-extrabold text-white leading-none">Pase QR de Invitado</h3>
+                <p class="text-primary-100 text-xs font-semibold mt-1.5 truncate">{{ selectedGuest.nombre }}</p>
+              </div>
+              <button @click="cerrarModalQR"
+                class="w-8 h-8 bg-white/15 hover:bg-white/25 rounded-full flex items-center justify-center transition-colors focus:outline-none shrink-0 cursor-pointer"
+              >
+                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-        <div class="w-full flex flex-col gap-3">
-          <button 
-            @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))"
-            class="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm focus:outline-none"
-          >
-            Copiar Imagen QR
-          </button>
-          <button 
-            @click="cerrarModalQR"
-            class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 focus:outline-none"
-          >
-            Cerrar
-          </button>
+            <!-- Body -->
+            <div class="p-6 flex flex-col items-center">
+              <div class="mb-4 text-center">
+                <span class="text-2xl font-black text-slate-800 uppercase qr-code-text">
+                  {{ selectedGuest.codigo_qr }}
+                </span>
+              </div>
+
+              <div class="bg-slate-50 p-6 border-2 border-dashed border-slate-200 rounded-[28px] mb-5 flex justify-center w-fit shadow-inner">
+                <img 
+                  :src="generarQrUrl(selectedGuest.codigo_qr)" 
+                  alt="QR Code" 
+                  class="w-48 h-48 md:w-56 md:h-56 rounded-xl bg-white object-contain shadow-sm border border-slate-100" 
+                />
+              </div>
+
+              <p class="text-xs text-slate-400 font-semibold text-center mb-5 leading-relaxed max-w-xs">
+                Muestra este código QR en la entrada del club para registrar el acceso del invitado.
+              </p>
+
+              <div class="flex justify-center mb-6">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shrink-0"></span>
+                  Pase Activo
+                </span>
+              </div>
+
+              <!-- Footer Actions -->
+              <div class="w-full flex flex-col gap-2.5">
+                <button 
+                  @click="copiarImagenAlPortapapeles(generarQrUrl(selectedGuest.codigo_qr))"
+                  class="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-2xl py-3.5 font-bold transition-all active:scale-95 shadow-md shadow-primary-100 focus:outline-none cursor-pointer text-center text-sm border-none"
+                >
+                  Copiar Código QR
+                </button>
+                <button 
+                  @click="cerrarModalQR"
+                  class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-2xl py-3 font-bold transition-all active:scale-95 focus:outline-none cursor-pointer text-center text-sm"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&display=swap');
+
+.qr-code-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+}
+
+/* Animaciones suaves */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-in { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+</style>

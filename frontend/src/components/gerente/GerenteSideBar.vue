@@ -83,7 +83,7 @@ const sections = [
 </script>
 
 <template>
-  <aside class="h-screen sticky top-0 z-50 bg-slate-950 text-slate-400 flex flex-col font-sans
+  <aside class="h-full bg-slate-950 text-slate-400 flex flex-col font-sans
            transition-all duration-300 ease-in-out shrink-0" :class="isOpen ? 'w-64' : 'w-[72px]'">
     <!-- ── HEADER ─────────────────────────────────────── -->
     <div class="flex items-center gap-3 px-4 py-5 border-b border-slate-800/60 h-[76px]">
@@ -114,7 +114,7 @@ const sections = [
                transition-all duration-200 group" :class="[
                 isOpen ? 'gap-3 px-3 justify-start' : 'justify-center',
                 route.path === '/admin/dashboard'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  ? 'bg-slate-800 text-white font-bold shadow-xs'
                   : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
               ]" :title="!isOpen ? 'Dashboard' : undefined">
         <IconHome class="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
@@ -126,7 +126,7 @@ const sections = [
                transition-all duration-200 group" :class="[
                 isOpen ? 'gap-3 px-3 justify-start' : 'justify-center',
                 route.path.startsWith('/admin/reports')
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  ? 'bg-slate-800 text-white font-bold shadow-xs'
                   : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
               ]" :title="!isOpen ? 'Reportes' : undefined">
         <IconGuests class="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
@@ -142,7 +142,7 @@ const sections = [
                  transition-all duration-200 group" :class="[
                   isOpen ? 'gap-3 px-3 justify-start' : 'justify-center',
                   isRouteUnder(section.paths)
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold'
+                    ? 'bg-slate-800 text-white font-bold shadow-xs'
                     : openSection === section.key
                       ? 'bg-slate-800 text-slate-100'
                       : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100',
@@ -155,7 +155,7 @@ const sections = [
           <!-- Chevron animado -->
           <svg v-if="isOpen" class="w-3.5 h-3.5 shrink-0 transition-transform duration-300" :class="[
             openSection === section.key ? 'rotate-180' : '',
-            isRouteUnder(section.paths) ? 'text-white' : openSection === section.key ? 'text-blue-400' : 'text-slate-600'
+            isRouteUnder(section.paths) ? 'text-white' : openSection === section.key ? 'text-slate-300' : 'text-slate-600'
           ]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M6 9l6 6 6-6" />
           </svg>
@@ -175,7 +175,7 @@ const sections = [
                   :to="child.to" 
                   class="relative z-10 flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-lg text-sm transition-all duration-150 ml-0" 
                   :class="route.path.startsWith(child.to)
-                    ? 'text-white font-bold bg-blue-600 shadow-md shadow-blue-600/20'
+                    ? 'text-white font-bold bg-slate-800 shadow-xs'
                     : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 font-medium'"
                   @click="child.label === 'Ludoteca' ? setLudotecaView('dashboard', false) : null"
 
@@ -196,17 +196,16 @@ const sections = [
                 >
                   <div v-if="child.label === 'Ludoteca' && route.path.startsWith('/admin/ludoteca')" 
                        class="pl-12 pr-3 mt-2 mb-1 overflow-hidden flex flex-col gap-1">
-                    <button 
-                      @click.stop="setLudotecaView('turnos')" 
-                      type="button"
-                      class="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none outline-none"
-                      :class="ludotecaStore.viewActive === 'turnos' 
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40' 
+                    <router-link
+                      to="/admin/ludoteca/turnos"
+                      class="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all outline-none"
+                      :class="route.path === '/admin/ludoteca/turnos'
+                        ? 'bg-slate-800 text-white font-bold shadow-xs' 
                         : 'text-slate-500 hover:text-slate-100 hover:bg-slate-800/60'"
                     >
                       <IconCalendar class="w-3.5 h-3.5" />
                       <span>Asignar turnos</span>
-                    </button>
+                    </router-link>
                   </div>
                 </Transition>
               </template>

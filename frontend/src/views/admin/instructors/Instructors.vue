@@ -36,7 +36,12 @@ const disciplinasList = ref([])
 const fetchDisciplinas = async () => {
   try {
     const res = await api.get('/disciplinas/all')
-    if (res.data?.success) disciplinasList.value = res.data.data
+    if (res.data?.success) {
+      const list = res.data.data || []
+      disciplinasList.value = [...list].sort((a, b) =>
+        (a.nombre_disciplina || '').localeCompare(b.nombre_disciplina || '', 'es', { sensitivity: 'base' })
+      )
+    }
   } catch (e) {
     console.error('Error cargando disciplinas:', e)
   }
@@ -165,6 +170,7 @@ const onStatusUpdated = async () => {
 
 // ── MODAL: NUEVO INSTRUCTOR ────────────────────────────────────
 const showNewModal = ref(false)
+const showSuccessOverlay = ref(false)
 const isSaving = ref(false)
 const formError = ref('')
 
@@ -230,10 +236,13 @@ const saveNewInstructor = async () => {
     }
     const res = await api.post('/instructors/create', payload)
     if (res.data?.success) {
-      showNewModal.value = false
-      newInstructor.value = EMPTY_FORM()
+      showSuccessOverlay.value = true
       await fetchInstructors(true)
-      toastInfo('Instructor creado', 'El instructor fue registrado exitosamente.', 'success')
+      setTimeout(() => {
+        showSuccessOverlay.value = false
+        showNewModal.value = false
+        newInstructor.value = EMPTY_FORM()
+      }, 1500)
     } else {
       formError.value = res.data?.message ?? 'Ocurrió un error al crear.'
     }
@@ -266,8 +275,8 @@ onMounted(async () => {
           {{ filteredInstructors.length }}
           <span class="font-medium text-surface-400">de {{ instructors.length }}</span>
         </span>
-        <button @click="openNewModal" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white
-                 text-sm font-bold hover:bg-primary-700 transition-colors shadow-sm">
+        <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="16" />
@@ -335,23 +344,14 @@ onMounted(async () => {
         <!-- Tabla con datos -->
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-50 border-b border-surface-200">
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tl-2xl">Instructor
-                </th>
-                <th class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">Estatus
-                </th>
-                <th
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden md:table-cell">
-                  Disciplinas</th>
-                <th
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
-                  Horario</th>
-                <th
-                  class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900 hidden lg:table-cell">
-                  Afiliación</th>
-                <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900 rounded-tr-2xl">Acciones
-                </th>
+            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+              <tr>
+                <th class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Instructor</th>
+                <th class="px-6 py-4 text-left font-extrabold">Estatus</th>
+                <th class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Disciplinas</th>
+                <th class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Horario</th>
+                <th class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Afiliación</th>
+                <th class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">
@@ -444,7 +444,26 @@ onMounted(async () => {
             enter-from-class="opacity-0 scale-95 translate-y-4"
             enter-to-class="opacity-100 scale-100 translate-y-0">
             <div v-if="showNewModal" class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl shadow-surface-900/20
-                     flex flex-col max-h-[92vh] overflow-hidden">
+                     flex flex-col max-h-[92vh] overflow-hidden relative">
+              <!-- Overlay de éxito (animate-scale-in) -->
+              <Transition
+                enter-active-class="transition-opacity duration-150 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-200 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div v-if="showSuccessOverlay" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-[2px] rounded-4xl flex flex-col items-center justify-center gap-4">
+                  <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
+                    <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <p class="text-base font-black text-slate-800">Instructor registrado correctamente</p>
+                </div>
+              </Transition>
+
               <!-- Cabecera -->
               <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
                 <div>
@@ -489,7 +508,7 @@ onMounted(async () => {
                     <input v-model="newInstructor.nombre_completo" placeholder="Ej. Juan Pérez García"
                       class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                              text-surface-900 placeholder:text-surface-400 shadow-sm
-                             focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                             focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
                   </div>
                 </div>
 
@@ -504,7 +523,7 @@ onMounted(async () => {
                       <input v-model="newInstructor.telefono" placeholder="Ej. 5512345678"
                         class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                                text-surface-900 placeholder:text-surface-400 shadow-sm
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                               focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
                     </div>
                   </div>
                   <div class="space-y-1.5">
@@ -513,7 +532,7 @@ onMounted(async () => {
                     </label>
                     <div class="relative">
                       <select v-model="newInstructor.estatus"
-                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all cursor-pointer shadow-xs">
+                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
                         <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                       </select>
                       <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />

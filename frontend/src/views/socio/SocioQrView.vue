@@ -72,7 +72,7 @@ const copiarImagenAlPortapapeles = async (url) => {
         <div v-else-if="qrPayload" class="w-full flex flex-col items-center">
 
           <div v-if="qrPayload" class="mb-4 text-center">
-            <span class="text-2xl md:text-3xl font-normal text-surface-900 tracking-widest uppercase font-sans">
+            <span class="text-2xl md:text-3xl font-bold text-surface-900 uppercase qr-code-text">
               {{ qrPayload }}
             </span>
           </div>
@@ -129,6 +129,14 @@ const copiarImagenAlPortapapeles = async (url) => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&display=swap');
+
+.qr-code-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+}
+
 /* Transición suave para el hover de los botones gradientes */
 button {
   background-size: 200% auto;

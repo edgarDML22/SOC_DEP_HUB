@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTournamentStore } from '@/stores/tournamentStore'
+import { useScheduleStore } from '@/stores/admin/scheduleStore'
 import { storeToRefs } from 'pinia'
 import { useAlerts } from '@/composables/useAlerts'
 
@@ -160,6 +161,8 @@ const toggleExpand = (torneo) => {
 // ── INIT ───────────────────────────────────────────────────────
 onMounted(() => {
   store.fetchTorneos()
+  const scheduleStore = useScheduleStore()
+  scheduleStore.fetchTodosLosTorneos() // Prefetch silent
 })
 </script>
 
@@ -169,20 +172,36 @@ onMounted(() => {
 
       <!-- CABECERA -->
       <AdminPageHeader title="Gestión de Torneos" subtitle="Monitorea y administra el ciclo de vida de los torneos.">
-        <div class="flex items-center gap-1.5 p-1 bg-surface-100 rounded-xl mr-4">
+        <!-- Switcher Tabla / Tarjetas / Calendario -->
+        <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200 mr-4">
           <button @click="router.push('/admin/tournaments')" 
-                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  :class="route.name === 'tournaments-list' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+                  class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
+                  :class="route.name === 'tournaments-list' 
+                    ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' 
+                    : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
             Tabla
           </button>
           <button @click="router.push('/admin/tournaments/cards')" 
-                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  :class="route.name === 'tournaments-cards' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+                  class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
+                  :class="route.name === 'tournaments-cards' 
+                    ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' 
+                    : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+            </svg>
             Tarjetas
           </button>
           <button @click="router.push('/admin/tournaments/schedule')" 
-                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  :class="route.name === 'tournaments-schedule' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+                  class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
+                  :class="route.name === 'tournaments-schedule' 
+                    ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' 
+                    : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" />
+            </svg>
             Calendario
           </button>
         </div>
@@ -216,7 +235,7 @@ onMounted(() => {
             <div class="relative">
               <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filtros.estatus"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
                 <option v-for="opt in STATUS_OPTS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
               <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
@@ -229,7 +248,7 @@ onMounted(() => {
             <div class="relative">
               <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filtros.disciplina"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
                 <option v-for="opt in disciplineOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
               <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
@@ -242,7 +261,7 @@ onMounted(() => {
             <div class="relative">
               <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
               <select v-model="filtros.tipo_acceso"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all cursor-pointer">
+                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
                 <option v-for="opt in ACCESS_OPTS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
               <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
@@ -297,14 +316,14 @@ onMounted(() => {
 
         <!-- Tabla con datos -->
         <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="bg-surface-50 border-b border-surface-200">
-              <th class="px-5 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 rounded-tl-2xl">Torneo</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden md:table-cell">Disciplina</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden lg:table-cell">Categoría</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700 hidden sm:table-cell">Acceso</th>
-              <th class="px-4 py-3.5 text-left text-xs font-black uppercase tracking-widest text-surface-700">Estado</th>
-              <th class="px-4 py-3.5 text-right text-xs font-black uppercase tracking-widest text-surface-700 rounded-tr-2xl">Acciones</th>
+          <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+            <tr>
+              <th class="px-5 py-3.5 text-left font-extrabold rounded-tl-2xl">Torneo</th>
+              <th class="px-4 py-3.5 text-left font-extrabold hidden md:table-cell">Disciplina</th>
+              <th class="px-4 py-3.5 text-left font-extrabold hidden lg:table-cell">Categoría</th>
+              <th class="px-4 py-3.5 text-left font-extrabold hidden sm:table-cell">Acceso</th>
+              <th class="px-4 py-3.5 text-left font-extrabold">Estado</th>
+              <th class="px-4 py-3.5 text-right font-extrabold rounded-tr-2xl">Acciones</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100">

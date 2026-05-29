@@ -10,18 +10,15 @@ import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
-import { IconFilter, IconChevronDown, IconCalendar, IconStar, IconUser, IconHourglass, IconAlertCircle } from '@/components/icons'
+import { IconFilter, IconChevronDown, IconCalendar, IconStar, IconHourglass, IconAlertCircle } from '@/components/icons'
 import { useformat } from '@/utils/formatters'
-
-// FullCalendar o similar no es necesario aquí, solo una tabla
-import DatePicker from "primevue/datepicker";
 
 const router = useRouter()
 const store = useAdminLudotecaStore()
 const { formatText, dateFormat } = useformat();
 
-const { record, sociosConMenores, loading, listFilters } = storeToRefs(store)
-const { fetchRecord, fetchSociosConMenores } = store
+const { record, loading, listFilters } = storeToRefs(store)
+const { fetchRecord } = store
 
 // ── FILTROS ────────────────────────────────────────────────────
 const OPT_CALIFICACION = [
@@ -57,11 +54,11 @@ const loadData = async (silent = false) => {
     const params = {}
     const f = listFilters.value
 
-    if (f.dateRange && f.dateRange[0] && f.dateRange[1]) {
-        // Formatear fechas YYYY-MM-DD
-        const formatDate = (d) => d.toISOString().split('T')[0]
-        params.fecha_inicio = formatDate(f.dateRange[0])
-        params.fecha_fin = formatDate(f.dateRange[1])
+    if (f.fecha_inicio) {
+        params.fecha_inicio = f.fecha_inicio
+    }
+    if (f.fecha_fin) {
+        params.fecha_fin = f.fecha_fin
     }
 
     await fetchRecord(params, true)
@@ -69,16 +66,16 @@ const loadData = async (silent = false) => {
 }
 
 onMounted(async () => {
-    await Promise.all([
-        fetchRecord({}, true),
-        fetchSociosConMenores()
-    ])
+    await fetchRecord({}, true)
 })
 
-// Solo el rango de fechas gatilla una nueva petición al servidor
-watch(() => listFilters.value.dateRange, () => {
-    loadData(true)
-})
+// Las fechas gatillan una nueva petición al servidor
+watch(
+    [() => listFilters.value.fecha_inicio, () => listFilters.value.fecha_fin],
+    () => {
+        loadData(true)
+    }
+)
 
 const filteredRecord = computed(() => {
     let r = record.value
@@ -91,10 +88,6 @@ const filteredRecord = computed(() => {
             i.nombre_titular?.toLowerCase().includes(q) ||
             String(i.numero_accion ?? '').includes(q)
         )
-    }
-
-    if (f.socio) {
-        r = r.filter(i => i.id_socio === f.socio)
     }
 
     if (f.calificacion) {
@@ -120,15 +113,32 @@ const filteredRecord = computed(() => {
     return r
 })
 
+const currentPage = ref(1)
+const itemsPerPage = ref(15)
+
+const lastPage = computed(() => {
+    return Math.max(1, Math.ceil(filteredRecord.value.length / itemsPerPage.value))
+})
+
+const paginatedRecord = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value
+    const end = start + itemsPerPage.value
+    return filteredRecord.value.slice(start, end)
+})
+
+watch(filteredRecord, () => {
+    currentPage.value = 1
+})
+
 const hasActiveFilters = computed(() =>
-    listFilters.value.search || listFilters.value.dateRange || listFilters.value.socio ||
+    listFilters.value.search || listFilters.value.fecha_inicio || listFilters.value.fecha_fin ||
     listFilters.value.calificacion || listFilters.value.estatus || listFilters.value.tiempo
 )
 
 const clearFilters = () => {
     listFilters.value.search = ''
-    listFilters.value.dateRange = null
-    listFilters.value.socio = null
+    listFilters.value.fecha_inicio = ''
+    listFilters.value.fecha_fin = ''
     listFilters.value.calificacion = null
     listFilters.value.estatus = null
     listFilters.value.tiempo = null
@@ -191,39 +201,26 @@ const buildMenuItems = (item) => [
 
         <!-- BARRA DE FILTROS -->
         <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-            <div class="flex flex-col lg:flex-row gap-4">
-                <div class="flex-1">
-                    <SearchInput v-model="listFilters.search" placeholder="Buscar por menor, titular o acción…" />
-                </div>
-                <div class="lg:w-72">
-                    <div class="relative group">
-                        <IconCalendar
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 z-10" />
-                        <DatePicker v-model="listFilters.dateRange" selectionMode="range" :manualInput="false"
-                            placeholder="Rango de fechas" class="w-full"
-                            inputClass="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
-                            showIcon="false" />
-                    </div>
-                </div>
+            <div class="flex flex-col gap-2">
+                <SearchInput v-model="listFilters.search" placeholder="Buscar por menor, titular o acción…" />
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <!-- Socio -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <!-- Desde -->
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Socio
-                        Titular</label>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Desde</label>
                     <div class="relative">
-                        <IconUser
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="listFilters.socio"
-                            class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
-                            <option :value="null">Todos los socios</option>
-                            <option v-for="s in sociosConMenores" :key="s.id_socio" :value="s.id_socio">
-                                {{ s.nombre_completo }} (#{{ s.numero_accion }})
-                            </option>
-                        </select>
-                        <IconChevronDown
-                            class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        <input type="date" v-model="listFilters.fecha_inicio" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
+                    </div>
+                </div>
+
+                <!-- Hasta -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hasta</label>
+                    <div class="relative">
+                        <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                        <input type="date" v-model="listFilters.fecha_fin" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
                     </div>
                 </div>
 
@@ -298,7 +295,9 @@ const buildMenuItems = (item) => [
         </div>
 
         <!-- TABLA -->
-        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-[400px] relative">
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-[400px] relative flex flex-col">
+            
+            <div class="flex-1 overflow-x-auto flex flex-col">
 
             <!-- SKELETON -->
             <TableSkeleton v-if="loading.record && !isFiltering" :rows="8" :columns="6" :has-avatar="true" />
@@ -318,35 +317,21 @@ const buildMenuItems = (item) => [
             </div>
 
             <!-- Table -->
-            <div v-else class="overflow-x-auto">
+            <div v-else class="flex-1">
                 <table class="w-full text-sm text-left text-slate-600">
-                    <thead>
-                        <tr class="bg-surface-50 border-b border-surface-200">
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Menor</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Titular</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Ingreso / Egreso</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Tiempo</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Calif.</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Estatus Final</th>
-                            <th scope="col"
-                                class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-900">
-                                Acciones</th>
+                    <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Menor</th>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Titular / Acción</th>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Ingreso / Egreso</th>
+                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Tiempo</th>
+                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Calif.</th>
+                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Estatus Final</th>
+                            <th scope="col" class="px-6 py-4 text-right font-extrabold">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100">
-                        <tr v-for="item in filteredRecord" :key="item.id_historial"
+                        <tr v-for="item in paginatedRecord" :key="item.id_historial"
                             class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group cursor-pointer"
                             @click="router.push(`/admin/ludoteca/record/${item.id_historial}`)">
 
@@ -363,13 +348,8 @@ const buildMenuItems = (item) => [
 
                             <!-- Titular -->
                             <td class="px-6 py-4">
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-medium text-surface-700">{{ item.nombre_titular
-                                    }}</span>
-                                    <span
-                                        class="text-[10px] font-medium text-surface-400 uppercase tracking-wider">Acción
-                                        #{{ item.numero_accion }}</span>
-                                </div>
+                                <div class="font-bold text-slate-800">{{ item.nombre_titular }}</div>
+                                <div class="text-slate-500 text-xs mt-0.5">{{ item.numero_accion }}</div>
                             </td>
 
                             <!-- Ingreso / Egreso -->
@@ -417,6 +397,37 @@ const buildMenuItems = (item) => [
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <!-- Paginación -->
+            <div v-if="!loading.record && filteredRecord.length > 0" class="px-6 py-3 bg-slate-900 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400 font-bold shrink-0 mt-auto">
+                <span class="tabular-nums text-slate-300">
+                    {{ filteredRecord.length }} {{ filteredRecord.length === 1 ? 'registro' : 'registros' }}
+                    <span class="text-slate-600 mx-1">·</span>
+                    página <span class="text-white">{{ currentPage }}</span> de <span class="text-white">{{ lastPage }}</span>
+                </span>
+                <div class="flex items-center gap-2">
+                    <button
+                        @click="currentPage--"
+                        :disabled="currentPage <= 1"
+                        class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <span class="tabular-nums text-white font-black">{{ currentPage }}</span>
+                    <button
+                        @click="currentPage++"
+                        :disabled="currentPage >= lastPage"
+                        class="w-7 h-7 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

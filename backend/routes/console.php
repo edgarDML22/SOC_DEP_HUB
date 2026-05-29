@@ -55,14 +55,10 @@ Schedule::command('queue:work --queue=default,torneo-cancelacion --stop-when-emp
     ->timezone('America/Mexico_City');
 
 // ── Máquina de estados de sesiones de clases ──────────────────────────────────
-// DISPONIBLE → EN_CURSO: sesiones cuya hora_inicio está dentro de los próximos 15 min.
-Schedule::command('sesiones:iniciar')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->timezone('America/Mexico_City');
-
-// EN_CURSO → FINALIZADA: sesiones cuya hora_fin superó hace más de 20 min.
-Schedule::command('sesiones:finalizar')
-    ->everyMinute()
+// DISPONIBLE | LLENA → EN_CURSO → FINALIZADA
+// Condición de negocio: plantilla publicada y vigente para la fecha de la sesión.
+// Lecturas de hora_inicio / hora_fin desde el snapshot de sesiones_activas (sin JOIN a plantilla).
+Schedule::command('sessions:update-status')
+    ->everyFiveMinutes()
     ->withoutOverlapping()
     ->timezone('America/Mexico_City');

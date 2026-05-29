@@ -240,7 +240,9 @@ class SocioController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($item) {
-                $item->foto_perfil = null;
+                if (isset($item->id)) {
+                    $item->foto_perfil = (string) cloudinary()->image("socios/profiles/socio_{$item->id}")->version(time())->toUrl();
+                }
                 $item->tipo_perfil = 'socio_titular';
                 return $item;
             });

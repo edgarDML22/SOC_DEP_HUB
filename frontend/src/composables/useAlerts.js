@@ -18,7 +18,7 @@ const swalApp = Swal.mixin({
 export const useAlerts = () => {
     // Toasts
     const toastInfo = (title, text, type = 'success') => {
-        const iconColor = type === 'success' ? 'var(--color-state-success)' :
+        const iconColor = type === 'success' ? '#15803d' :
             type === 'error' ? 'var(--color-state-error)' : 'var(--color-state-info)';
         Swal.fire({
             toast: true,
@@ -47,11 +47,17 @@ export const useAlerts = () => {
             error: '#991b1b',   // red-800
             info: '#1e40af'     // blue-800
         }
+        const iconColors = {
+            success: '#15803d', // dark green / emerald-700
+            error: '#dc2626',   // red-600
+            info: '#2563eb'     // blue-600
+        }
         
         Swal.fire({
             toast: true,
             position: 'bottom-end',
             icon: type,
+            iconColor: iconColors[type],
             title: title,
             showConfirmButton: false,
             timer: 3000,
@@ -118,10 +124,10 @@ export const useAlerts = () => {
     }
 
     // Modal de Error
-    const errorModal = (title, text) => {
+    const errorModal = (title, html) => {
         return swalApp.fire({
             title: title,
-            text: text,
+            html: html,
             icon: 'error',
             iconColor: 'var(--color-state-error)',
             confirmButtonText: 'Entendido'

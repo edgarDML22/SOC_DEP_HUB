@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profiles/socioStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
 import { IconHome, IconCalendar, IconTrophy, IconGuests, IconClock, IconUser, IconBell, IconQr } from '@/components/icons';
+import DarkModeToggle from '@/components/ui/DarkModeToggle.vue'
 
 const profileStore       = useProfileStore()
 const notifStore         = useNotificacionesStore()
@@ -82,6 +83,20 @@ const cerrarDetalle = () => {
   notifSeleccionada.value = null
 }
 
+watch(notifSeleccionada, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+// Ensures overflow is reset if the component is destroyed while the modal is open
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.removeEventListener('click', handleClickOutside)
+})
+
 // Helpers de presentación
 const labelServicio = (estatus) => {
   const map = {
@@ -94,18 +109,22 @@ const labelServicio = (estatus) => {
 
 const formatFecha = (iso) => {
   if (!iso) return null
-  const d = new Date(iso)
+  // Date-only strings (YYYY-MM-DD) are UTC midnight — add T12:00 to keep local date correct
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso
+  const d = new Date(normalized)
   if (isNaN(d.getTime())) return null
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const tituloNotif = (notif) => {
-  if (notif.data?.tipo === 'CUENTA_MOROSA')        return 'Adeudo Pendiente'
-  if (notif.data?.tipo === 'SANCION_ASIGNADA')     return 'Penalización asignada'
-  if (notif.data?.tipo === 'SANCION_LEVANTADA')    return 'Penalización levantada'
-  if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return '¡Solicitud aceptada!'
-  if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')  return 'Solicitud rechazada'
-  if (notif.data?.tipo === 'SOLICITUD_ENVIADA')    return 'Nueva solicitud de amistad'
+  if (notif.data?.tipo === 'CUENTA_MOROSA')               return 'Adeudo Pendiente'
+  if (notif.data?.tipo === 'SANCION_ASIGNADA')            return 'Penalización asignada'
+  if (notif.data?.tipo === 'SANCION_LEVANTADA')           return 'Penalización levantada'
+  if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')          return '¡Solicitud aceptada!'
+  if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')         return 'Solicitud rechazada'
+  if (notif.data?.tipo === 'SOLICITUD_ENVIADA')           return 'Nueva solicitud de amistad'
+  if (notif.data?.tipo === 'SESION_CANCELADA')            return 'Sesión cancelada'
+  if (notif.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR') return 'Sesión cancelada'
   return 'Notificación'
 }
 
@@ -117,6 +136,16 @@ const subtituloNotif = (notif) => {
   if (notif.data?.tipo === 'SOLICITUD_ACEPTADA')   return `El socio ${nombre} ha aceptado tu solicitud.`
   if (notif.data?.tipo === 'SOLICITUD_RECHAZADA')  return `El socio ${nombre} ha rechazado tu solicitud.`
   if (notif.data?.tipo === 'SOLICITUD_ENVIADA')    return `Has recibido una solicitud de amistad de ${nombre}.`
+  if (notif.data?.tipo === 'SESION_CANCELADA') {
+    const d = notif.data
+    const hora = d.hora_inicio ? d.hora_inicio.slice(0, 5) : ''
+    return [d.disciplina, hora].filter(Boolean).join(' · ')
+  }
+  if (notif.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR') {
+    const d = notif.data
+    const hora = d.hora_inicio ? d.hora_inicio.slice(0, 5) : ''
+    return [d.disciplina, hora].filter(Boolean).join(' · ')
+  }
   return ''
 }
 
@@ -161,18 +190,25 @@ const iconoNotif = (tipo) => {
       <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
     </svg>`
   }
+  if (tipo === 'SESION_CANCELADA' || tipo === 'SESION_CANCELADA_INSTRUCTOR') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="9" y1="14" x2="15" y2="20"/><line x1="15" y1="14" x2="9" y2="20"/>
+    </svg>`
+  }
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
   </svg>`
 }
 
+const esTipoSesionCancelada = (tipo) =>
+  ['SESION_CANCELADA', 'SESION_CANCELADA_INSTRUCTOR'].includes(tipo)
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 </script>
 
 <template>
@@ -182,13 +218,13 @@ onUnmounted(() => {
 
     <!-- ── DESKTOP ── -->
     <nav class="hidden md:flex w-full fixed top-0 z-100 px-4 pt-4 pb-4 backdrop-blur-sm pointer-events-none justify-center">
-      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
+      <div class="pointer-events-auto w-full max-w-5xl rounded-2xl bg-white/80 dark:bg-surface-100/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-surface-200/50 px-6 py-2.5 flex items-center justify-between transition-all">
 
         <router-link to="/socio/home" class="flex items-center gap-3 shrink-0 group">
           <div class="p-1 bg-white rounded-xl shadow-sm border border-surface-100 group-hover:scale-105 transition-transform">
-            <img src="../../assets/LogoSocDep.jpg" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
+            <img src="../../assets/LogoSocDep.png" alt="SOC-DEP HUB" class="h-8 w-8 object-cover rounded-lg" />
           </div>
-          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">SOC-DEP</span>
+          <span class="font-bold text-lg tracking-tight text-surface-900 group-hover:text-primary-600 transition-colors">Soc-Dep Hub</span>
         </router-link>
 
         <div class="flex items-center gap-1 lg:gap-2 justify-center flex-1 mx-4">
@@ -212,6 +248,9 @@ onUnmounted(() => {
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
+          <!-- BOTÓN DE MODO OSCURO (DESKTOP) -->
+          <DarkModeToggle />
+
           <!-- ── Campanita Desktop ── -->
           <div class="relative" ref="notifDropdownDesktop">
             <button
@@ -225,7 +264,7 @@ onUnmounted(() => {
 
             <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
               <div v-if="showNotifications"
-                class="absolute top-14 right-0 w-80 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
+                class="absolute top-14 right-0 w-80 bg-white dark:bg-surface-100 rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
                 <div class="flex items-center justify-between px-5 pt-5 pb-3">
                   <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
                   <button v-if="tieneNoLeidas"
@@ -286,13 +325,20 @@ onUnmounted(() => {
 
           <!-- Avatar / dropdown perfil -->
           <div class="relative" ref="profileDropdown">
-            <button class="w-10 h-10 bg-primary-600 outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
-              {{ profileStore.userInitials }}
+            <button class="w-10 h-10 overflow-hidden bg-primary-600 outline-2 outline-offset-2 outline-transparent hover:outline-primary-200 text-white rounded-xl shadow-inner flex items-center justify-center text-sm font-bold hover:scale-105 active:scale-95 transition-all" @click="toggleMenu">
+              <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto" class="w-full h-full object-cover" />
+              <span v-else>{{ profileStore.userInitials }}</span>
             </button>
-            <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
-              <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100">
-                <span class="block text-xs font-medium text-surface-500 uppercase tracking-wider mb-1">Mi Cuenta</span>
-                <strong class="block text-sm font-bold text-surface-900">{{ profileStore.userInitials }} (Socio)</strong>
+            <div v-if="menuOpen" class="absolute top-14 right-0 w-64 bg-white dark:bg-surface-100 rounded-2xl border border-surface-100 shadow-[0_15px_50px_rgba(0,0,0,0.1)] p-3 z-50 flex flex-col gap-1 transition-all">
+              <div class="px-4 py-3 bg-surface-50 rounded-xl mb-2 border border-surface-100 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg overflow-hidden bg-primary-600 flex items-center justify-center shrink-0 text-white text-xs font-bold shadow-sm">
+                  <img v-if="profileStore.fotoPerfil" :src="profileStore.fotoPerfil" alt="Foto" class="w-full h-full object-cover" />
+                  <span v-else>{{ profileStore.userInitials }}</span>
+                </div>
+                <div class="min-w-0">
+                  <span class="block text-[10px] font-medium text-surface-500 uppercase tracking-wider">Mi Cuenta</span>
+                  <strong class="block text-xs font-bold text-surface-900 truncate">{{ profileStore.fullName }}</strong>
+                </div>
               </div>
               <router-link to="/socio/profile" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">
                 <IconUser class="w-[18px] h-[18px]" /> Mi Perfil
@@ -316,14 +362,19 @@ onUnmounted(() => {
     </nav>
 
     <!-- ── MOBILE ── -->
-    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
+    <div class="md:hidden fixed top-0 left-0 w-full px-5 py-3 bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-b border-surface-200 z-110 flex items-center justify-between shadow-sm">
       <div class="flex items-center gap-3">
-        <img src="../../assets/LogoSocDep.jpg" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
-        <span class="font-bold text-lg text-surface-900 tracking-tight">SOC-DEP</span>
+        <img src="../../assets/LogoSocDep.png" class="w-9 h-9 rounded-lg shadow-sm border border-surface-100 object-cover" />
+        <span class="font-bold text-lg text-surface-900 tracking-tight">Soc-Dep Hub</span>
       </div>
 
-      <!-- ── Campanita Mobile ── -->
-      <div class="relative" ref="notifDropdownMobile">
+      <!-- Contenedor del Toggle + Notificaciones en Móvil -->
+      <div class="flex items-center gap-3">
+        <!-- BOTÓN DE MODO OSCURO (MOBILE) -->
+        <DarkModeToggle />
+
+        <!-- ── Campanita Mobile ── -->
+        <div class="relative" ref="notifDropdownMobile">
         <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-50 text-surface-600 active:scale-95 hover:bg-surface-100 transition-all relative" @click="toggleNotifications">
           <IconBell class="w-5 h-5" :class="tieneNoLeidas ? 'text-primary-600 bell-ring' : ''" />
           <span v-if="tieneNoLeidas"
@@ -332,7 +383,7 @@ onUnmounted(() => {
 
         <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100">
           <div v-if="showNotifications"
-            class="absolute top-12 right-0 w-80 bg-white rounded-2xl border border-surface-200 shadow-2xl z-60 overflow-hidden">
+            class="absolute top-12 right-0 w-80 bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 shadow-2xl z-60 overflow-hidden">
             <div class="flex items-center justify-between px-5 pt-5 pb-3">
               <h4 class="font-bold text-base text-surface-900">Notificaciones</h4>
               <button v-if="tieneNoLeidas"
@@ -391,9 +442,10 @@ onUnmounted(() => {
         </Transition>
       </div>
     </div>
+  </div>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 dark:bg-surface-100/90 backdrop-blur-xl border-t border-surface-200 z-100 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] selection:bg-transparent">
       <div class="flex items-center justify-between h-[64px] pb-1 gap-1">
         <router-link to="/socio/home" class="flex flex-col items-center justify-center gap-1 group w-[20%] h-full relative active:scale-95 transition-all">
           <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary-600 opacity-0 group-[.router-link-active]:opacity-100 transition-all duration-300"/>
@@ -442,7 +494,7 @@ onUnmounted(() => {
         leave-from-class="opacity-100" leave-to-class="opacity-0"
       >
         <div v-if="notifSeleccionada"
-          class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="cerrarDetalle"
         >
           <Transition
@@ -451,22 +503,30 @@ onUnmounted(() => {
             enter-to-class="opacity-100 scale-100 translate-y-0"
           >
             <div v-if="notifSeleccionada"
-              class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden"
+              class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
-              <!-- Cabecera coloreada — roja para sanción, verde para liberación -->
+              <!-- Cabecera coloreada — roja para sanción, verde para liberación, violeta para sesión -->
               <div
                 class="px-7 py-6 text-white relative overflow-hidden"
-                :class="esTipoAmistad(notifSeleccionada.data?.tipo)
-                  ? 'bg-linear-to-br from-blue-500 to-indigo-600'
-                  : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                    ? 'bg-linear-to-br from-green-500 to-emerald-500'
-                    : 'bg-linear-to-br from-red-500 to-orange-500'"
+                :class="esTipoSesionCancelada(notifSeleccionada.data?.tipo)
+                  ? 'bg-linear-to-br from-violet-600 to-purple-800'
+                  : esTipoAmistad(notifSeleccionada.data?.tipo)
+                    ? 'bg-linear-to-br from-blue-500 to-indigo-600'
+                    : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                      ? 'bg-linear-to-br from-green-500 to-emerald-500'
+                      : 'bg-linear-to-br from-red-500 to-orange-500'"
               >
                 <div class="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"/>
                 <div class="relative z-10 flex items-start gap-4">
                   <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                    <!-- Ícono sesión cancelada -->
+                    <svg v-if="esTipoSesionCancelada(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                      <line x1="9" y1="14" x2="15" y2="20"/><line x1="15" y1="14" x2="9" y2="20"/>
+                    </svg>
                     <!-- Ícono amistad -->
-                    <svg v-if="esTipoAmistad(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
+                    <svg v-else-if="esTipoAmistad(notifSeleccionada.data?.tipo)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                       <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
@@ -483,22 +543,26 @@ onUnmounted(() => {
                   </div>
                   <div>
                     <p class="text-[10px] font-black uppercase tracking-widest text-white/70 mb-0.5">
-                      {{ esTipoAmistad(notifSeleccionada.data?.tipo)
-                        ? 'Comunidad · Amigos'
-                        : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                          ? 'Penalización Levantada'
-                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
-                            ? 'Estado de Cuenta'
-                            : 'Penalización Asignada' }}
+                      {{ esTipoSesionCancelada(notifSeleccionada.data?.tipo)
+                        ? 'Programación · Sesiones'
+                        : esTipoAmistad(notifSeleccionada.data?.tipo)
+                          ? 'Comunidad · Amigos'
+                          : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                            ? 'Penalización Levantada'
+                            : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                              ? 'Estado de Cuenta'
+                              : 'Penalización Asignada' }}
                     </p>
                     <h3 class="text-lg font-black leading-tight">
-                      {{ esTipoAmistad(notifSeleccionada.data?.tipo)
-                        ? tituloNotif(notifSeleccionada)
-                        : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
-                          ? 'Cuenta sin restricciones'
-                          : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
-                            ? 'Adeudo Pendiente'
-                            : labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}
+                      {{ esTipoSesionCancelada(notifSeleccionada.data?.tipo)
+                        ? notifSeleccionada.data?.disciplina ?? 'Sesión cancelada'
+                        : esTipoAmistad(notifSeleccionada.data?.tipo)
+                          ? tituloNotif(notifSeleccionada)
+                          : notifSeleccionada.data?.tipo === 'SANCION_LEVANTADA'
+                            ? 'Cuenta sin restricciones'
+                            : notifSeleccionada.data?.tipo === 'CUENTA_MOROSA'
+                              ? 'Adeudo Pendiente'
+                              : labelServicio(notifSeleccionada.data?.estatus_penalizacion) }}
                     </h3>
                   </div>
                 </div>
@@ -531,6 +595,108 @@ onUnmounted(() => {
                   </svg>
                   <p class="text-xs font-semibold text-red-800 leading-relaxed">
                     Atención: Los socios con estatus MOROSO no pueden reservar nuevos espacios o clases.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Cuerpo — variante sesión cancelada (socio e instructor) -->
+              <div v-else-if="esTipoSesionCancelada(notifSeleccionada.data?.tipo)" class="px-7 py-6 space-y-4">
+                <!-- Mensaje intro -->
+                <p class="text-sm font-semibold text-surface-600 leading-relaxed">
+                  {{ notifSeleccionada.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR'
+                    ? 'La administración ha cancelado la siguiente sesión que tenías programada. Por favor, no te presentes al club.'
+                    : 'La administración ha cancelado la siguiente sesión. Pedimos una sincera disculpa por los inconvenientes.' }}
+                </p>
+
+                <!-- Tarjeta de detalles -->
+                <div class="bg-violet-50 rounded-2xl border border-violet-100 overflow-hidden">
+                  <div class="px-4 py-2.5 bg-violet-100/60 border-b border-violet-100">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-violet-600">Detalle de la sesión</p>
+                  </div>
+                  <div class="divide-y divide-violet-100/70">
+
+                    <!-- Disciplina -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Disciplina</p>
+                        <p class="text-sm font-black text-surface-900 truncate">{{ notifSeleccionada.data?.disciplina ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Instructor (solo para socios) -->
+                    <div v-if="notifSeleccionada.data?.instructor" class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Instructor</p>
+                        <p class="text-sm font-black text-surface-900 truncate">{{ notifSeleccionada.data.instructor }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Espacio -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Espacio</p>
+                        <p class="text-sm font-black text-surface-900 truncate">{{ notifSeleccionada.data?.espacio ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Fecha</p>
+                        <p class="text-sm font-black text-surface-900">{{ formatFecha(notifSeleccionada.data?.fecha_sesion) ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Horario -->
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-violet-500 uppercase tracking-wide">Horario</p>
+                        <p class="text-sm font-black text-surface-900">
+                          {{ notifSeleccionada.data?.hora_inicio ? notifSeleccionada.data.hora_inicio.slice(0,5) : '—' }}
+                          –
+                          {{ notifSeleccionada.data?.hora_fin ? notifSeleccionada.data.hora_fin.slice(0,5) : '—' }}
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Nota informativa -->
+                <div class="flex items-start gap-3 bg-violet-50 rounded-2xl border border-violet-200 p-4">
+                  <svg class="w-4 h-4 text-violet-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                  </svg>
+                  <p class="text-xs font-semibold text-violet-800 leading-relaxed">
+                    {{ notifSeleccionada.data?.tipo === 'SESION_CANCELADA_INSTRUCTOR'
+                      ? 'Si tienes dudas, comunícate directamente con la gerencia del club.'
+                      : 'Si tienes alguna duda, acude a las oficinas de Administración del club. Agradecemos tu comprensión.' }}
                   </p>
                 </div>
               </div>

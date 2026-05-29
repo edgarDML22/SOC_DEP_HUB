@@ -4,9 +4,10 @@ import { useProfileLogic } from "./profileStore";
 import api from "@/services/api";
 
 export const useInstructorStore = defineStore("instructorProfile", () => {
-    const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, logout, getSupportLink } = useProfileLogic('/instructor/profile');
+    const { profileData, isLoading, error, fullName, userInitials, fetchProfile, updateProfile, uploadPhoto, logout, getSupportLink } = useProfileLogic('/instructor/profile');
 
     const idInstructor = computed(() => profileData.value?.id_instructor || null);
+    const fotoPerfil = computed(() => profileData.value?.foto_perfil || null);
 
     const status = computed(() => profileData.value?.estatus_cuenta || profileData.value?.estatus || "");
     const email = computed(() => profileData.value?.correo_electronico || "");
@@ -20,9 +21,9 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         return profileData.value?.tieneLudoteca == true;
     });
 
-    const tieneTurnoLudotecaHoy = computed(() => {
-        return profileData.value?.turno_ludoteca_hoy === true;
-    });
+    const turnoLudotecaHoy = computed(() => profileData.value?.turno_ludoteca_hoy ?? null);
+
+    const tieneTurnoLudotecaHoy = computed(() => turnoLudotecaHoy.value !== null);
 
     const homeSessions = computed(() => {
         return homeSessionsCache.value;
@@ -66,12 +67,15 @@ export const useInstructorStore = defineStore("instructorProfile", () => {
         idInstructor,
         disciplinas,
         isCuidador,
+        turnoLudotecaHoy,
         tieneTurnoLudotecaHoy,
         homeSessions,
         fetchProfile,
         updateProfile,
         logout,
         getSupportLink,
+        fotoPerfil,
+        uploadPhoto,
         homeSessionsCache,
         homeSessionsLoading,
         fetchHomeSessions,

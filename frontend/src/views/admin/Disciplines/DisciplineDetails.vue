@@ -218,14 +218,14 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                         <label
                                             class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Nombre</label>
                                         <input v-model="editForm.nombre_disciplina" type="text"
-                                            class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none">
+                                            class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
                                     </div>
                                     <div class="space-y-1.5">
                                         <label
                                             class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Categoría</label>
                                         <select v-model="editForm.categorias_ids[0]"
                                             :disabled="discipline.estatus === 'ACTIVO'"
-                                            class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all outline-none"
+                                            class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
                                             :class="discipline.estatus === 'ACTIVO' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'">
                                             <option :value="undefined" disabled>Selecciona una categoría</option>
                                             <option v-for="cat in categories" :key="cat.id_categoria" :value="cat.id_categoria">{{

@@ -41,8 +41,8 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
     const listFilters = ref({
         search: '',
-        dateRange: null,
-        socio: null,
+        fecha_inicio: '',
+        fecha_fin: '',
         calificacion: null,
         estatus: null,
         tiempo: null
@@ -99,6 +99,20 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         }
     };
 
+    const fetchInstructorAgenda = async (idInstructor, desde, hasta) => {
+        try {
+            const res = await api.get(`/ludoteca/admin/instructores/${idInstructor}/agenda`, {
+                params: { desde, hasta }
+            });
+            if (res.data.success) {
+                return res.data.data;
+            }
+        } catch (err) {
+            console.error("[adminLudotecaStore] Error al cargar agenda de instructor:", err);
+            return null;
+        }
+    };
+
     /**
      * Carga los turnos asignados de hoy + próximos 6 días.
      */
@@ -147,6 +161,23 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
 
         } finally {
             loading.value.submit = false;
+        }
+    };
+
+    const eliminarTurno = async (id) => {
+        loading.value.turnos = true;
+        try {
+            const res = await api.delete(`/ludoteca/admin/turnos/${id}`);
+            if (res.data.success) {
+                await fetchTurnos(true);
+                return { success: true };
+            }
+            return { success: false, message: "Error al eliminar el turno" };
+        } catch (err) {
+            console.error("[adminLudotecaStore] Error al eliminar turno:", err);
+            return { success: false, message: err.response?.data?.message || "Error al eliminar el turno" };
+        } finally {
+            loading.value.turnos = false;
         }
     };
 
@@ -214,10 +245,12 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         // Actions
         fetchStats,
         fetchInstructores,
+        fetchInstructorAgenda,
         fetchTurnos,
         fetchRecord,
         fetchSociosConMenores,
         crearTurno,
+        eliminarTurno,
         clearCache
     };
 });

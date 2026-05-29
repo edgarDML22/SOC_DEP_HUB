@@ -35,6 +35,7 @@ class FriendsController extends Controller
                 'id_amistad'        => $amistad->id_amistad,
                 'id_amigo'          => $amigo?->id_socio,
                 'nombre_amigo'      => $amigo?->nombre_completo ?? 'Desconocido',
+                'foto_amigo'        => $amigo ? (string) cloudinary()->image("socios/profiles/socio_{$amigo->id_socio}")->version(time())->toUrl() : null,
                 'estado'            => $amistad->estado,
                 'solicitado_por_mi' => $esSolicitante,
                 'created_at'        => $amistad->created_at,

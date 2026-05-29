@@ -25,8 +25,15 @@ class SesionActiva extends Model
         'estatus_sesion',
         'cantidad_inscritos',
         'fecha_publicacion',
-        'id_instructor_sustituto',
         'lista_asistencia_enviada',
+        // Snapshot columns — se copian desde actividades_plantilla al crear la sesión
+        'id_disciplina',
+        'id_instructor',
+        'cupo_maximo',
+        'hora_inicio',
+        'hora_fin',
+        'requiere_inscripcion',
+        'dia_semana',
     ];
 
     // -------------------------------------------------------------------------
@@ -36,6 +43,21 @@ class SesionActiva extends Model
     public function actividadPlantilla()
     {
         return $this->belongsTo(ActividadPlantilla::class, 'id_actividad_plantilla', 'id_actividad_plantilla');
+    }
+
+    public function disciplina()
+    {
+        return $this->belongsTo(\App\Models\Disciplina::class, 'id_disciplina', 'id_disciplina');
+    }
+
+    public function espacio()
+    {
+        return $this->belongsTo(\App\Models\EspacioFisico::class, 'id_espacio', 'id_espacio');
+    }
+
+    public function instructorPrincipal()
+    {
+        return $this->belongsTo(\App\Models\Instructor::class, 'id_instructor', 'id_instructor');
     }
 
     public function inscripcionesClase()
@@ -49,21 +71,15 @@ class SesionActiva extends Model
 
     /**
      * Indica si el cupo de la sesión está lleno.
-     *
-     * Requiere que la relación actividadPlantilla esté cargada (eager load)
-     * para evitar N+1. Si no está cargada, devuelve false de forma segura.
-     *
-     * Uso: $sesion->es_cupo_lleno  (acceso como propiedad)
+     * Lee cupo_maximo directamente del snapshot para evitar eager load de actividadPlantilla.
      */
     public function getEsCupoLlenoAttribute(): bool
     {
-        $actividad = $this->actividadPlantilla;
-
-        if (!$actividad || $actividad->cupo_maximo === null) {
+        if ($this->cupo_maximo === null) {
             return false;
         }
 
-        return $this->cantidad_inscritos >= $actividad->cupo_maximo;
+        return $this->cantidad_inscritos >= $this->cupo_maximo;
     }
 
     /**

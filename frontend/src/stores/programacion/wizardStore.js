@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
 import api from '@/services/api'
+import { usePlantillasStore } from '@/stores/programacion/plantillasStore'
 
 function toMinutes(t) {
   const [h, m] = t.split(':').map(Number)
@@ -617,6 +618,13 @@ export const useWizardStore = defineStore('wizardProgramacion', () => {
       await api.delete(`/programacion/actividades/${sesion.id_actividad_plantilla}`)
       actividadesConfirmadas.value.splice(index, 1)
       cerrarDetalleSesion()
+      // Sincronizar total_actividades en plantillasStore sin necesidad de refetch
+      if (idPlantillaActiva.value !== null) {
+        usePlantillasStore().actualizarTotalActividades(
+          idPlantillaActiva.value,
+          actividadesConfirmadas.value.length
+        )
+      }
       return
     }
     if (origen === 'draft')    return eliminarActividad(index)

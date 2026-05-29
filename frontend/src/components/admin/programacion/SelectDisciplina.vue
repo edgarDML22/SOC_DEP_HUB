@@ -117,7 +117,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
       ]"
     >
       <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-50 text-primary-600">
-        <DisciplineIcon :name="seleccionado?.nombre_disciplina ?? ''" class="w-5 h-5" />
+        <DisciplineIcon :name="seleccionado?.nombre_disciplina ?? ''" :icon="seleccionado?.icono" class="w-5 h-5" />
       </span>
       <span :class="['flex-1 truncate', seleccionado ? 'text-slate-800' : 'text-slate-400']">
         {{ seleccionado?.nombre_disciplina ?? placeholder }}
@@ -184,7 +184,7 @@ const padCls = computed(() => props.size === 'sm' ? 'px-3 py-2' : 'px-4 py-3')
           ]"
         >
           <span class="w-7 h-7 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-            <DisciplineIcon :name="d.nombre_disciplina" class="w-4 h-4" />
+            <DisciplineIcon :name="d.nombre_disciplina" :icon="d.icono" class="w-4 h-4" />
           </span>
           <span class="font-semibold truncate">{{ d.nombre_disciplina }}</span>
           <svg

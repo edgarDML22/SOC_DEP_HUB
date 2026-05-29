@@ -234,8 +234,8 @@ onMounted(() => {
         </span>
         <button
           @click="openNewModal"
-          class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
-                 text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
@@ -291,54 +291,43 @@ onMounted(() => {
         <button @click="clearFilters" class="mt-4 text-sm font-bold text-blue-600 hover:underline">Limpiar filtros</button>
       </div>
 
-      <!-- LISTA DE CARDS HORIZONTALES -->
-      <TransitionGroup
-        v-else
-        tag="div"
-        class="flex flex-col gap-4"
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 -translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-200 ease-in absolute"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-for="space in filteredSpaces"
-          :key="space.id_espacio"
-          class="bg-white rounded-2xl border border-surface-200 shadow-sm
-                 hover:shadow-md hover:border-surface-300
-                 transition-all duration-200 group flex"
-        >
-          <!-- Franja color estatus (izquierda) -->
-          <div class="w-1.5 shrink-0 rounded-l-2xl" :class="statusAccentLeft(space.estatus)" />
-
-          <!-- Ícono instalación -->
-          <div class="flex items-center justify-center px-5 py-4 shrink-0">
-            <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center
-                        shadow-sm group-hover:scale-105 transition-transform duration-200">
-              <DisciplineIcon :name="space.nombre_espacio" class="w-7 h-7" />
-            </div>
-          </div>
-
-          <!-- Contenido principal -->
-          <div class="flex-1 min-w-0 py-4 pr-4">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-
-                <!-- Nombre + capacidad -->
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-sm font-black text-surface-900 truncate leading-tight">
-                    {{ space.nombre_espacio }}
-                  </h3>
-                  <span class="text-[10px] font-bold text-surface-400 shrink-0">
-                    · {{ space.capacidad_maxima ?? '—' }} pers.
-                  </span>
+      <!-- TABLA -->
+      <div v-else class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-x-auto min-h-96">
+        <table class="w-full text-sm text-left text-slate-600">
+          <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+            <tr>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Espacio</th>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold hidden md:table-cell">Tipo de Uso</th>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold hidden lg:table-cell">Disciplinas Permitidas</th>
+              <th scope="col" class="px-6 py-4 text-left font-extrabold">Estatus</th>
+              <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-100">
+            <tr v-for="space in filteredSpaces" :key="space.id_espacio"
+              class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+              
+              <!-- Espacio, Capacidad, e Icono -->
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-1.5 h-10 shrink-0 rounded-full" :class="statusAccentLeft(space.estatus)" />
+                  <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
+                    <DisciplineIcon :name="space.nombre_espacio" class="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-surface-900 leading-tight">
+                      {{ space.nombre_espacio }}
+                    </h3>
+                    <p class="text-[10px] font-bold text-surface-400 mt-0.5">
+                      {{ space.capacidad_maxima ?? '—' }} pers.
+                    </p>
+                  </div>
                 </div>
+              </td>
 
-                <!-- Estatus + tipo (pills) -->
-                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-                  <BadgeStatus :status="space.estatus" size="sm" />
+              <!-- Tipo de Uso -->
+              <td class="px-6 py-4 hidden md:table-cell">
+                <div class="flex flex-wrap items-center gap-1.5">
                   <span
                     v-for="badge in tipoBadges(space)"
                     :key="badge.label"
@@ -348,37 +337,39 @@ onMounted(() => {
                     {{ badge.label }}
                   </span>
                 </div>
+              </td>
 
-                <!-- Disciplinas -->
-                <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1 mt-2">
-                  <span class="text-[10px] font-black uppercase tracking-wider text-surface-400 mr-1">
-                    Disciplinas:
-                  </span>
+              <!-- Disciplinas -->
+              <td class="px-6 py-4 hidden lg:table-cell">
+                <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1">
                   <span
-                    v-for="d in space.disciplinas.slice(0, 5)"
+                    v-for="d in space.disciplinas.slice(0, 3)"
                     :key="d.id_disciplina"
-                    class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-50 border border-surface-200
-                           text-[10px] font-bold text-surface-600"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-50 border border-surface-200 text-[10px] font-bold text-surface-600"
                   >
                     <DisciplineIcon :name="d.nombre_disciplina" class="w-3 h-3 shrink-0" />
                     {{ d.nombre_disciplina }}
                   </span>
-                  <span v-if="space.disciplinas.length > 5"
-                    class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
-                    +{{ space.disciplinas.length - 5 }}
+                  <span v-if="space.disciplinas.length > 3" class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                    +{{ space.disciplinas.length - 3 }}
                   </span>
                 </div>
-                <p v-else class="text-[11px] text-surface-400 italic mt-2">Sin disciplinas asignadas</p>
+                <span v-else class="text-[11px] text-surface-400 italic">Sin disciplinas asignadas</span>
+              </td>
 
-              </div>
+              <!-- Estatus -->
+              <td class="px-6 py-4">
+                <BadgeStatus :status="space.estatus" size="sm" />
+              </td>
 
-              <div class="flex items-center gap-2 shrink-0">
+              <!-- Acciones -->
+              <td class="px-6 py-4 text-right">
                 <ActionMenu :items="buildMenuItems(space)" align="right" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </TransitionGroup>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
     </div>
 
@@ -447,7 +438,7 @@ onMounted(() => {
                         <input v-model="newSpace.nombre_espacio" placeholder="Ej. Cancha de Tenis 1"
                           class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                                  text-surface-900 placeholder:text-surface-400 shadow-sm
-                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"/>
                       </div>
                     </div>
 
@@ -458,7 +449,7 @@ onMounted(() => {
                         <input v-model.number="newSpace.capacidad_maxima" type="number" min="1" placeholder="Ej. 10"
                           class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
                                  text-surface-900 placeholder:text-surface-400 shadow-sm
-                                 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all"/>
+                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"/>
                       </div>
                     </div>
 

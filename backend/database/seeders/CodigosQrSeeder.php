@@ -34,7 +34,7 @@ class CodigosQrSeeder extends Seeder
 
                     if (!$tieneQr) {
                         do {
-                            $codigoQR = 'QS' . substr(str_replace('-', '', Str::uuid()), 0, 6);
+                            $codigoQR = strtoupper('QS' . substr(str_replace('-', '', Str::uuid()), 0, 6));
                         } while (CodigoQr::where('codigo', $codigoQR)->exists()); 
 
                         CodigoQr::create([
@@ -64,7 +64,7 @@ class CodigosQrSeeder extends Seeder
 
                     if (!$tieneQr) {
                         do {
-                            $codigoQR = 'MF' . substr(str_replace('-', '', Str::uuid()), 0, 6);
+                            $codigoQR = strtoupper('MF' . substr(str_replace('-', '', Str::uuid()), 0, 6));
                         } while (CodigoQr::where('codigo', $codigoQR)->exists());
 
                         CodigoQr::create([

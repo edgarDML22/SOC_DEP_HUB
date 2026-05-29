@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, defineEmits } from 'vue';
+import { ref, computed, watch, defineEmits, onUnmounted } from 'vue';
 import { useAlerts } from '@/composables/useAlerts';
 import { useReservationStore } from '@/stores/reservationStore';
 import { storeToRefs } from 'pinia';
@@ -192,10 +192,22 @@ const closeDetails = () => {
     selectedReserva.value = null;
 };
 
+watch(showModal, (newVal) => {
+    if (newVal) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+});
+
+onUnmounted(() => {
+    document.body.style.overflow = '';
+});
+
 const getStatusConfig = (status) => {
     const configs = {
         'ACTIVA':     { label: 'ACTIVA',     class: 'bg-green-50 text-green-700 border-green-200' },
-        'COMPLETADA': { label: 'COMPLETADA', class: 'bg-blue-50 text-blue-700 border-blue-200' },
+        'COMPLETADA': { label: 'COMPLETADA', class: 'bg-primary-50 text-primary-700 border-primary-200' },
         'CANCELADA':  { label: 'CANCELADA',  class: 'bg-orange-50 text-orange-700 border-orange-200' },
         'NO_SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
         'NO SHOW':    { label: 'NO SHOW',    class: 'bg-red-50 text-red-700 border-red-200' },
@@ -266,7 +278,7 @@ const selectTab = (id) => {
             <!-- LISTA DE RESERVAS (Card Rediseñada y Compacta) -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div v-for="reserva in reservasFiltradas" :key="reserva.id_reserva"
-                    class="bg-white p-5 md:p-6 rounded-2xl border border-surface-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all flex flex-col gap-3 group">
+                    class="bg-white p-5 md:p-6 rounded-2xl border border-surface-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all flex flex-col gap-3 group border-l-4 border-l-blue-500">
                     <div class="flex items-start justify-between gap-4 w-full">
                         <h3 class="text-base md:text-lg font-bold text-surface-900 m-0 truncate flex-1">
                             {{ reserva.disciplina?.nombre_disciplina || 'Deporte no especificado' }}
@@ -374,7 +386,7 @@ const selectTab = (id) => {
 
         <!-- MODAL DE DETALLES -->
         <Transition name="fade">
-            <div v-if="showModal" class="fixed inset-0 z-100 flex items-center justify-center p-4">
+            <div v-if="showModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm" @click="closeDetails"></div>
 
                 <div

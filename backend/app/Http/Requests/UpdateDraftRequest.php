@@ -24,7 +24,7 @@ class UpdateDraftRequest extends FormRequest
             'payload.actividades.*.dia_semana'           => 'required|in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO',
             'payload.actividades.*.hora_inicio'          => 'required|date_format:H:i',
             'payload.actividades.*.hora_fin'             => 'required|date_format:H:i',
-            'payload.actividades.*.cupo_maximo'          => 'required|integer|min:1|max:200',
+            'payload.actividades.*.cupo_maximo'          => 'nullable|integer|min:1|max:200',
             'payload.actividades.*.requiere_inscripcion' => 'sometimes|boolean',
         ];
     }

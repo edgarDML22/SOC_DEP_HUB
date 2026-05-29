@@ -16,12 +16,14 @@ const { toastInfo } = useAlerts()
 
 const estatusSeleccionado = ref('')
 const isLoading = ref(false)
+const showSuccessOverlay = ref(false)
 const conflictos = ref(null)
 const errorMensaje = ref('')
 
 watch(() => props.show, (val) => {
   if (val && props.space) {
     estatusSeleccionado.value = props.space.estatus
+    showSuccessOverlay.value = false
     conflictos.value = null
     errorMensaje.value = ''
   }
@@ -41,9 +43,12 @@ const handleUpdate = async () => {
   isLoading.value = false
 
   if (res.success) {
-    toastInfo('Estatus actualizado', `El espacio ahora está ${estatusSeleccionado.value}.`, 'success')
+    showSuccessOverlay.value = true
     emit('updated', estatusSeleccionado.value)
-    emit('close')
+    setTimeout(() => {
+      showSuccessOverlay.value = false
+      emit('close')
+    }, 1500)
   } else if (res.conflictos) {
     conflictos.value = res.conflictos
   } else {
@@ -57,7 +62,26 @@ const handleUpdate = async () => {
     <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" @click.self="emit('close')">
         <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
-          <div v-if="show" class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+          <div v-if="show" class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col relative">
+            <!-- Overlay de éxito (animate-scale-in) -->
+            <Transition
+              enter-active-class="transition-opacity duration-150 ease-out"
+              enter-from-class="opacity-0"
+              enter-to-class="opacity-100"
+              leave-active-class="transition-opacity duration-200 ease-in"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div v-if="showSuccessOverlay" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-[2px] rounded-3xl flex flex-col items-center justify-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
+                  <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <p class="text-base font-black text-slate-800">Estatus actualizado correctamente</p>
+              </div>
+            </Transition>
+
             <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 class="text-lg font-black text-slate-900">Modificar Estatus</h3>

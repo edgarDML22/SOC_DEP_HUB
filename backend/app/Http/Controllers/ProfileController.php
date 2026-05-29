@@ -80,6 +80,7 @@ class ProfileController extends Controller
                         'retrasos_acumulados_ludoteca' => $perfil->retrasos_ludoteca ?? 0,
                         'qr_payload' => $qrPayload,
                         'qr_image_url' => $qrImageUrl,
+                        'foto_perfil' => $this->getFotoPerfilUrl($perfil->id_socio),
                     ]
                 ]);
                 break;
@@ -226,12 +227,69 @@ class ProfileController extends Controller
         ]);
 
         $socio = SocioTitular::find($usuario->user_id);
-
+ 
         if ($socio) {
             $socio->update($validated);
             return response()->json(['success' => true, 'message' => 'Perfil actualizado correctamente']);
         }
-
+ 
         return response()->json(['success' => false, 'message' => 'Error al actualizar'], 500);
+    }
+
+    public function uploadPhoto(Request $request)
+    {
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+        $rol = strtolower($usuario->rol ?? '');
+        if (!in_array($rol, ['socio_titular', 'instructor'])) {
+            return response()->json(['success' => false, 'message' => 'No autorizado. Rol: ' . ($usuario->rol ?? 'null')], 403);
+        }
+
+        $request->validate([
+            'foto_perfil' => 'required|image|max:2048',
+        ]);
+
+        $id = $usuario->user_id;
+
+        if ($rol === 'socio_titular') {
+            $folder = 'socios/profiles';
+            $publicId = 'socio_' . $id;
+            $url = $this->getFotoPerfilUrl($id);
+        } else {
+            $folder = 'instructors/profiles';
+            $publicId = 'instructor_' . $id;
+            $url = $this->getInstructorFotoPerfilUrl($id);
+        }
+
+        // Subir la imagen a Cloudinary en la carpeta especificada
+        $file = $request->file('foto_perfil');
+        cloudinary()->uploadApi()->upload($file->getRealPath(), [
+            'folder' => $folder,
+            'public_id' => $publicId,
+            'overwrite' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto de perfil actualizada correctamente',
+            'foto_perfil' => $url
+        ]);
+    }
+
+    private function getFotoPerfilUrl($idSocio)
+    {
+        return (string) cloudinary()->image("socios/profiles/socio_{$idSocio}")->version(time())->toUrl();
+    }
+
+    private function getInstructorFotoPerfilUrl($idInstructor)
+    {
+        return (string) cloudinary()->image("instructors/profiles/instructor_{$idInstructor}")->version(time())->toUrl();
     }
 }

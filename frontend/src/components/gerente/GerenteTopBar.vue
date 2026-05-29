@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { IconBell } from '@/components/icons'
 import { useAdminStore } from '@/stores/profiles/adminStore'
 import AdminProfileModal from '@/components/gerente/ui/AdminProfileModal.vue'
+import DarkModeToggle from '@/components/ui/DarkModeToggle.vue'
 
 const profileStore = useAdminStore()
 
@@ -38,6 +39,10 @@ onMounted(() => {
     <!-- RIGHT -->
     <div class="right">
       <span class="role">{{ profileStore.role === 'SUBGERENTE' ? 'Subgerente' : 'Gerente' }}</span>
+      
+      <!-- BOTÓN DE MODO OSCURO -->
+      <DarkModeToggle />
+
       <div class="notification-wrapper">
         <button class="notification-btn" @click="toggleNotifications">
           <IconBell class="w-5 h-5 transition-transform group-hover:scale-110" />
@@ -163,8 +168,8 @@ onMounted(() => {
 <style scoped>
 .topbar {
   height: 70px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--color-surface-100);
+  border-bottom: 1px solid var(--color-surface-200);
   display: flex;
   justify-content: space-between;
   padding: 0 20px;
@@ -184,12 +189,12 @@ onMounted(() => {
 
 /* 🔥 GERENTE BADGE */
 .role {
-  background: #f3f4f6;
+  background: var(--color-surface-200);
   padding: 6px 12px;
   border-radius: 999px;
   font-weight: 600;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-surface-700);
 }
 
 /* 🔔 NOTIFICATIONS */
@@ -212,8 +217,8 @@ onMounted(() => {
 }
 
 .notification-btn:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
+  background-color: var(--color-surface-200);
+  color: var(--color-surface-900);
 }
 
 .notification-btn:active {

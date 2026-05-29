@@ -156,8 +156,8 @@ const buildMenuItems = (cat) => [
                     <span class="font-medium text-slate-400">de {{ categories.length }}</span>
                 </span>
                 <button @click="openCreate"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white
-                           text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                           text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer border-none">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                     </svg>
@@ -299,7 +299,7 @@ const buildMenuItems = (cat) => [
                                             <input v-model="form.nombre" placeholder="Ej. Acuático, Combate..."
                                                 class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
                                                        text-slate-900 placeholder:text-slate-400
-                                                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm"/>
+                                                       focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"/>
                                         </div>
                                     </div>
 
@@ -309,7 +309,7 @@ const buildMenuItems = (cat) => [
                                             <IconAlertCircle class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                             <select v-model="form.estatus"
                                                 class="w-full pl-11 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                                                       text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all shadow-sm">
+                                                       text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm">
                                                 <option value="ACTIVO">Activo</option>
                                                 <option value="INACTIVO">Inactivo</option>
                                             </select>
@@ -322,7 +322,7 @@ const buildMenuItems = (cat) => [
                                         <textarea v-model="form.descripcion" rows="4" placeholder="Breve descripción de la categoría..."
                                             class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
                                                    text-slate-900 placeholder:text-slate-400 resize-none shadow-sm
-                                                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                                                   focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
                                     </div>
                                 </div>
 

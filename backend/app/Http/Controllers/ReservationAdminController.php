@@ -115,7 +115,7 @@ class ReservationAdminController extends Controller
 
         if ($request->has('estatus_operativo')) {
             if ($request->estatus_operativo) {
-                $estatus_validos = ['CANCELADA', 'CONFIRMADA', 'FINALIZADA', 'NO_SHOW', 'PENDIENTE', 'ACTIVA'];
+                $estatus_validos = ['CANCELADA', 'CONFIRMADA', 'COMPLETADA', 'NO_SHOW', 'PENDIENTE', 'ACTIVA'];
                 if (!in_array($request->estatus_operativo, $estatus_validos)) {
                     return response()->json([
                         'success' => false,

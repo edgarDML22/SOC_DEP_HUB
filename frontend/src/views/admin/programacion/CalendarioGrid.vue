@@ -184,15 +184,15 @@ function clasesBloque(b, conflictoTipo) {
   if (esConfirmada) {
     return cerrada
       ? {
-          bg: 'bg-gradient-to-br from-rose-500 to-red-700',
-          borderColor: 'border-red-700',
-          borderStyle: 'border border-red-700 border-l-4 border-l-red-800',
+          bg: 'bg-linear-to-br from-violet-500 to-purple-700',
+          borderColor: 'border-purple-700',
+          borderStyle: 'border border-purple-700 border-l-4 border-l-purple-800',
           text: 'text-white font-extrabold',
-          sub:  'text-rose-100 font-semibold',
+          sub:  'text-violet-100 font-semibold',
           stripeBg: null,
         }
       : {
-          bg: 'bg-gradient-to-br from-emerald-500 to-teal-700',
+          bg: 'bg-linear-to-br from-emerald-500 to-teal-700',
           borderColor: 'border-teal-700',
           borderStyle: 'border border-teal-700 border-l-4 border-l-teal-800',
           text: 'text-white font-extrabold',
@@ -204,11 +204,11 @@ function clasesBloque(b, conflictoTipo) {
   // Draft persistido o borrador local: fondo muy claro, borde punteado
   return cerrada
     ? {
-        bg: 'bg-red-50',
-        borderColor: 'border-red-400',
-        borderStyle: 'border border-dashed border-red-400 border-l-4 border-l-red-500',
-        text: 'text-red-700 font-extrabold',
-        sub:  'text-red-600 font-medium',
+        bg: 'bg-violet-50',
+        borderColor: 'border-violet-400',
+        borderStyle: 'border border-dashed border-violet-400 border-l-4 border-l-violet-500',
+        text: 'text-violet-700 font-extrabold',
+        sub:  'text-violet-600 font-medium',
         stripeBg: null,
       }
     : {
@@ -328,14 +328,7 @@ function getHourTimeLabel(hIdx) {
 
 // ─── Indicador de hora actual ─────────────────────────────────────────────
 const now = new Date()
-const currentMinutes = now.getHours() * 60 + now.getMinutes()
-const currentTimeTopPx = computed(() => {
-  const offsetMin = currentMinutes - HORA_INICIO * 60
-  if (offsetMin < 0 || offsetMin > TOTAL_HORAS * 60) return null
-  return (offsetMin / SLOT_MIN) * SLOT_PX
-})
 const todayDia = DIAS[now.getDay() === 0 ? 6 : now.getDay() - 1]
-const todayIdx = computed(() => DIAS.indexOf(todayDia))
 
 const timezoneLabel = computed(() => {
   const offsetMinutes = new Date().getTimezoneOffset()
@@ -399,33 +392,23 @@ const motivoVacio = computed(() => {
           :style="{ gridTemplateColumns: '64px repeat(7, minmax(0, 1fr))' }"
         >
           <!-- Top-left: Timezone label -->
-          <div class="h-20 flex flex-col items-end justify-end pb-2 pr-3 border-r border-slate-100">
+          <div class="h-14 flex items-center justify-end pr-3 border-r border-slate-100">
             <span class="text-[10px] font-semibold text-slate-600 tracking-wider">
               {{ timezoneLabel }}
             </span>
           </div>
-          <!-- Day names & dates -->
+          <!-- Day names -->
           <div
             v-for="dayObj in weekDays"
             :key="dayObj.dia"
-            class="h-20 border-l border-slate-100 flex flex-col items-center justify-center gap-1"
+            class="h-14 border-l border-slate-100 flex items-center justify-center"
           >
             <span
               :class="[
-                'text-[11px] font-bold uppercase tracking-wider',
-                dayObj.dia === todayDia ? 'text-primary-600' : 'text-slate-700'
+                'text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-all duration-150',
+                dayObj.dia === todayDia ? 'bg-primary-50 text-primary-600 font-extrabold shadow-sm' : 'text-slate-700'
               ]"
             >{{ DIAS_LABEL[dayObj.dia] }}</span>
-            <div
-              :class="[
-                'w-9 h-9 rounded-full flex items-center justify-center text-[15px] transition-colors duration-150',
-                dayObj.dia === todayDia
-                  ? 'bg-primary-600 text-white font-bold shadow-sm'
-                  : 'text-slate-800 font-semibold hover:bg-slate-100'
-              ]"
-            >
-              {{ dayObj.fecha }}
-            </div>
           </div>
         </div>
 
@@ -492,20 +475,7 @@ const motivoVacio = computed(() => {
             </button>
           </template>
 
-          <!-- LÍNEA DE HORA ACTUAL -->
-          <template v-if="currentTimeTopPx !== null && todayIdx !== -1">
-            <div
-              class="pointer-events-none z-20 absolute left-0 right-0 flex items-center"
-              :style="{
-                gridColumn: todayIdx + 2,
-                top: currentTimeTopPx + 'px',
-                height: '1px'
-              }"
-            >
-              <div class="w-2 h-2 rounded-full bg-red-500 -ml-1 shadow-sm shrink-0 z-30" />
-              <div class="flex-1 h-0.5 bg-red-500" />
-            </div>
-          </template>
+          <!-- LÍNEA DE HORA ACTUAL (REMOVIDA) -->
 
           <!-- BLOQUES DE SESIÓN -->
           <template v-for="(dia, diaIdx) in DIAS" :key="'sess-' + dia">
@@ -539,7 +509,7 @@ const motivoVacio = computed(() => {
                 <p
                   :class="['text-[11px] font-bold truncate leading-tight flex items-center gap-1.5', clasesBloque(b, tipoConflicto(b)).text]"
                 >
-                  <span v-if="b._origen === 'preview'" :class="['w-1.5 h-1.5 rounded-full shrink-0', b.requiere_inscripcion ? 'bg-red-500' : 'bg-emerald-500']" />
+                  <span v-if="b._origen === 'preview'" :class="['w-1.5 h-1.5 rounded-full shrink-0', b.requiere_inscripcion ? 'bg-violet-400' : 'bg-emerald-500']" />
                   {{ b._disciplina_nombre || 'Nueva Sesión' }}
                 </p>
                 <p
@@ -616,8 +586,8 @@ const motivoVacio = computed(() => {
         Confirmada · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-red-800 border border-red-700 inline-block"
-          style="background: linear-gradient(to bottom right, #f43f5e, #b91c1c);" />
+        <span class="w-3.5 h-3.5 rounded-sm border-l-[3px] border-l-purple-800 border border-purple-700 inline-block"
+          style="background: linear-gradient(to bottom right, #8b5cf6, #7e22ce);" />
         Confirmada · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
@@ -625,7 +595,7 @@ const motivoVacio = computed(() => {
         Borrador · Abierta
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-red-400 border-l-red-500 bg-red-50 inline-block" />
+        <span class="w-3.5 h-3.5 rounded-sm border border-dashed border-l-[3px] border-violet-400 border-l-violet-500 bg-violet-50 inline-block" />
         Borrador · Cerrada
       </span>
       <span class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">

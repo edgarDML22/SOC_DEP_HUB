@@ -28,11 +28,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (axios.isCancel(error) || error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+      return Promise.reject(error);
+    }
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_data");
 
-      router.push("/login");
+      if (router.currentRoute.value.path !== "/login") {
+        router.push("/login");
+      }
     }
     return Promise.reject(error);
   },

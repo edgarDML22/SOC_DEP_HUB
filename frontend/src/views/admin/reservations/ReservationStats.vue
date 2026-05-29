@@ -119,7 +119,7 @@ const kpi2Data = computed(() => {
             const map = {
                 'ACTIVA': 'Activa',
                 'PENDIENTE': 'Pendiente',
-                'FINALIZADA': 'Finalizada',
+                'COMPLETADA': 'Completada',
                 'CANCELADA': 'Cancelada',
                 'NO_SHOW': 'No Show'
             };
@@ -134,7 +134,7 @@ const kpi2Data = computed(() => {
                 const colorsMap = {
                     'ACTIVA': ['#22c55e', '#15803d'],
                     'PENDIENTE': ['#3b82f6', '#1d4ed8'],
-                    'FINALIZADA': ['#64748b', '#334155'],
+                    'COMPLETADA': ['#22c55e', '#15803d'],
                     'CANCELADA': ['#ef4444', '#b91c1c'],
                     'NO_SHOW': ['#f97316', '#c2410c'],
                     'NO SHOW': ['#f97316', '#c2410c']

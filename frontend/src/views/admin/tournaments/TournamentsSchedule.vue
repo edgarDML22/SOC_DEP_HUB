@@ -13,7 +13,6 @@ import interactionPlugin from '@fullcalendar/interaction'
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
 
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
-import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import CreateTournamentModal from '@/components/tournaments/CreateTournamentModal.vue'
 import SidebarArbitros from '@/components/tournaments/SidebarArbitros.vue'
 import ModalAsignacionEncuentro from '@/components/tournaments/ModalAsignacionEncuentro.vue'
@@ -245,7 +244,7 @@ function openAssignModal(enc) {
 
 function handleAssignmentSaved() {
   if (torneoIdFromQuery.value) {
-    scheduleStore.fetchEncuentrosTorneo(torneoIdFromQuery.value)
+    scheduleStore.fetchEncuentrosTorneo(torneoIdFromQuery.value, true)
   }
 }
 
@@ -318,7 +317,7 @@ const getEspacioName = (idEspacio) => {
 function handleTorneoCreated() {
   tournamentStore.fetchTorneos()
   if (!isDetailMode.value) {
-    scheduleStore.fetchTodosLosTorneos()
+    scheduleStore.fetchTodosLosTorneos(true)
   }
 }
 
@@ -386,34 +385,39 @@ const getEventCardStyle = (event) => {
   
   if (hasConflicto) {
     return {
-      backgroundColor: '#f59e0b', // bg-amber-500
-      borderColor: '#d97706', // border-amber-650
-      color: '#ffffff', // text-white
+      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      border: '1px solid #d97706',
+      borderLeft: '4px solid #b45309',
+      color: '#ffffff',
     }
   }
   
   if (isFinalizado) {
     return {
-      backgroundColor: '#f43f5e', // bg-rose-500
-      borderColor: '#e11d48', // border-rose-650
-      color: '#ffffff', // text-white
+      background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+      border: '1px solid #e11d48',
+      borderLeft: '4px solid #be123c',
+      color: '#ffffff',
     }
   }
   
   const tColor = scheduleStore.getTournamentColor(ext.id_torneo)
   if (isAssigned) {
+    const bg1 = tColor.gradient ? tColor.gradient[0] : tColor.bg
+    const bg2 = tColor.gradient ? tColor.gradient[1] : tColor.bg
     return {
-      backgroundColor: tColor.bg,
-      borderColor: tColor.gradient ? tColor.gradient[1] : tColor.bg,
+      background: `linear-gradient(135deg, ${bg1}, ${bg2})`,
+      border: `1px solid ${bg2}`,
+      borderLeft: `4px solid ${bg2}`,
       color: '#ffffff',
     }
   } else {
-    // Unassigned: slate gray
+    // Unassigned: slate gray dashed with 4px left border
     return {
-      backgroundColor: '#f8fafc', // bg-slate-50
-      borderColor: '#cbd5e1', // border-slate-300
-      borderStyle: 'dashed',
-      color: '#475569', // text-slate-600
+      background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+      border: '1px dashed #cbd5e1',
+      borderLeft: '4px dashed #94a3b8',
+      color: '#475569',
     }
   }
 }
@@ -485,7 +489,12 @@ onMounted(async () => {
     await scheduleStore.fetchEspacios()
     await scheduleStore.fetchArbitrosTorneo(torneoIdFromQuery.value)  // Obtener todos los árbitros del torneo
   } else {
-    await scheduleStore.fetchTodosLosTorneos()
+    if (scheduleStore.todosLosTorneos.length === 0) {
+      await scheduleStore.fetchTodosLosTorneos()
+    } else {
+      // Silently refresh in the background to keep data fresh without blocking page render!
+      scheduleStore.fetchTodosLosTorneos()
+    }
   }
 })
 </script>
@@ -496,20 +505,36 @@ onMounted(async () => {
 
       <!-- CABECERA -->
       <AdminPageHeader title="Calendario de Torneos" subtitle="Visualiza y administra la programación de encuentros.">
-        <div class="flex items-center gap-1.5 p-1 bg-surface-100 rounded-xl mr-4">
-          <button @click="router.push('/admin/tournaments')"
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-            :class="route.name === 'tournaments-list' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+        <!-- Switcher Tabla / Tarjetas / Calendario -->
+        <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200 mr-4">
+          <button @click="router.push('/admin/tournaments')" 
+                  class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
+                  :class="route.name === 'tournaments-list' 
+                    ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' 
+                    : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
             Tabla
           </button>
-          <button @click="router.push('/admin/tournaments/cards')"
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-            :class="route.name === 'tournaments-cards' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+          <button @click="router.push('/admin/tournaments/cards')" 
+                  class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
+                  :class="route.name === 'tournaments-cards' 
+                    ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' 
+                    : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+            </svg>
             Tarjetas
           </button>
-          <button @click="router.push('/admin/tournaments/schedule')"
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-            :class="route.name === 'tournaments-schedule' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-500 hover:text-surface-700'">
+          <button @click="router.push('/admin/tournaments/schedule')" 
+                  class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
+                  :class="route.name === 'tournaments-schedule' 
+                    ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' 
+                    : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75" />
+            </svg>
             Calendario
           </button>
         </div>
@@ -552,7 +577,7 @@ onMounted(async () => {
 
         <!-- Loading -->
         <div v-if="loadingStates.encuentros" class="flex flex-col items-center justify-center py-24">
-          <LoadingSpinner size="lg" />
+          <div class="w-8 h-8 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
           <p class="text-sm font-bold text-surface-400 mt-4 animate-pulse">Cargando encuentros del torneo...</p>
         </div>
 
@@ -564,7 +589,7 @@ onMounted(async () => {
           <!-- ══════════════════════════════════════════ -->
           <div class="lg:col-span-7 min-w-0 space-y-5">
             <!-- Buscador + filtros -->
-            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm px-5 py-4 space-y-3">
+            <div class="bg-white rounded-[1.8rem] border border-surface-200/80 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] px-5 py-4 space-y-3">
               <!-- Search bar -->
               <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"
@@ -572,15 +597,15 @@ onMounted(async () => {
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input v-model="searchQuery" type="text" placeholder="Buscar equipos o fase..."
-                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-200 bg-surface-50 text-sm text-surface-800 placeholder-surface-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all" />
+                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-200 bg-surface-50 text-sm text-surface-800 placeholder-surface-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
               </div>
               <!-- Filter pills -->
               <div class="flex items-center gap-2">
                 <button v-for="tab in [{ key: 'ALL', label: 'Todos' }, { key: 'SCHEDULED', label: 'Programados' }, { key: 'UNSCHEDULED', label: 'Por programar' }]"
                   :key="tab.key" @click="filterTab = tab.key"
-                  class="px-3 py-1 rounded-lg text-[11px] font-bold transition-all border"
+                  class="px-3 py-1 rounded-lg text-[11px] font-black transition-all border duration-150 active:scale-[0.97]"
                   :class="filterTab === tab.key
-                    ? 'bg-surface-900 text-white border-surface-900 shadow-sm'
+                    ? 'bg-primary-700 text-white border-primary-700 shadow-sm shadow-primary-700/10'
                     : 'bg-white text-surface-500 border-surface-200 hover:border-surface-300 hover:text-surface-700'">
                   {{ tab.label }}
                 </button>
@@ -591,9 +616,9 @@ onMounted(async () => {
             </div>
 
             <!-- Tabla/Lista de encuentros descongestionada -->
-            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-[1.8rem] border border-surface-200/80 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
               <!-- Encabezado de tabla -->
-              <div class="grid grid-cols-[24px_2.5fr_1.2fr_1.2fr_90px] gap-4 px-5 py-4 bg-surface-50 border-b border-surface-100">
+              <div class="grid grid-cols-[24px_2.5fr_1.2fr_1.2fr_90px] gap-4 px-5 py-4 bg-surface-50/80 border-b border-surface-100/60">
                 <div class="text-[10px] font-black uppercase tracking-widest text-surface-400 col-span-2">Encuentro</div>
                 <div class="text-[10px] font-black uppercase tracking-widest text-surface-400">Espacio</div>
                 <div class="text-[10px] font-black uppercase tracking-widest text-surface-400">Árbitro</div>
@@ -603,14 +628,14 @@ onMounted(async () => {
               <!-- Empty state -->
               <div v-if="filteredEncuentrosTable.length === 0"
                 class="flex flex-col items-center justify-center py-16 text-center">
-                <div class="w-12 h-12 rounded-2xl bg-surface-50 flex items-center justify-center mb-3">
+                <div class="w-12 h-12 rounded-[1.2rem] bg-surface-50 flex items-center justify-center mb-3 border border-surface-200/50">
                   <svg class="w-6 h-6 text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                       d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
                 <p class="text-sm font-bold text-surface-400">Sin resultados</p>
-                <p class="text-xs text-surface-400 mt-1">Intenta ajustar los filtros o la búsqueda.</p>
+                <p class="text-xs text-surface-400 mt-1 font-medium">Intenta ajustar los filtros o la búsqueda.</p>
               </div>
 
               <!-- Filas de encuentros amplias y descongestionadas -->
@@ -692,7 +717,7 @@ onMounted(async () => {
           <!-- ══════════════════════════════════════════ -->
           <div class="w-full lg:col-span-5 space-y-4 lg:sticky lg:top-6">
             <!-- Mini Calendar Card -->
-            <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-[1.8rem] border border-surface-200/80 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
               <!-- Card header con pestañas de vista -->
               <div class="flex items-center justify-between px-4 py-3 border-b border-surface-100">
                 <div class="flex items-center gap-2">
@@ -710,13 +735,13 @@ onMounted(async () => {
                 <!-- View toggle pills -->
                 <div class="flex items-center gap-1 p-0.5 bg-surface-100 rounded-lg">
                   <button @click="setMiniCalendarView('timeGridWeek')"
-                    class="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all"
-                    :class="currentMiniView === 'timeGridWeek' ? 'bg-white shadow-sm text-surface-900' : 'text-surface-500 hover:text-surface-700'">
+                    class="px-2.5 py-1 rounded-md text-[10px] font-black transition-all duration-150 active:scale-[0.97]"
+                    :class="currentMiniView === 'timeGridWeek' ? 'bg-white shadow-xs text-primary-700' : 'text-surface-500 hover:text-surface-800'">
                     Semana
                   </button>
                   <button @click="setMiniCalendarView('timeGridDay')"
-                    class="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all"
-                    :class="currentMiniView === 'timeGridDay' ? 'bg-white shadow-sm text-surface-900' : 'text-surface-500 hover:text-surface-700'">
+                    class="px-2.5 py-1 rounded-md text-[10px] font-black transition-all duration-150 active:scale-[0.97]"
+                    :class="currentMiniView === 'timeGridDay' ? 'bg-white shadow-xs text-primary-700' : 'text-surface-500 hover:text-surface-800'">
                     Día
                   </button>
                 </div>
@@ -735,12 +760,21 @@ onMounted(async () => {
                 <FullCalendar ref="calendarRef" :options="detailCalendarOptions">
                   <!-- Day Header Slot -->
                   <template #dayHeaderContent="arg">
-                    <div class="flex flex-col items-center py-1 select-none">
-                      <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">
+                    <div class="flex flex-col items-center py-1 select-none gap-0.5">
+                      <span
+                        :class="[
+                          'text-[9px] font-extrabold uppercase tracking-wider',
+                          isToday(arg.date) ? 'text-primary-600' : 'text-surface-500'
+                        ]"
+                      >
                         {{ formatWeekdayAbbreviation(arg.date) }}
                       </span>
-                      <div class="mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-xs transition-all font-bold"
-                           :class="isToday(arg.date) ? 'bg-primary-600 text-white font-black shadow-sm' : 'text-surface-700'">
+                      <div
+                        class="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors duration-150 font-extrabold shadow-xs"
+                        :class="isToday(arg.date)
+                          ? 'bg-primary-600 text-white font-black shadow-sm'
+                          : 'text-surface-700 hover:bg-surface-100'"
+                      >
                         {{ arg.date.getDate() }}
                       </div>
                     </div>
@@ -837,7 +871,7 @@ onMounted(async () => {
       <template v-else>
         <!-- Loading -->
         <div v-if="loadingStates.torneos" class="flex flex-col items-center justify-center py-24">
-          <LoadingSpinner size="lg" />
+          <div class="w-8 h-8 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
           <p class="text-sm font-bold text-surface-400 mt-4 animate-pulse">Cargando calendario general...</p>
         </div>
 
@@ -847,12 +881,21 @@ onMounted(async () => {
             <FullCalendar :options="overviewCalendarOptions">
               <!-- Day Header Slot -->
               <template #dayHeaderContent="arg">
-                <div class="flex flex-col items-center py-1 select-none">
-                  <span class="text-[9px] font-black uppercase tracking-wider text-surface-400">
+                <div class="flex flex-col items-center py-1.5 select-none gap-1">
+                  <span
+                    :class="[
+                      'text-[10px] font-extrabold uppercase tracking-wider',
+                      isToday(arg.date) ? 'text-primary-600' : 'text-slate-700'
+                    ]"
+                  >
                     {{ formatWeekdayAbbreviation(arg.date) }}
                   </span>
-                  <div class="mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-xs transition-all font-bold"
-                       :class="isToday(arg.date) ? 'bg-primary-600 text-white font-black shadow-sm' : 'text-surface-700'">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors duration-150 font-extrabold"
+                    :class="isToday(arg.date)
+                      ? 'bg-primary-600 text-white font-black shadow-sm'
+                      : 'text-slate-800 hover:bg-slate-100'"
+                  >
                     {{ arg.date.getDate() }}
                   </div>
                 </div>
@@ -867,11 +910,12 @@ onMounted(async () => {
 
               <!-- Event Content Slot -->
               <template #eventContent="arg">
-                <div class="w-full h-full p-1 rounded-lg border flex flex-col justify-between overflow-hidden transition-all text-[8px] leading-tight font-bold cursor-pointer hover:scale-[1.01] hover:shadow-sm"
+                <div class="w-full h-full p-1.5 rounded-lg border flex flex-col justify-between overflow-hidden transition-all text-[8.5px] leading-tight font-bold cursor-pointer hover:scale-[1.01] hover:shadow-sm"
                      :style="{
-                       backgroundColor: getRgbaFromHex(scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg, 0.12),
-                       borderColor: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg,
-                       color: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg
+                       background: `linear-gradient(135deg, ${scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg}, ${scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient ? scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient[1] : scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg})`,
+                       borderColor: scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient ? scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient[1] : scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg,
+                       borderLeft: `4px solid ${scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient ? scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).gradient[1] : scheduleStore.getTournamentColor(arg.event.extendedProps.id_torneo).bg}`,
+                       color: '#ffffff'
                      }">
                   <div class="space-y-0.5 min-w-0">
                     <p class="text-[7px] font-black uppercase tracking-wider opacity-85 truncate">

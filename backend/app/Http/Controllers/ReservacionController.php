@@ -12,6 +12,8 @@ use App\Models\Reservacion;
 use Illuminate\Support\Facades\Validator;
 use App\Models\SesionActiva;
 use App\Models\EncuentrosTorneo;
+use App\Models\InscripcionClase;
+use App\Models\ParticipantesTorneo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\SocioTitular;
@@ -60,47 +62,16 @@ class ReservacionController extends Controller
 
             $id_socio = $request->user()->user_id;
 
-            // 1. VALIDAR EMPALMES CON OTRAS RESERVACIONES (Forzando Timezone de México)
-            $ahoraMexico = Carbon::now('America/Mexico_City');
+            $resultado = $this->verificarEmpalmes(
+                $id_socio,
+                $request->id_espacio,
+                $request->fecha_reserva,
+                $request->hora_inicio,
+                $request->hora_fin
+            );
 
-            $conflictoReserva = Reservacion::where('id_espacio', $request->id_espacio)
-                ->where('fecha_reserva', $request->fecha_reserva)
-                ->where(function ($q) use ($id_socio, $ahoraMexico) {
-                    $q->where('estatus_operativo', 'ACTIVA')
-                        ->orWhere(function ($sub) use ($id_socio, $ahoraMexico) {
-                            $sub->where('estatus_operativo', 'PENDIENTE')
-                                ->where('fecha_expiracion', '>', $ahoraMexico) // Corrección Timezone
-                                ->where('id_socio_titular', '!=', $id_socio);
-                        });
-                })
-                ->where(function ($query) use ($request) {
-                    $query->where('hora_inicio', '<', $request->hora_fin)
-                        ->where('hora_fin', '>', $request->hora_inicio);
-                })
-                ->exists();
-
-            // 2. VALIDAR EMPALMES CON CLASES/SESIONES ACTIVAS
-            $conflictoSesion = SesionActiva::where('fecha_sesion', $request->fecha_reserva)
-                ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
-                ->whereHas('actividadPlantilla', function ($query) use ($request) {
-                    $query->where('id_espacio', $request->id_espacio)
-                        ->where('hora_inicio', '<', $request->hora_fin)
-                        ->where('hora_fin', '>', $request->hora_inicio);
-                })
-                ->exists();
-
-            // 3. VALIDAR EMPALMES CON ENCUENTROS DE TORNEO
-            $conflictoTorneo = EncuentrosTorneo::where('id_espacio', $request->id_espacio)
-                ->whereDate('fecha_hora_inicio', $request->fecha_reserva)
-                ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
-                ->whereNotNull('fecha_hora_inicio')
-                ->whereNotNull('fecha_hora_fin')
-                ->where('fecha_hora_inicio', '<', $request->fecha_reserva . ' ' . $request->hora_fin)
-                ->where('fecha_hora_fin', '>', $request->fecha_reserva . ' ' . $request->hora_inicio)
-                ->exists();
-
-            if ($conflictoReserva || $conflictoSesion || $conflictoTorneo) {
-                return response()->json(['success' => false, 'message' => 'Espacio agotado. Ya existe una actividad en este horario'], 409);
+            if ($resultado !== null) {
+                return response()->json(['success' => false, 'message' => $resultado], 409);
             }
 
             // SI TODO ESTÁ LIBRE, CREAMOS O ACTUALIZAMOS EL BORRADOR (con lock para evitar race condition)
@@ -442,6 +413,143 @@ SOC-DEP HUB",
             'success' => true,
             'data' => $reservas
         ]);
+    }
+
+    /**
+     * Verifica los 6 posibles empalmes antes de crear un borrador.
+     * Retorna el mensaje de error si hay conflicto, o null si el horario está libre.
+     *
+     * BLOQUE 1 — Conflictos del espacio (actividades del club):
+     *   1a. Reservaciones ACTIVAS o PENDIENTES de otros socios en el mismo espacio/fecha/horario
+     *   1b. Sesiones/clases programadas en ese espacio en ese horario
+     *   1c. Encuentros de torneo programados en ese espacio en ese horario
+     *
+     * BLOQUE 2 — Conflictos personales del socio (su propia agenda):
+     *   2a. Sus propias reservaciones ACTIVAS o PENDIENTES en cualquier espacio ese día/horario
+     *   2b. Sus clases confirmadas para esa fecha/horario
+     *   2c. Sus encuentros de torneo para esa fecha/horario
+     */
+    private function verificarEmpalmes(
+        int    $idSocio,
+        int    $idEspacio,
+        string $fecha,
+        string $horaInicio,
+        string $horaFin
+    ): ?string {
+        $ahora       = Carbon::now('America/Mexico_City');
+        $fechaHoraFin   = $fecha . ' ' . $horaFin;
+        $fechaHoraInicio = $fecha . ' ' . $horaInicio;
+
+        // --- BLOQUE 1: CONFLICTOS DEL ESPACIO ---
+
+        // 1a. Reservaciones de otros socios en este espacio
+        $b1Reserva = Reservacion::where('id_espacio', $idEspacio)
+            ->where('fecha_reserva', $fecha)
+            ->where(function ($q) use ($idSocio, $ahora) {
+                $q->where('estatus_operativo', 'ACTIVA')
+                    ->orWhere(function ($sub) use ($idSocio, $ahora) {
+                        $sub->where('estatus_operativo', 'PENDIENTE')
+                            ->where('fecha_expiracion', '>', $ahora)
+                            ->where('id_socio_titular', '!=', $idSocio);
+                    });
+            })
+            ->where('hora_inicio', '<', $horaFin)
+            ->where('hora_fin', '>', $horaInicio)
+            ->exists();
+
+        if ($b1Reserva) {
+            return 'Espacio agotado. Ya existe una reservación en este horario.';
+        }
+
+        // 1b. Sesiones/clases del club en este espacio
+        $b1Sesion = SesionActiva::where('fecha_sesion', $fecha)
+            ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
+            ->whereHas('actividadPlantilla', function ($q) use ($idEspacio, $horaInicio, $horaFin) {
+                $q->where('id_espacio', $idEspacio)
+                    ->where('hora_inicio', '<', $horaFin)
+                    ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
+
+        if ($b1Sesion) {
+            return 'Espacio agotado. El club tiene una sesión programada en este horario.';
+        }
+
+        // 1c. Encuentros de torneo del club en este espacio
+        $b1Torneo = EncuentrosTorneo::where('id_espacio', $idEspacio)
+            ->whereDate('fecha_hora_inicio', $fecha)
+            ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
+            ->whereNotNull('fecha_hora_inicio')
+            ->whereNotNull('fecha_hora_fin')
+            ->where('fecha_hora_inicio', '<', $fechaHoraFin)
+            ->where('fecha_hora_fin', '>', $fechaHoraInicio)
+            ->exists();
+
+        if ($b1Torneo) {
+            return 'Espacio agotado. El club tiene un encuentro de torneo programado en este horario.';
+        }
+
+        // --- BLOQUE 2: CONFLICTOS DE LA AGENDA PERSONAL DEL SOCIO ---
+
+        // 2a. Sus propias reservaciones activas/pendientes (cualquier espacio, mismo horario)
+        $b2Reserva = Reservacion::where('id_socio_titular', $idSocio)
+            ->where('fecha_reserva', $fecha)
+            ->whereIn('estatus_operativo', ['ACTIVA', 'PENDIENTE'])
+            ->where(function ($q) use ($ahora) {
+                $q->where('estatus_operativo', 'ACTIVA')
+                    ->orWhere('fecha_expiracion', '>', $ahora);
+            })
+            ->where('hora_inicio', '<', $horaFin)
+            ->where('hora_fin', '>', $horaInicio)
+            ->exists();
+
+        if ($b2Reserva) {
+            return 'Ya tienes una reservación en este horario. Cancélala primero para hacer una nueva.';
+        }
+
+        // 2b. Sus clases confirmadas para esta fecha/horario
+        $b2Clase = \App\Models\InscripcionClase::where('id_usuario', $idSocio)
+            ->where('tipo_usuario', 'socio_titular')
+            ->where('estatus_inscripcion', 'CONFIRMADA')
+            ->whereHas('sesion', function ($q) use ($fecha, $horaInicio, $horaFin) {
+                $q->withoutGlobalScopes()
+                    ->where('fecha_sesion', $fecha)
+                    ->whereNotIn('estatus_sesion', ['CANCELADA', 'FINALIZADA'])
+                    ->whereHas('actividadPlantilla', function ($q2) use ($horaInicio, $horaFin) {
+                        $q2->where('hora_inicio', '<', $horaFin)
+                            ->where('hora_fin', '>', $horaInicio);
+                    });
+            })
+            ->exists();
+
+        if ($b2Clase) {
+            return 'Tienes una clase programada en este horario. No puedes hacer una reservación que se empalme con tu agenda.';
+        }
+
+        // 2c. Sus encuentros de torneo para esta fecha/horario
+        // Los encuentros usan competidor_1_id / competidor_2_id apuntando a participantes_torneo
+        $misParticipanteIds = \App\Models\ParticipantesTorneo::where('participante_type', 'SOCIO')
+            ->where('participante_id', $idSocio)
+            ->pluck('id_participante_torneo')
+            ->toArray();
+
+        $b2Torneo = !empty($misParticipanteIds) && EncuentrosTorneo::whereDate('fecha_hora_inicio', $fecha)
+            ->whereNotIn('estatus_encuentro', ['CANCELADO', 'FINALIZADO', 'BYE'])
+            ->whereNotNull('fecha_hora_inicio')
+            ->whereNotNull('fecha_hora_fin')
+            ->where('fecha_hora_inicio', '<', $fechaHoraFin)
+            ->where('fecha_hora_fin', '>', $fechaHoraInicio)
+            ->where(function ($q) use ($misParticipanteIds) {
+                $q->whereIn('competidor_1_id', $misParticipanteIds)
+                    ->orWhereIn('competidor_2_id', $misParticipanteIds);
+            })
+            ->exists();
+
+        if ($b2Torneo) {
+            return 'Tienes un encuentro de torneo en este horario. No puedes hacer una reservación que se empalme con tu agenda.';
+        }
+
+        return null;
     }
 
     private function validarPenalizacionReservas(\App\Models\User $user): ?array

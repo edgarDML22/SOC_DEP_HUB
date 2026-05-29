@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id_instructor
+ */
 class Instructor extends Model
 {
     // 1. Sobreescribir convenciones de Laravel

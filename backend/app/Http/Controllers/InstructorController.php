@@ -37,11 +37,13 @@ class InstructorController extends Controller
         $todayDate = $now->toDateString();
         $nowPlus2 = $now->copy()->addHours(2);
 
-        // Consultar sesiones activas del instructor programadas para hoy
-        $sesionesHoy = SesionActiva::with(['actividadPlantilla.disciplina', 'actividadPlantilla.espacioFisico'])
-            ->whereHas('actividadPlantilla', function ($query) use ($instructorId) {
-                $query->where('id_instructor', $instructorId);
-            })
+        // Consultar sesiones activas del instructor programadas para hoy.
+        // hora_inicio, hora_fin, id_disciplina, id_espacio — leídos del snapshot.
+        $sesionesHoy = SesionActiva::with([
+                'disciplina:id_disciplina,nombre_disciplina',
+                'espacio:id_espacio,nombre_espacio',
+            ])
+            ->where('id_instructor', $instructorId)
             ->whereDate('fecha_sesion', $todayDate)
             ->get();
 
@@ -56,60 +58,41 @@ class InstructorController extends Controller
         $todaySessionsList = [];
 
         foreach ($sesionesHoy as $sesion) {
-            $plantilla = $sesion->actividadPlantilla;
             $estatusList = strtoupper($sesion->estatus_sesion);
 
-            // 1. Estadísitica: Pendientes
+            // 1. Estadística: Pendientes
             if (!in_array($estatusList, ['FINALIZADA', 'CANCELADA'])) {
                 $stats['pendientes']++;
             }
 
             // 2. Estadística: Total Inscritos
-            // El campo cantidad_inscritos suele estar en la sesión activa
             $stats['totalInscritos'] += ($sesion->cantidad_inscritos ?? 0);
 
-            // 3. Estadística: Próximas 2 horas
-            // Formar el datetime exacto de inicio de esta sesión
-            $horaInicioReal = Carbon::parse($todayDate . ' ' . $plantilla->hora_inicio, 'America/Mexico_City');
+            // 3. Estadística: Próximas 2 horas — hora_inicio del snapshot
+            $horaInicioReal = Carbon::parse($todayDate . ' ' . $sesion->hora_inicio, 'America/Mexico_City');
 
-            // Verificamos si la hora de inicio está entre justo ahora y las próximas 2 horas
-            // Tambien es válido si la sesión no ha finalizado y su hora de fin todavia está en ese rango
             if ($horaInicioReal->greaterThanOrEqualTo($now) && $horaInicioReal->lessThanOrEqualTo($nowPlus2)) {
                 $stats['proximas2Horas']++;
             }
 
-            // Mapeamos el color/style del badge
-            $statusType = 'info'; // Default
-            switch ($estatusList) {
-                case 'FINALIZADA':
-                    $statusType = 'success-dark';
-                    break;
-                case 'DISPONIBLE':
-                case 'ACTIVA':
-                    $statusType = 'success';
-                    break;
-                case 'EN_CURSO':
-                    $statusType = 'info';
-                    break;
-                case 'LLENO':
-                case 'AL_LIMITE':
-                    $statusType = 'warning';
-                    break;
-                case 'CANCELADA':
-                    $statusType = 'danger'; // Necesitará un estilo badge-danger en frontend
-                    break;
-            }
+            $statusType = match ($estatusList) {
+                'FINALIZADA'          => 'success-dark',
+                'DISPONIBLE', 'ACTIVA' => 'success',
+                'EN_CURSO'            => 'info',
+                'LLENO', 'AL_LIMITE'  => 'warning',
+                'CANCELADA'           => 'danger',
+                default               => 'info',
+            };
 
-            // Formatear y añadir al listado que leerá el front
             $todaySessionsList[] = [
-                'id' => $sesion->id_sesion,
-                'startTime' => Carbon::parse($plantilla->hora_inicio)->format('H:i'),
-                'endTime' => Carbon::parse($plantilla->hora_fin)->format('H:i'),
-                'client' => $plantilla->disciplina->nombre_disciplina ?? 'Clase Especial',
-                'location' => $plantilla->espacioFisico->nombre_espacio ?? 'Área General',
-                'status' => ucfirst(strtolower(str_replace('_', ' ', $estatusList))),
-                'statusType' => $statusType,
-                'rawStartTime' => $plantilla->hora_inicio // Útil para ordenar 
+                'id'           => $sesion->id_sesion,
+                'startTime'    => $sesion->hora_inicio ? substr($sesion->hora_inicio, 0, 5) : '--:--',
+                'endTime'      => $sesion->hora_fin    ? substr($sesion->hora_fin,    0, 5) : '--:--',
+                'client'       => $sesion->disciplina?->nombre_disciplina ?? 'Clase Especial',
+                'location'     => $sesion->espacio?->nombre_espacio       ?? 'Área General',
+                'status'       => ucfirst(strtolower(str_replace('_', ' ', $estatusList))),
+                'statusType'   => $statusType,
+                'rawStartTime' => $sesion->hora_inicio,
             ];
         }
 
@@ -164,6 +147,10 @@ class InstructorController extends Controller
             ->where('id_instructor', $instructorId)
             ->where('id_disciplina', 26)
             ->exists();
+        $turnoHoy = DB::table('turnos_ludoteca')
+            ->where('id_instructor', $instructorId)
+            ->where('fecha', Carbon::now('America/Mexico_City')->toDateString())
+            ->first();
         return response()->json([
             'success' => true,
             'data' => [
@@ -176,6 +163,11 @@ class InstructorController extends Controller
                 'fecha_afiliacion' => $instructor->fecha_afiliacion,
                 'rol' => 'Instructor',
                 'tieneLudoteca' => $tieneLudoteca,
+                'turno_ludoteca_hoy' => $turnoHoy ? [
+                    'hora_inicio' => substr($turnoHoy->hora_inicio, 0, 5),
+                    'hora_fin'    => substr($turnoHoy->hora_fin, 0, 5),
+                ] : null,
+                'foto_perfil' => (string) cloudinary()->image("instructors/profiles/instructor_{$instructor->id_instructor}")->version(time())->toUrl()
             ]
         ], 200);
     }

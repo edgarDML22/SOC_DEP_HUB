@@ -9,12 +9,14 @@ use App\Models\ActividadPlantilla;
 use App\Models\DraftProgramacion;
 use App\Models\PlantillaProgramacion;
 use App\Services\PublicarProgramacionService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PlantillaProgramacionController extends Controller
 {
@@ -158,7 +160,7 @@ class PlantillaProgramacionController extends Controller
                 'nombre_plantilla'  => $payload['nombre_plantilla'] ?? 'Plantilla sin nombre',
                 'fecha_inicio'      => $payload['fecha_inicio'] ?? null,
                 'fecha_fin'         => $payload['fecha_fin'] ?? null,
-                'estatus_plantilla' => 'ACTIVO',
+                'estatus_plantilla' => true,
             ]);
 
             $rows = array_map(fn($a) => [
@@ -239,7 +241,8 @@ class PlantillaProgramacionController extends Controller
                 'nombre_plantilla'  => $p->nombre_plantilla,
                 'fecha_inicio'      => $p->fecha_inicio,
                 'fecha_fin'         => $p->fecha_fin,
-                'estatus_plantilla' => $p->estatus_plantilla,
+                'estatus_plantilla' => (bool) $p->estatus_plantilla,
+                'publicada'         => (bool) $p->publicada,
                 'total_actividades' => $p->actividades_count,
             ]);
 
@@ -405,7 +408,7 @@ class PlantillaProgramacionController extends Controller
             'nombre_plantilla'  => 'sometimes|string|max:255',
             'fecha_inicio'      => 'sometimes|nullable|date',
             'fecha_fin'         => 'sometimes|nullable|date|after_or_equal:fecha_inicio',
-            'estatus_plantilla' => 'sometimes|in:ACTIVO,INACTIVO',
+            'estatus_plantilla' => 'sometimes|boolean',
         ]);
 
         $plantilla->update($data);
@@ -426,7 +429,7 @@ class PlantillaProgramacionController extends Controller
             'nombre_plantilla'  => $data['nombre_plantilla'],
             'fecha_inicio'      => $data['fecha_inicio'],
             'fecha_fin'         => $data['fecha_fin'],
-            'estatus_plantilla' => 'INACTIVO',
+            'estatus_plantilla' => false,
         ]);
 
         return response()->json(['data' => $plantilla], 201);
@@ -437,15 +440,17 @@ class PlantillaProgramacionController extends Controller
     {
         $plantilla = PlantillaProgramacion::withoutGlobalScopes()->findOrFail($id);
 
-        // Regla 1: Bloqueo absoluto si está ACTIVO
-        if ($plantilla->estatus_plantilla === 'ACTIVO') {
+        // Regla 1: Bloqueo absoluto si está activa
+        if ($plantilla->estatus_plantilla === true) {
             return response()->json([
                 'message' => 'No se puede eliminar una programación que se encuentra actualmente ACTIVA.',
             ], 422);
         }
 
-        // Regla 2: Verificación de producción mediante EXISTS indexado
-        $tieneHistorial = DB::table('sesiones_activas')
+        // Regla 2: Bloquear si existe al menos una sesión vinculada a esta plantilla.
+        // Se omite el filtro deleted_at de actividades_plantilla para no saltarse
+        // sesiones cuya actividad haya sido soft-deleted previamente.
+        $tieneSesiones = DB::table('sesiones_activas')
             ->whereExists(function ($query) use ($id) {
                 $query->select(DB::raw(1))
                     ->from('actividades_plantilla')
@@ -454,27 +459,21 @@ class PlantillaProgramacionController extends Controller
             })
             ->exists();
 
-        if ($tieneHistorial) {
-            // Escenario B: Soft Delete — preserva datos históricos para BI
-            DB::transaction(function () use ($plantilla) {
-                ActividadPlantilla::where('id_plantilla', $plantilla->id_plantilla)->delete();
-                $plantilla->delete();
-            });
-
+        if ($tieneSesiones) {
             return response()->json([
-                'message'  => 'La programación histórica ha sido archivada de forma segura sin afectar los reportes estadísticos.',
-                'scenario' => 'soft',
-            ], 200);
+                'message' => 'No se puede eliminar esta plantilla porque tiene sesiones activas vinculadas. Usa la acción "Retirar" para eliminar las sesiones primero.',
+            ], 422);
         }
 
-        // Escenario A: Hard Delete — borrador limpio que nunca fue a producción
+        // Sin sesiones vinculadas: eliminar físicamente
         DB::transaction(function () use ($plantilla) {
             ActividadPlantilla::where('id_plantilla', $plantilla->id_plantilla)->forceDelete();
+            DraftProgramacion::where('id_plantilla', $plantilla->id_plantilla)->delete();
             $plantilla->forceDelete();
         });
 
         return response()->json([
-            'message'  => 'La plantilla borrador y sus bloques temporales han sido eliminados físicamente del sistema.',
+            'message'  => 'La plantilla y sus bloques de actividad han sido eliminados del sistema.',
             'scenario' => 'hard',
         ], 200);
     }
@@ -521,7 +520,8 @@ class PlantillaProgramacionController extends Controller
                 'nombre_plantilla'  => $plantilla->nombre_plantilla,
                 'fecha_inicio'      => $plantilla->fecha_inicio,
                 'fecha_fin'         => $plantilla->fecha_fin,
-                'estatus_plantilla' => $plantilla->estatus_plantilla,
+                'estatus_plantilla' => (bool) $plantilla->estatus_plantilla,
+                'publicada'         => (bool) $plantilla->publicada,
                 'actividades'       => $actividades,
             ],
         ], 200);
@@ -540,7 +540,7 @@ class PlantillaProgramacionController extends Controller
             'dia_semana'           => 'sometimes|string|in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO',
             'hora_inicio'          => 'sometimes|date_format:H:i',
             'hora_fin'             => 'sometimes|date_format:H:i|after:hora_inicio',
-            'cupo_maximo'          => 'sometimes|integer|min:1|max:40',
+            'cupo_maximo'          => 'sometimes|nullable|integer|min:1|max:40',
             'requiere_inscripcion' => 'sometimes|boolean',
         ]);
 
@@ -557,5 +557,123 @@ class PlantillaProgramacionController extends Controller
         $actividad->delete();
 
         return response()->json(['message' => 'Actividad eliminada correctamente.'], 200);
+    }
+
+    // GET /api/v1/programacion/plantillas/{id}/exportar-pdf
+    // Genera un archivo PDF estilizado con la programación semanal agrupada por turnos y disciplinas.
+    public function exportarPdf(int $id)
+    {
+        ini_set('memory_limit', '512M'); // Aumentar memoria para soportar imágenes grandes y alta resolución en Dompdf
+
+        $plantilla = PlantillaProgramacion::withoutGlobalScopes()->with([
+            'actividades' => function ($query) {
+                $query->where('estatus', 'ACTIVO')
+                    ->with([
+                        'espacioFisico',
+                        'disciplina',
+                        'instructor',
+                    ]);
+            },
+        ])->findOrFail($id);
+
+        $actividades = $plantilla->actividades;
+
+        // Categorizar en Matutino y Vespertino
+        $matutino = [];
+        $vespertino = [];
+
+        foreach ($actividades as $act) {
+            $horaInicio = $act->hora_inicio; // e.g. "08:00:00"
+            $hour = (int) explode(':', $horaInicio)[0];
+            
+            // Si inicia antes de las 12:00, es Matutino. A partir de las 12:00 es Vespertino.
+            if ($hour < 12) {
+                $matutino[] = $act;
+            } else {
+                $vespertino[] = $act;
+            }
+        }
+
+        // Agrupar y ordenar por disciplina alfabéticamente
+        $matutinoGrouped = $this->groupAndSortActividades($matutino);
+        $vespertinoGrouped = $this->groupAndSortActividades($vespertino);
+
+        // Generar QR en base64
+        $siteUrl = 'https://britania-web.vercel.app/login';
+        $qrCodeSvg = QrCode::size(150)->generate($siteUrl);
+        $base64Qr = base64_encode($qrCodeSvg);
+
+        // Cargar logotipo del club en base64
+        $logoPath = resource_path('LogoSocDep.png');
+        $base64Logo = '';
+        if (file_exists($logoPath)) {
+            $base64Logo = base64_encode(file_get_contents($logoPath));
+        }
+
+        // Sincronizar y copiar la portada desde frontend assets al public del backend para que DomPDF la lea localmente
+        $portadaSrcPath = base_path('../frontend/src/assets/Programacion_disciplinas.png');
+        $portadaDestPath = public_path('Programacion_disciplinas.png');
+        if (file_exists($portadaSrcPath)) {
+            if (!file_exists($portadaDestPath) || filemtime($portadaSrcPath) > filemtime($portadaDestPath)) {
+                copy($portadaSrcPath, $portadaDestPath);
+            }
+        }
+
+        // Configurar la resolución a 1920x1080 horizontal en espacio de puntos de DOMPDF (1440 x 810 pt @ 96 DPI)
+        // Y cargamos la vista con la configuración ya establecida.
+        $pdf = Pdf::setPaper([0, 0, 1440, 810])
+            ->setOption(['isRemoteEnabled' => true])
+            ->loadView('pdf.programacion', [
+                'plantilla' => $plantilla,
+                'matutino' => $matutinoGrouped,
+                'vespertino' => $vespertinoGrouped,
+                'base64Logo' => $base64Logo,
+                'base64Qr' => $base64Qr,
+                'base64Portada' => '',
+            ]);
+
+        // Sanitizar el nombre de la plantilla para usarlo como nombre de archivo
+        $nombreArchivo = $plantilla->nombre_plantilla;
+        $nombreArchivo = str_replace(' ', '_', $nombreArchivo);          // Espacios → guión bajo
+        $nombreArchivo = preg_replace('/[^A-Za-z0-9_\-]/', '', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombreArchivo)); // Quitar acentos y caracteres especiales
+        $nombreArchivo = trim($nombreArchivo, '_');
+
+        return $pdf->download("{$nombreArchivo}.pdf");
+    }
+
+    private function groupAndSortActividades(array $actividades): array
+    {
+        $grouped = [];
+        foreach ($actividades as $act) {
+            $disciplinaName = $act->disciplina ? $act->disciplina->nombre_disciplina : 'Sin Disciplina';
+            if (!isset($grouped[$disciplinaName])) {
+                $grouped[$disciplinaName] = [
+                    'nombre' => $disciplinaName,
+                    'actividades' => []
+                ];
+            }
+            $grouped[$disciplinaName]['actividades'][] = $act;
+        }
+
+        // Ordenar disciplinas alfabéticamente
+        ksort($grouped);
+
+        // Dentro de cada disciplina, ordenar las actividades por día de la semana y luego por hora de inicio
+        $diaOrder = [
+            'LUNES' => 0, 'MARTES' => 1, 'MIERCOLES' => 2, 'JUEVES' => 3, 'VIERNES' => 4, 'SABADO' => 5, 'DOMINGO' => 6
+        ];
+
+        foreach ($grouped as &$group) {
+            usort($group['actividades'], function($a, $b) use ($diaOrder) {
+                $orderA = $diaOrder[$a->dia_semana] ?? 7;
+                $orderB = $diaOrder[$b->dia_semana] ?? 7;
+                if ($orderA !== $orderB) {
+                    return $orderA - $orderB;
+                }
+                return strcmp($a->hora_inicio, $b->hora_inicio);
+            });
+        }
+
+        return $grouped;
     }
 }
