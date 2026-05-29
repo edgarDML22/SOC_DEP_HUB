@@ -436,7 +436,7 @@ function getEstatusSesionBadge(estatus) {
       <div v-if="showDetailsModal && selectedInscripcion" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="closeDetails"></div>
         <div class="relative bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-slate-100 animate-scale-in">
-          <!-- Header azul de marca -->
+          <!-- Header azul de marca --> ad dawd
           <div class="bg-blue-600 px-6 pt-6 pb-5 flex items-center gap-4">
             <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
