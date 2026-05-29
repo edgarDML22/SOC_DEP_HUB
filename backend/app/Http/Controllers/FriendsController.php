@@ -16,8 +16,8 @@ class FriendsController extends Controller
         $socioId = (int) $request->user()->user_id;
 
         $amistades = Amistades::with([
-                'solicitante:id_socio,nombre_completo',
-                'receptor:id_socio,nombre_completo',
+                'solicitante:id_socio,nombre_completo,fecha_nacimiento,genero',
+                'receptor:id_socio,nombre_completo,fecha_nacimiento,genero',
             ])
             ->select(['id_amistad', 'solicitante_id', 'receptor_id', 'estado', 'created_at'])
             ->where(function ($q) use ($socioId) {
@@ -36,6 +36,8 @@ class FriendsController extends Controller
                 'id_amigo'          => $amigo?->id_socio,
                 'nombre_amigo'      => $amigo?->nombre_completo ?? 'Desconocido',
                 'foto_amigo'        => $amigo ? (string) cloudinary()->image("socios/profiles/socio_{$amigo->id_socio}")->version(time())->toUrl() : null,
+                'fecha_nacimiento'  => $amigo?->fecha_nacimiento,
+                'genero'            => $amigo?->genero,
                 'estado'            => $amistad->estado,
                 'solicitado_por_mi' => $esSolicitante,
                 'created_at'        => $amistad->created_at,

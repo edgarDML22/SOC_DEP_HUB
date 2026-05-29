@@ -962,8 +962,9 @@ defineExpose({ fetchSesiones })
                   <!-- CERRADA (requiere_inscripcion=true): muestra INSCRITO + ASISTENCIA + NO SHOW -->
                   <!-- ABIERTA  (requiere_inscripcion=false): muestra INSCRITO + ASISTENCIA -->
 
-                  <!-- INSCRITO (azul) — siempre visible -->
-                  <div class="rounded-2xl border border-blue-100 overflow-hidden">
+                  <!-- INSCRITO (azul) — oculto si la sesión ya está FINALIZADA (no quedan inscritos pendientes) -->
+                  <div v-if="sesionSeleccionada?.estatus_sesion !== 'FINALIZADA'"
+                    class="rounded-2xl border border-blue-100 overflow-hidden">
                     <button type="button" @click="toggleGrupo('INSCRITO')"
                       class="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50/60 hover:bg-blue-50 transition-colors text-left">
                       <div class="w-7 h-7 rounded-lg bg-white border border-blue-200 flex items-center justify-center shrink-0">

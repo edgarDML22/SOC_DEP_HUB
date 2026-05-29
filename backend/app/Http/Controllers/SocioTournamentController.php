@@ -6,6 +6,8 @@ use App\Models\Torneo;
 use App\Models\MiembrosFamiliares;
 use App\Models\ParticipantesTorneo;
 use App\Models\EncuentrosTorneo;
+use App\Models\EquiposTorneo;
+use App\Models\SocioTitular;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -152,6 +154,7 @@ class SocioTournamentController extends Controller
                     'genero_requerido' => $torneo->categoria->genero_requerido
                 ] : null,
                 'tipo_acceso' => $torneo->tipo_acceso,
+                'modalidad' => $torneo->modalidad,
                 'cupo_maximo' => $torneo->cupo_maximo,
                 'inscritos_actual' => (int)$torneo->inscritos_actual,
                 'ya_inscrito' => $yaInscrito,
@@ -206,14 +209,16 @@ class SocioTournamentController extends Controller
             'torneos.nombre_torneo',
             'torneos.fecha_inicio',
             'torneos.estatus_torneo',
+            'torneos.modalidad',
             'disciplinas.nombre_disciplina',
             'participantes_torneo.participante_type',
-            'participantes_torneo.participante_id'
+            'participantes_torneo.participante_id',
+            'participantes_torneo.id_equipo'
         ])
         ->limit(10)
         ->get();
 
-        $data = $participaciones->map(function ($part) {
+        $data = $participaciones->map(function ($part) use ($socioId) {
             // Buscar los encuentros finalizados de este participante en este torneo
             $matches = EncuentrosTorneo::where('id_torneo', $part->id_torneo)
                 ->where('estatus_encuentro', 'FINALIZADO')
@@ -230,13 +235,45 @@ class SocioTournamentController extends Controller
 
             $faseMaxima = $this->getMaxPhase($matches);
 
+            $equipoData = null;
+            if ($part->id_equipo) {
+                $equipo = EquiposTorneo::find($part->id_equipo);
+                if ($equipo) {
+                    $soyCapitan = ($equipo->referencia_id == $socioId);
+                    
+                    // Buscar al otro compañero en el equipo (diferente al usuario actual)
+                    $companeroPart = ParticipantesTorneo::where('id_equipo', $equipo->id_equipo_torneo)
+                        ->where('participante_id', '!=', $socioId)
+                        ->first();
+
+                    $nombreCompanero = 'Compañero';
+                    if ($companeroPart && $companeroPart->participante_type === 'SOCIO') {
+                        $socioCompanero = SocioTitular::find($companeroPart->participante_id);
+                        if ($socioCompanero) {
+                            $nombreCompanero = $socioCompanero->nombre_completo;
+                        }
+                    }
+
+                    $equipoData = [
+                        'id_equipo' => $equipo->id_equipo_torneo,
+                        'estado' => $equipo->estatus_equipo,
+                        'soy_capitan' => $soyCapitan,
+                        'companero' => [
+                            'nombre_completo' => $nombreCompanero
+                        ]
+                    ];
+                }
+            }
+
             return [
                 'id_torneo' => $part->id_torneo,
                 'nombre_torneo' => $part->nombre_torneo,
                 'fecha_inicio' => $part->fecha_inicio,
                 'disciplina' => $part->nombre_disciplina,
                 'estatus_torneo' => $part->estatus_torneo,
-                'fase_maxima_alcanzada' => $faseMaxima
+                'modalidad' => $part->modalidad,
+                'fase_maxima_alcanzada' => $faseMaxima,
+                'equipo' => $equipoData
             ];
         })->toArray();
 

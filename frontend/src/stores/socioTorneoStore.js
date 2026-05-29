@@ -70,6 +70,60 @@ export const useSocioTorneoStore = defineStore("socioTorneo", () => {
     }
   };
 
+  /**
+   * Crea un equipo para el torneo con el compañero seleccionado
+   */
+  const crearEquipo = async (id_torneo, payload) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const res = await api.post(`/torneos/${id_torneo}/equipos`, payload);
+      return res.data;
+    } catch (err) {
+      console.error("Error al crear equipo:", err);
+      error.value = err.response?.data?.message || "Error enviando invitación";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Responde a una invitación de equipo (ACEPTADA / RECHAZADA)
+   */
+  const responderInvitacion = async (id_torneo, id_equipo, payload) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const res = await api.patch(`/torneos/${id_torneo}/equipos/${id_equipo}/responder`, payload);
+      return res.data;
+    } catch (err) {
+      console.error("Error al responder invitación:", err);
+      error.value = err.response?.data?.message || "Error respondiendo a la invitación";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Reasigna compañero de un equipo
+   */
+  const reasignarCompanero = async (payload) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const res = await api.patch(`/equipos/reasignar`, payload);
+      return res.data;
+    } catch (err) {
+      console.error("Error al reasignar compañero:", err);
+      error.value = err.response?.data?.message || "Error reasignando compañero";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     disponibles,
     historial,
@@ -77,6 +131,9 @@ export const useSocioTorneoStore = defineStore("socioTorneo", () => {
     error,
     fetchDisponibles,
     fetchHistorial,
-    inscribir
+    inscribir,
+    crearEquipo,
+    responderInvitacion,
+    reasignarCompanero
   };
 });
