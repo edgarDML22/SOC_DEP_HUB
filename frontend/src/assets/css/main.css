@@ -1,0 +1,308 @@
+/* Importamos Tailwind v4 */
+@import "tailwindcss";
+
+/* Registrar variantes para el modo oscuro en Tailwind v4 */
+@variant dark (.dark &);
+@variant dark (.app-dark &);
+
+/* 
+  DEFINICIÓN DEL TEMA (Variables de Notion)
+  CSS custom properties para use con Tailwind v4
+*/
+
+@theme {
+  /* Colores Primary */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  /* Colores Surface */
+  --color-surface-50: #f8f9fa;
+  --color-surface-100: #f3f4f6;
+  --color-surface-200: #e5e7eb;
+  --color-surface-300: #d1d5db;
+  --color-surface-400: #9ca3af;
+  --color-surface-500: #6b7280;
+  --color-surface-600: #4b5563;
+  --color-surface-700: #374151;
+  --color-surface-800: #1f2937;
+  --color-surface-900: #111827;
+
+  /* Colores de Estado */
+  --color-state-success: #16a34a;
+  --color-state-error: #dc2626;
+  --color-state-info: #1d4ed8;
+
+  /* Tipografía */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Bordes */
+  --radius-medium: 8px;
+}
+
+/* =========================================================================
+   PREMIUM DARK MODE VARIABLES (Slate Deep Palette)
+   ========================================================================= */
+.app-dark, .dark {
+  /* Slate-based deep cinematic dark palette */
+  --color-surface-50: #0b0f19;  /* Deep Slate-950 (Fondo principal de la app) */
+  --color-surface-100: #131c2e; /* Rich Slate-900 (Cards, Navbars) */
+  --color-surface-200: #1e293b; /* Borders (Slate-800) */
+  --color-surface-300: #334155; /* Slate-700 */
+  --color-surface-400: #475569; /* Slate-600 */
+  --color-surface-500: #64748b; /* Muted Text (Slate-500) */
+  --color-surface-600: #94a3b8; /* Slate-400 */
+  --color-surface-700: #cbd5e1; /* Secondary Text (Slate-300) */
+  --color-surface-800: #e2e8f0; /* Light Text */
+  --color-surface-900: #f8fafc; /* White Text (Slate-50) */
+
+  /* PrimeVue Aura Theme Variable Overrides */
+  --p-content-background: #131c2e;
+  --p-content-border-color: #1e293b;
+  --p-surface-50: #0b0f19;
+  --p-surface-100: #131c2e;
+  --p-surface-200: #1e293b;
+  --p-surface-300: #334155;
+  --p-surface-400: #475569;
+  --p-surface-500: #64748b;
+  --p-surface-600: #94a3b8;
+  --p-surface-700: #cbd5e1;
+  --p-surface-800: #e2e8f0;
+  --p-surface-900: #f8fafc;
+
+  /* =======================================================================
+     OVERWRITE GLOBAL TAILWIND LIGHT CLASSES FOR RICH SYSTEM-WIDE DARK MODE
+     ======================================================================= */
+  
+  /* 1. Mapeo automático de fondos blancos y grises claros a Slate-900 */
+  .bg-white,
+  .bg-gray-50, .bg-slate-50, .bg-zinc-50, .bg-neutral-50, .bg-stone-50,
+  .bg-gray-100, .bg-slate-100, .bg-zinc-100, .bg-neutral-100, .bg-stone-100,
+  .bg-gray-200, .bg-slate-200, .bg-zinc-200, .bg-neutral-200, .bg-stone-200 {
+    background-color: var(--color-surface-100) !important;
+  }
+  
+  /* Fondos grises claros con opacidad mapeados al modo oscuro */
+  .bg-slate-50\/50, .bg-gray-50\/50, .bg-zinc-50\/50, .bg-neutral-50\/50, .bg-stone-50\/50,
+  [class*="bg-slate-50/50"], [class*="bg-gray-50/50"], [class*="bg-zinc-50/50"], [class*="bg-neutral-50/50"], [class*="bg-stone-50/50"] {
+    background-color: color-mix(in srgb, var(--color-surface-100) 50%, transparent) !important;
+  }
+  
+  .bg-slate-50\/70, .bg-gray-50\/70, .bg-zinc-50\/70, .bg-neutral-50\/70, .bg-stone-50\/70,
+  [class*="bg-slate-50/70"], [class*="bg-gray-50/70"], [class*="bg-zinc-50/70"], [class*="bg-neutral-50/70"], [class*="bg-stone-50/70"] {
+    background-color: color-mix(in srgb, var(--color-surface-100) 70%, transparent) !important;
+  }
+
+  .bg-slate-50\/40, .bg-gray-50\/40, .bg-zinc-50\/40, .bg-neutral-50\/40, .bg-stone-50\/40,
+  [class*="bg-slate-50/40"], [class*="bg-gray-50/40"], [class*="bg-zinc-50/40"], [class*="bg-neutral-50/40"], [class*="bg-stone-50/40"] {
+    background-color: color-mix(in srgb, var(--color-surface-100) 40%, transparent) !important;
+  }
+  
+  /* Excepciones de contraste absoluto: Códigos QR e imágenes asociadas */
+  .qr-container, 
+  .qr-code, 
+  .qrcode-wrapper, 
+  .keep-white,
+  .bg-white-pure,
+  img[alt*="QR"],
+  img[alt*="qr"],
+  img[src*="qr"],
+  img[src*="QR"] {
+    background-color: #ffffff !important;
+  }
+
+  /* 2. Atenuación de bordes claros a Slate-800 */
+  .border-gray-100, 
+  .border-gray-200, 
+  .border-slate-100, 
+  .border-slate-200, 
+  .border-surface-100, 
+  .border-surface-150,
+  .border-surface-200 {
+    border-color: var(--color-surface-200) !important;
+  }
+
+  /* 3. Reajuste de todos los tonos de texto gris/negro para legibilidad perfecta */
+  .text-slate-950, .text-gray-950, .text-zinc-950, .text-neutral-950, .text-stone-950,
+  .text-slate-900, .text-gray-900, .text-zinc-900, .text-neutral-900, .text-stone-900,
+  .text-slate-800, .text-gray-800, .text-zinc-800, .text-neutral-800, .text-stone-800,
+  .text-black {
+    color: var(--color-surface-900) !important;
+  }
+  
+  .text-slate-700, .text-gray-700, .text-zinc-700, .text-neutral-700, .text-stone-700,
+  .text-slate-600, .text-gray-600, .text-zinc-600, .text-neutral-600, .text-stone-600 {
+    color: var(--color-surface-700) !important;
+  }
+
+  .text-slate-500, .text-gray-500, .text-zinc-500, .text-neutral-500, .text-stone-500,
+  .text-slate-400, .text-gray-400, .text-zinc-400, .text-neutral-400, .text-stone-400 {
+    color: var(--color-surface-500) !important;
+  }
+
+  /* 4. Suavizar sombras duras */
+  .shadow-xs, .shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* 5. Asegurar legibilidad en textos blancos nativos */
+  .text-white {
+    color: #ffffff !important;
+  }
+
+  /* 6. Corregir contraste de textos blancos sobre fondos bg-surface-900 (que son claros en modo oscuro) */
+  .bg-surface-900.text-white,
+  .bg-surface-900 .text-white,
+  button.bg-surface-900.text-white {
+    color: var(--color-surface-100) !important;
+  }
+}
+
+/* Transición suave y fluida para todos los cambios de tema */
+body, header, aside, main, nav, .card, button, a, span, p, h1, h2, h3, h4, h5, h6, select, input, textarea {
+  transition: background-color 0.25s ease-in-out, border-color 0.25s ease-in-out, color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
+}
+
+@layer primevue;
+
+/* 
+  CLASES GLOBALES
+*/
+@layer base {
+  button, 
+  [role="button"],
+  .clickable {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+
+  /* --- Badges (Pastillas de estado) --- */
+  .badge {
+    @apply px-2.5 py-1 rounded-full text-xs font-medium inline-block;
+  }
+
+  .badge-green {
+    @apply bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-400;
+  }
+
+  .badge-gray {
+    @apply bg-gray-100 dark:bg-surface-200 text-gray-700 dark:text-surface-700;
+  }
+
+  .badge-red {
+    @apply bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-400;
+  }
+
+  /* --- Tarjetas base (Cards) --- */
+  .card {
+    @apply bg-white dark:bg-surface-100 rounded-2xl border border-gray-200 dark:border-surface-200 mb-6 shadow-sm;
+  }
+
+  /* --- Botones Estándar --- */
+  .btn-blue {
+    @apply bg-primary-600 text-white rounded-lg px-3 py-1.5 border-none cursor-pointer;
+  }
+
+  .btn-gray {
+    @apply bg-gray-200 text-gray-700 rounded-lg px-3 py-1.5 border-none cursor-pointer;
+  }
+
+  .action-btn {
+    @apply bg-white dark:bg-surface-100 border border-gray-300 dark:border-surface-200 text-gray-700 dark:text-surface-700 px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-surface-200;
+  }
+
+  /* --- BOTONES DE SWEETALERT --- */
+  .btn-primary {
+    @apply bg-primary-700 text-white border-none py-2 px-4 rounded-medium cursor-pointer font-medium transition-colors duration-200 no-underline hover:bg-primary-800;
+  }
+
+  .btn-cancel {
+    @apply bg-white dark:bg-surface-100 text-surface-900 border border-surface-200 py-2 px-4 rounded-medium cursor-pointer font-medium transition-colors duration-200 mr-2.5 hover:bg-surface-100 dark:hover:bg-surface-200;
+  }
+
+  .btn-delete-confirm {
+    @apply bg-state-error text-white border-none py-2 px-4 rounded-medium cursor-pointer font-medium transition-colors duration-200 hover:bg-red-700;
+  }
+
+  /* Para redondear las ventanas de Swal */
+  .swal-border-radius {
+    border-radius: var(--radius-medium) !important;
+    font-family: var(--font-sans) !important;
+  }
+
+}
+
+/* =========================================================================
+   TRANSICIONES DE NAVEGACIÓN — Socio & Instructor (Mobile-First)
+   Animaciones ligeras, hardware-accelerated, compatible con modo oscuro.
+   ========================================================================= */
+
+/* ── 1. mobile-fade: Transición de ruta principal (fade + slide-up 4px) ── */
+.mobile-fade-enter-active {
+  transition: opacity 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.mobile-fade-leave-active {
+  transition: opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.mobile-fade-enter-from {
+  opacity: 0;
+  transform: translate3d(0, 4px, 0);
+}
+.mobile-fade-enter-to {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.mobile-fade-leave-from {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.mobile-fade-leave-to {
+  opacity: 0;
+  transform: translate3d(0, -2px, 0);
+}
+
+/* ── 2. tab-fade: Transición de pestañas internas (crossfade puro) ── */
+.tab-fade-enter-active {
+  transition: opacity 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-fade-leave-active {
+  transition: opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-fade-enter-from {
+  opacity: 0;
+}
+.tab-fade-enter-to {
+  opacity: 1;
+}
+.tab-fade-leave-from {
+  opacity: 1;
+}
+.tab-fade-leave-to {
+  opacity: 0;
+}
+
+/* ── 3. vshow-fade-in: Para tabs v-show (no se puede usar <Transition>) ── */
+@keyframes vshow-fade-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 3px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.vshow-animate {
+  animation: vshow-fade-in 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}

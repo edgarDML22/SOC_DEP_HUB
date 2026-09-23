@@ -6,9 +6,20 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "*",
+        "cloudinary-labs/cloudinary-laravel": "^3.0",
+        "jenssegers/mongodb": "*",
         "laravel/framework": "^11.0",
+        "laravel/octane": "*",
+        "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.9",
-        "mongodb/laravel-mongodb": "^5.6"
+        "mongodb/laravel-mongodb": "^5.7",
+        "phpoffice/phpspreadsheet": "^5.7",
+        "predis/predis": "^3.4",
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "spiral/roadrunner-cli": "^2.7",
+        "spiral/roadrunner-http": "^3.6",
+        "spiral/roadrunner-laravel": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

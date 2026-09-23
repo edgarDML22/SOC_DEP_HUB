@@ -1,4 +1,9 @@
 <?php
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Auth\AuthenticationException; // <-- MUY IMPORTANTE
+use Illuminate\Http\Request;
 
 return [
 
@@ -65,7 +70,7 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'timezone' => 'America/Mexico_City',
 
     /*
     |--------------------------------------------------------------------------

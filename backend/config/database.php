@@ -5,29 +5,29 @@ use Illuminate\Support\Str;
 return [
 
     /*
-    |--------------------------------------------------------------------------
-    | Default Database Connection Name
-    |--------------------------------------------------------------------------
-    |
-    | Here you may specify which of the database connections below you wish
-    | to use as your default connection for database operations. This is
-    | the connection which will be utilized unless another connection
-    | is explicitly specified when you execute a query / statement.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Default Database Connection Name
+     |--------------------------------------------------------------------------
+     |
+     | Here you may specify which of the database connections below you wish
+     | to use as your default connection for database operations. This is
+     | the connection which will be utilized unless another connection
+     | is explicitly specified when you execute a query / statement.
+     |
+     */
 
     'default' => env('DB_CONNECTION', 'sqlite'),
 
     /*
-    |--------------------------------------------------------------------------
-    | Database Connections
-    |--------------------------------------------------------------------------
-    |
-    | Below are all of the database connections defined for your application.
-    | An example configuration is provided for each database system which
-    | is supported by Laravel. You're free to add / remove connections.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Database Connections
+     |--------------------------------------------------------------------------
+     |
+     | Below are all of the database connections defined for your application.
+     | An example configuration is provided for each database system which
+     | is supported by Laravel. You're free to add / remove connections.
+     |
+     */
 
     'connections' => [
 
@@ -91,7 +91,16 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => 'require',
+            'timezone' => 'America/Mexico_City',
+            'options' => [
+                // Neon usa PgBouncer en modo transaction, incompatible con prepared
+                // statements cacheados. PGSQL_ATTR_DISABLE_PREPARES envia cada query
+                // como texto plano sin cachear planes en el servidor, resolviendo
+                // "cached plan must not change result type" sin romper el type binding.
+                (defined('PDO::PGSQL_ATTR_DISABLE_PREPARES') ? PDO::PGSQL_ATTR_DISABLE_PREPARES : 1002) => true,
+                PDO::ATTR_TIMEOUT => 10,
+            ],
         ],
 
         'sqlsrv' => [
@@ -108,19 +117,24 @@ return [
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'dsn' => env('MONGO_URI'),
+            'database' => env('MONGO_DB'),
+        ],
 
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Migration Repository Table
-    |--------------------------------------------------------------------------
-    |
-    | This table keeps track of all the migrations that have already run for
-    | your application. Using this information, we can determine which of
-    | the migrations on disk haven't actually been run on the database.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Migration Repository Table
+     |--------------------------------------------------------------------------
+     |
+     | This table keeps track of all the migrations that have already run for
+     | your application. Using this information, we can determine which of
+     | the migrations on disk haven't actually been run on the database.
+     |
+     */
 
     'migrations' => [
         'table' => 'migrations',
@@ -128,27 +142,28 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Redis Databases
-    |--------------------------------------------------------------------------
-    |
-    | Redis is an open source, fast, and advanced key-value store that also
-    | provides a richer body of commands than a typical key-value system
-    | such as Memcached. You may define your connection settings here.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Redis Databases
+     |--------------------------------------------------------------------------
+     |
+     | Redis is an open source, fast, and advanced key-value store that also
+     | provides a richer body of commands than a typical key-value system
+     | such as Memcached. You may define your connection settings here.
+     |
+     */
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'phpredis'),
+        'client' => env('REDIS_CLIENT', 'predis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [
             'url' => env('REDIS_URL'),
+            'scheme' => env('REDIS_SCHEME', 'tcp'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
@@ -158,6 +173,7 @@ return [
 
         'cache' => [
             'url' => env('REDIS_URL'),
+            'scheme' => env('REDIS_SCHEME', 'tcp'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),

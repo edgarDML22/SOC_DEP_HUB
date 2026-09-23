@@ -1,0 +1,41 @@
+// src/components/icons/index.js
+export { default as IconBell } from './IconBell.vue';
+export { default as IconCalendar } from './IconCalendar.vue';
+export { default as IconClock } from './IconClock.vue';
+export { default as IconEdit } from './IconEdit.vue';
+export { default as IconHome } from './IconHome.vue';
+export { default as IconIdCard } from './IconIdCard.vue';
+export { default as IconShield } from './IconShield.vue';
+export { default as IconTrophy } from './IconTrophy.vue';
+export { default as IconUser } from './IconUser.vue';
+export { default as IconCreditCard } from './IconCreditCard.vue';
+export { default as IconLock } from './IconLock.vue';
+export { default as IconGuests } from './IconGuests.vue';
+export { default as IconQr } from './IconQr.vue';
+export { default as IconEnvelope } from './IconEnvelope.vue';
+export { default as IconPhone } from './IconPhone.vue';
+export { default as IconBriefcase } from './IconBriefcase.vue';
+export { default as IconSupport } from './IconSupport.vue';
+export { default as IconLogout } from './IconLogout.vue';
+export { default as IconHistory } from './IconHistory.vue';
+export { default as IconMessage } from './IconMessage.vue';
+export { default as IconInbox } from './IconInbox.vue';
+export { default as IconHourglass } from './IconHourglass.vue';
+export { default as IconMail } from './IconMail.vue';
+export { default as IconGender } from './IconGender.vue';
+export { default as IconStar } from './IconStar.vue';
+export { default as IconStart } from './IconStart.vue';
+export { default as IconArrowLeft } from './IconArrowLeft.vue';
+export { default as IconBaby } from './IconBaby.vue';
+export { default as IconSearch } from './IconSearch.vue';
+export { default as IconAlertCircle } from './IconAlertCircle.vue';
+export { default as IconLayers } from './IconLayers.vue';
+export { default as IconGrid } from './IconGrid.vue';
+export { default as IconTarget } from './IconTarget.vue';
+export { default as IconFilter } from './IconFilter.vue';
+export { default as IconChevronDown } from './IconChevronDown.vue';
+export { default as IconWarning } from './IconWarning.vue';
+export { default as IconTrash } from './IconTrash.vue';
+
+// Re-exportamos los iconos de disciplinas para centralizar todos los iconos
+export * from './disciplines';

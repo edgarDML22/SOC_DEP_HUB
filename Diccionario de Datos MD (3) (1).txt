@@ -1,0 +1,1181 @@
+Diccionario de Datos- Soc-Dep Hub
+
+Generado:2026-05-26 09:21:18
+
+Colapsar Todas las Pestanas
+
+
+
+[Image: Tipos Personalizados(ENUMs)]
+
+
+
+
+
+| enum_dia_semana | LUNES MAR | TES MIER | COLES JUEVES | VIERNES | SABADO | DOMINGO |  |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| enum_estateus_acceso | ACTIVO U | SADO EXPIR | RADO |  |  |  |  |
+| enum_estateus_amistad | PENDIENTE | ACEPTADA | RECHAZADA BL | BLOQUEADA |  |  |  |
+| enum_estateus_codigo_qr | ACTIVO U | SADO EXPIR | RADO INACTIVO |  |  |  |  |
+| enum_estatus_cuenta | AL_CORRIENT |  MOROSO | SUSPENDIDO |  |  |  |  |
+| enum_estatetus_empleado | ACTIVO I | NACTIVO B | JA_TEMPORAL |  |  |  |  |
+| enum_estateus_encuentro | PENDIENTE CANCELADO | EN_CURSO | RESULTADO_PEN |  |  | FINALIZADO | BYE |
+| enum_estateus_espacio_fisic 0 | ACTIVO  |  | DESHABILITA |  |  |  |  |
+| enum_estatus_general | ACTIVO  | ACTIVO |  |  |  |  |  |
+| enum_estateus_inscripcion | CONFIRMADA | LISTA_ESF | ERA CANCELAD |  ASISTI() |  FALTA |  |  |
+
+
+
+
+
+
+MANUAL
+
+ SIN_REGISTRO
+
+ enum_modalidad_plan
+
+ INDIVIDUAL
+
+ FAMILIAR
+
+ enum_parentesco
+
+ CONYUGE
+
+ HIJO/A
+
+ OTRO
+
+ enum_tipo_acceso_torneo
+
+ INTERNO
+
+ ABIERTO
+
+ enum_tipo_integrante_lista
+
+ FAMILIAR
+
+ SOCIO_EXTERNO
+
+ INVITADO
+
+ enum_tipo_participante_torn
+
+ SOCIO_TITULAR
+
+ MIEMBRO_FAMILIAR
+
+ COMPETIDOR_EXTERNO
+
+ enum_tipo_socio
+
+ ACCIONISTA
+
+ RENTISTA
+
+ enum_tipo_usuario
+
+ socio_titular
+
+ miembro_familiar
+
+ instructor
+
+ gerente
+
+$$
+\text{ subgerente}
+$$
+
+enum_tipo_usuario_qr
+
+ SOCIO
+
+ FAMILIAR
+
+ EXTERNO
+
+ enum_tipo_usuario_registro_
+
+SOCIO_TITULAR
+
+ MIEMBRO_FAMILIAR
+
+ INVITADO
+
+
+
+Estructura de Tablas
+
+actividades_plantilla
+
+$$
+13\text{ columns}
+$$
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_actividad _plantilla | integer | √ |  |  | √ | nextval('actividades_ plantilla_id_actividad _plantilla_seq'::regcla ss) |  |
+| 2 | id_disciplina | integer |  | √ |  | √ |  |  |
+| 3 | id_espacio | integer |  | √ |  | √ |  |  |
+| 4 | id_instructor | integer |  | √ |  | √ |  |  |
+| 5 | dia_semana | enum_dia_sem ana |  |  |  | √ |  |  |
+| 6 | hora_inicio | time without time zone |  |  |  | √ |  |  |
+| 7 | hora_fin | time without time zone |  |  |  | √ |  |  |
+| 8 | cupo_maxi | integer |  |  |  |  |  | Limite pedagogico de |
+
+
+alumnos para esta clase especifica. Este valor tiene prioridad y sobreescribe la capacidad fisica del espacio, ya que cuenta
+
+
+
+|  |       |  |  |  |  |  |  | 6 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | POS NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+|  | id_amista $$\begin{array}{l}\\ \\ \\ \\ \\ \end{array}$$ d | id_amista integer |  |  |  | √ | nextval('amistades_id_amist ad_seq'::regclass) |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT DE NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 | solicitante _id | integer |  | √ |  | √ |  |  |
+| 3 | receptor_i d | integer |  | √ |  |  |  |  |
+| 4 | estado | enum_estateus_ami stad |  |  |  |   | 'FENDIENTE'::enum_estatus _amistad |  |
+| 5 | created_at | timestamp with time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 6 | updated_a t | timestamp with time zone |  |  |  |  | CURRENT_TIMESTAMP' |  |
+|  |  |  |  |  |  |  |  |  |
+|  cache |  |  |  |  |  |  |  | 3 columns DESCRIPTION |
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | 3 columns DESCRIPTION |
+| 1 | key | character varying(255) | √ |  |  |  |  | 3 columns DESCRIPTION |
+| 2 | value | text |  |  |  | √ |  | 3 columns DESCRIPTION |
+| 3 | expiration | integer |  |  |  | √ |  | 3 columns DESCRIPTION |
+|  |  |  |  |  |  |  |  | 3 columns DESCRIPTION |
+
+
+cache_locks
+
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | key | character varying(255) | √ |  |  | √ |  |  |
+| 2 | owner | character varying(255) |  |  |  | √ |  |  |
+| 3 | expiration | integer |  |  |  |  |  |  |
+
+
+categoria_disciplina
+
+ PK FK
+
+ UQ
+
+ NOT NULL DEFAULT VALUE
+
+ PTION
+
+1 id_categoria integer
+
+√
+
+√
+
+√
+
+2 id_disciplina integer
+
+√
+
+√
+
+√
+
+categorias
+
+
+
+
+
+|  POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  1 | id_categor ia |  integer |    |  |  |    | nextval('categorias_id_catego ria_seq'::regclass) |  |
+
+
+
+
+|  | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns | categorias_disciplinas 5 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | POS    | DATA TYPE  | PK  | FK | UQ  |  N  T NULL | DEFAULT VALUE | DESCRIPTION |
+|    |   id | bigint |    |  |  |  √ | nextval('categorias_disci plinas_id_seq'::regclass) |  |
+| 2 |   nombre_categ oria | character  varying(255) |  |  |  |    |  |  |
+| 3 | description_c ategoria | text |  |  |  |  |  |  |
+| $$\begin{array}{l}\\ \\ \\ \\ \\ \end{array}$$ | created_at | timestamp(0) without time zone |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | updated_at | timestamp(0) without time zone |  |  |  |  |  |
+
+
+
+
+|  | categorias_torneo |  |  |  |  |  |  | 5 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | P'OS NAME |  | PK | FK |   |   | DEFAULT VALUE | DESCRIPTION |
+| 1 | id_categoria | integer |  |  |  | √ | nextval('categorias_torneo id_categoria_seq'::regclass) |  |
+| 3 | nombre_cate goria | character varying(100) |  |  |  |  |  |  |
+| 4 | edad_minima | integer |  |  |  | √ |  |  |
+| 5 | edad_maxima | integer |  |  |  |  |  |  |
+| 6 | genero_reque rido | enum_genero_t orneo |  |  |  |  |  |  |
+
+
+codigos_qr
+
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_codigo | integer | √ |  |  | √ | nextval('codigos_qr_id_co digo_seq'::regclass) |  |
+| 2 | codigo | character varying(50) |  |  | √ √ |  |  |  |
+| 2 | codigo | character varying(50) |  |  | √ |  √ |  |  |
+| 3 | usuario_id | integer |  |  |  | √ |  |  |
+| 4 | tipo_usuario | enum_tipo_usuario _qr |  |  |  | √ |  |  |
+| 6 | fecha_activa cion | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 7 | fecha_expira cion | timestamp without time zone |  |  |  |  |  |  |
+| 8 | created_at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 9 | updated_at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 10 | deleted_at | timestamp without time zone |  |  |  |  |  |
+| 11 | estatus | enum_estatus_codi go_qr |  |  |  | 'EXPIRADO'::enum_estatu s_codigo_qr |  |
+
+
+10 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 6 | telefono | character varying(20) |  |  |  |  |  |  |
+| 7 | ruta_documento_ identidad | text |  |  |  |  |  |  |
+| 8 | estatus_documen tacion | estatus_docum entacion |  |  |  |  |  |  |
+| 9 | codigo_qr_tempo ral | character varying(8) |  |  |  |  |  |  |
+| 10 | socios_titulares | integer |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+|   |   |  |  |  |  |  |  |  |
+| POS | NAME  |  |   |   |   |  |  |  |
+| 1 | id_disciplina | integer |  |  |  |  | nextval('disciplinas_id_disc iplina_seq'::regclass) |  |
+| 2 | nombre_disci plina | text |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | estatus | estatus_disciplin a_enum |  |  |  |  |  |
+
+
+7
+
+id_categoria
+
+ integer
+
+
+drafts_programmacion
+
+6 columns
+
+ POS NAME DATA TYPE 1 id bigint
+
+√
+
+nextval('drafts_programmaci on_id_seq'::regclass)
+
+id_gerent 2 integer e
+
+3 payload jsonb
+
+ created_timestamp without 4
+
+time zone
+
+ updated_timestamp without 5
+
+at time zone
+
+
+
+
+
+
+
+
+
+id_plantil 6 la
+
+ integer
+
+
+
+
+|  | encuentros_torneo |  |  |  |  |  |  | 18 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | POS NAME | DATA TYPE | PK |  FK | UQ |  NOT NULL | DEFAULT VALUE | DESCRIPTION |
+|  1  | id_encuentro | integer |    |  |  |    | nextval('encuentros_torn eo_id_encuentro_seq'::re gclass) |  |
+|  |    | fase_bracket_enum |  |  |  |   |  |  |
+|   |  competidor_1 _id | integer |  |  |  |  |  |  |
+|    | competidor_2  _id | integer |  |  |  |  |  |  |
+|  6 | id_espacio | integer |  |    |  |  |  |  |
+| 7 | fecha_hora_in icio | timestamp without time zone |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 8 | fecha_hora_fi n | timestamp without time zone |  |  |  |  |  |
+| 9 | id_arbitro_asi gnado | integer |  |  |  |  |  |
+| 10 | marcador_fin al_id | character varying(30) |  |  |  |  |  |
+| 11 | id_ganador | integer |  | √ |  |  |  |
+| 12 | estatus_encu entro | enum_estatus_enc uentro |  |  | √ | 'PENDIENTE'::enum_estat us_encuentro |  |
+| 13 | id_torneo | integer |  | √ | √ |  |  |
+| 14 | competidor_1 _type | character varying(100) |  |  |  |  |  |
+| 15 | competidor_2 _type | character varying(100) |  |  |  |  |  |
+| 16 | resultado_co mp1 | integer |  |  |  |  |  |
+| 17 | resultado_co mp2 | integer |  |  |  |  |  |
+
+
+
+
+|  | POS NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | 18 es_bye | boolean |  |  |  |  | false |  |
+|  | numero_encu 19 entro | integer |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+|  | equipos_torneo |  |  |  |  |  |  |  |
+|  | POS NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+|  | id_equipo_tor 1 neo | integer | √ |  |  | √ | nextval('equipos_torne o_id_equipo_torneo_se q'::regclass) |  |
+|  | 2 id_participant e_torneo | integer |  |   |  |    |  |  |
+|  | 3 id_categoria | integer |  |    |    |    |  |  |
+| 4 | tipo_entidad | enum_tipo_participa nte_torneo |  |  |  |  |  |  |
+|  | 5 referencia_id | integer |  |  |  |  |  |  |
+|  | 6 id_interno | integer |  |  | √ | √ |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 7 | siembra_ranki ng | integer |  |  |  |  |  |  |
+| 8 | posicion_actu al | integer |  |  |  |  |  |  |
+| 9 | puntos_torne 0 | integer |  |  |  |  | 0 |  |
+| 10 | estatus_partici pacion | enum_estateus_partic ipacion_torneo |  |  |  |  |  |  |
+| 11 | fecha_registro | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 12 | id_torneo | integer |  |  |  |  |  |  |
+| 13 | nombre_equi po | character varying(150) |  |  |  |  |  |  |
+| 14 | estatus_equip 0 | character varying(30) |  |  |  |  |  |  |
+
+
+espacio_disciplina
+
+2 columns
+
+POS
+
+ NAME
+
+ DATA TYPE
+
+ PK
+
+ UQ
+
+ NOT NULL
+
+ DEFAULT VALUE
+
+ DESCRIPTION
+
+1 id_espacio
+
+ integer
+
+√
+
+√
+
+√
+
+2 id_disciplina
+
+ integer
+
+√
+
+√
+
+√
+
+espacios_fisicos
+
+8 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_espacio | integer | √ |  |  | √ | nextval('espacios_fisi cos_id_espacio_seq':: regclass) |  |
+| 2 | nombre_esp acio | text |  |  |  |  |  |  |
+
+
+4
+
+capacidad_m
+
+ integer
+
+
+ Limite fisico de
+
+ personas permitidas
+
+ para uso libre o rentas
+
+ casuales
+
+(reservaciones_on_dem
+
+ and). NO USAR para
+
+ validar el cupo de
+
+ clases oficiales.
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | IJQ | NOT NULL | DEFAULT VALUE DESCRI | PTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | estatus | enum_estatus_ espacio_fisico |  |  |  |  |  |  |
+| 6 | descripcion |  text |  |  |  |  |  |  |
+| 7 | es_reserva_o n_demand |  boolean |  |  |  |  | false |  |
+| 8 | es_clase_pro gramada |  boolean |  |  |  |  | false |  |
+| 10 | es_uso_libre |  boolean |  |  |  |  | false |  |
+|   failed_jobs  |   failed_jobs  |  |  |  |  |  |  |  |
+|  POS | NAME |   |  PK | FK |   | NOT NULL   | DEFAULT VALUE | DESCRIPTION |
+| 1 | id | bigint |    |  |  |    | nextval('failed_jobs_id_seq   |  |
+| 2 | uuid | character varying(255) |  |  |  |   |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 3 | connecti on | text |  |  |  |  |  |  |
+| 4 | queue | text |  |  |  | √ |  |  |
+| 5 | payload | text |  |  |  | √ |  |  |
+| 6 | exceptio n | text |  |  |  |  |  |  |
+| 7 | failed_at | timestamp(0) without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+|  |  |  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+| gerents | gerentes |  |  |  |  |  |  | 5 columns |
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| 1 | id_empleado | integer |  |  |  |  | nextval('gerentes_id_emple ado_seq'::regclass) |  |
+| 2 | nombre_com pleto | character varying(100) |  |  |  |  |  |  |
+
+
+
+
+| POS NAME DATA TYPE PK FK UQ | NOT | DEFAULT VALUE DESCRIPTION |
+| --- | --- | --- |
+| POS NAME DATA TYPE PK FK UQ | NULL | DEFAULT VALUE DESCRIPTION |
+
+
+
+
+
+|  |
+| --- |
+
+
+
+
+
+
+| character 4 cargo varying(50) |
+| --- |
+
+
+
+
+|  |
+| --- |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | id_instructor_i ngreso | integer |  | √ |  |  |  |  |
+| 6 | id_instructor_e greso | integer |  |  |  |  |  |  |
+| 7 | hora_ingreso | timestamp without time zone |  |  |  |  |  |  |
+| 8 | hora_egreso | timestamp without time zone |  |  |  |  |  |  |
+| 9 | tiempo_total_ minutos | integer |  |  |  |  |  |  |
+| 10 | estatus_final | character varying(50) |  |  |  |  |  |  |
+| 11 | calificacion_se rvicio | integer |  |  |  |  |  |  |
+| 12 | comentarios_p adre | text |  |  |  |  |  |  |
+| 13 | creado_el | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+
+
+POS
+
+ NAME
+
+ DATA TYPE
+
+ PK
+
+ FK
+
+
+ NOT NULL
+
+ DEFAULT VALUE
+
+ DESCRIPTION
+
+14
+
+estatus
+
+ enum_estatus_lud
+
+ oteca
+
+'INACTIVO'::enum_estat
+
+ us_ludoteca
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_inscripci on | integer |  |  |  | √ | nextval('inscripcione s_clases_id_inscripcio n_seq'::regclass) |  |
+| 2 | id_sesion | integer |  | √ |  |  |  | Es una FK a la tabla actividades_plantilla |
+| 3 | tipo_usuari 0 | enum_tipo_usu ario |  |  |  |  |  |  |
+| 4 | fecha_trans accion | timestamp without time zone |  |  |  |  |  |  |
+| 5 | estatus_ins cripcion | enum_estatus_i nscripcion |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 6 | bloqueo_te mporal | boolean |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  | Es una FK a la tabla indicada por tipo_usuario. |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_instructor | integer | √ | √ |  | √ |  |  |
+| 2 | id_disciplina | integer | √ | √ |  |  |  |  |
+
+
+instructores
+
+9 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | id_instructor | integer | √ |  |  |  | nextval('instructores_id_in structor_seq'::regclass) |  |
+| 2 | nombre_com pleto | character varying(100) |  |  |  |  |  |  |
+| 3 | telefono | character varying(20) |  |  |  |  |  |  |
+| 4 | correo_electr onico | character varying(150) |  |  |  |  |  |  |
+| 6 | fecha_afiliaci on | date |  |  |  |  |  |  |
+| 7 | fecha_nacimi ento | date |  |  |  |  |  |  |
+| 8 | estatus | enum_estateus_e mpleado |  |  |  |  | 'ACTIVO'::enum_estateus_e mpleado |  |
+| 9 | hora_entrada | time without time zone |  |  |  |  |  |  |
+| 10 | hora_salida | time without time zone |  |  |  |  |  |  |
+
+
+integrates_lista
+
+6 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ  | NOT N  | DEFAULT VALUE  | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_integrante  | integer |  |  |  |    | nextval('integrantes_ lista_id_integrantes_     seq'::regclass) |  |
+| 2 | id_lista | integer |  |    |  |    |  |  |
+| 3 | tipo_integran te_lista  | enum_tipo_int egrante_lista |  |  |  |    |  |  |
+| 4 | referen   integrante |   |  |  |  |    |  | Es una FK hacia la tabla original a la que pertenece el integrate (Familiar, Socio Externo, Invitado) |
+| 5 | nombre_inte grante | character varying(100) |  |  |  |  |  |  |
+| 6 | correo_   do | character varying(100) |  |  |  |    |  |  |
+
+
+
+
+
+
+| POS | NAME | DATA TYPE  | PK FK | UQ | NOT  NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+|  | id_invitado  |  integ      |    |  |     |    $$\text{ seq'::regclass}$$ |  |
+| 2 | socio_id  | integer  |   |  |    |  |  |
+| 3 | nombre_invi  tado | character    |  |  |     |  |  |
+| 4 | codigo_qr | character  varying(8) |  |  |    |  |  |
+| 5 | correo |  character  varying(255) |  |  |  |  |  |
+| 6 | telefono |  character  varying(20) |  |  |  |  |  |
+| 7 | deleted_at |  timestamp without  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |   DESCRIPTION |
+|  |  |  |  |   |   | NULL  DEFAULT VALUE |   DESCRIPTION |
+|  |   |   character varying(255) |  |  |  |  |   DESCRIPTION |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 | name | character varying(255) |  |  |  | √ |  |  |
+| 3 | total_jobs | integer |  |  |  | √ |  |  |
+| 4 | pending_jobs | integer |  |  |  | √ |  |  |
+| 5 | failed_jobs | integer |  |  |  | √ |  |  |
+| 6 | failed_job_ids | text |  |  |  |  |  |  |
+| 7 | options | text |  |  |  |  |  |  |
+| 8 | cancelled_at | integer |  |  |  |  |  |  |
+| 9 | created_at | integer |  |  |  |  |  |  |
+| 10 | finished_at | integer |  |  |  |  |  |  |
+
+
+
+
+|  | job's |  |  |  |  |  |  | 7 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | POS | NAME |  DATA TYPE   |   FK |  | NOT    | DEFAULT VALUE  VALUE | DESCRIPTION |
+|  | 1 | id |  bigint |   |  |   | nextval('jobs_id_seq'::regcl ass) |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK FK | UQ | NCT DEFAULT VALUE NULL | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 | queue | character varying(255) |  | √ |  |  |
+| 3 | payload | text |  | √ |  |  |
+| 4 | attempts | smallint |  | √ |  |  |
+| 5 | reserved_a t | integer |  |  |  |  |
+| 6 | available_ at | integer |  |  |  |  |
+| 7 | created_at | integer |  |  |  |  |
+|  |  |  |  |  |  |  |
+| li | listas_rapidas |  |  |  |  | 3 columns |
+| POS | NAME | DATA TYPE | PK FK UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| 1 | id_lista | integer |  | √ | nextval('listas_rapidas_id_lista_se q'::regclass) |  |
+| 2 | id_socio_titul ar | integer |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA PK TYPE | FK | UQ | NOT NULL |  | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 3 | nombre_lista | text |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+|  miem | miembros_familiares |  |  |  |  |  |  | 9 columns |
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| 1 | id_miembro | integer | √ |  |  | √ | nextval('miembros_famili ares_id_miembro_seq'::re gclass) |  |
+| 2 | socio_id | integer |  | √ |  | √ |  |  |
+| 3 | parentesco | enum_parentesco |  |  |  | √ |  |  |
+| 4 | nombre_com pleto | character varying(100) |  |  |  | √ |  |  |
+| 5 | fecha_nacimi ento | date |  |  |  |  |  |  |
+| 6 | genero | enum_genero |  |  |  |  |  |  |
+| 8 | contador_no_ shows | integer |  |  |  |  | 0 |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9 | deleted_at | timestamp without time zone |  |  |  |  |  |  |
+| 10 | correo | character varying(30) |  |  |  |  |  |  |
+
+
+
+
+|  | migrations |  |  |  |  |  |   |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+|  | POS NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| 1 | id | integer |  |  |    | nextval('migrations_id_seq'::re gclass) |  |
+| 2 | migratio n |  character varying(255) |  |  |  |  |  |
+| 3 | batch | integer |  |  |  |  |  |
+
+
+notifications
+
+8 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id | uuid |    |  |  |  |  |
+| 2 | type | character varying(255) |  |  |    |  |  |
+| 3 | notifiable_ty pe | character varying(255) |  |  |    |  |  |
+| 4 | notifiable_id | bigint |  |  |    |  |  |
+| 5 | data | text |  |  |    |  |  |
+| 6 | read_at | timestamp(0) without time zone |  |  |  |  |  |
+| 7 | created_at | timestamp(0) without time zone |  |  |  |  |  |
+| 8 | updated_at | timestamp(0) without time zone |  |  |  |  |  |
+
+
+participants_torneo
+
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_participant e_torneo | integer | √ |  |  | √ | nextval('participantes_t orneo_id_participante_ torneo_seq'::regclass) |  |
+| 2 | id_categoria | integer |  | √ |  | √ |  |  |
+| 3 | tipo_entidad | enum_tipo_participa nte_torneo |  |  |  | √ |  |  |
+| 4 | referencia_id | integer |  |  |  | √ |  |  |
+| 5 | siembra_ranki ng | integer |  |  |  |  |  |  |
+| 6 | fecha_inscripc ion | timestamp without time zone |  |  |  | √ |  |  |
+| 7 | estatus_partici pacion | enum_estateus_partic ipacion_torneo |  |  |  |  |  |  |
+| 8 | id_torneo | integer |  |  |  |  |  |  |
+| 9 | participante_t ype | character varying(150) |  |  |  |  |  |  |
+| 10 | participante_i d | bigint |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 11 | id_interno | smallint |  |  |  |  |  |  |
+| 12 | ranking_decla rado | smallint |  |  |  |  |  |  |
+| 13 | id_equipo | integer |  |  |  |  |  |  |
+| 14 | estatus_inscri pcion | character varying(30) |  |  |  |  |  |  |
+| 15 | qr_codigo | character varying(255) |  |  |  |  |  |  |
+| 16 | qr_estatus | character varying(30) |  |  |  |  |  |  |
+
+
+
+
+|  | poses_diarios |  |  |  |  |  |  |  5 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | P'OS  |  |   |    |   |  | DEFAULT VALUE | DESCRIPTION |
+|  | 1 id_pase | integer |  |  |  |  | nextval('pases_diarios_id_ pase_seq'::regclass) |  |
+| 2 | invitado_id | integer |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 3 | fecha_activa cion | timestamp without time zone |  |  |  |  |  |  |
+| 4 | fecha_expira cion | timestamp without time zone |  |  |  |  | (fecha_activacion+ '24:00:00'::interval) |  |
+| 5 | estatus_acc eso | enum_estateus_acce SO |  |  |  |  |  |  |
+
+
+
+
+|  | password_reset_tokens 3 columns | password_reset_tokens 3 columns | password_reset_tokens 3 columns | password_reset_tokens 3 columns | password_reset_tokens 3 columns | password_reset_tokens 3 columns | password_reset_tokens 3 columns | password_reset_tokens 3 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| POS | NAME | DATA TYPE | PK  |  FK |  UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| 1\| | email | character varying(255) |  |  |  | √ |  |  |
+| 2 | token | character varying(255) |  |  |  |  |  |  |
+| 3  | created_a t | timestamp without time zone |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+
+
+personal_access_tokens
+
+10 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | id | bigint |  |  |  | √ | nextval('personal_access_ tokens_id_seq'::regclass) |  |
+| 2 | tokenable_ type | character varying(255) |  |  |  | √ |  |  |
+| 3 | tokenable_i d | bigint |  |  |  | √ |  |  |
+| 4 | name | text |  |  |  | √ |  |  |
+| 5 | token | character varying(64) |  |  |  |  |  |  |
+| 6 | abilities | text |  |  |  |  |  |  |
+| 7 | last_used_a t | timestamp(0) without time zone |  |  |  |  |  |  |
+| 8 | expires_at | timestamp(0) without time zone |  |  |  |  |  |  |
+| 9 | created_at | timestamp(0) without time zone |  |  |  |  |  |  |
+
+
+POS
+
+ NAME
+
+ DATA TYPE
+
+ PK
+
+ UQ
+
+ NOT NULL
+
+ DEFAULT VALUE
+
+ DESCRIPTION
+
+10
+
+updated_at
+
+ timestamp(0)
+
+without time zone
+
+:plantillas_programmacion
+
+| POS | NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_plantilla | integer | √ |  | √ | nextval('plantillas_progra macion_id_plantilla_seq'::r egclass) |  |
+| 2 | nombre_pla ntilla | character varying(100) |  |  |  |  |  |
+| 3 | fecha_inicio | date |  |  |  | CURRENT_DATE |  |
+| 4 | fecha_fin | date |  |  |  | CURRENT_DATE |  |
+| 7 | deleted_at | timestamp without time zone |  |  |  |  |  |
+| 8 | publicada | boolean |  |  |  | false |  |
+
+
+
+
+| POS | POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9 | 9 | estatus_plan tilla | boolean |  |  |  |  | false |  |
+|  |  |  |  |  |  |  |  |  |  |
+|  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |  pre_registros_torneo  9 columns  |
+|  | POS | NAME |  DATA  | PK  | UQ   | UQ   | NOT   |    DEFAULT VALUE | DE    TION |
+|    |   | id | bigint |    |  |  |    |   neo_id_seq'::regclass) |  |
+|  | 2 |   torneo  | bigint |     |   |   |    |  |  |
+|  | 3 | tipo  | tipo_pre_registro |  |  |  |    |  |  |
+|   |  | estatus | estatus_pre_registr 0 |  |  |  |    | 'PENDIENTE'::estateus_pre   registro |  |
+| 5 |  | dat   pante | jsonb |  |  |  |    |  |  |
+| 6 |  | urls_   ntos  | jsonb |  |  |  |    |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 7 | motivo_rech azo | text |  |  |  |  |  |  |
+| $$\begin{array}{l}\\ 8\\ \\ \end{array}$$ | created_at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 9 | updated_at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+
+
+
+
+|  registros_asistencia 7 columns |  registros_asistencia 7 columns |  registros_asistencia 7 columns |  registros_asistencia 7 columns |  registros_asistencia 7 columns |  registros_asistencia 7 columns |  registros_asistencia 7 columns |  registros_asistencia 7 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+|  POS | NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| 1 | id_registro | bigint |  |  |  | nextval('registros_asist encia_id_registro_seq':: regclass) |  |
+| 2 | id_sesion | integer |  |  |  |  |  |
+| 3 | id_usuario | bigint |  |  |  |  |  |
+| 4 | tipo_usuario | enum_tipo_usuario_r egistro_asistencia |  |  |    |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ |    | DE  | DESCRIPTION  |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | metodo_regi stro | enum_metodo_regist ro_asistencia |  |  |  |    |  |  |
+| 6 | fecha_hora_r egistro | timestamp without time zone |  |  |  |    | CURRENT_TIMESTAMP |  |
+| 7 | asistencia | boolean |  |  |  |    | false |  |
+
+
+
+
+|  | registros_ludoteca |  |  |  |  |  |  |  |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | P'OS NAME | DATA TYPE |   |   | UQ |  |   |   |
+| 1  | id_registro | integer  |    |  |  |    | nextval('registros_ludote   ass) |  |
+|  | 2 id_menor | integer |  |    |  |    |  |  |
+| 3 | id_adulto_ingr eso | integer |  |  |  |  |  |  |
+| 4 | id_adulto_egr eso | integer |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | hora_ingreso | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 6 | hora_egreso | timestamp without time zone |  |  |  |  |  |  |
+| 7 | estatus_ludot eca | enum_estatus_lud oteca |  |  |  |  | 'ACTIVA'::enum_estatus_l udoteca |  |
+| 8 | hora_limite | timestamp without time zone |  |  |  |  | (hora_ingreso+ '02:00:00'::interval) |  |
+| 9 | id_instructor_i ngreso | integer |  |  |  |  |  |  |
+| 10 | id_instructor_ egreso | integer |  |  |  |  |  |  |
+| 11 | alerta_30_envi ada | boolean |  |  |  |  | false |  |
+| 12 | alerta_10_envi ada | boolean |  |  |  |  | false |  |
+
+
+reservaciones on demand
+
+12 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_reserva | integer | √ |  |  | √ | nextval('reservaciones_o n_demand_id_reserva_se q'::regclass) |  |
+| 2 | id_socio_titula r | integer |  | √ |  | √ |  |  |
+| 3 | id_espacio | integer |  | √ |  | √ |  |  |
+| 4 | fecha_reserva | date |  |  |  | √ | CURRENT_DATE |  |
+| 5 | hora_inicio | time without time zone |  |  |  | √ |  |  |
+| 6 | hora_fin | time without time zone |  |  |  | √ |  |  |
+| 7 | estatus_opera tivo | enum_estateus_ope rativo |  |  |  |  |  |  |
+| 9 | fecha_expiraci on | timestamp without time zone |  |  |  |  |  |  |
+| 10 | created_at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 11 | updated_at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTAMP |  |
+| 13 | id_disciplina | integer |  | √ |  |  |  |  |
+| 14 | acompanante s_draft | jsonb |  |  |  |  |  |  |
+
+
+
+
+|  | sesiones_activas |  |  |  |  |  |  |  |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  | POS NAME | DATA TYPE | PK | FK | UQ | NOT  NULL | DEFAULT VALUE |   DESCRIPTION |
+| 1 | id_sesion | integer |    |  |  |    | nextval('sesiones_ac tivas_id_sesion_seq':: regclass) |  |
+| 2 | id_actividad_ plantilla | integer |  |  |  |  |  | Es una FK hacia la tabla original actividades_plantilla |
+| 3 | fecha_sesion | date |  |  |  |  |  |  |
+|   | estatus_sesio  n | enum  estatus_ session |  |  |  |    |  'DISPONIBLE'::enum    |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 6 | cantidad_ins critos | integer |  |  | √ |  |  |
+| 7 | lista_asistenc ia_enviada | boolean |  |  |  | false |  |
+| 8 | fecha_public acion | timestamp without time zone |  |  |  |  |  |
+| 9 | id_disciplina | integer |  |  |  |  |  |
+| 10 | id_espacio | integer |  |  |  |  |  |
+| 11 | id_instructor | integer |  |  |  |  |  |
+| 12 | cupo_maxim 0 | smallint |  |  |  |  |  |
+| 13 | hora_inicio | time without time zone |  |  |  |  |  |
+| 14 | hora_fin | time without time zone |  |  |  |  |  |
+| 15 | requiere_insc ripcion | boolean |  |  |  | false |  |
+
+
+
+
+| POS | NAME | DATA TYPE PK | FK | UQ | NULL | NOT DEFAIJLT VALUE  | DEFAIJLT VALUE  | ESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 16 | dia_semana | enum_dia_sem ana |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+|  sessions | sessions |  |  |  |  |  |  | columns |
+| POS  | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+|  1 | id | character varying(255) | √ |  |  |  √ |  |  |
+| 2 | user_id | bigint |  |  |  |  |  |  |
+| 3 | ip_address | character varying(45) |  |  |  |  |  |  |
+| 4 | user_agent | text |  |  |  |  |  |  |
+| 5 | payload | text |  |  |  |  |  |  |
+|  6 | last_activity | integer |  |  |  |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_socio | integer | √ |  |  | √ | nextval('socios_titulare s_id_socio_seq'::regcla ss) |  |
+| 2 | numero_accion | character varying(30) |  |  | √ | √ |  |  |
+| 3 | tipo_socio | enum_tipo_socio |  |  |  | √ |  |  |
+| 4 | modalidad_plan | enum_modalida d_plan |  |  |  | √ |  |  |
+| 5 | nombre_completo | character varying(100) |  |  |  | √ |  |  |
+| 6 | fecha_nacimiento | date |  |  |  | √ |  |  |
+| 7 | genero | enum_genero |  |  |  | √ |  |  |
+| 8 | correo_electronico | character varying(150) |  |  |  | √ |  |  |
+| 10 | estatus_cuenta | enum_estatus_cu enta |  |  |  | √ | 'AL_CORRIENTE'::enu m_estateus_cuenta |  |
+| 11 | contador_no_sho WS | integer |  |  |  | √ | 0 |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 12 | fecha_afiliacion | date |  |  |  |  |  |  |
+| 14 | retrasos_ludoteca | integer |  |  |  |  | 0 |  |
+| 16 | estatus_penalizaci on | enum_estateus_p enalizacion |  |  |  |  | 'SIN_PENALIZACION':: enum_estatetus_penaliz acion |  |
+| 17 | fecha_fin_penaliza cion_ludoteca | timestamp without time zone |  |  |  |  |  |  |
+| 18 | fecha_fin_penaliza cion_reserva | timestamp without time zone |  |  |  |  |  |  |
+
+
+
+
+|  te] | escope_entries |  |  |  |  |  |  | 8 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|  |  |  |  |  |  |  |  |  |
+| POS  | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+|  1 | sequence |  bigint |   |  |  |    | nextval('telescope_entri es_sequence_seq'::regcl ass) |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 | uuid | uuid |  |  | √ | √ |  |  |
+| 3 | batch_id | uuid |  |  |  | √ |  |  |
+| 4 | family_hash | character varying(255) |  |  |  |  |  |  |
+| 5 | should_display_ on_index | boolean |  |  |  | √ | true |  |
+| 6 | type | character varying(20) |  |  |  | √ |  |  |
+| 7 | content | text |  |  |  | √ |  |  |
+| 8 | created_at | timestamp(0) without time zone |  |  |  |  |  |  |
+
+
+telescope_entries_tags
+
+2 columns
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | entry_uuid | uuid | √ | √ |  |  |  |  |
+
+
+POS
+
+ NAME
+
+ DATA TYPE
+
+ PK FK
+
+ UQ
+
+ NOT NULL
+
+ DEFAULT VALUE
+
+ DESCRIPTION
+
+2
+
+tag
+
+ character varying(255)
+
+√
+
+
+
+
+|  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |  telescope_monitoring    1 columns |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| POS | NAME | DATA TYPE | DATA TYPE | PK | FK | UQ | NOT NULL | NOT NULL | DEFAULT VALUE | DESCRIPTION | DESCRIPTION |
+| 1 | tag | character varying(255) | character varying(255) | √ |  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |  |  |  |
+|  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |  torneos   |
+|  POS |   NAME  |   NAME  | DATA TYPE  | PK  |  FK |  FK |  | NOT   | DEFAULT VALUE | DEFAULT VALUE | DESCRIPTION |
+| 1 | id_torneo  | id_torneo  | integer |  √ |  |  |  |    | nextval('torneos_id_torn   eo_seq'::regclass) | nextval('torneos_id_torn   eo_seq'::regclass) |  |
+| 2 |   _torne 0 |   _torne 0 | character varying(100) |  |  |  |  |   |  |  |  |
+| 3 | id_disciplina  id_disciplina | id_disciplina  id_disciplina | integer  |  |    |    |  |    |  |  |  |
+| 4 | tipo  acceso | tipo  acceso | enum_tipo_acces |  |  |  |  |   |  |  |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | formato_comp etencia | enum_formato_co mpetencia |  |  |  | √ |  |  |
+| 6 | fecha_inicio | date |  |  |  | √ |  |  |
+| 7 | fecha_fin | date |  |  |  | √ |  |  |
+| 8 | estatus_torneo | enum_estateus_tor neo |  |  |  | √ |  |  |
+| 9 | cupo_maximo | integer |  |  |  | √ |  |  |
+| 10 | descripcion | text |  |  |  |  |  |  |
+| 11 | id_categoria | integer |  | √ |  |  |  |  |
+| 12 | cupo_minimo | integer |  |  |  | √ | 2 |  |
+| 13 | modalidad | modalidad_enum |  |  |  | √ |  |  |
+| 14 | genero_requer ido | genero_enum |  |  |  | √ |  |  |
+| 15 | motivo_cancel acion | text |  |  |  |  |  |  |
+| 16 | pool_arbitros | jsonb |  |  |  |  |  |  |
+
+
+turnos_ludoteca
+
+
+
+
+
+|  POS | NAME | DATA TYPE  |   | FK | UQ | NOT  NULL | DEFA  VALUE | DESCRIPTION    |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id_turno | integer |    |  |  |    | nextval('turnos_ludoteca_id_ turno_seq'::regclass) |  |
+| 2 | id_instruct or | integer |  |  |  |    |  |  |
+| 3 | fecha | date |  |  |  |    |  |  |
+| 4 | hora_inici 0 | time without time zone |  |  |  |   |  |  |
+| 5 | hora_fin | time without time zone |  |  |  |    |  |  |
+
+
+
+
+|  POS |   | DATA TYPE |     |   | NOT NULL |   |  |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | id | integer |  |  | √ | nextval('users_id_se q'::regclass) |  |
+
+
+
+
+| POS | NAME | DATA TYPE | PK | FK | UQ | NOT NULL | DEFAULT VALUE | DESCRIPTION |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 | email | character varying(150) |  |  | √ | √ |  |  |
+| 3 | passwor d | character varying(255) |  |  |  |  |  |  |
+| 4 | rol | enum_tipo_usuar io |  |  |  |  |  |  |
+| 5 | user_id | integer |  |  |  |  |  | Es una FK hacia la tabla original a la que pertenece el usuario (Instructor, Socio Titular, Gerente/ Subgerente) |
+| 6 | created_ at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTA MP |  |
+| 7 | updated _at | timestamp without time zone |  |  |  |  | CURRENT_TIMESTA MP |  |
+| 8 | activo | boolean |  |  |  |  | true |  |
+
+

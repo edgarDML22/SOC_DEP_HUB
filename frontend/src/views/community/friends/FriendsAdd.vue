@@ -1,0 +1,200 @@
+<script setup>
+import { ref, watch, computed, onMounted } from 'vue'
+import { useFriendStore } from '@/stores/community/friendStore'
+import { useProfileStore } from '@/stores/profiles/socioStore'
+import { useAlerts } from '@/composables/useAlerts'
+import api from '@/services/api'
+import { useRouter } from 'vue-router'
+import { IconArrowLeft } from '@/components/icons'
+
+const friendStore = useFriendStore()
+const profileStore = useProfileStore()
+const { toastInfo, showLoading, closeLoading, successModal, errorModal, confirmWarning } = useAlerts()
+const router = useRouter()
+
+const search = ref('')
+const loadingSearch = ref(false)
+const resultados = ref([])
+const sendingId = ref(null)
+
+onMounted(() => {
+  friendStore.fetchFriends()
+})
+
+// IDs de socios con los que ya hay relación activa (amigo o solicitud pendiente)
+const idsRelacionados = computed(() => {
+  const list = Array.isArray(friendStore.friends) ? friendStore.friends : []
+  return new Set(
+    list
+      .filter(f => f.estado?.toUpperCase() !== 'RECHAZADA')
+      .map(f => f.id_amigo)
+  )
+})
+
+function estadoRelacion(socioId) {
+  const list = Array.isArray(friendStore.friends) ? friendStore.friends : []
+  const rel = list.find(f => f.id_amigo === socioId && f.estado?.toUpperCase() !== 'RECHAZADA')
+  if (!rel) return null
+  if (rel.estado?.toUpperCase() === 'ACEPTADA') return 'amigo'
+  if (rel.estado?.toUpperCase() === 'PENDIENTE' && rel.solicitado_por_mi) return 'enviada'
+  if (rel.estado?.toUpperCase() === 'PENDIENTE' && !rel.solicitado_por_mi) return 'recibida'
+  return null
+}
+
+let timeoutId = null
+
+watch(search, (newVal) => {
+  if (timeoutId) clearTimeout(timeoutId)
+
+  if (newVal.trim().length < 2) {
+    resultados.value = []
+    return
+  }
+
+  timeoutId = setTimeout(() => {
+    buscarSocios(newVal)
+  }, 500)
+})
+
+async function buscarSocios(query) {
+  loadingSearch.value = true
+  try {
+    const response = await api.get(`/socios/search?query=${encodeURIComponent(query)}`)
+    const myId = profileStore.idSocio
+    // Solo socios titulares, excluyendo al propio usuario
+    resultados.value = (response.data?.data || [])
+      .filter(item => item.tipo_perfil === 'socio_titular' && item.id !== myId)
+  } catch (e) {
+    console.error('Error en búsqueda:', e)
+    toastInfo('Error', 'No se pudo completar la búsqueda', 'error')
+  } finally {
+    loadingSearch.value = false
+  }
+}
+
+async function enviarSolicitud(socio) {
+  // Modal de confirmación antes de enviar (reciclando confirmWarning de useAlerts)
+  const result = await confirmWarning(
+    '¿Enviar solicitud?',
+    `¿Quieres enviar una solicitud de amistad a ${socio.nombre}?`,
+    'Sí, Enviar'
+  )
+  if (!result.isConfirmed) return
+
+  sendingId.value = socio.id
+  showLoading('Enviando solicitud...')
+  try {
+    await friendStore.addFriend({ receptor_id: socio.id, _nombre_receptor: socio.nombre })
+    closeLoading()
+    await successModal('¡Solicitud enviada!', `Tu solicitud de amistad fue enviada a ${socio.nombre} exitosamente.`)
+    router.push({ name: 'friends-list' })
+  } catch (e) {
+    closeLoading()
+    const errorMsg = e.response?.data?.message || 'Hubo un error al enviar la solicitud. Inténtalo de nuevo.'
+    await errorModal('No se pudo enviar', errorMsg)
+  } finally {
+    sendingId.value = null
+  }
+}
+</script>
+
+<template>
+  <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8 pt-4 lg:pt-6 font-sans">
+    <div class="max-w-3xl mx-auto flex flex-col gap-6">
+      
+      <!-- Encabezado con Botón Volver -->
+      <div>
+        <div class="flex flex-col gap-1">
+          <h2 class="text-2xl md:text-3xl font-bold text-surface-900 m-0 tracking-tight">Agregar Nuevo Amigo</h2>
+          <p class="text-surface-500 font-medium text-sm md:text-base m-0">Busca a otros socios por nombre para enviarles una solicitud.</p>
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <div class="flex flex-col gap-4">
+        <input 
+          v-model="search" 
+          placeholder="Buscar por nombre o número de acción..." 
+          class="w-full px-4 py-3 bg-white border border-surface-200 font-medium rounded-xl outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600 transition-colors text-surface-900 shadow-sm" 
+        />
+      </div>
+
+      <!-- Estado de Búsqueda -->
+      <div v-if="loadingSearch" class="text-center py-12 text-surface-500 font-medium">
+        <span class="animate-pulse">Buscando socios...</span>
+      </div>
+
+      <div v-else-if="search.length >= 2">
+        <!-- Sin Resultados -->
+        <div v-if="resultados.length === 0" class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-600 shadow-sm border border-surface-200 flex flex-col items-center justify-center min-h-[200px]">
+          <p class="text-base font-medium">No se encontraron socios que coincidan con "<strong>{{ search }}</strong>".</p>
+        </div>
+
+        <!-- Resultados (Lista Vertical Clean) -->
+        <div v-else class="flex flex-col gap-3">
+          <div 
+            v-for="socio in resultados" 
+            :key="socio.id" 
+            class="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-surface-200 transition-all hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <!-- Info Izquierda -->
+            <div class="flex items-center gap-4 min-w-0">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-600 text-white font-bold text-lg uppercase shrink-0 relative overflow-hidden">
+                <span class="z-0">{{ socio.nombre?.charAt(0) || '?' }}</span>
+                <img 
+                  v-if="socio.foto_perfil" 
+                  :src="socio.foto_perfil" 
+                  @error="$event.target.style.display = 'none'" 
+                  class="absolute inset-0 w-full h-full object-cover z-10 bg-white"
+                  alt="Perfil"
+                />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <h3 class="text-base font-bold text-surface-900 m-0 truncate" :title="socio.nombre">{{ socio.nombre }}</h3>
+                <span class="text-sm font-medium text-surface-500 mt-0.5 truncate">Acción: {{ socio.numero_socio }}</span>
+              </div>
+            </div>
+
+            <!-- Botón / Estado Derecha -->
+            <template v-if="estadoRelacion(socio.id) === 'amigo'">
+              <span class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-green-50 text-green-700 border border-green-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Ya son amigos
+              </span>
+            </template>
+            <template v-else-if="estadoRelacion(socio.id) === 'enviada'">
+              <span class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                Solicitud enviada
+              </span>
+            </template>
+            <template v-else-if="estadoRelacion(socio.id) === 'recibida'">
+              <span class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary-50 text-primary-700 border border-primary-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>
+                Solicitud recibida
+              </span>
+            </template>
+            <template v-else>
+              <button
+                @click="enviarSolicitud(socio)"
+                :disabled="sendingId === socio.id"
+                class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:outline-none shrink-0"
+              >
+                {{ sendingId === socio.id ? 'Enviando...' : 'Enviar Solicitud' }}
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado Inicial -->
+      <div v-else class="bg-white rounded-2xl p-8 md:p-12 text-center text-surface-500 shadow-sm border border-surface-200 flex flex-col items-center justify-center min-h-[200px]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <p class="text-base font-medium">Ingresa al menos 2 caracteres para comenzar la búsqueda.</p>
+      </div>
+
+    </div>
+  </div>
+</template>

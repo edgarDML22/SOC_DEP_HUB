@@ -1,0 +1,295 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\SocioTitular;
+use App\Models\MiembrosFamiliares;
+use App\Models\CodigoQr;
+use App\Models\Instructor;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class ProfileController extends Controller
+{
+    public function show(Request $request)
+    {
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+
+        $data = null;
+
+
+        switch ($usuario->rol) {
+            case 'socio_titular':
+
+                $perfil = SocioTitular::find($usuario->user_id);
+
+                if (!$perfil) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Perfil no encontrado'
+                    ], 404);
+                }
+
+                $qrPayload = null;
+                $qrImageUrl = null;
+                if ($perfil->estatus_cuenta === 'AL_CORRIENTE') {
+                    $qr = $perfil->codigoQrActivo;
+                    if (!$qr) {
+                        do {
+                            $codigoNuevo = 'QS' . strtoupper(Str::random(6));
+                        } while (CodigoQr::where('codigo', $codigoNuevo)->exists());
+                        $qr = $perfil->codigosQr()->create([
+                            'codigo' => $codigoNuevo,
+                            'estatus' => 'ACTIVO',
+                            'fecha_activacion' => now()
+                        ]);
+                    }
+                    $qrPayload = $qr->codigo;
+                    $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($qrPayload);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'id_socio' => $perfil->id_socio,
+                        'numero_accion' => $perfil->numero_accion,
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'tipo_socio' => $perfil->tipo_socio,
+                        'modalidad_plan' => $perfil->modalidad_plan,
+                        'estatus_cuenta' => $perfil->estatus_cuenta,
+                        'correo_electronico' => $perfil->correo_electronico,
+                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                        'genero' => $perfil->genero,
+                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                        'contador_no_shows' => $perfil->contador_no_shows,
+                        'estatus_penalizacion' => $perfil->estatus_penalizacion,
+                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
+                        'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
+                        'fecha_fin_penalizacion_ludoteca' => $perfil->fecha_fin_penalizacion_ludoteca ?? null,
+                        'fecha_fin_penalizacion_reservas' => $perfil->fecha_fin_penalizacion_reserva ?? null,
+                        'fecha_fin_penalizacion_reserva' => $perfil->fecha_fin_penalizacion_reserva ?? null,
+                        'retrasos_acumulados_ludoteca' => $perfil->retrasos_ludoteca ?? 0,
+                        'qr_payload' => $qrPayload,
+                        'qr_image_url' => $qrImageUrl,
+                        'foto_perfil' => $this->getFotoPerfilUrl($perfil->id_socio),
+                    ]
+                ]);
+                break;
+
+            case 'miembro_familiar':
+                $perfilMf = DB::table('miembros_familiares as mf')
+                    ->join('socios_titulares as st', 'mf.socio_id', '=', 'st.id_socio')
+                    ->select(
+                        'mf.id_miembro',
+                        'mf.nombre_completo',
+                        'mf.socio_id',
+                        'st.numero_accion',
+                        'st.tipo_socio',
+                        'st.modalidad_plan',
+                        'st.estatus_cuenta',
+                        'st.estatus_penalizacion',
+                        'st.fecha_fin_penalizacion',
+                        'st.fecha_fin_penalizacion_ludoteca',
+                        'st.fecha_fin_penalizacion_reserva',
+                        'st.retrasos_ludoteca'
+                    )
+                    ->where('mf.id_miembro', $usuario->user_id)
+                    ->first();
+
+                if ($perfilMf) {
+                    $mfModel = MiembrosFamiliares::find($usuario->user_id);
+                    $mfQrPayload = null;
+                    $mfQrImageUrl = null;
+                    if ($mfModel) {
+                        $qr = $mfModel->codigoQrActivo;
+                        if ($qr) {
+                            $mfQrPayload = $qr->codigo;
+                            $mfQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($mfQrPayload);
+                        }
+                    }
+
+                    $data = [
+                        'id_miembro' => $perfilMf->id_miembro,
+                        'id_socio' => $perfilMf->socio_id,
+                        'nombre_completo' => $perfilMf->nombre_completo,
+                        'numero_accion' => $perfilMf->numero_accion,
+                        'tipo_socio' => $perfilMf->tipo_socio,
+                        'modalidad_plan' => $perfilMf->modalidad_plan,
+                        'estatus_cuenta' => $perfilMf->estatus_cuenta,
+                        'estatus_penalizacion' => $perfilMf->estatus_penalizacion ?? null,
+                        'fecha_fin_penalizacion' => $perfilMf->fecha_fin_penalizacion ?? null,
+                        'fecha_fin_penalizacion_ludoteca' => $perfilMf->fecha_fin_penalizacion_ludoteca ?? null,
+                        'fecha_fin_penalizacion_reservas' => $perfilMf->fecha_fin_penalizacion_reserva ?? null,
+                        'fecha_fin_penalizacion_reserva' => $perfilMf->fecha_fin_penalizacion_reserva ?? null,
+                        'retrasos_acumulados_ludoteca' => $perfilMf->retrasos_ludoteca ?? 0,
+                        'qr_payload' => $mfQrPayload,
+                        'qr_image_url' => $mfQrImageUrl,
+                    ];
+                }
+                break;
+
+            case 'instructor':
+                $perfil = Instructor::where('id_instructor', $usuario->user_id)
+                    ->first();
+
+                if ($perfil) {
+                    $data = [
+                        'nombre_completo' => $perfil->nombre_completo,
+                        'estatus_cuenta' => $perfil->estatus,
+                        'correo_electronico' => $perfil->correo_electronico,
+                        'telefono' => $perfil->telefono,
+                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                        'rol' => 'Instructor',
+                    ];
+                }
+                break;
+            case 'gerente':
+            case 'subgerente':
+
+                $perfil = DB::table('gerentes')
+                    ->select('id_empleado', 'nombre_completo', 'estatus', 'correo_electronico', 'cargo')
+                    ->where('id_empleado', $usuario->user_id)
+                    ->first();
+
+                if (!$perfil) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gerente no encontrado',
+                        'user_id' => $usuario->user_id
+                    ], 404);
+                }
+
+                $data = [
+                    'id_socio'           => $usuario->id,
+                    'id_empleado'        => $perfil->id_empleado,
+                    'nombre_completo'    => $perfil->nombre_completo,
+                    'num_accion'         => null,
+                    'tipo_socio'         => $usuario->rol,
+                    'rol'                => strtoupper($usuario->rol),
+                    'estatus'            => $perfil->estatus,
+                    'estatus_cuenta'     => $perfil->estatus,
+                    'correo_electronico' => $perfil->correo_electronico ?? $usuario->email,
+                    'cargo'              => $perfil->cargo ?? ($usuario->rol === 'subgerente' ? 'Subgerente' : 'Gerente'),
+                ];
+                break;
+
+            default:
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rol no válido'
+                ], 400);
+        }
+
+        if (!$data) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perfil no encontrado'
+            ], 404);
+        }
+
+        // Esta es la línea que traía la versión Incoming y que debemos conservar
+        $data['fecha_actualizacion_password'] = $usuario->updated_at;
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ], 200);
+    }
+
+    public function update(Request $request)
+    {
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado o token inválido'
+            ], 401);
+        }
+
+        if ($usuario->rol !== 'socio_titular') {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $validated = $request->validate([
+            'fecha_nacimiento' => 'required|date',
+            'genero' => 'required|in:M,F,OTRO',
+        ]);
+
+        $socio = SocioTitular::find($usuario->user_id);
+ 
+        if ($socio) {
+            $socio->update($validated);
+            return response()->json(['success' => true, 'message' => 'Perfil actualizado correctamente']);
+        }
+ 
+        return response()->json(['success' => false, 'message' => 'Error al actualizar'], 500);
+    }
+
+    public function uploadPhoto(Request $request)
+    {
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+        $rol = strtolower($usuario->rol ?? '');
+        if (!in_array($rol, ['socio_titular', 'instructor'])) {
+            return response()->json(['success' => false, 'message' => 'No autorizado. Rol: ' . ($usuario->rol ?? 'null')], 403);
+        }
+
+        $request->validate([
+            'foto_perfil' => 'required|image|max:2048',
+        ]);
+
+        $id = $usuario->user_id;
+
+        if ($rol === 'socio_titular') {
+            $folder = 'socios/profiles';
+            $publicId = 'socio_' . $id;
+            $url = $this->getFotoPerfilUrl($id);
+        } else {
+            $folder = 'instructors/profiles';
+            $publicId = 'instructor_' . $id;
+            $url = $this->getInstructorFotoPerfilUrl($id);
+        }
+
+        // Subir la imagen a Cloudinary en la carpeta especificada
+        $file = $request->file('foto_perfil');
+        cloudinary()->uploadApi()->upload($file->getRealPath(), [
+            'folder' => $folder,
+            'public_id' => $publicId,
+            'overwrite' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto de perfil actualizada correctamente',
+            'foto_perfil' => $url
+        ]);
+    }
+
+    private function getFotoPerfilUrl($idSocio)
+    {
+        return (string) cloudinary()->image("socios/profiles/socio_{$idSocio}")->version(time())->toUrl();
+    }
+
+    private function getInstructorFotoPerfilUrl($idInstructor)
+    {
+        return (string) cloudinary()->image("instructors/profiles/instructor_{$idInstructor}")->version(time())->toUrl();
+    }
+}

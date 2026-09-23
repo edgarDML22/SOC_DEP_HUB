@@ -1,0 +1,22 @@
+<template>
+    <div class="layout-wrapper">
+        <InstructorNavBar />
+        <router-view v-slot="{ Component, route }">
+          <Transition name="mobile-fade" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </Transition>
+        </router-view>
+    </div>
+</template>
+
+<script setup>
+import InstructorNavBar from '@/components/instructor/InstructorNavBar.vue';
+import { useInstructorStore } from '@/stores/profiles/instructorStore';
+import { onMounted } from 'vue';
+
+const profileStore = useInstructorStore();
+
+onMounted(async () => {
+    await profileStore.fetchProfile();
+})
+</script>

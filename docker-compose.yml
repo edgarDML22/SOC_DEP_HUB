@@ -6,14 +6,74 @@ services:
       dockerfile: Dockerfile
     container_name: socdep-app
     restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/var/www
+      - /var/www/vendor                          # vendor instalado en el build
+      - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
+      - C:/torneos-storage:/torneos-storage
     networks:
       - socdep-network
     depends_on:
       - nosql
+      - redis
+    command: >-
+      sh -c "
+        mkdir -p /var/www/storage/fonts &&
+        mkdir -p /var/www/storage/logs &&
+        mkdir -p /var/www/storage/framework/cache &&
+        mkdir -p /var/www/storage/framework/sessions &&
+        mkdir -p /var/www/storage/framework/views &&
+        chmod -R 775 /var/www/storage &&
+        cp -f /var/www/public/Programacion_disciplinas.png /var/www/public/Programacion_disciplinas.png 2>/dev/null || true &&
+        composer install --optimize-autoloader --no-interaction 2>&1 | tail -5 &&
+        php artisan package:discover --ansi &&
+        php artisan config:clear &&
+        php artisan octane:start --server=roadrunner --host=0.0.0.0 --port=8000 --workers=4 --max-requests=500
+      "
+
+  # SCHEDULER: CRON Jobs para Laravel
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: socdep-scheduler
+    restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
+    command: php artisan schedule:work
+    volumes:
+      - ./backend:/var/www
+      - /var/www/vendor                          # vendor instalado en el build
+      - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
+    networks:
+      - socdep-network
+    depends_on:
+      - nosql
+      - redis
+
+  # WORKER: Procesador de colas (Notificaciones de No-Shows, etc.)
+  queue-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: socdep-worker
+    restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
+    command: php artisan queue:work --queue=default,torneo-cancelacion --tries=3 --timeout=120
+    volumes:
+      - ./backend:/var/www
+      - /var/www/vendor                          # vendor instalado en el build
+      - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
+    networks:
+      - socdep-network
+    depends_on:
+      - nosql
+      - redis
 
   # FRONTEND: Vue.js + Vite
   frontend:
@@ -27,6 +87,17 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules # Evita que los módulos locales sobreescriban a los del contenedor
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - socdep-network
+
+  # REDIS: Caché y sesiones compartidas entre workers de Octane
+  redis:
+    image: redis:alpine
+    container_name: socdep-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
       - socdep-network
 
@@ -35,6 +106,8 @@ services:
     image: mongo:latest
     container_name: socdep-nosql
     restart: unless-stopped
+    environment:
+      - TZ=America/Mexico_City
     ports:
       - "27017:27017"
     networks:
@@ -43,3 +116,6 @@ services:
 networks:
   socdep-network:
     driver: bridge
+
+volumes:
+  dompdf_fonts:   # Caché de fuentes DOMPDF — persiste entre reinicios y compilaciones
