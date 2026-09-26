@@ -8,12 +8,10 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "*",
         "cloudinary-labs/cloudinary-laravel": "^3.0",
-        "jenssegers/mongodb": "*",
         "laravel/framework": "^11.0",
         "laravel/octane": "*",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.9",
-        "mongodb/laravel-mongodb": "^5.7",
         "phpoffice/phpspreadsheet": "^5.7",
         "predis/predis": "^3.4",
         "simplesoftwareio/simple-qrcode": "^4.2",
@@ -74,6 +72,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "block-insecure": false
         }
     },
     "minimum-stability": "stable",

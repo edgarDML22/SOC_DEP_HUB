@@ -6,7 +6,6 @@ use App\Models\RegistrosLudoteca;
 use Illuminate\Http\Request;
 use App\Models\SocioTitular;
 use App\Models\MiembrosFamiliares;
-use App\Models\MongoDB\RegistroLudotecaMongo;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\AlertaRecogidaNotification;
 use App\Notifications\EncuestaLudotecaNotification;

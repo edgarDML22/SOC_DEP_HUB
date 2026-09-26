@@ -5,7 +5,6 @@ use Illuminate\Console\Command;
 use App\Models\RegistrosLudoteca;
 use App\Models\SocioTitular;
 use Illuminate\Support\Facades\DB;
-use App\Models\MongoDB\RegistroLudotecaMongo;
 use App\Models\HistorialLudoteca;
 class WipeLudotecaDaily extends Command
 {

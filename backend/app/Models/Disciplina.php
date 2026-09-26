@@ -9,10 +9,14 @@ class Disciplina extends Model
     protected $table = 'disciplinas';
     public $timestamps = false;
     protected $primaryKey = 'id_disciplina';
-    //
     protected $fillable = [
         'nombre_disciplina',
         'estatus',
+        'aplica_para_torneos',
+    ];
+
+    protected $casts = [
+        'aplica_para_torneos' => 'boolean',
     ];
 
     public function espacios()
