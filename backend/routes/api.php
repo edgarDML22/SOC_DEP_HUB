@@ -120,11 +120,13 @@ Route::post('/v1/categories', [CreateCategories::class, 'store_categories']);
 // Rutas de sistema
 Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink']);
 
-// SDH-17: Endpoint para crear reservaciones (On Demand público)
-Route::post('/v1/reservations', [ReservacionController::class, 'store']);
-
 // SDH 187: Actualizar estatus de la cuenta del socio
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
+
+// Miembros Familiares
+// Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
+
+// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
 
 
 // SDH-164 protec por middleware que el insturctor que tenga el turno pueda acceder a estas rutas
@@ -238,6 +240,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
 
     // RESERVACIONES ON DEMAND
+    Route::post('/v1/reservations', [ReservacionController::class, 'store']);
     Route::post('/v1/reservations/confirm', [ReservacionController::class, 'confirm']);
     Route::post('/v1/reservations/cancel', [ReservacionController::class, 'cancel']);
     Route::post('/v1/reservations/discard', [ReservacionController::class, 'discard']);
