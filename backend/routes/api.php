@@ -374,8 +374,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id_torneo}/available-referees', [RefereeAvailabilityController::class, 'available']);
     });
 
+    // Asignación de árbitro y cancha a encuentros de torneo
+    Route::post('/torneos/encuentros/{id_encuentro}/asignar', [MatchAssignmentController::class, 'assign']);
+    Route::post('/v1/torneos/encuentros/{id_encuentro}/asignar', [MatchAssignmentController::class, 'assign']);
+    Route::patch('/torneos/encuentros/{id_encuentro}/asignar', [MatchAssignmentController::class, 'assign']);
+
     Route::prefix('v1/encuentros')->group(function () {
-        Route::patch('/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
+        Route::match(['patch', 'post'], '/{id_encuentro}/assign', [MatchAssignmentController::class, 'assign']);
         Route::patch('/{id}/resultado', [ResultadoController::class, 'reportar']);
         Route::patch('/{id}/validar', [ResultadoController::class, 'validar']);
         Route::patch('/{id}/rechazar', [ResultadoController::class, 'rechazar']);
