@@ -9,7 +9,9 @@ class Torneo extends Model
     protected $table = "torneos";
     protected $primaryKey = 'id_torneo';
     protected $casts = [
-        'pool_arbitros' => 'array'
+        'pool_arbitros' => 'array',
+        'min_integrantes_equipo' => 'integer',
+        'max_integrantes_equipo' => 'integer'
     ];
     public $timestamps = false;
     protected $fillable = [
@@ -27,8 +29,9 @@ class Torneo extends Model
         'modalidad',
         'genero_requerido',
         'motivo_cancelacion',
-        'pool_arbitros'
-
+        'pool_arbitros',
+        'min_integrantes_equipo',
+        'max_integrantes_equipo',
     ];
     public function disciplina()
     {

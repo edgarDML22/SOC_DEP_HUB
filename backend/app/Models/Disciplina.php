@@ -13,6 +13,7 @@ class Disciplina extends Model
         'nombre_disciplina',
         'estatus',
         'aplica_para_torneos',
+        'id_naturaleza',
     ];
 
     protected $casts = [
