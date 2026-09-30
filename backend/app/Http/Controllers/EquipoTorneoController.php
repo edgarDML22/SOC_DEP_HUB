@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\ValidarElegibilidadAction;
+use App\Actions\Torneo\ValidateEligibilityAction;
 use App\Jobs\NotificarInvitacionEquipoJob;
 use App\Jobs\NotificarRechazoEquipoJob;
 use App\Models\Amistades;
@@ -149,15 +149,10 @@ class EquipoTorneoController extends Controller
         */
 
         try {
-            app(ValidarElegibilidadAction::class)->execute(
-                socioId: (int) $companeroId,
-                idCategoria: (int) $torneo->id_categoria
-            );
-        } catch (ValidationException $e) {
-            $motivo = collect($e->errors())->flatten()->first()
-                ?? 'El compañero no cumple los requisitos del torneo.';
-
-            return response()->json(['message' => $motivo], 422);
+            $companeroModel = \App\Models\SocioTitular::findOrFail($companeroId);
+            app(ValidateEligibilityAction::class)->execute($torneo, $companeroModel);
+        } catch (\App\Exceptions\EligibilityException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
 
         DB::beginTransaction();

@@ -248,5 +248,68 @@ class TorneoController extends Controller
             'data' => $encuentrosAgrupados
         ], 200);
     }
+    public function update(Request $request, $id)
+    {
+        $torneo = Torneo::findOrFail($id);
 
+        if ($torneo->estatus_torneo !== 'EN_PLANIFICACION') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden editar torneos en estado de planificación'
+            ], 422);
+        }
+
+        try {
+            $validatedData = $request->validate([
+                'nombre_torneo' => 'required|string|max:100',
+                'nombre_categoria' => 'required|string|exists:categorias_torneo,nombre_categoria',
+                'nombre_disciplina' => 'required|string|exists:disciplinas,nombre_disciplina',
+                'fecha_inicio' => 'required|date',
+                'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+                'tipo_acceso' => 'required|in:INTERNO,ABIERTO',
+                'formato_competencia' => 'required|in:ELIMINACION_DIRECTA,FASE_GRUPOS',
+                'cupo_minimo' => 'required|integer|min:2',
+                'cupo_maximo' => 'required|integer|min:2|gte:cupo_minimo',
+                'genero_requerido' => 'nullable|string',
+                'modalidad' => 'required|string',
+                'descripcion' => 'nullable|string',
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        }
+
+        $categoria = CategoriaTorneo::where('nombre_categoria', $validatedData['nombre_categoria'])->first();
+        if (!$categoria) {
+            return response()->json(['error' => 'La categoria no existe'], 404);
+        }
+
+        $disciplina = Disciplina::where('nombre_disciplina', $validatedData['nombre_disciplina'])->first();
+        if (!$disciplina) {
+            return response()->json(['error' => 'La disciplina no existe'], 404);
+        }
+
+        $torneo->update([
+            'nombre_torneo' => $validatedData['nombre_torneo'],
+            'id_categoria' => $categoria->id_categoria,
+            'id_disciplina' => $disciplina->id_disciplina,
+            'fecha_inicio' => $validatedData['fecha_inicio'],
+            'fecha_fin' => $validatedData['fecha_fin'],
+            'tipo_acceso' => $validatedData['tipo_acceso'],
+            'formato_competencia' => $validatedData['formato_competencia'],
+            'cupo_minimo' => $validatedData['cupo_minimo'],
+            'cupo_maximo' => $validatedData['cupo_maximo'],
+            'genero_requerido' => $validatedData['genero_requerido'] ?? 'MIXTO',
+            'modalidad' => $validatedData['modalidad'],
+            'descripcion' => $validatedData['descripcion'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Torneo actualizado correctamente',
+            'data' => $torneo->fresh()
+        ], 200);
+    }
 }
