@@ -25,27 +25,26 @@ class GenerarBracketAction
      */
     public function execute(Torneo $torneo): void
     {
-        // 1. Obtener participantes activos con inscripción confirmada, ordenados por ranking DESC
+        $teams = null;
+        $participantes = null;
+
+        // 1. Obtener participantes/equipos activos con inscripción confirmada, ordenados por ranking DESC
         if (in_array($torneo->modalidad, ['PAREJAS', 'MIXTO'])) {
-            // Team tournament: use captains of active teams as participants
-            $teams = EquiposTorneo::where('id_torneo', $torneo->id_torneo)
-                ->where('estatus_equipo', 'ACTIVO')
+            // Team tournament: use active and confirmed teams
+            $teams = EquiposTorneo::with(['participantes', 'participanteCapitan'])
+                ->where('id_torneo', $torneo->id_torneo)
+                ->whereIn('estatus_equipo', ['ACTIVO', 'CONFIRMADO'])
                 ->orderBy('siembra_ranking', 'desc')
                 ->get();
 
             $n = $teams->count();
-
-            // Collect captains (ParticipantesTorneo) for each team
-            $participantes = $teams->map(function ($team) {
-                return $team->participanteCapitan;
-            })->filter();
         } else {
             // Individual tournament: use all active participants
             $participantes = ParticipantesTorneo::where('id_torneo', $torneo->id_torneo)
                 ->where('estatus_participacion', 'ACTIVO')
                 ->orderBy('ranking_declarado', 'desc')
                 ->get();
-            $n = count($participantes);
+            $n = $participantes->count();
         }
 
         // Validate minimum participants
@@ -58,20 +57,40 @@ class GenerarBracketAction
         $byes     = $potencia - $n;
 
         // DB Transaction atómica
-        DB::transaction(function () use ($torneo, $participantes, $potencia) {
+        DB::transaction(function () use ($torneo, $potencia, $teams, $participantes) {
 
             // Limpiar encuentros generados previamente para este torneo (hacerlo idempotente)
             EncuentrosTorneo::where('id_torneo', $torneo->id_torneo)->delete();
 
-            // 4. Asignar seed (id_interno) a cada participante según su posición por ranking
-            foreach ($participantes as $index => $participante) {
-                $participante->update(['id_interno' => $index + 1]);
-            }
-
-            // Mapear participantes por seed (1-indexed) para búsqueda rápida
+            // Mapear competidores por seed (1-indexed) para búsqueda rápida
             $seedsMap = [];
-            foreach ($participantes as $index => $participante) {
-                $seedsMap[$index + 1] = $participante;
+
+            if (in_array($torneo->modalidad, ['PAREJAS', 'MIXTO'])) {
+                // 4. Asignar seed (id_interno) a todos los integrantes de cada equipo según su posición por ranking
+                foreach ($teams as $index => $team) {
+                    $seed = $index + 1;
+
+                    // Sembrar todas las entidades vinculadas al equipo
+                    foreach ($team->participantes as $participante) {
+                        $participante->update(['id_interno' => $seed]);
+                    }
+
+                    if ($team->participanteCapitan) {
+                        $team->participanteCapitan->update(['id_interno' => $seed]);
+                    }
+
+                    $team->update(['id_interno' => $seed]);
+
+                    // Asignar el competidor representante del equipo en el slot del bracket
+                    $seedsMap[$seed] = $team->participanteCapitan ?? $team->participantes->first();
+                }
+            } else {
+                // 4. Asignar seed (id_interno) a cada participante según su posición por ranking
+                foreach ($participantes as $index => $participante) {
+                    $seed = $index + 1;
+                    $participante->update(['id_interno' => $seed]);
+                    $seedsMap[$seed] = $participante;
+                }
             }
 
             // El tipo morph correcto para encuentros_torneo.
