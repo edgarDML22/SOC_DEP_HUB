@@ -360,6 +360,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //TORNEOS ACTUALIZACION, SDH 267
     Route::prefix('v1/torneos')->group(function () {
         Route::post('/', [TorneoController::class, 'store']);
+        Route::put('/{id}', [TorneoController::class, 'update']);
         Route::get('/', [TorneoController::class, 'index']);
         Route::get('/categorias', [CategoriaTorneoController::class, 'index']);
         Route::patch('/{id}/status', [UpdateStatusTorneo::class, 'update']);
