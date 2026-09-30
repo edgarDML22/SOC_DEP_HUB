@@ -54,8 +54,8 @@ class TorneoController extends Controller
                     return [
                         'id_encuentro' => $e->id_encuentro,
                         'id_torneo' => $e->id_torneo,
-                        'fase_bracket' => $e->fase_bracket || $e->fase || 'N/A',
-                        'fase' => $e->fase_bracket || $e->fase || 'N/A',
+                        'fase_bracket' => $e->fase_bracket ?? $e->fase ?? 'N/A',
+                        'fase' => $e->fase_bracket ?? $e->fase ?? 'N/A',
                         'numero_encuentro' => $e->numero_encuentro,
                         'es_bye' => $e->es_bye,
                         'fecha_hora_inicio' => $e->fecha_hora_inicio,
