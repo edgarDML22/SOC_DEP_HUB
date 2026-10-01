@@ -39,6 +39,8 @@ const EMPTY_FORM = () => ({
 const form = ref(EMPTY_FORM())
 const loading = ref(false)
 const formError = ref('')
+const fechaInicioError = ref('')
+const fechaFinError = ref('')
 
 const ACCESO_OPTS = [
   { label: 'Interno', value: 'INTERNO' },
@@ -87,8 +89,74 @@ const DISCIPLINA_OPTS = computed(() => {
   }))
 })
 
+const normalizeDate = (val) => {
+  if (!val) return null
+  if (val instanceof Date) {
+    const d = new Date(val.getTime())
+    d.setHours(0, 0, 0, 0)
+    return d
+  }
+  if (typeof val === 'string') {
+    const parts = val.split(/[-/]/)
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0, 0)
+      } else if (parts[2].length === 4) {
+        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]), 0, 0, 0, 0)
+      }
+    }
+    const d = new Date(val)
+    if (!isNaN(d.getTime())) {
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+  }
+  return null
+}
+
+const minFechaInicio = computed(() => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + 7)
+  return d
+})
+
+const minFechaFin = computed(() => {
+  if (!form.value.fecha_inicio) return null
+  const d = normalizeDate(form.value.fecha_inicio)
+  if (!d) return null
+  d.setDate(d.getDate() + 15)
+  return d
+})
+
+watch(() => form.value.fecha_inicio, (newInicio) => {
+  fechaInicioError.value = ''
+  if (!newInicio) {
+    form.value.fecha_fin = null
+    fechaFinError.value = ''
+    return
+  }
+  if (form.value.fecha_fin) {
+    const inicio = normalizeDate(newInicio)
+    const fin = normalizeDate(form.value.fecha_fin)
+    if (inicio && fin) {
+      const minFin = new Date(inicio)
+      minFin.setDate(minFin.getDate() + 15)
+      if (fin.getTime() < minFin.getTime()) {
+        form.value.fecha_fin = null
+        fechaFinError.value = ''
+      }
+    }
+  }
+})
+
+watch(() => form.value.fecha_fin, () => {
+  fechaFinError.value = ''
+})
+
 const toDateStr = (d) => {
   if (!d) return ''
+  if (typeof d === 'string') return d
   return new Intl.DateTimeFormat('en-CA').format(d)
 }
 
@@ -105,9 +173,35 @@ const getVal = (field) => {
 
 const submit = async () => {
   formError.value = ''
+  fechaInicioError.value = ''
+  fechaFinError.value = ''
 
-  if (!form.value.fecha_inicio || !form.value.fecha_fin) {
-    formError.value = 'Las fechas de inicio y fin son requeridas.'
+  let hasDateError = false
+
+  if (!form.value.fecha_inicio) {
+    fechaInicioError.value = 'La fecha de inicio es requerida.'
+    hasDateError = true
+  }
+
+  if (!form.value.fecha_fin) {
+    fechaFinError.value = 'La fecha de fin es requerida.'
+    hasDateError = true
+  }
+
+  const inicio = normalizeDate(form.value.fecha_inicio)
+  const fin = normalizeDate(form.value.fecha_fin)
+
+  if (inicio && minFechaInicio.value && inicio.getTime() < minFechaInicio.value.getTime()) {
+    fechaInicioError.value = 'La fecha de inicio debe tener al menos 7 días de anticipación respecto a hoy.'
+    hasDateError = true
+  }
+
+  if (inicio && fin && minFechaFin.value && fin.getTime() < minFechaFin.value.getTime()) {
+    fechaFinError.value = 'La fecha de fin debe ser al menos 15 días posterior a la fecha de inicio.'
+    hasDateError = true
+  }
+
+  if (hasDateError) {
     return
   }
 
@@ -257,23 +351,28 @@ const submit = async () => {
                   <label class="text-sm font-medium text-slate-700">Fecha de inicio <span class="text-red-400">*</span></label>
                   <DatePicker
                     v-model="form.fecha_inicio"
+                    :minDate="minFechaInicio"
                     dateFormat="dd/mm/yy"
                     placeholder="dd/mm/aaaa"
                     showIcon
                     fluid
                     class="w-full"
                   />
+                  <p v-if="fechaInicioError" class="text-xs text-red-600 font-medium">{{ fechaInicioError }}</p>
                 </div>
                 <div class="flex flex-col gap-1.5">
                   <label class="text-sm font-medium text-slate-700">Fecha de fin <span class="text-red-400">*</span></label>
                   <DatePicker
                     v-model="form.fecha_fin"
+                    :minDate="minFechaFin"
+                    :disabled="!form.fecha_inicio"
                     dateFormat="dd/mm/yy"
                     placeholder="dd/mm/aaaa"
                     showIcon
                     fluid
                     class="w-full"
                   />
+                  <p v-if="fechaFinError" class="text-xs text-red-600 font-medium">{{ fechaFinError }}</p>
                 </div>
               </div>
 
