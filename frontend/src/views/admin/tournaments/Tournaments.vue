@@ -158,6 +158,18 @@ const toggleExpand = (torneo) => {
   expandedTorneoId.value = expandedTorneoId.value === id ? null : id
 }
 
+const tooltipEstado = (estado) => {
+  const tooltips = {
+    EN_PLANIFICACION: 'Parámetros del torneo en preparación, registro aún no abierto',
+    EN_INSCRIPCION: 'Pre-registro habilitado para socios y competidores',
+    PROGRAMADO: 'Bracket generado y horarios de partidos asignados en espacios deportivos',
+    EN_CURSO: 'Competencia activa, encuentros disputándose y captura de resultados',
+    FINALIZADO: 'Torneo concluido exitosamente con resultados oficiales',
+    CANCELADO: 'Torneo suspendido. Haz clic en la fila para ver el motivo registrado'
+  }
+  return tooltips[estado] ?? `Estado: ${estado || 'Sin definir'}`
+}
+
 // ── INIT ───────────────────────────────────────────────────────
 onMounted(() => {
   store.fetchTorneos()
@@ -370,10 +382,12 @@ onMounted(() => {
                 </td>
                 <td class="px-4 py-3.5">
                   <div class="flex flex-col items-start gap-1">
-                    <BadgeStatus v-if="estatusTorneo(torneo)" :status="estatusTorneo(torneo)" />
+                    <span v-tooltip.top="tooltipEstado(estatusTorneo(torneo))" class="inline-block">
+                      <BadgeStatus v-if="estatusTorneo(torneo)" :status="estatusTorneo(torneo)" />
+                    </span>
                   </div>
                 </td>
-                <td class="px-4 py-3.5 text-right" @click.stop>
+                <td class="px-4 py-3.5 text-right" @click.stop v-tooltip.left="'Gestionar torneo y cambiar estado'">
                   <ActionMenu :items="buildActions(torneo)" :disabled="loading" align="right" />
                 </td>
               </tr>
