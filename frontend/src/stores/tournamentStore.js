@@ -18,7 +18,7 @@ export const useTournamentStore = defineStore("tournament", () => {
         categoria: null,
         tipo_acceso: null,
     });
-    
+
     const categoriasTorneo = ref([]);
 
     /**
@@ -87,7 +87,7 @@ export const useTournamentStore = defineStore("tournament", () => {
 
             // Ajustar según la estructura de respuesta del backend (Laravel Paginator o Array)
             const res = response.data.data ?? response.data;
-            
+
             if (res && typeof res === 'object' && !Array.isArray(res) && Array.isArray(res.data)) {
                 // Es un paginador
                 torneos.value = res.data.map(normalizeTorneo);
@@ -192,18 +192,23 @@ export const useTournamentStore = defineStore("tournament", () => {
         error.value = null;
         try {
             const response = await api.put(`/torneos/${id}`, payload);
-            const data = normalizeTorneo(response.data.data ?? response.data);
-            const index = torneos.value.findIndex(t => isSameTorneo(t, id));
+            const torneoActualizado = response.data.data ?? response.data;
+
+            // Mutar en la lista
+            const index = torneos.value.findIndex(t => t.id_torneo === id || t.id === id);
             if (index !== -1) {
-                torneos.value[index] = { ...torneos.value[index], ...data };
+                torneos.value[index] = { ...torneos.value[index], ...torneoActualizado };
             }
-            if (isSameTorneo(torneoActivo.value, id)) {
-                torneoActivo.value = { ...torneoActivo.value, ...data };
+
+            // Mutar en el activo si es el mismo
+            if (torneoActivo.value && (torneoActivo.value.id_torneo === id || torneoActivo.value.id === id)) {
+                torneoActivo.value = { ...torneoActivo.value, ...torneoActualizado };
             }
-            return data;
+
+            return torneoActualizado;
         } catch (err) {
             console.error(`Error updating torneo ${id}:`, err);
-            error.value = handleApiError(err);
+            error.value = err.response?.data?.message || "Error al actualizar el torneo.";
             throw err;
         } finally {
             loading.value = false;
