@@ -53,7 +53,6 @@ const FORMATO_OPTS = [
 ]
 
 const GENERO_OPTS = [
-  { label: 'Cualquiera', value: null },
   { label: 'Masculino (M)', value: 'M' },
   { label: 'Femenino (F)', value: 'F' },
   { label: 'Mixto', value: 'MIXTO' }
@@ -62,14 +61,20 @@ const GENERO_OPTS = [
 const MODALIDAD_OPTS = [
   { label: 'Individual', value: 'INDIVIDUAL' },
   { label: 'Parejas', value: 'PAREJAS' },
-  { label: 'Mixto', value: 'MIXTO' }
+  { label: 'Equipo', value: 'EQUIPO' }
 ]
 
 const CATEGORIA_OPTS = computed(() => {
-  return store.categoriasTorneo.map(c => ({
-    label: c.nombre_categoria,
-    value: c
-  }))
+  return store.categoriasTorneo
+    .filter(c => ['Infantil', 'Juvenil', 'Adulto'].includes(c.nombre_categoria))
+    .map(c => ({
+      label: c.nombre_categoria,
+      value: c
+    }))
+})
+
+watch(() => form.value.nombre_disciplina, () => {
+  form.value.nombre_categoria = null
 })
 
 watch(() => form.value.nombre_categoria, (newCat) => {
@@ -205,7 +210,7 @@ const submit = async () => {
     return
   }
 
-  if (!form.value.tipo_acceso || !form.value.formato_competencia || !form.value.nombre_categoria || !form.value.nombre_disciplina || !form.value.modalidad) {
+  if (!form.value.tipo_acceso || !form.value.formato_competencia || !form.value.nombre_categoria || !form.value.nombre_disciplina || !form.value.modalidad || !form.value.genero_requerido) {
     formError.value = 'Por favor completa todos los campos obligatorios.'
     return
   }
@@ -330,6 +335,7 @@ const submit = async () => {
                     :options="CATEGORIA_OPTS"
                     optionLabel="label"
                     placeholder="Selecciona Categoría"
+                    :disabled="!form.nombre_disciplina"
                     class="w-full"
                   />
                 </div>
@@ -414,14 +420,14 @@ const submit = async () => {
                     v-model="form.genero_requerido"
                     :options="GENERO_OPTS"
                     optionLabel="label"
-                    placeholder="Cualquiera"
+                    placeholder="Selecciona"
                     class="w-full"
                   />
                 </div>
               </div>
 
               <!-- Cupos -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div v-if="form.modalidad?.value === 'EQUIPO'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
                   <label class="text-sm font-medium text-slate-700">Cupo mínimo <span class="text-red-400">*</span></label>
                   <div class="flex items-center gap-3">
