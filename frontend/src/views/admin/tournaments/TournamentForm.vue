@@ -14,6 +14,7 @@ import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import Select from 'primevue/select'
 import CreateTournamentModal from '@/components/tournaments/CreateTournamentModal.vue'
+import EditTournamentModal from '@/components/tournaments/EditTournamentModal.vue'
 import TournamentStatusModal from '@/components/tournaments/TournamentStatusModal.vue'
 
 const router = useRouter()
@@ -80,6 +81,8 @@ const formatFecha = (f) => {
 
 // ── MODALES Y ACCIONES ──────────────────────────────────────────
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const editingTorneo = ref(null)
 const showStatusModal = ref(false)
 const statusModalTorneo = ref(null)
 
@@ -89,6 +92,10 @@ const openStatusModal = (torneo) => {
 }
 
 const handleTorneoCreated = () => {
+  store.fetchTorneos()
+}
+
+const handleTorneoUpdated = () => {
   store.fetchTorneos()
 }
 
@@ -116,6 +123,19 @@ const buildMenuItems = (torneo) => {
            </svg>`,
     action: () => openStatusModal(torneo)
   })
+
+  if ((torneo.estado || torneo.estatus_torneo) === 'EN_PLANIFICACION') {
+    actions.push({
+      label: 'Editar Torneo',
+      icon: `<svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+             </svg>`,
+      action: () => {
+        editingTorneo.value = torneo
+        showEditModal.value = true
+      }
+    })
+  }
 
   if ((torneo.estado || torneo.estatus_torneo) === 'EN_INSCRIPCION') {
     actions.push({
@@ -270,10 +290,9 @@ onMounted(() => {
             </div>
             <div class="flex-1 min-w-0 pt-0.5">
               <h3 class="text-sm font-black text-surface-900 truncate leading-tight">{{ torneo.nombre_torneo }}</h3>
-              <div class="text-[11px] text-surface-500 font-bold font-mono uppercase mt-0.5 tracking-tight">ID: {{ torneo.id_torneo }}</div>
               <p class="text-[10px] font-black text-surface-400 mt-1 uppercase tracking-widest">{{ torneo.disciplina || '—' }}</p>
               <div class="mt-2.5 flex flex-col items-start gap-1">
-                <BadgeStatus :status="torneo.estado || torneo.estatus_torneo" />
+                <BadgeStatus :status="torneo.estado || torneo.estatus_torneo" size="md" />
                 <p
                   v-if="isCancelado(torneo) && expandedTorneoId === torneo.id_torneo"
                   class="text-xs text-surface-500 font-medium leading-relaxed mt-1"
@@ -313,6 +332,13 @@ onMounted(() => {
       v-if="showCreateModal"
       @close="showCreateModal = false"
       @created="handleTorneoCreated"
+    />
+
+    <EditTournamentModal
+      v-if="showEditModal"
+      :torneo="editingTorneo"
+      @close="showEditModal = false"
+      @updated="handleTorneoUpdated"
     />
 
     <TournamentStatusModal

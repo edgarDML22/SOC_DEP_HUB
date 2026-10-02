@@ -157,6 +157,37 @@ export const useTournamentStore = defineStore("tournament", () => {
     };
 
     /**
+     * Actualiza un torneo existente
+     */
+    const actualizarTorneo = async (id, payload) => {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await api.put(`/torneos/${id}`, payload);
+            const torneoActualizado = response.data.data ?? response.data;
+            
+            // Mutar en la lista
+            const index = torneos.value.findIndex(t => t.id_torneo === id || t.id === id);
+            if (index !== -1) {
+                torneos.value[index] = { ...torneos.value[index], ...torneoActualizado };
+            }
+            
+            // Mutar en el activo si es el mismo
+            if (torneoActivo.value && (torneoActivo.value.id_torneo === id || torneoActivo.value.id === id)) {
+                torneoActivo.value = { ...torneoActivo.value, ...torneoActualizado };
+            }
+            
+            return torneoActualizado;
+        } catch (err) {
+            console.error(`Error updating torneo ${id}:`, err);
+            error.value = err.response?.data?.message || "Error al actualizar el torneo.";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    /**
      * Transiciona el estatus de un torneo con mutación optimista
      */
     const transicionarEstatus = async (id, nuevoEstatus, motivo = null) => {
@@ -234,6 +265,7 @@ export const useTournamentStore = defineStore("tournament", () => {
         fetchBracket,
         fetchCategoriasTorneo,
         crearTorneo,
+        actualizarTorneo,
         transicionarEstatus,
     };
 });

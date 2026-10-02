@@ -3,25 +3,33 @@ import { ref, onMounted, computed, watch } from 'vue'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import { useAlerts } from '@/composables/useAlerts'
-import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 
 import { useTournamentStore } from '@/stores/tournamentStore'
 import { useDisciplinesStore } from '@/stores/admin/disciplines'
 
-const emit = defineEmits(['close', 'created'])
+const props = defineProps({
+  torneo: {
+    type: Object,
+    required: true
+  },
+  open: {
+    type: Boolean,
+    default: true
+  }
+})
+
+const emit = defineEmits(['close', 'updated'])
 
 const { toastSuccess, toastError } = useAlerts()
 const store = useTournamentStore()
 const disciplinesStore = useDisciplinesStore()
 
-onMounted(() => {
-  disciplinesStore.fetchDisciplines()
-  store.fetchCategoriasTorneo()
-})
+const loading = ref(false)
+const formError = ref('')
 
-const EMPTY_FORM = () => ({
+const form = ref({
   nombre_torneo: '',
   nombre_categoria: null,
   nombre_disciplina: null,
@@ -36,9 +44,56 @@ const EMPTY_FORM = () => ({
   descripcion: ''
 })
 
-const form = ref(EMPTY_FORM())
-const loading = ref(false)
-const formError = ref('')
+const rawCategoria = ref(null)
+const rawDisciplina = ref(null)
+
+const matchSelects = () => {
+  if (rawCategoria.value && store.categoriasTorneo.length) {
+    const matched = CATEGORIA_OPTS.value.find(c => c.label === rawCategoria.value || c.value.nombre_categoria === rawCategoria.value)
+    if (matched) form.value.nombre_categoria = matched
+  }
+  if (rawDisciplina.value && disciplinesStore.disciplines.length) {
+    const matched = DISCIPLINA_OPTS.value.find(d => d.label === rawDisciplina.value)
+    if (matched) form.value.nombre_disciplina = matched
+  }
+}
+
+watch(() => store.categoriasTorneo, matchSelects, { deep: true })
+watch(() => disciplinesStore.disciplines, matchSelects, { deep: true })
+
+onMounted(async () => {
+  disciplinesStore.fetchDisciplines()
+  store.fetchCategoriasTorneo()
+  
+  if (props.torneo && props.torneo.id_torneo) {
+    loading.value = true
+    try {
+      await store.fetchTorneoById(props.torneo.id_torneo)
+      const fullTorneo = store.torneoActivo
+      
+      if (fullTorneo) {
+        form.value.nombre_torneo = fullTorneo.nombre_torneo || ''
+        rawCategoria.value = fullTorneo.categoria || fullTorneo.nombre_categoria
+        rawDisciplina.value = fullTorneo.disciplina || fullTorneo.nombre_disciplina
+        form.value.fecha_inicio = fullTorneo.fecha_inicio ? new Date(fullTorneo.fecha_inicio + 'T12:00:00') : null
+        form.value.fecha_fin = fullTorneo.fecha_fin ? new Date(fullTorneo.fecha_fin + 'T12:00:00') : null
+        form.value.tipo_acceso = fullTorneo.tipo_acceso
+        form.value.formato_competencia = fullTorneo.formato_competencia
+        form.value.cupo_minimo = fullTorneo.cupo_minimo || 2
+        form.value.cupo_maximo = fullTorneo.cupo_maximo || 8
+        form.value.genero_requerido = fullTorneo.genero || fullTorneo.genero_requerido
+        form.value.modalidad = fullTorneo.modalidad
+        form.value.descripcion = fullTorneo.descripcion || ''
+        
+        matchSelects()
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      loading.value = false
+    }
+  }
+})
 
 const ACCESO_OPTS = [
   { label: 'Interno', value: 'INTERNO' },
@@ -70,12 +125,13 @@ const CATEGORIA_OPTS = computed(() => {
   }))
 })
 
-watch(() => form.value.nombre_categoria, (newCat) => {
-  if (newCat && newCat.value && newCat.value.genero_requerido) {
+watch(() => form.value.nombre_categoria, (newCat, oldCat) => {
+  // Only auto-update gender if the category was manually changed by the user (oldCat is not null)
+  if (oldCat && newCat && newCat.value && newCat.value.genero_requerido) {
     const rawVal = String(newCat.value.genero_requerido).toUpperCase();
     const matchedGender = GENERO_OPTS.find(g => g.value && String(g.value).toUpperCase() === rawVal);
     if (matchedGender) {
-      form.value.genero_requerido = matchedGender;
+      form.value.genero_requerido = matchedGender.value;
     }
   }
 })
@@ -89,6 +145,7 @@ const DISCIPLINA_OPTS = computed(() => {
 
 const toDateStr = (d) => {
   if (!d) return ''
+  if (typeof d === 'string') return d // In case it's already a string
   return new Intl.DateTimeFormat('en-CA').format(d)
 }
 
@@ -141,10 +198,10 @@ const submit = async () => {
       fecha_fin: toDateStr(form.value.fecha_fin)
     }
 
-    await store.crearTorneo(payload)
+    await store.actualizarTorneo(props.torneo.id_torneo, payload)
 
-    toastSuccess('Torneo creado correctamente')
-    emit('created')
+    toastSuccess('Torneo actualizado correctamente')
+    emit('updated')
     emit('close')
 
   } catch (err) {
@@ -156,11 +213,9 @@ const submit = async () => {
       } else {
         formError.value = store.error || 'Error de validación: revisa los campos.'
       }
-    } else if (status === 409) {
-      formError.value = 'Ya existe un torneo con ese nombre en esa fecha.'
     } else {
-      formError.value = store.error || 'Ocurrió un error al crear el torneo.'
-      toastError('Error al crear torneo')
+      formError.value = store.error || 'Ocurrió un error al actualizar el torneo.'
+      toastError('Error al actualizar torneo')
     }
   } finally {
     loading.value = false
@@ -178,7 +233,7 @@ const submit = async () => {
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="emit('close')">
+      <div v-if="open" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="emit('close')">
         
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-surface-200 flex flex-col relative">
           <!-- Card header accent -->
@@ -187,8 +242,8 @@ const submit = async () => {
           <div class="p-6 sm:p-8 flex-1">
             <div class="flex justify-between items-center mb-6">
               <div>
-                <h2 class="text-2xl font-black text-surface-900">Crear Torneo</h2>
-                <p class="text-sm text-surface-500 font-medium mt-1">Configura los parámetros del nuevo torneo</p>
+                <h2 class="text-2xl font-black text-surface-900">Editar Torneo</h2>
+                <p class="text-sm text-surface-500 font-medium mt-1">Modifica los parámetros del torneo</p>
               </div>
               <button @click="emit('close')" type="button" class="p-2 text-surface-400 hover:text-surface-700 hover:bg-surface-100 rounded-full transition-colors">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -285,6 +340,7 @@ const submit = async () => {
                     v-model="form.tipo_acceso"
                     :options="ACCESO_OPTS"
                     optionLabel="label"
+                    optionValue="value"
                     placeholder="Selecciona"
                     class="w-full"
                   />
@@ -295,6 +351,7 @@ const submit = async () => {
                     v-model="form.formato_competencia"
                     :options="FORMATO_OPTS"
                     optionLabel="label"
+                    optionValue="value"
                     placeholder="Selecciona"
                     class="w-full"
                   />
@@ -305,6 +362,7 @@ const submit = async () => {
                     v-model="form.modalidad"
                     :options="MODALIDAD_OPTS"
                     optionLabel="label"
+                    optionValue="value"
                     placeholder="Selecciona"
                     class="w-full"
                   />
@@ -315,6 +373,7 @@ const submit = async () => {
                     v-model="form.genero_requerido"
                     :options="GENERO_OPTS"
                     optionLabel="label"
+                    optionValue="value"
                     placeholder="Cualquiera"
                     class="w-full"
                   />
@@ -382,13 +441,13 @@ const submit = async () => {
               <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
                 <CancelButton @click="emit('close')" type="button" />
                 <ConfirmButton
-                  label="Crear torneo"
+                  label="Guardar cambios"
                   :loading="loading"
                   type="submit"
                 >
                   <template #icon>
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </template>
                 </ConfirmButton>
