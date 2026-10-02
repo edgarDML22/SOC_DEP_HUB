@@ -1,11 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Http\Resources\TorneoResource;
 use App\Models\Torneo;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use App\Models\Disciplina;
 use App\Models\CategoriaTorneo;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+
 class TorneoController extends Controller
 {
     public function index(Request $request)
@@ -30,58 +33,24 @@ class TorneoController extends Controller
             ->when($request->tipo_acceso, fn($q, $v) => $q->where('tipo_acceso', $v))
             ->paginate($perPage);
 
-        $torneos->getCollection()->transform(function ($t) use ($request) {
-            $data = [
-                'id' => $t->id_torneo,
-                'id_torneo' => $t->id_torneo,
-                'nombre_torneo' => $t->nombre_torneo,
-                'disciplina' => $t->disciplina?->nombre_disciplina,
-                'categoria' => $t->categoria?->nombre_categoria,
-                'tipo_acceso' => $t->tipo_acceso,
-                'estado' => $t->estatus_torneo,
-                'estatus_torneo' => $t->estatus_torneo,
-                'fecha_inicio' => $t->fecha_inicio,
-                'fecha_fin' => $t->fecha_fin,
-                'cupo_maximo' => $t->cupo_maximo,
-                'cupo_minimo' => $t->cupo_minimo,
-                'modalidad' => $t->modalidad,
-                'genero' => $t->genero_requerido,
-                'motivo_cancelacion' => $t->motivo_cancelacion,
-            ];
-
-            if ($request->has('with_encuentros')) {
-                $data['_encuentros'] = $t->encuentros->map(function ($e) {
-                    return [
-                        'id_encuentro' => $e->id_encuentro,
-                        'id_torneo' => $e->id_torneo,
-                        'fase_bracket' => $e->fase_bracket || $e->fase || 'N/A',
-                        'fase' => $e->fase_bracket || $e->fase || 'N/A',
-                        'numero_encuentro' => $e->numero_encuentro,
-                        'es_bye' => $e->es_bye,
-                        'fecha_hora_inicio' => $e->fecha_hora_inicio,
-                        'fecha_hora_fin' => $e->fecha_hora_fin,
-                        'id_espacio' => $e->id_espacio,
-                        'id_arbitro_asignado' => $e->id_arbitro_asignado,
-                        'estatus_encuentro' => $e->estatus_encuentro,
-                        'competidor1' => $e->competidor1,
-                        'competidor2' => $e->competidor2,
-                    ];
-                });
-            }
-
-            return $data;
-        });
-
         if ($torneos->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se encontraron torneos'
+                'message' => 'No se encontraron torneos',
             ], 404);
         }
 
+        // Mapea cada modelo a través del resource preservando la estructura
+        // original del paginador: { success, data: { current_page, data:[...], total } }
+        $torneos->setCollection(
+            $torneos->getCollection()->map(
+                fn ($torneo) => (new TorneoResource($torneo))->toArray($request)
+            )
+        );
+
         return response()->json([
             'success' => true,
-            'data' => $torneos
+            'data'    => $torneos,
         ], 200);
     }
 
@@ -248,5 +217,68 @@ class TorneoController extends Controller
             'data' => $encuentrosAgrupados
         ], 200);
     }
+    public function update(Request $request, $id)
+    {
+        $torneo = Torneo::findOrFail($id);
 
+        if ($torneo->estatus_torneo !== 'EN_PLANIFICACION') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden editar torneos en estado de planificación'
+            ], 422);
+        }
+
+        try {
+            $validatedData = $request->validate([
+                'nombre_torneo' => 'required|string|max:100',
+                'nombre_categoria' => 'required|string|exists:categorias_torneo,nombre_categoria',
+                'nombre_disciplina' => 'required|string|exists:disciplinas,nombre_disciplina',
+                'fecha_inicio' => 'required|date',
+                'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+                'tipo_acceso' => 'required|in:INTERNO,ABIERTO',
+                'formato_competencia' => 'required|in:ELIMINACION_DIRECTA,FASE_GRUPOS',
+                'cupo_minimo' => 'required|integer|min:2',
+                'cupo_maximo' => 'required|integer|min:2|gte:cupo_minimo',
+                'genero_requerido' => 'nullable|string',
+                'modalidad' => 'required|string',
+                'descripcion' => 'nullable|string',
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        }
+
+        $categoria = CategoriaTorneo::where('nombre_categoria', $validatedData['nombre_categoria'])->first();
+        if (!$categoria) {
+            return response()->json(['error' => 'La categoria no existe'], 404);
+        }
+
+        $disciplina = Disciplina::where('nombre_disciplina', $validatedData['nombre_disciplina'])->first();
+        if (!$disciplina) {
+            return response()->json(['error' => 'La disciplina no existe'], 404);
+        }
+
+        $torneo->update([
+            'nombre_torneo' => $validatedData['nombre_torneo'],
+            'id_categoria' => $categoria->id_categoria,
+            'id_disciplina' => $disciplina->id_disciplina,
+            'fecha_inicio' => $validatedData['fecha_inicio'],
+            'fecha_fin' => $validatedData['fecha_fin'],
+            'tipo_acceso' => $validatedData['tipo_acceso'],
+            'formato_competencia' => $validatedData['formato_competencia'],
+            'cupo_minimo' => $validatedData['cupo_minimo'],
+            'cupo_maximo' => $validatedData['cupo_maximo'],
+            'genero_requerido' => $validatedData['genero_requerido'] ?? 'MIXTO',
+            'modalidad' => $validatedData['modalidad'],
+            'descripcion' => $validatedData['descripcion'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Torneo actualizado correctamente',
+            'data' => $torneo->fresh()
+        ], 200);
+    }
 }

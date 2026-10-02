@@ -23,6 +23,20 @@ class ValidateEligibilityAction
             return; // Si el torneo no tiene categoría asociada, no se aplican restricciones
         }
 
+        // 0. Validación de estatus de cuenta y penalización
+        if (isset($participante->estatus_cuenta) && $participante->estatus_cuenta !== 'AL_CORRIENTE') {
+            throw new EligibilityException(
+                "El participante no cumple los requisitos: su cuenta está en estatus '{$participante->estatus_cuenta}'."
+            );
+        }
+
+        if (isset($participante->estatus_penalizacion) && $participante->estatus_penalizacion !== 'SIN_PENALIZACION') {
+            throw new EligibilityException(
+                "El participante no cumple los requisitos: tiene una penalización activa ({$participante->estatus_penalizacion})."
+            );
+        }
+
+
         // 1. Validación de Edad
         if ($participante->fecha_nacimiento) {
             $edad = Carbon::parse($participante->fecha_nacimiento)->diffInYears(Carbon::now());

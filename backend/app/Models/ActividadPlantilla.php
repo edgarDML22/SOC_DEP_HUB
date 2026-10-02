@@ -25,6 +25,7 @@ class ActividadPlantilla extends Model
         'cupo_maximo',
         'requiere_inscripcion',
         'estatus',
+        'categoria_sesion',
     ];
 
     public function espacioFisico()
