@@ -8,32 +8,36 @@ const router = useRouter()
 const route = useRoute()
 const { toastSuccess, toastError } = useAlerts()
 
-// --- State Variables ---
+// --- Variables de Estado ---
 const torneos = ref([])
 const preRegistros = ref([])
 const loadingTorneos = ref(false)
 const loadingRegistros = ref(false)
-const actionInProgress = ref(null) // Stores record ID currently being processed
+const actionInProgress = ref(null) // ID del registro en procesamiento
 
-// --- Filters ---
+// --- Filtros ---
 const selectedTorneoId = ref('')
 const selectedStatus = ref('PENDIENTE')
 const searchQuery = ref('')
 
-// --- Pagination ---
+// --- Paginación ---
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalRecords = ref(0)
 
-// --- Modals State ---
+// --- Estado de Modales ---
 const showConfirmModal = ref(false)
 const showRejectModal = ref(false)
 const activeRecord = ref(null)
 const rejectReason = ref('')
 
-// --- Computed Properties ---
+const showDocModal = ref(false)
+const currentDocUrl = ref('')
+const currentDocTitle = ref('')
+
+// --- Propiedades Computadas ---
 const filteredTorneos = computed(() => {
-  // Only tournaments in status EN_INSCRIPCION
+  // Solo torneos en estatus de inscripción
   return torneos.value.filter(t => t.estado === 'EN_INSCRIPCION' || t.estatus_torneo === 'EN_INSCRIPCION')
 })
 
@@ -42,9 +46,9 @@ const currentTorneoName = computed(() => {
   return torneo ? torneo.nombre_torneo : 'Selecciona un Torneo'
 })
 
-// --- API Calls ---
+// --- Peticiones API ---
 
-// Fetch all tournaments for the dropdown filter
+// Cargar torneos disponibles para el filtro principal
 const fetchTorneos = async () => {
   loadingTorneos.value = true
   try {
@@ -56,7 +60,7 @@ const fetchTorneos = async () => {
       torneos.value = resData.data
     }
 
-    // Set selected tournament based on query param if available, otherwise use first active
+    // Seleccionar torneo desde URL si existe, si no, seleccionar el primero activo
     const queryTorneoId = route.query.torneo_id
     if (queryTorneoId) {
       const parsedId = Number(queryTorneoId) || queryTorneoId
@@ -72,7 +76,7 @@ const fetchTorneos = async () => {
   }
 }
 
-// Fetch pre-registrations for selected tournament and status
+// Obtener pre-registros del torneo y estado seleccionados
 const fetchPreRegistros = async () => {
   if (!selectedTorneoId.value) return
   loadingRegistros.value = true
@@ -105,7 +109,7 @@ const fetchPreRegistros = async () => {
   }
 }
 
-// --- Watchers to refetch automatically ---
+// --- Observadores ---
 watch([selectedTorneoId, selectedStatus], () => {
   currentPage.value = 1
   fetchPreRegistros()
@@ -115,7 +119,7 @@ watch(currentPage, () => {
   fetchPreRegistros()
 })
 
-// --- Helpers ---
+// --- Funciones de Apoyo ---
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('es-MX', {
@@ -132,7 +136,7 @@ const formatText = (text) => {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase().replace(/_/g, ' ')
 }
 
-// Stream and open the PDF file in a new tab securely (including Auth token)
+// Obtener y abrir el archivo PDF dentro del modal visor
 const openDocument = async (path, docLabel) => {
   if (!path) return
   try {
@@ -141,15 +145,25 @@ const openDocument = async (path, docLabel) => {
       responseType: 'blob'
     })
     const blob = new Blob([response.data], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
+    currentDocUrl.value = URL.createObjectURL(blob)
+    currentDocTitle.value = docLabel
+    showDocModal.value = true
   } catch (err) {
     console.error(`Error loading document ${docLabel}:`, err)
     toastError(`No se pudo abrir el documento: ${docLabel}`)
   }
 }
 
-// --- Action Handlers ---
+const closeDocument = () => {
+  showDocModal.value = false
+  if (currentDocUrl.value) {
+    URL.revokeObjectURL(currentDocUrl.value)
+    currentDocUrl.value = ''
+  }
+  currentDocTitle.value = ''
+}
+
+// --- Acciones Principales ---
 
 const initiateApprove = (record) => {
   activeRecord.value = record
@@ -166,11 +180,11 @@ const confirmApprove = async () => {
     const response = await api.patch(`/torneos/${selectedTorneoId.value}/pre-registros/${recordId}/aprobar`)
     toastSuccess(response.data.message || 'El pre-registro ha sido aprobado.')
     
-    // Optimistic / instant status update in the local array
+    // Actualización visual inmediata en la lista local
     const recordIndex = preRegistros.value.findIndex(r => r.id === recordId)
     if (recordIndex !== -1) {
       preRegistros.value[recordIndex].estatus = 'APROBADO'
-      // If we are filtering by PENDIENTE, we want to remove it from the visible list smoothly
+      // Si estamos en la pestaña de pendientes, quitamos la tarjeta de la vista
       if (selectedStatus.value === 'PENDIENTE') {
         preRegistros.value.splice(recordIndex, 1)
         totalRecords.value = Math.max(0, totalRecords.value - 1)
@@ -203,7 +217,7 @@ const confirmReject = async () => {
     })
     toastSuccess(response.data.message || 'El pre-registro ha sido rechazado.')
 
-    // Optimistic / instant status update in the local array
+    // Actualización visual inmediata en la lista local
     const recordIndex = preRegistros.value.findIndex(r => r.id === recordId)
     if (recordIndex !== -1) {
       preRegistros.value[recordIndex].estatus = 'RECHAZADO'
@@ -222,7 +236,7 @@ const confirmReject = async () => {
   }
 }
 
-// Filtered pre-registrations by search query
+// Filtrar pre-registros por término de búsqueda (nombre o correo)
 const searchedPreRegistros = computed(() => {
   if (!searchQuery.value) return preRegistros.value
   const query = searchQuery.value.toLowerCase().trim()
@@ -293,17 +307,29 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Status Select -->
+          <!-- Status Select (Segmented Buttons) -->
           <div class="flex flex-col gap-1.5">
-            <label for="status-select" class="text-[10px] font-black uppercase tracking-widest text-surface-400">Estado de Solicitud</label>
-            <div class="relative">
-              <select id="status-select" v-model="selectedStatus"
-                class="w-full bg-surface-50 border border-surface-200 rounded-xl py-3 px-4 text-sm font-semibold cursor-pointer focus:outline-none focus:border-primary-500 transition-colors appearance-none">
-                <option value="PENDIENTE">Pendientes por revisar</option>
-                <option value="APROBADO">Aprobados</option>
-                <option value="RECHAZADO">Rechazados</option>
-              </select>
-              <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 pointer-events-none"></i>
+            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400">Estado de Solicitud</label>
+            <div class="flex bg-surface-100 p-1 rounded-xl h-[50px] w-full gap-1">
+              <button 
+                @click="selectedStatus = 'PENDIENTE'"
+                :class="selectedStatus === 'PENDIENTE' ? 'bg-amber-500 text-white shadow-md border-amber-600' : 'text-surface-500 hover:text-surface-700 hover:bg-surface-200/50 border-transparent'"
+                class="flex-1 flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all border cursor-pointer">
+                Pendientes
+                <span v-if="selectedStatus === 'PENDIENTE' && totalRecords > 0" class="bg-white/20 text-white py-0.5 px-2 rounded-full text-[10px]">{{ totalRecords }}</span>
+              </button>
+              <button 
+                @click="selectedStatus = 'APROBADO'"
+                :class="selectedStatus === 'APROBADO' ? 'bg-emerald-500 text-white shadow-md border-emerald-600' : 'text-surface-500 hover:text-surface-700 hover:bg-surface-200/50 border-transparent'"
+                class="flex-1 flex items-center justify-center rounded-lg text-xs font-bold transition-all border cursor-pointer">
+                Aprobados
+              </button>
+              <button 
+                @click="selectedStatus = 'RECHAZADO'"
+                :class="selectedStatus === 'RECHAZADO' ? 'bg-red-500 text-white shadow-md border-red-600' : 'text-surface-500 hover:text-surface-700 hover:bg-surface-200/50 border-transparent'"
+                class="flex-1 flex items-center justify-center rounded-lg text-xs font-bold transition-all border cursor-pointer">
+                Rechazados
+              </button>
             </div>
           </div>
 
@@ -403,20 +429,20 @@ onMounted(() => {
                 </div>
 
                 <!-- Document Links -->
-                <div class="pt-3 border-t border-surface-100">
-                  <span class="block text-[9px] font-black uppercase tracking-widest text-surface-400 mb-2">Documentación Adjunta</span>
-                  <div class="flex flex-wrap gap-2">
+                <div class="pt-3 mt-1 border-t border-dashed border-surface-200">
+                  <span class="block text-[9px] font-black uppercase tracking-widest text-surface-400 mb-2 text-center">Documentación Adjunta</span>
+                  <div class="grid grid-cols-3 gap-2">
                     <button v-if="record.urls_documentos?.ine_pdf" @click="openDocument(record.urls_documentos.ine_pdf, 'INE')"
-                      class="px-3 py-1.5 bg-white border border-surface-200 hover:border-primary-500 rounded-xl text-xs font-bold text-surface-700 flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer">
-                      <i class="fas fa-file-pdf text-red-500"></i> INE
+                      class="py-2 flex flex-col items-center justify-center bg-white border border-surface-200 hover:border-primary-500 hover:bg-primary-50 rounded-xl text-[10px] font-bold text-surface-700 transition-colors shadow-xs cursor-pointer text-center">
+                      <i class="fas fa-file-pdf text-red-500 text-lg mb-1"></i> INE
                     </button>
                     <button v-if="record.urls_documentos?.curp_pdf" @click="openDocument(record.urls_documentos.curp_pdf, 'CURP')"
-                      class="px-3 py-1.5 bg-white border border-surface-200 hover:border-primary-500 rounded-xl text-xs font-bold text-surface-700 flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer">
-                      <i class="fas fa-file-pdf text-red-500"></i> CURP
+                      class="py-2 flex flex-col items-center justify-center bg-white border border-surface-200 hover:border-primary-500 hover:bg-primary-50 rounded-xl text-[10px] font-bold text-surface-700 transition-colors shadow-xs cursor-pointer text-center">
+                      <i class="fas fa-file-pdf text-red-500 text-lg mb-1"></i> CURP
                     </button>
                     <button v-if="record.urls_documentos?.responsiva_pdf" @click="openDocument(record.urls_documentos.responsiva_pdf, 'Responsiva')"
-                      class="px-3 py-1.5 bg-white border border-surface-200 hover:border-primary-500 rounded-xl text-xs font-bold text-surface-700 flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer">
-                      <i class="fas fa-file-pdf text-red-500"></i> Carta Responsiva
+                      class="py-2 flex flex-col items-center justify-center bg-white border border-surface-200 hover:border-primary-500 hover:bg-primary-50 rounded-xl text-[10px] font-bold text-surface-700 transition-colors shadow-xs cursor-pointer text-center">
+                      <i class="fas fa-file-pdf text-red-500 text-lg mb-1"></i> Carta Resp.
                     </button>
                   </div>
                 </div>
@@ -441,18 +467,18 @@ onMounted(() => {
                   </div>
 
                   <!-- Member Documents -->
-                  <div class="pt-2 border-t border-surface-100/50 flex flex-wrap gap-1.5">
+                  <div class="pt-2 mt-1 border-t border-dashed border-surface-200 flex gap-2">
                     <button v-if="record.urls_documentos?.[member.correo]?.ine_pdf" @click="openDocument(record.urls_documentos[member.correo].ine_pdf, `INE - ${member.nombre_completo}`)"
-                      class="px-2.5 py-1 bg-surface-50 border border-surface-200 hover:border-primary-500 rounded-lg text-[10px] font-bold text-surface-600 flex items-center gap-1 transition-colors cursor-pointer">
-                      <i class="fas fa-file-pdf text-red-500"></i> INE
+                      class="flex-1 py-1.5 flex flex-col items-center justify-center bg-surface-50 border border-surface-200 hover:border-primary-500 hover:bg-primary-50 rounded-lg text-[9px] font-bold text-surface-600 transition-colors cursor-pointer text-center shadow-xs">
+                      <i class="fas fa-file-pdf text-red-500 mb-0.5 text-sm"></i> INE
                     </button>
                     <button v-if="record.urls_documentos?.[member.correo]?.curp_pdf" @click="openDocument(record.urls_documentos[member.correo].curp_pdf, `CURP - ${member.nombre_completo}`)"
-                      class="px-2.5 py-1 bg-surface-50 border border-surface-200 hover:border-primary-500 rounded-lg text-[10px] font-bold text-surface-600 flex items-center gap-1 transition-colors cursor-pointer">
-                      <i class="fas fa-file-pdf text-red-500"></i> CURP
+                      class="flex-1 py-1.5 flex flex-col items-center justify-center bg-surface-50 border border-surface-200 hover:border-primary-500 hover:bg-primary-50 rounded-lg text-[9px] font-bold text-surface-600 transition-colors cursor-pointer text-center shadow-xs">
+                      <i class="fas fa-file-pdf text-red-500 mb-0.5 text-sm"></i> CURP
                     </button>
                     <button v-if="record.urls_documentos?.[member.correo]?.responsiva_pdf" @click="openDocument(record.urls_documentos[member.correo].responsiva_pdf, `Responsiva - ${member.nombre_completo}`)"
-                      class="px-2.5 py-1 bg-surface-50 border border-surface-200 hover:border-primary-500 rounded-lg text-[10px] font-bold text-surface-600 flex items-center gap-1 transition-colors cursor-pointer">
-                      <i class="fas fa-file-pdf text-red-500"></i> Carta
+                      class="flex-1 py-1.5 flex flex-col items-center justify-center bg-surface-50 border border-surface-200 hover:border-primary-500 hover:bg-primary-50 rounded-lg text-[9px] font-bold text-surface-600 transition-colors cursor-pointer text-center shadow-xs">
+                      <i class="fas fa-file-pdf text-red-500 mb-0.5 text-sm"></i> Carta Resp.
                     </button>
                   </div>
                 </div>
@@ -579,6 +605,41 @@ onMounted(() => {
               class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-extrabold text-white transition-colors cursor-pointer disabled:opacity-50 shadow-md shadow-red-600/10">
               Confirmar Rechazo
             </button>
+          </div>
+
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Modal Document Viewer -->
+    <Transition enter-active-class="transition-opacity duration-300 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-200 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showDocModal" class="fixed inset-0 bg-surface-900/70 backdrop-blur-sm flex items-center justify-center p-4 md:p-8 z-[60] animate-fade-in">
+        <div class="bg-white rounded-3xl border border-surface-200 shadow-2xl max-w-5xl w-full flex flex-col overflow-hidden relative">
+          
+          <!-- Header -->
+          <div class="flex items-center justify-between p-4 border-b border-surface-200 bg-surface-50 shrink-0">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center text-lg shadow-xs">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-black text-surface-900 leading-tight">Visor de Documento</h3>
+                <p class="text-xs text-surface-500 font-medium">{{ currentDocTitle }}</p>
+              </div>
+            </div>
+            <button @click="closeDocument" class="w-10 h-10 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-surface-900 hover:bg-surface-100 transition-colors flex items-center justify-center cursor-pointer shadow-xs">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Document Frame -->
+          <div class="w-full h-[75vh] bg-surface-100 relative">
+            <iframe :src="currentDocUrl" class="w-full h-full border-none"></iframe>
           </div>
 
         </div>

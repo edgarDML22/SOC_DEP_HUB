@@ -43,23 +43,36 @@ class SocioTournamentController extends Controller
                 ->toArray();
         }
 
-        // Obtener torneos en inscripción, en curso o programados con conteo de participantes confirmados
-        $torneos = Torneo::whereIn('estatus_torneo', ['EN_INSCRIPCION', 'EN_CURSO', 'PROGRAMADO'])
+        // Configuración de paginación
+        $perPage = $request->input('per_page', 12);
+
+        // Construir query base con filtro de estatus, búsqueda condicional,
+        // eager loading y conteo de participantes confirmados
+        $torneosQuery = Torneo::whereIn('estatus_torneo', ['EN_INSCRIPCION', 'EN_CURSO', 'PROGRAMADO'])
+            ->when($request->search, fn ($q, $s) =>
+                $q->where('nombre_torneo', 'like', "%{$s}%")
+                  ->orWhereHas('disciplina', fn ($d) =>
+                      $d->where('nombre_disciplina', 'like', "%{$s}%")
+                  )
+            )
             ->with(['disciplina', 'categoria', 'encuentros' => function ($q) {
                 $q->where('fase_bracket', 'FINAL');
             }])
             ->withCount(['participantes as inscritos_actual' => function ($q) {
                 $q->where('estatus_inscripcion', 'CONFIRMADO');
-            }])
-            ->get();
+            }]);
+
+        // Obtener torneos paginados
+        $torneosPaginados = $torneosQuery->paginate($perPage);
+        $torneos = $torneosPaginados->getCollection();
 
         // Ordenar los torneos activos: EN_CURSO primero, luego EN_INSCRIPCION, luego PROGRAMADO
         // Y dentro del mismo estatus, ordenar en base a la fecha_hora_inicio de la final (más cercana/reciente primero)
         $torneos = $torneos->sort(function ($a, $b) {
             $statusPriority = [
-                'EN_CURSO' => 1,
+                'EN_CURSO'       => 1,
                 'EN_INSCRIPCION' => 2,
-                'PROGRAMADO' => 3
+                'PROGRAMADO'     => 3,
             ];
             $priA = $statusPriority[$a->estatus_torneo] ?? 99;
             $priB = $statusPriority[$b->estatus_torneo] ?? 99;
@@ -139,33 +152,39 @@ class SocioTournamentController extends Controller
             }
 
             return [
-                'id_torneo' => $torneo->id_torneo,
-                'nombre_torneo' => $torneo->nombre_torneo,
-                'fecha_inicio' => $torneo->fecha_inicio,
-                'fecha_fin' => $torneo->fecha_fin,
-                'estatus_torneo' => $torneo->estatus_torneo,
-                'disciplina' => $torneo->disciplina ? [
-                    'nombre_disciplina' => $torneo->disciplina->nombre_disciplina
+                'id_torneo'           => $torneo->id_torneo,
+                'nombre_torneo'       => $torneo->nombre_torneo,
+                'fecha_inicio'        => $torneo->fecha_inicio,
+                'fecha_fin'           => $torneo->fecha_fin,
+                'estatus_torneo'      => $torneo->estatus_torneo,
+                'disciplina'          => $torneo->disciplina ? [
+                    'nombre_disciplina' => $torneo->disciplina->nombre_disciplina,
                 ] : null,
-                'categoria' => $torneo->categoria ? [
+                'categoria'           => $torneo->categoria ? [
                     'nombre_categoria' => $torneo->categoria->nombre_categoria,
-                    'edad_minima' => $torneo->categoria->edad_minima,
-                    'edad_maxima' => $torneo->categoria->edad_maxima,
-                    'genero_requerido' => $torneo->categoria->genero_requerido
+                    'edad_minima'      => $torneo->categoria->edad_minima,
+                    'edad_maxima'      => $torneo->categoria->edad_maxima,
+                    'genero_requerido' => $torneo->categoria->genero_requerido,
                 ] : null,
-                'tipo_acceso' => $torneo->tipo_acceso,
-                'modalidad' => $torneo->modalidad,
-                'cupo_maximo' => $torneo->cupo_maximo,
-                'inscritos_actual' => (int)$torneo->inscritos_actual,
-                'ya_inscrito' => $yaInscrito,
-                'titular_inscrito' => $titularInscrito,
+                'tipo_acceso'         => $torneo->tipo_acceso,
+                'modalidad'           => $torneo->modalidad,
+                'cupo_maximo'         => $torneo->cupo_maximo,
+                'inscritos_actual'    => (int) $torneo->inscritos_actual,
+                'ya_inscrito'         => $yaInscrito,
+                'titular_inscrito'    => $titularInscrito,
                 'familiares_inscritos' => $familiaresInscritos,
-                'modalidad_plan' => $modalidadPlan
+                'modalidad_plan'      => $modalidadPlan,
             ];
         })->toArray();
 
         return response()->json([
-            'data' => $data
+            'data'        => $data,
+            'pagination'  => [
+                'current_page' => $torneosPaginados->currentPage(),
+                'last_page'    => $torneosPaginados->lastPage(),
+                'per_page'     => $torneosPaginados->perPage(),
+                'total'        => $torneosPaginados->total(),
+            ],
         ], 200);
     }
 
@@ -186,99 +205,140 @@ class SocioTournamentController extends Controller
             ], 419);
         }
 
-        $socioId = $user->user_id;
+        $socioId   = $user->user_id;
         $familyIds = MiembrosFamiliares::where('socio_id', $socioId)
             ->pluck('id_miembro')
             ->toArray();
 
-        // Consultar inscripciones del socio o familiares, ordenando por fecha de inicio del torneo desc
-        $participaciones = ParticipantesTorneo::where(function ($q) use ($socioId, $familyIds) {
-            $q->where(function ($q2) use ($socioId) {
-                $q2->where('participante_type', 'SOCIO')
-                   ->where('participante_id', $socioId);
-            })->orWhere(function ($q2) use ($familyIds) {
-                $q2->where('participante_type', 'FAMILIAR')
-                   ->whereIn('participante_id', $familyIds);
+        // ── 1. Query base paginada ────────────────────────────────────────────
+        $perPage = $request->input('per_page', 10);
+
+        $participacionesPaginadas = ParticipantesTorneo::where(function ($q) use ($socioId, $familyIds) {
+                $q->where(function ($q2) use ($socioId) {
+                    $q2->where('participante_type', 'SOCIO')
+                       ->where('participante_id', $socioId);
+                })->orWhere(function ($q2) use ($familyIds) {
+                    $q2->where('participante_type', 'FAMILIAR')
+                       ->whereIn('participante_id', $familyIds);
+                });
+            })
+            ->join('torneos', 'participantes_torneo.id_torneo', '=', 'torneos.id_torneo')
+            ->leftJoin('disciplinas', 'torneos.id_disciplina', '=', 'disciplinas.id_disciplina')
+            ->orderBy('torneos.fecha_inicio', 'DESC')
+            ->select([
+                'torneos.id_torneo',
+                'torneos.nombre_torneo',
+                'torneos.fecha_inicio',
+                'torneos.estatus_torneo',
+                'torneos.modalidad',
+                'disciplinas.nombre_disciplina',
+                'participantes_torneo.participante_type',
+                'participantes_torneo.participante_id',
+                'participantes_torneo.id_equipo',
+            ])
+            ->paginate($perPage);
+
+        $participaciones = $participacionesPaginadas->getCollection();
+
+        // ── 2. Pre-cargar encuentros finalizados (1 sola query) ───────────────
+        $torneoIds = $participaciones->pluck('id_torneo')->unique()->values();
+
+        // Indexado: [id_torneo => Collection<EncuentrosTorneo>]
+        $encuentrosPorTorneo = EncuentrosTorneo::whereIn('id_torneo', $torneoIds)
+            ->where('estatus_encuentro', 'FINALIZADO')
+            ->get()
+            ->groupBy('id_torneo');
+
+        // ── 3. Pre-cargar equipos con sus participantes (1 sola query) ────────
+        $equipoIds = $participaciones->pluck('id_equipo')->filter()->unique()->values();
+
+        // Indexado: [id_equipo_torneo => EquiposTorneo]
+        $equiposPrecargados = EquiposTorneo::whereIn('id_equipo_torneo', $equipoIds)
+            ->with('participantes')
+            ->get()
+            ->keyBy('id_equipo_torneo');
+
+        // ── 4. Pre-cargar socios compañeros (1 sola query) ────────────────────
+        // Reúne todos los participante_id de tipo SOCIO que pertenecen a esos equipos
+        $companeroIds = $equiposPrecargados
+            ->flatMap(fn ($eq) => $eq->participantes
+                ->where('participante_type', 'SOCIO')
+                ->where('participante_id', '!=', $socioId)
+                ->pluck('participante_id')
+            )
+            ->unique()
+            ->values();
+
+        // Indexado: [participante_id => SocioTitular]
+        $sociosPrecargados = SocioTitular::whereIn(
+                (new SocioTitular)->getKeyName(),
+                $companeroIds
+            )
+            ->get()
+            ->keyBy((new SocioTitular)->getKeyName());
+
+        // ── 5. Mapear resultado ───────────────────────────────────────────────
+        $data = $participaciones->map(function ($part) use (
+            $socioId,
+            $encuentrosPorTorneo,
+            $equiposPrecargados,
+            $sociosPrecargados
+        ) {
+            // Filtrar encuentros de este participante dentro del torneo
+            $matchesTorneo = $encuentrosPorTorneo->get($part->id_torneo, collect());
+            $matchesPart   = $matchesTorneo->filter(function ($enc) use ($part) {
+                return ($enc->competidor_1_type === $part->participante_type && $enc->competidor_1_id == $part->participante_id)
+                    || ($enc->competidor_2_type === $part->participante_type && $enc->competidor_2_id == $part->participante_id);
             });
-        })
-        ->join('torneos', 'participantes_torneo.id_torneo', '=', 'torneos.id_torneo')
-        ->leftJoin('disciplinas', 'torneos.id_disciplina', '=', 'disciplinas.id_disciplina')
-        ->orderBy('torneos.fecha_inicio', 'DESC')
-        ->select([
-            'torneos.id_torneo',
-            'torneos.nombre_torneo',
-            'torneos.fecha_inicio',
-            'torneos.estatus_torneo',
-            'torneos.modalidad',
-            'disciplinas.nombre_disciplina',
-            'participantes_torneo.participante_type',
-            'participantes_torneo.participante_id',
-            'participantes_torneo.id_equipo'
-        ])
-        ->limit(10)
-        ->get();
 
-        $data = $participaciones->map(function ($part) use ($socioId) {
-            // Buscar los encuentros finalizados de este participante en este torneo
-            $matches = EncuentrosTorneo::where('id_torneo', $part->id_torneo)
-                ->where('estatus_encuentro', 'FINALIZADO')
-                ->where(function ($q) use ($part) {
-                    $q->where(function ($q2) use ($part) {
-                        $q2->where('competidor_1_type', $part->participante_type)
-                           ->where('competidor_1_id', $part->participante_id);
-                    })->orWhere(function ($q2) use ($part) {
-                        $q2->where('competidor_2_type', $part->participante_type)
-                           ->where('competidor_2_id', $part->participante_id);
-                    });
-                })
-                ->get();
-
-            $faseMaxima = $this->getMaxPhase($matches);
+            $faseMaxima = $this->getMaxPhase($matchesPart);
 
             $equipoData = null;
-            if ($part->id_equipo) {
-                $equipo = EquiposTorneo::find($part->id_equipo);
-                if ($equipo) {
-                    $soyCapitan = ($equipo->referencia_id == $socioId);
-                    
-                    // Buscar al otro compañero en el equipo (diferente al usuario actual)
-                    $companeroPart = ParticipantesTorneo::where('id_equipo', $equipo->id_equipo_torneo)
-                        ->where('participante_id', '!=', $socioId)
-                        ->first();
+            if ($part->id_equipo && $equiposPrecargados->has($part->id_equipo)) {
+                $equipo      = $equiposPrecargados->get($part->id_equipo);
+                $soyCapitan  = ($equipo->referencia_id == $socioId);
 
-                    $nombreCompanero = 'Compañero';
-                    if ($companeroPart && $companeroPart->participante_type === 'SOCIO') {
-                        $socioCompanero = SocioTitular::find($companeroPart->participante_id);
-                        if ($socioCompanero) {
-                            $nombreCompanero = $socioCompanero->nombre_completo;
-                        }
-                    }
+                // Compañero: primer participante del equipo distinto al socio actual
+                $companeroPart = $equipo->participantes
+                    ->where('participante_id', '!=', $socioId)
+                    ->first();
 
-                    $equipoData = [
-                        'id_equipo' => $equipo->id_equipo_torneo,
-                        'estado' => $equipo->estatus_equipo,
-                        'soy_capitan' => $soyCapitan,
-                        'companero' => [
-                            'nombre_completo' => $nombreCompanero
-                        ]
-                    ];
+                $nombreCompanero = 'Compañero';
+                if ($companeroPart && $companeroPart->participante_type === 'SOCIO') {
+                    $socioComp       = $sociosPrecargados->get($companeroPart->participante_id);
+                    $nombreCompanero = $socioComp?->nombre_completo ?? 'Compañero';
                 }
+
+                $equipoData = [
+                    'id_equipo'  => $equipo->id_equipo_torneo,
+                    'estado'     => $equipo->estatus_equipo,
+                    'soy_capitan' => $soyCapitan,
+                    'companero'  => [
+                        'nombre_completo' => $nombreCompanero,
+                    ],
+                ];
             }
 
             return [
-                'id_torneo' => $part->id_torneo,
-                'nombre_torneo' => $part->nombre_torneo,
-                'fecha_inicio' => $part->fecha_inicio,
-                'disciplina' => $part->nombre_disciplina,
-                'estatus_torneo' => $part->estatus_torneo,
-                'modalidad' => $part->modalidad,
+                'id_torneo'             => $part->id_torneo,
+                'nombre_torneo'         => $part->nombre_torneo,
+                'fecha_inicio'          => $part->fecha_inicio,
+                'disciplina'            => $part->nombre_disciplina,
+                'estatus_torneo'        => $part->estatus_torneo,
+                'modalidad'             => $part->modalidad,
                 'fase_maxima_alcanzada' => $faseMaxima,
-                'equipo' => $equipoData
+                'equipo'                => $equipoData,
             ];
         })->toArray();
 
         return response()->json([
-            'data' => $data
+            'data'       => $data,
+            'pagination' => [
+                'current_page' => $participacionesPaginadas->currentPage(),
+                'last_page'    => $participacionesPaginadas->lastPage(),
+                'per_page'     => $participacionesPaginadas->perPage(),
+                'total'        => $participacionesPaginadas->total(),
+            ],
         ], 200);
     }
 

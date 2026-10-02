@@ -138,8 +138,6 @@ Route::middleware(['check.turno'])->group(function () {
     });
 });
 
-Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
-Route::post('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'store']);
 
 
 // ==========================================
@@ -196,7 +194,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/v1/instructors/update/{id}', [InstructorController::class, 'update']);
     // Delete instructor (Logical delete/Inactivate)
     Route::delete('/v1/instructors/delete/{id}', [InstructorController::class, 'destroy']);
-    
+    // Desvincular disciplina de instructor
+    Route::delete('/v1/instructores/{id}/disciplinas/{disciplina_id}', [InstructorController::class, 'deleteRelationshipDiscipline']);
+
     // Meticulous Status Management
     Route::get('/v1/instructors/{id}/status-impact', [InstructorController::class, 'getActivitiesImpact']);
     Route::get('/v1/activities/{activityId}/substitutes', [InstructorController::class, 'getCandidateSubstitutes']);
@@ -313,9 +313,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
 
-    // SDH 273 Preregistros Torneos
-    Route::post('/v1/pre-registros/{id}/aprobar', [PreRegisterController::class, 'aprobar']);
-    Route::post('/v1/pre-registros/{id}/rechazar', [PreRegisterController::class, 'rechazar']);
 
     // ==========================================
     // LUDOTECA (RUTAS PROTEGIDAS)
@@ -392,11 +389,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
 
-    //RUTAS PRE REGISTROS
-    Route::get('/v1/torneos/{id}/pre-registros', [PreRegisterController::class, 'index']);
-    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/aprobar', [PreRegisterController::class, 'aprobar']);
-    Route::patch('/v1/torneos/{id}/pre-registros/{registroId}/rechazar', [PreRegisterController::class, 'rechazar']);
-    Route::get('/v1/pre-registros/documento', [PreRegisterController::class, 'descargarDocumento']);
+    // RUTAS PRE REGISTROS — prefijo canónico, verbos HTTP correctos
+    Route::prefix('v1/torneos/{id}/pre-registros')->group(function () {
+        Route::get('/',                              [PreRegisterController::class, 'index']);
+        Route::post('/',                             [PreRegisterController::class, 'store']);
+        Route::patch('/{registroId}/aprobar',        [PreRegisterController::class, 'aprobar']);
+        Route::patch('/{registroId}/rechazar',       [PreRegisterController::class, 'rechazar']);
+    });
+    Route::get('/v1/pre-registros/documento',        [PreRegisterController::class, 'descargarDocumento']);
 
     //RESULTADOS TORNEOS
     Route::get('/v1/instructor/encuentros-torneo', [ResultadoController::class, 'misEncuentros']);
