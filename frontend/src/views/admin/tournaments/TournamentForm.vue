@@ -147,12 +147,12 @@ const formatRangoFechas = (inicio, fin) => {
 // ── TOOLTIPS CONTEXTUALES ────────────────────────────────────────
 const tooltipEstado = (estado) => {
   const tooltips = {
-    EN_PLANIFICACION: 'En Planificación: Parámetros del torneo en preparación, registro aún no abierto',
-    EN_INSCRIPCION: 'En Inscripción: Pre-registro habilitado para socios y competidores',
-    PROGRAMADO: 'Programado: Bracket generado y horarios de partidos asignados en espacios deportivos',
-    EN_CURSO: 'En Curso: Competencia activa, encuentros disputándose y captura de resultados',
-    FINALIZADO: 'Finalizado: Torneo concluido exitosamente con resultados oficiales',
-    CANCELADO: 'Cancelado: Torneo suspendido. Haz clic en la tarjeta para ver el motivo registrado'
+    EN_PLANIFICACION: 'Parámetros del torneo en preparación, registro aún no abierto',
+    EN_INSCRIPCION: 'Pre-registro habilitado para socios y competidores',
+    PROGRAMADO: 'Bracket generado y horarios de partidos asignados en espacios deportivos',
+    EN_CURSO: 'Competencia activa, encuentros disputándose y captura de resultados',
+    FINALIZADO: 'Torneo concluido exitosamente con resultados oficiales',
+    CANCELADO: 'Torneo suspendido. Haz clic en la tarjeta para ver el motivo registrado'
   }
   return tooltips[estado] ?? `Estado: ${estado || 'Sin definir'}`
 }
