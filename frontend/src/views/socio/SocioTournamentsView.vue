@@ -1,12 +1,15 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSocioTorneoStore } from '@/stores/socioTorneoStore';
 import { useAlerts } from '@/composables/useAlerts';
 import ModalSeleccionParticipante from '@/components/socio/ModalSeleccionParticipante.vue';
 import PartnerSelectionModal from '@/components/socio/PartnerSelectionModal.vue';
 import TeamInvitationModal from '@/components/socio/TeamInvitationModal.vue';
-import { IconArrowLeft, IconCalendar, IconTrophy, IconHistory, IconStar, IconBaby, IconGender } from '@/components/icons';
+import TorneoCardSkeleton from '@/components/socio/TorneoCardSkeleton.vue';
+import TorneosEmptyState from '@/components/socio/TorneosEmptyState.vue';
+import PaginacionBar from '@/components/socio/PaginacionBar.vue';
+import { IconArrowLeft, IconCalendar, IconTrophy, IconHistory, IconStar, IconBaby, IconGender, IconSearch } from '@/components/icons';
 
 const router = useRouter();
 const torneoStore = useSocioTorneoStore();
@@ -26,18 +29,76 @@ const tabs = [
   { key: 'historial', label: 'Historial' },
 ];
 
-// Cambiar de pestaña y cargar datos según corresponda
-const changeTab = async (key) => {
-  activeView.value = key;
-  if (key === 'inscripcion') {
-    await torneoStore.fetchDisponibles();
-  } else {
-    await torneoStore.fetchHistorial();
+// ── Búsqueda del catálogo (con debounce) ────────────────────────────────
+const searchInput = ref('');
+const searchDebounceId = ref(null);
+const SEARCH_DEBOUNCE_MS = 350;
+
+// ── Paginación reactiva (sincronizada con Pinia) ─────────────────────────
+const pagination = computed(() =>
+  activeView.value === 'inscripcion' ? torneoStore.paginationDisponibles : torneoStore.paginationHistorial
+);
+
+/** Ancla de scroll: cabecera del área de resultados. */
+const resultsTopRef = ref(null);
+
+/** Vuelve suavemente al inicio de los resultados tras cambiar de página. */
+const scrollToResultsTop = () => {
+  const el = resultsTopRef.value;
+  const top = el ? el.getBoundingClientRect().top + window.scrollY - 24 : 0;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+};
+
+/** Delegador de carga según la pestaña activa. */
+const loadActiveView = (options = {}) =>
+  activeView.value === 'inscripcion'
+    ? torneoStore.fetchDisponibles(options)
+    : torneoStore.fetchHistorial(options);
+
+// Cambio de página: dispara la carga y devuelve al usuario al inicio del listado.
+const handlePageChange = async (page) => {
+  await loadActiveView({ page });
+  scrollToResultsTop();
+};
+
+const hayBusquedaActiva = computed(() => !!searchInput.value.trim());
+
+/** Limpia la búsqueda y vuelve a la página 1. */
+const clearSearch = async () => {
+  searchInput.value = '';
+  if (activeView.value === 'inscripcion') {
+    await torneoStore.fetchDisponibles({ page: 1, search: '' });
   }
 };
 
+// Cada cambio en el input reinicia a la página 1 y recarga el catálogo.
+watch(searchInput, (value) => {
+  const term = value.trim();
+  window.clearTimeout(searchDebounceId.value);
+  searchDebounceId.value = window.setTimeout(() => {
+    if (activeView.value !== 'inscripcion') return;
+    // Evita refetches cuando el input se sincroniza con el store (montaje / cambio de pestaña).
+    if (term === (torneoStore.paginationDisponibles.search || '')) return;
+    torneoStore.fetchDisponibles({ page: 1, search: term });
+  }, SEARCH_DEBOUNCE_MS);
+});
+
+// Cambiar de pestaña y cargar datos según corresponda
+const changeTab = async (key) => {
+  if (key === activeView.value) return;
+  activeView.value = key;
+  // El término de búsqueda sólo aplica al catálogo.
+  searchInput.value = key === 'inscripcion' ? torneoStore.paginationDisponibles.search : '';
+  await loadActiveView();
+};
+
 onMounted(async () => {
+  searchInput.value = torneoStore.paginationDisponibles.search || '';
   await torneoStore.fetchDisponibles();
+});
+
+onBeforeUnmount(() => {
+  window.clearTimeout(searchDebounceId.value);
 });
 
 // Abrir modal de inscripción
@@ -151,16 +212,33 @@ const getProgressBarColor = (pct) => {
           {{ tab.label }}
         </button>
       </div>
+
+      <!-- Buscador del catálogo (sólo aplica a la pestaña de inscripción) -->
+      <Transition name="tab-fade">
+        <div v-if="activeView === 'inscripcion'" class="w-full max-w-2xl mx-auto mb-8">
+          <div class="relative">
+            <IconSearch class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+            <input v-model="searchInput" type="search" placeholder="Buscar torneo por nombre o disciplina..."
+              aria-label="Buscar torneo"
+              class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all" />
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <!-- Área de Contenido -->
     <div class="w-full px-4 md:px-6 lg:px-8 pb-24 md:pb-8">
-      <div class="max-w-7xl mx-auto">
+      <div ref="resultsTopRef" class="max-w-7xl mx-auto scroll-mt-24">
 
-        <!-- Loading Spinner -->
-        <div v-if="torneoStore.loading" class="flex flex-col items-center py-20">
-          <div class="w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mb-4" />
-          <p class="text-slate-500 font-semibold text-sm">Cargando torneos disponibles...</p>
+        <!-- Skeleton Loaders: replican la anatomía de la tarjeta real (cabecera,
+             etiquetas, bloque de fechas, barra de cupos y CTA) para evitar CLS.
+             Se muestran también al cambiar de página, no sólo en la carga inicial. -->
+        <div v-if="torneoStore.loading" class="grid gap-6"
+          :class="activeView === 'inscripcion' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'"
+          aria-busy="true" aria-live="polite">
+          <TorneoCardSkeleton v-for="n in 6" :key="`skeleton-${activeView}-${n}`"
+            :variant="activeView === 'inscripcion' ? 'disponible' : 'historial'" />
+          <span class="sr-only">Cargando torneos...</span>
         </div>
 
         <div v-else>
@@ -169,23 +247,30 @@ const getProgressBarColor = (pct) => {
           <!-- TAB: INSCRIPCION (TORNEOS DISPONIBLES) -->
           <div v-if="activeView === 'inscripcion'">
 
-            <div v-if="torneoStore.disponibles.length === 0"
-              class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm text-center px-4">
-              <div
-                class="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center text-primary-500 mb-4 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <p class="text-surface-900 font-extrabold text-lg">No hay torneos disponibles</p>
-              <p class="text-surface-500 font-semibold text-sm max-w-sm mt-1">
-                Actualmente no hay torneos abiertos en fase de inscripción. Por favor vuelve a verificar más tarde.
-              </p>
-            </div>
+            <TorneosEmptyState
+              v-if="torneoStore.disponibles.length === 0"
+              :variant="hayBusquedaActiva ? 'busqueda' : 'disponible'">
+              <template #actions>
+                <!-- Búsqueda activa: se ofrece limpiar el filtro -->
+                <button v-if="hayBusquedaActiva" @click="clearSearch"
+                  class="w-full sm:w-auto px-5 py-3 rounded-2xl text-sm font-extrabold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-md shadow-primary-500/10 hover:shadow-lg focus:outline-none cursor-pointer">
+                  Limpiar búsqueda
+                </button>
+                <!-- Catálogo vacío: CTA hacia otras actividades del club -->
+                <router-link v-else :to="{ name: 'programmed-activities' }"
+                  class="w-full sm:w-auto px-5 py-3 rounded-2xl text-sm font-extrabold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-md shadow-primary-500/10 hover:shadow-lg focus:outline-none">
+                  Explorar otras actividades
+                </router-link>
+                <button v-if="!hayBusquedaActiva" @click="changeTab('historial')"
+                  class="w-full sm:w-auto px-5 py-3 rounded-2xl text-sm font-extrabold text-surface-700 bg-surface-50 border border-surface-200 hover:bg-surface-100 active:scale-[0.98] transition-all focus:outline-none cursor-pointer">
+                  Ver mi historial
+                </button>
+              </template>
+            </TorneosEmptyState>
 
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template v-else>
+            <TransitionGroup name="card-list" tag="div"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <!-- Available Tournament Card -->
               <div v-for="torneo in torneoStore.disponibles" :key="torneo.id_torneo"
                 class="bg-white rounded-3xl border border-surface-150 hover:border-surface-300 hover:shadow-md transition-all p-6 flex flex-col justify-between relative overflow-hidden">
@@ -291,29 +376,32 @@ const getProgressBarColor = (pct) => {
                   </button>
                 </div>
               </div>
-            </div>
+            </TransitionGroup>
+            </template>
+
+            <!-- Paginación del catálogo -->
+            <PaginacionBar :pagination="pagination" :loading="torneoStore.loading" item-label="torneos"
+              @change="handlePageChange" />
           </div>
 
           <!-- TAB: HISTORIAL -->
           <div v-else-if="activeView === 'historial'">
 
-            <div v-if="torneoStore.historial.length === 0"
-              class="flex flex-col items-center py-20 bg-white rounded-3xl border border-surface-100 shadow-sm text-center px-4">
-              <div
-                class="w-16 h-16 bg-surface-50 rounded-full flex items-center justify-center text-surface-400 mb-4 border border-surface-100">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" />
-                </svg>
-              </div>
-              <p class="text-surface-900 font-extrabold text-lg">No tienes historial registrado</p>
-              <p class="text-surface-500 font-semibold text-sm max-w-sm mt-1">
-                Aún no has participado en torneos organizados por el club. ¡Inscríbete a tu primer torneo hoy!
-              </p>
-            </div>
+            <TorneosEmptyState v-if="torneoStore.historial.length === 0" variant="historial">
+              <template #actions>
+                <button @click="changeTab('inscripcion')"
+                  class="w-full sm:w-auto px-5 py-3 rounded-2xl text-sm font-extrabold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-md shadow-primary-500/10 hover:shadow-lg focus:outline-none cursor-pointer">
+                  Inscribirme a mi primer torneo
+                </button>
+                <router-link :to="{ name: 'programmed-activities' }"
+                  class="w-full sm:w-auto px-5 py-3 rounded-2xl text-sm font-extrabold text-surface-700 bg-surface-50 border border-surface-200 hover:bg-surface-100 active:scale-[0.98] transition-all focus:outline-none">
+                  Explorar otras actividades
+                </router-link>
+              </template>
+            </TorneosEmptyState>
 
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <template v-else>
+            <TransitionGroup name="card-list" tag="div" class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- History Card -->
               <div v-for="item in torneoStore.historial" :key="item.id_torneo"
                 class="bg-white rounded-3xl border border-surface-150 shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between relative overflow-hidden">
@@ -404,7 +492,12 @@ const getProgressBarColor = (pct) => {
                   </div>
                 </div>
               </div>
-            </div>
+            </TransitionGroup>
+            </template>
+
+            <!-- Paginación del historial -->
+            <PaginacionBar :pagination="pagination" :loading="torneoStore.loading" item-label="participaciones"
+              @change="handlePageChange" />
           </div>
             </div>
           </Transition>
@@ -444,5 +537,27 @@ const getProgressBarColor = (pct) => {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: rgba(156, 163, 175, 0.25);
   border-radius: 99px;
+}
+
+/* ── card-list: entrada suave de las tarjetas al cambiar de página ──
+   Sólo se anima la entrada: sin transición de salida, las tarjetas salientes
+   se retiran del flujo de inmediato y la rejilla no sufre repositioning. */
+.card-list-enter-active {
+  transition: opacity 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card-list-enter-from {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+}
+.card-list-enter-to {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-list-enter-active {
+    transition: none;
+  }
 }
 </style>
