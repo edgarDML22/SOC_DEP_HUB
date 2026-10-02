@@ -17,7 +17,9 @@ const router = useRouter();
 
 onMounted(async () => {
   agendaStore.fetchSocioAgenda();
-  await torneoStore.fetchDisponibles();
+  // El widget del home siempre muestra el inicio del catálogo completo,
+  // ignorando la página y la búsqueda que el socio dejó en el Hub de Torneos.
+  await torneoStore.fetchDisponibles({ page: 1, search: '' });
 });
 
 const qrPayload    = ref('');
