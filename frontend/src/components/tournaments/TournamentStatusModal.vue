@@ -100,7 +100,6 @@ const executeTransitionConfirmed = async () => {
   } catch (err) {
     console.error("Error transitioning status:", err)
     errorMsg.value = store.error || err.response?.data?.message || 'Ocurrió un error al cambiar el estado del torneo.'
-    toastError('Error al actualizar estado')
   } finally {
     loading.value = false
   }

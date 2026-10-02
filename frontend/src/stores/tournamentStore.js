@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import api from "@/services/api";
+import { handleApiError } from "@/composables/useAlerts";
 
 export const useTournamentStore = defineStore("tournament", () => {
     // ── STATE ───────────────────────────────────────────────────────
@@ -20,6 +21,30 @@ export const useTournamentStore = defineStore("tournament", () => {
     
     const categoriasTorneo = ref([]);
 
+    /**
+     * Normaliza un torneo del backend (que usa `id_torneo`) exponiendo también `id`.
+     * Se usa en todas las acciones para que las vistas puedan leer `id_torneo` sin riesgo.
+     */
+    const normalizeTorneo = (t) => {
+        if (!t || typeof t !== 'object') return t;
+        const id = t.id_torneo ?? t.id;
+        return { ...t, id_torneo: id, id };
+    };
+
+    /**
+     * Compara ids tolerando la diferencia entre string (route params) y number (API).
+     */
+    const isSameTorneo = (torneo, id) => {
+        if (!torneo || id === null || id === undefined) return false;
+        return String(torneo.id_torneo ?? torneo.id) === String(id);
+    };
+
+    /**
+     * Lee el estado de un torneo independientemente del nombre de la columna
+     * (`estado` en las respuestas transformadas, `estatus_torneo` en el modelo).
+     */
+    const getEstado = (torneo) => torneo?.estado || torneo?.estatus_torneo || null;
+
     // ── ACTIONS ─────────────────────────────────────────────────────
 
     const fetchCategoriasTorneo = async () => {
@@ -31,6 +56,7 @@ export const useTournamentStore = defineStore("tournament", () => {
             }
         } catch (err) {
             console.error("Error fetching categorias torneo:", err);
+            error.value = handleApiError(err);
         }
     };
 
@@ -47,8 +73,13 @@ export const useTournamentStore = defineStore("tournament", () => {
         }
 
         try {
+            // El backend espera `nombre_disciplina` / `nombre_categoria`.
             const params = {
-                ...filtros.value,
+                estatus: filtros.value.estatus,
+                tipo_acceso: filtros.value.tipo_acceso,
+                nombre_disciplina: filtros.value.disciplina,
+                nombre_categoria: filtros.value.categoria,
+                search: filtros.value.search || undefined,
                 page: pagination.value.page,
                 per_page: pagination.value.perPage,
             };
@@ -57,29 +88,25 @@ export const useTournamentStore = defineStore("tournament", () => {
             // Ajustar según la estructura de respuesta del backend (Laravel Paginator o Array)
             const res = response.data.data ?? response.data;
             
-            if (res && typeof res === 'object' && Array.isArray(res.data)) {
+            if (res && typeof res === 'object' && !Array.isArray(res) && Array.isArray(res.data)) {
                 // Es un paginador
-                torneos.value = res.data.map(t => ({
-                    ...t,
-                    id_torneo: t.id_torneo || t.id,
-                    id: t.id || t.id_torneo
-                }));
-                pagination.value.total = res.total || 0;
+                torneos.value = res.data.map(normalizeTorneo);
+                pagination.value.total = res.total ?? 0;
             } else {
-                // Es un array directo o algo más
+                // Es un array directo
                 const data = Array.isArray(res) ? res : [];
-                torneos.value = data.map(t => ({
-                    ...t,
-                    id_torneo: t.id_torneo || t.id,
-                    id: t.id || t.id_torneo
-                }));
-                if (response.data.meta) {
-                    pagination.value.total = response.data.meta.total;
-                }
+                torneos.value = data.map(normalizeTorneo);
+                pagination.value.total = response.data?.meta?.total ?? data.length;
             }
         } catch (err) {
             console.error("Error fetching torneos:", err);
-            error.value = err.response?.data?.message || "Error al cargar los torneos.";
+            // El backend responde 404 cuando no hay torneos: es un estado vacío válido, no un fallo.
+            if (err.response?.status === 404) {
+                torneos.value = [];
+                pagination.value.total = 0;
+            } else {
+                error.value = handleApiError(err);
+            }
         } finally {
             loading.value = false;
         }
@@ -94,14 +121,12 @@ export const useTournamentStore = defineStore("tournament", () => {
         try {
             const response = await api.get(`/torneos/${id}`);
             const data = response.data.data ?? response.data;
-            torneoActivo.value = {
-                ...data,
-                id_torneo: data.id_torneo || data.id,
-                id: data.id || data.id_torneo
-            };
+            torneoActivo.value = normalizeTorneo(data);
+            return torneoActivo.value;
         } catch (err) {
             console.error(`Error fetching torneo ${id}:`, err);
-            error.value = err.response?.data?.message || "Error al cargar los detalles del torneo.";
+            error.value = handleApiError(err);
+            throw err;
         } finally {
             loading.value = false;
         }
@@ -128,9 +153,11 @@ export const useTournamentStore = defineStore("tournament", () => {
             } else {
                 bracket.value = data;
             }
+            return bracket.value;
         } catch (err) {
             console.error(`Error fetching bracket for torneo ${id}:`, err);
-            error.value = err.response?.data?.message || "Error al cargar el bracket.";
+            error.value = handleApiError(err);
+            throw err;
         } finally {
             loading.value = false;
         }
@@ -144,12 +171,13 @@ export const useTournamentStore = defineStore("tournament", () => {
         error.value = null;
         try {
             const response = await api.post("/torneos", payload);
-            const nuevoTorneo = response.data.data ?? response.data;
-            torneos.value.unshift(nuevoTorneo);
+            const nuevoTorneo = normalizeTorneo(response.data.data ?? response.data);
+            // El backend no devuelve el torneo completo tras crearlo, así que no lo
+            // agregamos a la lista: la vista debe recargar para tener todos los campos.
             return nuevoTorneo;
         } catch (err) {
             console.error("Error creating torneo:", err);
-            error.value = err.response?.data?.message || "Error al crear el torneo.";
+            error.value = handleApiError(err);
             throw err;
         } finally {
             loading.value = false;
@@ -157,18 +185,46 @@ export const useTournamentStore = defineStore("tournament", () => {
     };
 
     /**
-     * Transiciona el estatus de un torneo con mutación optimista
+     * Actualiza un torneo existente
      */
-    const transicionarEstatus = async (id, nuevoEstatus, motivo = null) => {
+    const actualizarTorneo = async (id, payload) => {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await api.put(`/torneos/${id}`, payload);
+            const data = normalizeTorneo(response.data.data ?? response.data);
+            const index = torneos.value.findIndex(t => isSameTorneo(t, id));
+            if (index !== -1) {
+                torneos.value[index] = { ...torneos.value[index], ...data };
+            }
+            if (isSameTorneo(torneoActivo.value, id)) {
+                torneoActivo.value = { ...torneoActivo.value, ...data };
+            }
+            return data;
+        } catch (err) {
+            console.error(`Error updating torneo ${id}:`, err);
+            error.value = handleApiError(err);
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    /**
+     * Cambia / transiciona el estado de un torneo con mutación optimista y rollback
+     */
+    const cambiarEstadoTorneo = async (id, nuevoEstatus, motivo = null) => {
         error.value = null;
 
         // Buscar el torneo para guardar estado previo en caso de rollback
-        const index = torneos.value.findIndex(t => t.id_torneo === id);
+        const index = torneos.value.findIndex(t => isSameTorneo(t, id));
         let previousStatus = null;
+        let previousMotivo = null;
         let isActivo = false;
 
-        if (torneoActivo.value && (torneoActivo.value.id_torneo === id || torneoActivo.value.id === id)) {
-            previousStatus = torneoActivo.value.estado || torneoActivo.value.estatus_torneo;
+        if (isSameTorneo(torneoActivo.value, id)) {
+            previousStatus = getEstado(torneoActivo.value);
+            previousMotivo = torneoActivo.value.motivo_cancelacion ?? null;
             // Mutación optimista en el activo
             torneoActivo.value.estado = nuevoEstatus;
             torneoActivo.value.estatus_torneo = nuevoEstatus;
@@ -179,7 +235,12 @@ export const useTournamentStore = defineStore("tournament", () => {
         }
 
         if (index !== -1) {
-            if (!previousStatus) previousStatus = torneos.value[index].estado || torneos.value[index].estatus_torneo;
+            if (previousStatus === null) {
+                previousStatus = getEstado(torneos.value[index]);
+            }
+            if (previousMotivo === null) {
+                previousMotivo = torneos.value[index].motivo_cancelacion ?? null;
+            }
             // Mutación optimista en la lista
             torneos.value[index].estado = nuevoEstatus;
             torneos.value[index].estatus_torneo = nuevoEstatus;
@@ -202,23 +263,31 @@ export const useTournamentStore = defineStore("tournament", () => {
             if (index !== -1) {
                 torneos.value[index] = { ...torneos.value[index], ...data };
             }
+            return data;
         } catch (err) {
             console.error(`Error transitioning status for torneo ${id}:`, err);
-            error.value = err.response?.data?.message || "Error al cambiar el estatus del torneo.";
+            error.value = handleApiError(err);
 
             // Rollback en caso de error
             if (isActivo) {
                 torneoActivo.value.estado = previousStatus;
                 torneoActivo.value.estatus_torneo = previousStatus;
+                if (previousMotivo === null) delete torneoActivo.value.motivo_cancelacion;
+                else torneoActivo.value.motivo_cancelacion = previousMotivo;
             }
             if (index !== -1) {
                 torneos.value[index].estado = previousStatus;
                 torneos.value[index].estatus_torneo = previousStatus;
+                if (previousMotivo === null) delete torneos.value[index].motivo_cancelacion;
+                else torneos.value[index].motivo_cancelacion = previousMotivo;
             }
 
             throw err;
         }
     };
+
+    // Alias para mantener compatibilidad con código existente
+    const transicionarEstatus = cambiarEstadoTorneo;
 
     return {
         torneos,
@@ -229,11 +298,14 @@ export const useTournamentStore = defineStore("tournament", () => {
         pagination,
         filtros,
         categoriasTorneo,
+        getEstado,
         fetchTorneos,
         fetchTorneoById,
         fetchBracket,
         fetchCategoriasTorneo,
         crearTorneo,
+        actualizarTorneo,
+        cambiarEstadoTorneo,
         transicionarEstatus,
     };
 });

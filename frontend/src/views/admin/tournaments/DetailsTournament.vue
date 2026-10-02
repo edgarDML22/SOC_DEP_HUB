@@ -28,7 +28,7 @@ onMounted(async () => {
       await store.fetchTorneoById(torneoId)
     } catch (err) {
       console.error("Error al cargar torneo:", err)
-      errorMsg.value = "Hubo un problema al cargar los detalles de este torneo."
+      errorMsg.value = store.error || "Hubo un problema al cargar los detalles de este torneo."
     } finally {
       isLoading.value = false
     }

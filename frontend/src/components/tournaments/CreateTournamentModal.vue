@@ -148,20 +148,7 @@ const submit = async () => {
     emit('close')
 
   } catch (err) {
-    const status = err.response?.status
-    if (status === 422) {
-      if (err.response?.data?.errors) {
-        const errorList = Object.values(err.response.data.errors).flat()
-        formError.value = errorList.join(' ')
-      } else {
-        formError.value = store.error || 'Error de validación: revisa los campos.'
-      }
-    } else if (status === 409) {
-      formError.value = 'Ya existe un torneo con ese nombre en esa fecha.'
-    } else {
-      formError.value = store.error || 'Ocurrió un error al crear el torneo.'
-      toastError('Error al crear torneo')
-    }
+    formError.value = store.error || 'Ocurrió un error al crear el torneo.'
   } finally {
     loading.value = false
   }
