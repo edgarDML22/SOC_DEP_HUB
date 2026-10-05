@@ -112,10 +112,9 @@ class InstructorController extends Controller
 
     public function getProfileData(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user();
 
-        // Validar acceso
-        if ($user->rol !== 'instructor') {
+        if (!$user || $user->rol !== 'instructor') {
             return response()->json([
                 'success' => false,
                 'message' => 'Acceso denegado. No eres instructor.'
@@ -151,6 +150,15 @@ class InstructorController extends Controller
             ->where('id_instructor', $instructorId)
             ->where('fecha', Carbon::now('America/Mexico_City')->toDateString())
             ->first();
+        $fotoPerfil = null;
+        try {
+            if (function_exists('cloudinary')) {
+                $fotoPerfil = (string) cloudinary()->image("instructors/profiles/instructor_{$instructor->id_instructor}")->version(time())->toUrl();
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Error obteniendo foto perfil instructor: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -167,7 +175,7 @@ class InstructorController extends Controller
                     'hora_inicio' => substr($turnoHoy->hora_inicio, 0, 5),
                     'hora_fin'    => substr($turnoHoy->hora_fin, 0, 5),
                 ] : null,
-                'foto_perfil' => (string) cloudinary()->image("instructors/profiles/instructor_{$instructor->id_instructor}")->version(time())->toUrl()
+                'foto_perfil' => $fotoPerfil
             ]
         ], 200);
     }

@@ -57,32 +57,29 @@ class ProfileController extends Controller
                     $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($qrPayload);
                 }
 
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'id_socio' => $perfil->id_socio,
-                        'numero_accion' => $perfil->numero_accion,
-                        'nombre_completo' => $perfil->nombre_completo,
-                        'tipo_socio' => $perfil->tipo_socio,
-                        'modalidad_plan' => $perfil->modalidad_plan,
-                        'estatus_cuenta' => $perfil->estatus_cuenta,
-                        'correo_electronico' => $perfil->correo_electronico,
-                        'fecha_nacimiento' => $perfil->fecha_nacimiento,
-                        'genero' => $perfil->genero,
-                        'fecha_afiliacion' => $perfil->fecha_afiliacion,
-                        'contador_no_shows' => $perfil->contador_no_shows,
-                        'estatus_penalizacion' => $perfil->estatus_penalizacion,
-                        'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
-                        'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
-                        'fecha_fin_penalizacion_ludoteca' => $perfil->fecha_fin_penalizacion_ludoteca ?? null,
-                        'fecha_fin_penalizacion_reservas' => $perfil->fecha_fin_penalizacion_reserva ?? null,
-                        'fecha_fin_penalizacion_reserva' => $perfil->fecha_fin_penalizacion_reserva ?? null,
-                        'retrasos_acumulados_ludoteca' => $perfil->retrasos_ludoteca ?? 0,
-                        'qr_payload' => $qrPayload,
-                        'qr_image_url' => $qrImageUrl,
-                        'foto_perfil' => $this->getFotoPerfilUrl($perfil->id_socio),
-                    ]
-                ]);
+                $data = [
+                    'id_socio' => $perfil->id_socio,
+                    'numero_accion' => $perfil->numero_accion,
+                    'nombre_completo' => $perfil->nombre_completo,
+                    'tipo_socio' => $perfil->tipo_socio,
+                    'modalidad_plan' => $perfil->modalidad_plan,
+                    'estatus_cuenta' => $perfil->estatus_cuenta,
+                    'correo_electronico' => $perfil->correo_electronico,
+                    'fecha_nacimiento' => $perfil->fecha_nacimiento,
+                    'genero' => $perfil->genero,
+                    'fecha_afiliacion' => $perfil->fecha_afiliacion,
+                    'contador_no_shows' => $perfil->contador_no_shows,
+                    'estatus_penalizacion' => $perfil->estatus_penalizacion,
+                    'fecha_fin_penalizacion' => $perfil->fecha_fin_penalizacion,
+                    'retrasos_ludoteca' => $perfil->retrasos_ludoteca,
+                    'fecha_fin_penalizacion_ludoteca' => $perfil->fecha_fin_penalizacion_ludoteca ?? null,
+                    'fecha_fin_penalizacion_reservas' => $perfil->fecha_fin_penalizacion_reserva ?? null,
+                    'fecha_fin_penalizacion_reserva' => $perfil->fecha_fin_penalizacion_reserva ?? null,
+                    'retrasos_acumulados_ludoteca' => $perfil->retrasos_ludoteca ?? 0,
+                    'qr_payload' => $qrPayload,
+                    'qr_image_url' => $qrImageUrl,
+                    'foto_perfil' => $this->getFotoPerfilUrl($perfil->id_socio),
+                ];
                 break;
 
             case 'miembro_familiar':
@@ -143,6 +140,7 @@ class ProfileController extends Controller
 
                 if ($perfil) {
                     $data = [
+                        'id_instructor' => $perfil->id_instructor,
                         'nombre_completo' => $perfil->nombre_completo,
                         'estatus_cuenta' => $perfil->estatus,
                         'correo_electronico' => $perfil->correo_electronico,
@@ -150,6 +148,7 @@ class ProfileController extends Controller
                         'fecha_afiliacion' => $perfil->fecha_afiliacion,
                         'fecha_nacimiento' => $perfil->fecha_nacimiento,
                         'rol' => 'Instructor',
+                        'foto_perfil' => $this->getInstructorFotoPerfilUrl($perfil->id_instructor),
                     ];
                 }
                 break;
@@ -269,27 +268,56 @@ class ProfileController extends Controller
         }
 
         // Subir la imagen a Cloudinary en la carpeta especificada
-        $file = $request->file('foto_perfil');
-        cloudinary()->uploadApi()->upload($file->getRealPath(), [
-            'folder' => $folder,
-            'public_id' => $publicId,
-            'overwrite' => true,
-        ]);
+        try {
+            if (function_exists('cloudinary')) {
+                $file = $request->file('foto_perfil');
+                cloudinary()->uploadApi()->upload($file->getRealPath(), [
+                    'folder' => $folder,
+                    'public_id' => $publicId,
+                    'overwrite' => true,
+                ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Foto de perfil actualizada correctamente',
-            'foto_perfil' => $url
-        ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Foto de perfil actualizada correctamente',
+                    'foto_perfil' => $url
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Servicio de carga de imágenes no disponible.'
+            ], 503);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error subiendo foto de perfil a Cloudinary: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir la imagen: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     private function getFotoPerfilUrl($idSocio)
     {
-        return (string) cloudinary()->image("socios/profiles/socio_{$idSocio}")->version(time())->toUrl();
+        try {
+            if (function_exists('cloudinary')) {
+                return (string) cloudinary()->image("socios/profiles/socio_{$idSocio}")->version(time())->toUrl();
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Error al obtener foto de perfil socio {$idSocio}: " . $e->getMessage());
+        }
+        return null;
     }
 
     private function getInstructorFotoPerfilUrl($idInstructor)
     {
-        return (string) cloudinary()->image("instructors/profiles/instructor_{$idInstructor}")->version(time())->toUrl();
+        try {
+            if (function_exists('cloudinary')) {
+                return (string) cloudinary()->image("instructors/profiles/instructor_{$idInstructor}")->version(time())->toUrl();
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Error al obtener foto de perfil instructor {$idInstructor}: " . $e->getMessage());
+        }
+        return null;
     }
 }

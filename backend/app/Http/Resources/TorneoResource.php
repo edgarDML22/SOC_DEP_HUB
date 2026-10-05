@@ -42,7 +42,7 @@ class TorneoResource extends JsonResource
             'motivo_cancelacion'   => $this->motivo_cancelacion,
 
             // --- Relaciones condicionales ---
-            '_encuentros'          => EncuentroResource::collection($this->whenLoaded('encuentros')),
+            '_encuentros'          => $this->whenLoaded('encuentros', fn () => EncuentroResource::collection($this->encuentros)),
         ];
     }
 }

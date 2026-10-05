@@ -20,17 +20,7 @@ class AuthController extends Controller
         ]);
 
         // 2. Buscar al usuario en la tabla central SSO
-        $user = User::where('email', $request->email)
-            ->select('id', 'email', 'password', 'rol', 'user_id')
-            ->first();
-
-        //SDH-247: Bloquear cuentas de gerentes y subgerentes deshabilitadas
-        if (in_array($user->rol, ['gerente', 'subgerente']) && $user->activo === false) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tu cuenta ha sido deshabilitada. Contacta al administrador del sistema.'
-            ], 403);
-        }
+        $user = User::where('email', $request->email)->first();
 
         // 3. Validar existencia y contraseña (Hash Bcrypt)
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -38,6 +28,14 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Credenciales incorrectas'
             ], 401);
+        }
+
+        // SDH-247: Bloquear cuentas de gerentes y subgerentes deshabilitadas
+        if (in_array($user->rol, ['gerente', 'subgerente']) && $user->activo === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tu cuenta ha sido deshabilitada. Contacta al administrador del sistema.'
+            ], 403);
         }
 
         // 3.5 Verificar estatus si es instructor

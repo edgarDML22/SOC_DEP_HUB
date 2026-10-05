@@ -44,7 +44,7 @@ class TorneoController extends Controller
         // original del paginador: { success, data: { current_page, data:[...], total } }
         $torneos->setCollection(
             $torneos->getCollection()->map(
-                fn ($torneo) => (new TorneoResource($torneo))->toArray($request)
+                fn ($torneo) => (new TorneoResource($torneo))->resolve($request)
             )
         );
 
