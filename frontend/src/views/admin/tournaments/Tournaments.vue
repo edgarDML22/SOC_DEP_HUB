@@ -18,6 +18,7 @@ import { IconFilter, IconChevronDown } from '@/components/icons'
 import CreateTournamentModal from '@/components/tournaments/CreateTournamentModal.vue'
 import EditTournamentModal from '@/components/tournaments/EditTournamentModal.vue'
 import TournamentStatusModal from '@/components/tournaments/TournamentStatusModal.vue'
+import Select from 'primevue/select'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,6 +68,22 @@ watch(searchQuery, (val) => {
 watch([() => filtros.value.estatus, () => filtros.value.disciplina, () => filtros.value.tipo_acceso], () => {
   store.fetchTorneos()
 })
+
+const customSelectPt = {
+  root: { class: 'bg-surface-50 border border-surface-200 rounded-xl hover:border-primary-400 transition-all w-full flex items-center shadow-sm' },
+  label: { class: 'text-sm font-semibold text-surface-700 py-2.5 pl-10' },
+  dropdown: { class: 'w-10 text-surface-400 flex items-center justify-center' },
+  panel: { class: 'bg-white rounded-xl shadow-xl border border-surface-100 mt-1 p-1.5 z-50' },
+  list: { class: 'flex flex-col gap-1 p-0 m-0 list-none' },
+  option: ({ context }) => ({
+    class: [
+      'px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center m-0',
+      context.selected 
+        ? 'bg-blue-50 text-blue-700' 
+        : 'text-surface-700 hover:bg-slate-50 hover:text-blue-600'
+    ]
+  })
+}
 
 const hasActiveFilters = computed(() => filtros.value.search || filtros.value.estatus || filtros.value.disciplina || filtros.value.tipo_acceso)
 const clearFilters = () => {
@@ -264,39 +281,27 @@ onMounted(() => {
           <!-- Estatus -->
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-            <div class="relative">
-              <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filtros.estatus"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                <option v-for="opt in STATUS_OPTS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+            <div class="relative flex items-center">
+              <IconFilter class="absolute left-3.5 w-4 h-4 text-surface-400 pointer-events-none z-10" />
+              <Select v-model="filtros.estatus" :options="STATUS_OPTS" option-label="label" option-value="value" placeholder="Todos los estados" :pt="customSelectPt" />
             </div>
           </div>
 
           <!-- Disciplina -->
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
-            <div class="relative">
-              <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filtros.disciplina"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                <option v-for="opt in disciplineOpts" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+            <div class="relative flex items-center">
+              <IconFilter class="absolute left-3.5 w-4 h-4 text-surface-400 pointer-events-none z-10" />
+              <Select v-model="filtros.disciplina" :options="disciplineOpts" option-label="label" option-value="value" placeholder="Todas las disciplinas" :pt="customSelectPt" />
             </div>
           </div>
 
           <!-- Tipo Acceso -->
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Acceso</label>
-            <div class="relative">
-              <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-              <select v-model="filtros.tipo_acceso"
-                class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                <option v-for="opt in ACCESS_OPTS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+            <div class="relative flex items-center">
+              <IconFilter class="absolute left-3.5 w-4 h-4 text-surface-400 pointer-events-none z-10" />
+              <Select v-model="filtros.tipo_acceso" :options="ACCESS_OPTS" option-label="label" option-value="value" placeholder="Todos" :pt="customSelectPt" />
             </div>
           </div>
         </div>
