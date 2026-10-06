@@ -12,7 +12,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/var/www
-      - /var/www/vendor                          # vendor instalado en el build
+      - backend_vendor:/var/www/vendor           # vendor compartido entre app, scheduler y worker
       - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
       - C:/torneos-storage:/torneos-storage
     networks:
@@ -44,14 +44,19 @@ services:
     restart: unless-stopped
     environment:
       - TZ=America/Mexico_City
-    command: php artisan schedule:work
+    command: >-
+      sh -c "
+        sleep 5 &&
+        php artisan schedule:work
+      "
     volumes:
       - ./backend:/var/www
-      - /var/www/vendor                          # vendor instalado en el build
+      - backend_vendor:/var/www/vendor           # vendor compartido
       - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
     networks:
       - socdep-network
     depends_on:
+      - app
       - nosql
       - redis
 
@@ -64,14 +69,19 @@ services:
     restart: unless-stopped
     environment:
       - TZ=America/Mexico_City
-    command: php artisan queue:work --queue=default,torneo-cancelacion --tries=3 --timeout=120
+    command: >-
+      sh -c "
+        sleep 5 &&
+        php artisan queue:work --queue=default,torneo-cancelacion --tries=3 --timeout=120
+      "
     volumes:
       - ./backend:/var/www
-      - /var/www/vendor                          # vendor instalado en el build
+      - backend_vendor:/var/www/vendor           # vendor compartido
       - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
     networks:
       - socdep-network
     depends_on:
+      - app
       - nosql
       - redis
 
@@ -119,3 +129,4 @@ networks:
 
 volumes:
   dompdf_fonts:   # Caché de fuentes DOMPDF — persiste entre reinicios y compilaciones
+  backend_vendor: # Directorio vendor compartido entre app, scheduler y worker

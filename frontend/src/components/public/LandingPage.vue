@@ -281,8 +281,16 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
 const openLink = (path) => {
-    window.open(path, '_blank')
+    if (path.startsWith('http')) {
+        window.open(path, '_blank')
+    } else {
+        router.push(path)
+    }
 }
 
 const sports = [

@@ -44,8 +44,8 @@ Schedule::command('ludoteca:check-alerts')
     ->everyMinute()
     ->timezone('America/Mexico_City');
 
-// Limpia tokens de Sanctum expirados (>30 días) — mantiene personal_access_tokens pequeña
-Schedule::command('sanctum:prune-expired --hours=720')->daily();
+// Limpia tokens de Sanctum que hayan expirado hace más de 24 horas — mantiene personal_access_tokens optimizada
+Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 // Procesa colas pendientes (default + cancelación de torneos) cuando el worker dedicado no las alcance
 Schedule::command('queue:work --queue=default,torneo-cancelacion --stop-when-empty --tries=3 --timeout=120')

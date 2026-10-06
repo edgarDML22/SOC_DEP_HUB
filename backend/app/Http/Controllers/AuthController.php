@@ -49,7 +49,8 @@ class AuthController extends Controller
             }
         }
 
-        // 4. Generar token de Sanctum
+        // 4. Generar token de Sanctum (revocamos tokens anteriores para evitar acumulación de sesiones huérfanas)
+        $user->tokens()->where('name', 'auth_token')->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // 5. Estructura de respuesta exitosa
