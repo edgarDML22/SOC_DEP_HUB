@@ -57,15 +57,27 @@ const onClickOutside = (e) => {
 watch(isOpen, (val) => {
   if (!menuRef.value) return
   
-  // 1. Elevate row z-index and set position relative
+  // 1. Elevate row z-index and set position relative if static
   const row = menuRef.value.closest('tr') || menuRef.value.parentElement
   if (row) {
     if (val) {
+      row.dataset.origZIndex = row.style.zIndex || ''
       row.style.zIndex = '50'
-      row.style.position = 'relative'
+      
+      const computedPos = window.getComputedStyle(row).position
+      if (computedPos === 'static') {
+        row.dataset.origPosition = row.style.position || ''
+        row.style.position = 'relative'
+      }
     } else {
-      row.style.zIndex = ''
-      row.style.position = ''
+      if (row.dataset.origZIndex !== undefined) {
+        row.style.zIndex = row.dataset.origZIndex
+        delete row.dataset.origZIndex
+      }
+      if (row.dataset.origPosition !== undefined) {
+        row.style.position = row.dataset.origPosition
+        delete row.dataset.origPosition
+      }
     }
   }
 

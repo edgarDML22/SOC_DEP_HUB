@@ -313,19 +313,8 @@ const submit = async () => {
                 />
               </div>
 
-              <!-- Categoría / Disciplina -->
+              <!-- Disciplina / Categoría -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1.5">
-                  <label class="text-sm font-medium text-slate-700">Categoría <span class="text-red-400">*</span></label>
-                  <Select
-                    v-model="form.nombre_categoria"
-                    :options="CATEGORIA_OPTS"
-                    optionLabel="label"
-                    placeholder="Selecciona Categoría"
-                    :disabled="!form.nombre_disciplina"
-                    class="w-full"
-                  />
-                </div>
                 <div class="flex flex-col gap-1.5">
                   <label class="text-sm font-medium text-slate-700">Disciplina <span class="text-red-400">*</span></label>
                   <Select
@@ -333,7 +322,20 @@ const submit = async () => {
                     :options="DISCIPLINA_OPTS"
                     optionLabel="label"
                     placeholder="Selecciona Disciplina"
-                    class="w-full"
+                    class="w-full custom-modal-select"
+                    panelClass="custom-modal-select-panel"
+                  />
+                </div>
+                <div class="flex flex-col gap-1.5 transition-all duration-200" :class="{ 'opacity-50 grayscale': !form.nombre_disciplina }">
+                  <label class="text-sm font-medium text-slate-700">Categoría <span class="text-red-400">*</span></label>
+                  <Select
+                    v-model="form.nombre_categoria"
+                    :options="CATEGORIA_OPTS"
+                    optionLabel="label"
+                    placeholder="Selecciona Categoría"
+                    :disabled="!form.nombre_disciplina"
+                    class="w-full custom-modal-select"
+                    panelClass="custom-modal-select-panel"
                   />
                 </div>
               </div>
@@ -349,7 +351,8 @@ const submit = async () => {
                     placeholder="dd/mm/aaaa"
                     showIcon
                     fluid
-                    class="w-full"
+                    :manualInput="false"
+                    class="w-full custom-modal-datepicker"
                   />
                   <p v-if="fechaInicioError" class="text-xs text-red-600 font-medium">{{ fechaInicioError }}</p>
                 </div>
@@ -363,7 +366,8 @@ const submit = async () => {
                     placeholder="dd/mm/aaaa"
                     showIcon
                     fluid
-                    class="w-full"
+                    :manualInput="false"
+                    class="w-full custom-modal-datepicker"
                   />
                   <p v-if="fechaFinError" class="text-xs text-red-600 font-medium">{{ fechaFinError }}</p>
                 </div>
@@ -378,7 +382,8 @@ const submit = async () => {
                     :options="ACCESO_OPTS"
                     optionLabel="label"
                     placeholder="Selecciona"
-                    class="w-full"
+                    class="w-full custom-modal-select"
+                    panelClass="custom-modal-select-panel"
                   />
                 </div>
                 <div class="flex flex-col gap-1.5">
@@ -388,7 +393,8 @@ const submit = async () => {
                     :options="FORMATO_OPTS"
                     optionLabel="label"
                     placeholder="Selecciona"
-                    class="w-full"
+                    class="w-full custom-modal-select"
+                    panelClass="custom-modal-select-panel"
                   />
                 </div>
                 <div class="flex flex-col gap-1.5">
@@ -398,7 +404,8 @@ const submit = async () => {
                     :options="MODALIDAD_OPTS"
                     optionLabel="label"
                     placeholder="Selecciona"
-                    class="w-full"
+                    class="w-full custom-modal-select"
+                    panelClass="custom-modal-select-panel"
                   />
                 </div>
                 <div class="flex flex-col gap-1.5">
@@ -408,7 +415,8 @@ const submit = async () => {
                     :options="GENERO_OPTS"
                     optionLabel="label"
                     placeholder="Selecciona"
-                    class="w-full"
+                    class="w-full custom-modal-select"
+                    panelClass="custom-modal-select-panel"
                   />
                 </div>
               </div>
@@ -493,3 +501,99 @@ const submit = async () => {
     </Transition>
   </Teleport>
 </template>
+
+<style>
+/* Estilos globales pero limitados a las clases específicas para este modal */
+.custom-modal-select {
+  border-radius: 0.75rem !important;
+  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  box-shadow: none !important;
+  transition: all 0.2s !important;
+}
+.custom-modal-select:not(.p-disabled):not([data-p-disabled="true"]):hover {
+  border-color: #60a5fa !important;
+}
+.custom-modal-select.p-disabled,
+.custom-modal-select[data-p-disabled="true"] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  opacity: 0.8 !important;
+  cursor: not-allowed !important;
+}
+.custom-modal-select.p-disabled *,
+.custom-modal-select[data-p-disabled="true"] * {
+  cursor: not-allowed !important;
+}
+.custom-modal-select.p-focus,
+.custom-modal-select[data-p-focused="true"] {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4) !important;
+}
+.custom-modal-select .p-select-label {
+  padding: 0.625rem 1rem !important;
+  font-size: 0.875rem !important;
+  color: #0f172a !important;
+  font-weight: 500 !important;
+}
+.custom-modal-select .p-select-dropdown {
+  color: #94a3b8 !important;
+  width: 2.5rem !important;
+}
+
+/* Panel Options Overlay */
+.custom-modal-select-panel {
+  border-radius: 0.75rem !important;
+  border: 1px solid #f1f5f9 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+  margin-top: 4px !important;
+  background-color: #ffffff !important;
+  padding: 0.375rem !important;
+}
+.custom-modal-select-panel .p-select-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.125rem !important;
+  padding: 0 !important;
+}
+.custom-modal-select-panel .p-select-option {
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  transition: all 0.2s !important;
+  margin: 0 !important;
+  background-color: transparent !important;
+}
+.custom-modal-select-panel .p-select-option:not([data-p-selected="true"]):not(.p-select-option-selected):not([data-p-disabled="true"]):not(.p-disabled).p-focus,
+.custom-modal-select-panel .p-select-option:not([data-p-selected="true"]):not(.p-select-option-selected):not([data-p-disabled="true"]):not(.p-disabled):hover {
+  background-color: #f8fafc !important;
+  color: #2563eb !important;
+}
+.custom-modal-select-panel .p-select-option.p-select-option-selected,
+.custom-modal-select-panel .p-select-option[data-p-selected="true"] {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+/* DatePicker input */
+.custom-modal-datepicker .p-inputtext {
+  border-radius: 0.75rem !important;
+  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  padding: 0.625rem 1rem !important;
+  font-size: 0.875rem !important;
+  color: #0f172a !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: none !important;
+}
+.custom-modal-datepicker .p-inputtext:hover {
+  border-color: #60a5fa !important;
+}
+.custom-modal-datepicker .p-inputtext:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4) !important;
+}
+</style>
