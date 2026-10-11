@@ -419,6 +419,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('plantillas')->group(function () {
             Route::get('/', [PlantillaProgramacionController::class, 'index']);
+            Route::get('/semanas-ocupadas', [PlantillaProgramacionController::class, 'semanasOcupadas']);
             Route::post('/', [PlantillaProgramacionController::class, 'storePlantilla']);
             Route::get('/{plantillaId}', [PlantillaProgramacionController::class, 'show']);
             Route::patch('/{plantillaId}', [PlantillaProgramacionController::class, 'updatePlantilla']);

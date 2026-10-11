@@ -149,10 +149,91 @@ function sesionASlots(s) {
   return { startSlot, endSlot: Math.max(endSlot, startSlot + 1) }
 }
 
-// ─── Layout de lanes por día ──────────────────────────────────────────────────
-function layoutDia(dia) {
+// ─── Navegación temporal por días (Límites: Lunes base <= d <= Hoy + 14 días) ─
+function getDiffToMonday() {
+  const d = new Date()
+  const day = d.getDay()
+  return day === 0 ? 6 : day - 1
+}
+
+// Al inicio la columna extrema izquierda debe ser Hoy (today)
+const dayOffset = ref(getDiffToMonday())
+
+function getBaseMonday() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  const diffToMonday = getDiffToMonday()
+  d.setDate(d.getDate() - diffToMonday)
+  return d
+}
+
+function getMaxDate() {
+  const d = new Date()
+  d.setHours(23, 59, 59, 999)
+  d.setDate(d.getDate() + 14)
+  return d
+}
+
+function formatDateStr(d) {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const date = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${date}`
+}
+
+const weekDays = computed(() => {
+  const base = getBaseMonday()
+  base.setDate(base.getDate() + dayOffset.value)
+
+  const todayStr = formatDateStr(new Date())
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base)
+    d.setDate(base.getDate() + i)
+    const dateStr = formatDateStr(d)
+    const dayOfWeek = d.getDay()
+    const diaKey = DIAS[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+
+    return {
+      date: d,
+      dateStr,
+      dia: diaKey,
+      fecha: d.getDate(),
+      mes: d.toLocaleDateString('es-ES', { month: 'short' }),
+      esHoy: dateStr === todayStr,
+    }
+  })
+})
+
+const canGoPrev = computed(() => dayOffset.value > 0)
+
+const canGoNext = computed(() => {
+  if (weekDays.value.length === 0) return false
+  const lastColDate = weekDays.value[6].date
+  return lastColDate < getMaxDate()
+})
+
+function goPrevDay() {
+  if (canGoPrev.value) {
+    dayOffset.value--
+  }
+}
+
+function goNextDay() {
+  if (canGoNext.value) {
+    dayOffset.value++
+  }
+}
+
+// ─── Layout de lanes por columna (por dateStr o día de la semana) ────────────
+function layoutColumna(col) {
   const items = sesionesFiltradas.value
-    .filter(b => b.dia_semana === dia)
+    .filter(b => {
+      if (b.fecha_sesion) {
+        return b.fecha_sesion === col.dateStr
+      }
+      return b.dia_semana === col.dia
+    })
     .map(b => {
       const { startSlot, endSlot } = sesionASlots(b)
       return { ...b, _startSlot: startSlot, _endSlot: endSlot }
@@ -181,10 +262,8 @@ function layoutDia(dia) {
   return items.map(it => ({ ...it, _totalLanes: totalLanes }))
 }
 
-const layoutPorDia = computed(() => {
-  const out = {}
-  for (const dia of DIAS) out[dia] = layoutDia(dia)
-  return out
+const layoutPorColumna = computed(() => {
+  return weekDays.value.map(col => layoutColumna(col))
 })
 
 // ─── Matriz cromática por estado operativo ────────────────────────────────────
@@ -232,29 +311,12 @@ function clasesBloque(b) {
   }
 }
 
-// ─── Indicador de día actual ──────────────────────────────────────────────────
-const now      = new Date()
-const todayDia = DIAS[now.getDay() === 0 ? 6 : now.getDay() - 1]
-
+// ─── Indicador de zona horaria ────────────────────────────────────────────────
 const timezoneLabel = computed(() => {
   const offsetMinutes = new Date().getTimezoneOffset()
   const offsetHours   = -offsetMinutes / 60
   const sign          = offsetHours >= 0 ? '+' : ''
   return `GMT${sign}${offsetHours}`
-})
-
-const weekDays = computed(() => {
-  const current          = new Date()
-  const currentDay       = current.getDay()
-  const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1
-  const monday           = new Date(current)
-  monday.setDate(current.getDate() - distanceToMonday)
-
-  return DIAS.map((dia, index) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + index)
-    return { dia, fecha: d.getDate() }
-  })
 })
 
 function formatGutterHour(h) {
@@ -266,11 +328,10 @@ function formatGutterHour(h) {
 }
 
 // ─── Clases de opacidad por columna (dimming) ─────────────────────────────────
-// Solo actúa cuando hay un día seleccionado; la columna no seleccionada se atenúa.
-// No afecta el array de sesiones — las tarjetas siguen en su columna correcta.
-function opacidadColumna(dia) {
+// Si hay un día o columna seleccionada, las demás columnas se atenúan.
+function opacidadColumna(diaKey) {
   if (diaSeleccionado.value === null) return ''
-  return diaSeleccionado.value === dia ? '' : 'opacity-30'
+  return diaSeleccionado.value === diaKey ? '' : 'opacity-25 pointer-events-none'
 }
 </script>
 
@@ -443,6 +504,42 @@ function opacidadColumna(dia) {
           <option v-for="esp in espaciosUnicos" :key="esp" :value="esp">{{ esp }}</option>
         </select>
 
+        <!-- Separador vertical -->
+        <div class="w-px h-5 bg-slate-200 shrink-0" />
+
+        <!-- Control de Navegación por Días -->
+        <div class="flex items-center gap-1 shrink-0 bg-slate-50 border border-slate-200/80 rounded-xl p-0.5">
+          <button
+            type="button"
+            @click="goPrevDay"
+            :disabled="!canGoPrev"
+            class="p-1 rounded-lg transition-colors flex items-center justify-center"
+            :class="canGoPrev ? 'text-slate-700 hover:bg-white hover:shadow-xs active:scale-95' : 'text-slate-300 cursor-not-allowed'"
+            title="Día anterior"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          <span class="text-[10px] font-extrabold text-slate-600 px-1.5 tabular-nums select-none whitespace-nowrap">
+            {{ weekDays[0]?.fecha }} {{ weekDays[0]?.mes }} – {{ weekDays[6]?.fecha }} {{ weekDays[6]?.mes }}
+          </span>
+
+          <button
+            type="button"
+            @click="goNextDay"
+            :disabled="!canGoNext"
+            class="p-1 rounded-lg transition-colors flex items-center justify-center"
+            :class="canGoNext ? 'text-slate-700 hover:bg-white hover:shadow-xs active:scale-95' : 'text-slate-300 cursor-not-allowed'"
+            title="Día siguiente"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+
         <!-- Indicador de filtros activos -->
         <Transition
           enter-active-class="transition-all duration-150 ease-out"
@@ -493,7 +590,7 @@ function opacidadColumna(dia) {
             <!-- Cabeceras de día — clic para filtrar columna -->
             <div
               v-for="dayObj in weekDays"
-              :key="dayObj.dia"
+              :key="dayObj.dateStr"
               class="h-20 border-l border-slate-100 flex flex-col items-center justify-center gap-1 cursor-pointer select-none transition-opacity duration-200"
               :class="opacidadColumna(dayObj.dia)"
               @click="toggleDia(dayObj.dia)"
@@ -501,16 +598,16 @@ function opacidadColumna(dia) {
             >
               <span :class="[
                 'text-[11px] font-bold uppercase tracking-wider transition-colors duration-150',
-                dayObj.dia === todayDia ? 'text-primary-600' : 'text-slate-700'
+                dayObj.esHoy ? 'text-primary-600' : 'text-slate-700'
               ]">
                 {{ DIAS_LABEL[dayObj.dia] }}
               </span>
-              <!-- Burbuja de fecha: activa (seleccionada) → bg-slate-900; hoy → bg-primary; normal → hover:bg-slate-100 -->
+              <!-- Burbuja de fecha: activa (seleccionada) → bg-blue-600 azul brillante; hoy → bg-primary; normal → hover:bg-slate-100 -->
               <div :class="[
                 'w-9 h-9 rounded-full flex items-center justify-center text-[15px] transition-all duration-150',
                 diaSeleccionado === dayObj.dia
-                  ? 'bg-slate-900 text-white font-bold shadow-md ring-2 ring-slate-900/20'
-                  : dayObj.dia === todayDia
+                  ? 'bg-blue-600 text-white font-bold shadow-md ring-2 ring-blue-600/30'
+                  : dayObj.esHoy
                     ? 'bg-primary-600 text-white font-bold shadow-sm'
                     : 'text-slate-800 font-semibold hover:bg-slate-100'
               ]">
@@ -546,18 +643,18 @@ function opacidadColumna(dia) {
             </div>
 
             <!-- Columnas de día — fondo con dimming por día seleccionado -->
-            <template v-for="(dia, diaIdx) in DIAS" :key="'col-' + dia">
+            <template v-for="(dayObj, colIdx) in weekDays" :key="'col-' + dayObj.dateStr">
               <div
                 v-for="hIdx in TOTAL_HORAS"
-                :key="`bg-${dia}-${hIdx}`"
+                :key="`bg-${dayObj.dateStr}-${hIdx}`"
                 :class="[
                   'w-full h-full border-l border-l-slate-100 border-t border-t-slate-100 text-left align-top select-none transition-opacity duration-200',
                   hIdx === TOTAL_HORAS ? 'border-b border-b-slate-100' : '',
-                  dia === todayDia ? 'bg-slate-50/50' : '',
-                  opacidadColumna(dia),
+                  dayObj.esHoy ? 'bg-slate-50/50' : '',
+                  opacidadColumna(dayObj.dia),
                 ]"
                 :style="{
-                  gridColumn: diaIdx + 2,
+                  gridColumn: colIdx + 2,
                   gridRow: `${(hIdx - 1) * SLOTS_POR_HORA + 1} / span ${SLOTS_POR_HORA}`,
                 }"
               >
@@ -566,14 +663,14 @@ function opacidadColumna(dia) {
             </template>
 
             <!-- Bloques de sesión — también con dimming -->
-            <template v-for="(dia, diaIdx) in DIAS" :key="'sess-' + dia">
+            <template v-for="(dayObj, colIdx) in weekDays" :key="'sess-' + dayObj.dateStr">
               <button
-                v-for="b in layoutPorDia[dia]"
+                v-for="b in layoutPorColumna[colIdx]"
                 :key="b.id_sesion"
                 type="button"
                 @click="emit('select-sesion', b)"
                 :style="{
-                  gridColumn: diaIdx + 2,
+                  gridColumn: colIdx + 2,
                   gridRow: `${b._startSlot + 1} / ${b._endSlot + 1}`,
                   width: `calc(${100 / b._totalLanes}% - 6px)`,
                   marginLeft: `calc(${(100 / b._totalLanes) * b._lane}% + 3px)`,
@@ -583,7 +680,7 @@ function opacidadColumna(dia) {
                   'hover:shadow-md hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-[0.98]',
                   clasesBloque(b).bg,
                   clasesBloque(b).borderStyle,
-                  opacidadColumna(dia),
+                  opacidadColumna(dayObj.dia),
                 ]"
               >
                 <div class="pl-2.5 pr-2 py-2 h-full flex flex-col justify-between overflow-hidden">

@@ -30,11 +30,12 @@ class SesionActivaController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $plantillaActiva = PlantillaProgramacion::where('estatus_plantilla', true)
-            ->orderByDesc('fecha_inicio')
-            ->first();
+        app(\App\Services\PublicarProgramacionService::class)->resetearPlantillasVencidas();
 
-        if (!$plantillaActiva) {
+        $plantillasPublicadas = PlantillaProgramacion::where('publicada', true)
+            ->get();
+
+        if ($plantillasPublicadas->isEmpty()) {
             return response()->json([
                 'data' => [],
                 'meta' => [
@@ -47,8 +48,8 @@ class SesionActivaController extends Controller
             ], 200);
         }
 
-        // withoutGlobalScopes() es obligatorio: FuturasActivasScope excluye CANCELADA
-        // y sesiones de fechas pasadas — ambas deben ser visibles en el monitoreo.
+        // Filtrar sesiones que pertenezcan a las plantillas publicadas Y estén dentro
+        // del rango de fechas estipulado (fecha_inicio a fecha_fin) de su respectiva programación.
         $query = SesionActiva::withoutGlobalScopes()->with([
             'actividadPlantilla:id_actividad_plantilla,id_plantilla',
             'actividadPlantilla.disciplina.categorias',
@@ -56,13 +57,20 @@ class SesionActivaController extends Controller
             'espacio:id_espacio,nombre_espacio',
             'instructorPrincipal:id_instructor,nombre_completo',
         ])
-            ->whereHas('actividadPlantilla', function ($q) use ($plantillaActiva) {
-                $q->where('id_plantilla', $plantillaActiva->id_plantilla);
-            })
-            ->whereBetween('fecha_sesion', [
-                $plantillaActiva->fecha_inicio,
-                $plantillaActiva->fecha_fin,
-            ]);
+            ->where(function ($subQ) use ($plantillasPublicadas) {
+                foreach ($plantillasPublicadas as $plantilla) {
+                    $subQ->orWhere(function ($pQ) use ($plantilla) {
+                        $pQ->whereHas('actividadPlantilla', function ($apQ) use ($plantilla) {
+                            $apQ->where('id_plantilla', $plantilla->id_plantilla);
+                        });
+                        if ($plantilla->fecha_inicio && $plantilla->fecha_fin) {
+                            $pQ->whereBetween('fecha_sesion', [$plantilla->fecha_inicio, $plantilla->fecha_fin]);
+                        } elseif ($plantilla->fecha_inicio) {
+                            $pQ->where('fecha_sesion', '>=', $plantilla->fecha_inicio);
+                        }
+                    });
+                }
+            });
 
         // ── Filtros opcionales ────────────────────────────────────────────────
         if ($estatus = $request->query('estatus')) {
@@ -151,15 +159,16 @@ class SesionActivaController extends Controller
      */
     public function opciones(): JsonResponse
     {
-        $plantillaActiva = PlantillaProgramacion::where('estatus_plantilla', true)
-            ->orderByDesc('fecha_inicio')
-            ->first();
+        $plantillasPublicadas = PlantillaProgramacion::where('publicada', true)
+            ->get();
 
-        if (!$plantillaActiva) {
+        if ($plantillasPublicadas->isEmpty()) {
             return response()->json([
                 'disciplinas' => [], 'instructores' => [], 'espacios' => [], 'categorias' => [],
             ]);
         }
+
+        $idPlantillas = $plantillasPublicadas->pluck('id_plantilla');
 
         $actividades = DB::table('actividades_plantilla as ap')
             ->join('disciplinas as d', 'd.id_disciplina', '=', 'ap.id_disciplina')
@@ -167,7 +176,7 @@ class SesionActivaController extends Controller
             ->leftJoin('espacios_fisicos as e', 'e.id_espacio', '=', 'ap.id_espacio')
             ->leftJoin('categoria_disciplina as cd', 'cd.id_disciplina', '=', 'ap.id_disciplina')
             ->leftJoin('categorias as cat', 'cat.id_categoria', '=', 'cd.id_categoria')
-            ->where('ap.id_plantilla', $plantillaActiva->id_plantilla)
+            ->whereIn('ap.id_plantilla', $idPlantillas)
             ->select(
                 'd.nombre_disciplina',
                 'i.nombre_completo as instructor',

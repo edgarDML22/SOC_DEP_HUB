@@ -582,7 +582,6 @@ defineExpose({ fetchSesiones })
               <table class="w-full border-collapse text-left min-w-[1000px]">
                 <thead>
                   <tr class="bg-slate-950 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
-                    <th class="py-3.5 px-4 font-extrabold">ID</th>
                     <th class="py-3.5 px-3 text-center font-extrabold">Estatus</th>
                     <th class="py-3.5 px-3 text-center font-extrabold">Tipo</th>
                     <th class="py-3.5 px-4 font-extrabold">Fecha / Día</th>
@@ -601,8 +600,6 @@ defineExpose({ fetchSesiones })
                     class="hover:bg-slate-50/60 transition-colors"
                     :class="s.estatus_sesion === 'CANCELADA' ? 'bg-red-50/20' : ''"
                   >
-                    <td class="py-3.5 px-4 font-mono font-bold text-slate-400">#{{ s.id_sesion }}</td>
-
                     <td class="py-3.5 px-3 text-center">
                       <span
                         class="inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"

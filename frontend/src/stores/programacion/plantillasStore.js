@@ -101,21 +101,26 @@ export const usePlantillasStore = defineStore('plantillas', () => {
     if (p) p.total_actividades = total
   }
 
-  // ─── Publicar plantilla a sesiones activas ────────────────────────────────
   // POST /programacion/plantillas/{id}/publicar
   // Retorna { id_plantilla, semana_inicio, semana_fin, sesiones_creadas }
   // notificarCambio=true solo en la última semana para disparar navegación una sola vez
-  async function publicarPlantilla(idPlantilla, semanaInicio, notificarCambio = true) {
+  async function publicarPlantilla(idPlantilla, semanaInicio, notificarCambio = true, opciones = {}) {
     isSaving.value = true
     try {
+      const payload = {
+        semana_inicio: semanaInicio,
+        ...(opciones.omitir_dias?.length ? { omitir_dias: opciones.omitir_dias } : {}),
+        ...(typeof opciones.omitir_sesiones_pasadas === 'boolean'
+          ? { omitir_sesiones_pasadas: opciones.omitir_sesiones_pasadas }
+          : {}),
+      }
       const { data } = await api.post(
         `/programacion/plantillas/${idPlantilla}/publicar`,
-        { semana_inicio: semanaInicio }
+        payload
       )
       const p = plantillas.value.find(p => p.id_plantilla === idPlantilla)
       if (p) {
-        p.estatus_plantilla = true
-        p.publicada         = true
+        p.publicada = true
         // Mantener el rango más amplio si ya hay fechas previas (publicación de 2 semanas)
         const nuevaInicio = data?.data?.semana_inicio
         const nuevaFin    = data?.data?.semana_fin
@@ -162,7 +167,6 @@ export const usePlantillasStore = defineStore('plantillas', () => {
       // Resetea estatus y fechas en el estado local sin refetch
       const p = plantillas.value.find(p => p.id_plantilla === idPlantilla)
       if (p) {
-        p.estatus_plantilla = false
         p.publicada    = false
         p.fecha_inicio = null
         p.fecha_fin    = null

@@ -8,12 +8,13 @@ import { isRouteLoading } from '@/router'
 const profileStore = useAdminStore()
 
 onMounted(() => {
+  window.scrollTo(0, 0)
   profileStore.fetchProfile()
 })
 </script>
 
 <template>
-  <div class="flex h-[100dvh] overflow-hidden bg-surface-50 relative">
+  <div class="fixed inset-0 flex overflow-hidden bg-surface-50">
     
     <Transition
       enter-active-class="transition-opacity duration-200"
@@ -30,7 +31,7 @@ onMounted(() => {
 
     <GerenteSideBar />
 
-    <main class="flex-1 flex flex-col min-h-0 relative">
+    <main class="flex-1 flex flex-col min-h-0 relative h-full">
       <GerenteTopBar class="shrink-0" />
       
       <div class="flex-1 overflow-y-auto min-h-0 relative bg-surface-50">

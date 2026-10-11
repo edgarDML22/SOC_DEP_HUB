@@ -14,7 +14,24 @@ import { useformat } from '@/utils/formatters';
 const { formatText } = useformat();
 
 export function useProfileLogic(endpointUrl = '/profile') {
-    const profileData = ref(null);
+    // Fallback inicial con los datos que ya están en localStorage para evitar estado en blanco
+    const cachedUserData = (() => {
+        try {
+            return JSON.parse(localStorage.getItem('user_data')) || null;
+        } catch {
+            return null;
+        }
+    })();
+
+    const profileData = ref(cachedUserData ? {
+        nombre_completo: cachedUserData.nombre || '',
+        rol: cachedUserData.rol || '',
+        id_empleado: cachedUserData.id,
+        id_instructor: cachedUserData.id,
+        id_socio: cachedUserData.id,
+        correo_electronico: cachedUserData.email || cachedUserData.nombre || '',
+    } : null);
+
     const isLoading = ref(false);
     const error = ref(null);
     let profilePromise = null;
@@ -34,8 +51,9 @@ export function useProfileLogic(endpointUrl = '/profile') {
     });
 
     // 2. ACTIONS Comunes
-    const fetchProfile = async () => {
-        if (profileData.value) return profileData.value;
+    // force=true permite refrescar los datos del perfil aún si profileData ya existe
+    const fetchProfile = async (force = false) => {
+        if (profileData.value && !force && profileData.value.estatus !== undefined) return profileData.value;
         if (profilePromise) return profilePromise;
 
         isLoading.value = true;
@@ -59,6 +77,16 @@ export function useProfileLogic(endpointUrl = '/profile') {
 
         return profilePromise;
     };
+
+    // Auto-revalidación al volver a la pestaña tras suspensión/standby
+    if (typeof window !== 'undefined' && !window._profileVisibilityListenerSet) {
+        window._profileVisibilityListenerSet = true;
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && localStorage.getItem('auth_token')) {
+                fetchProfile(true).catch(() => {});
+            }
+        });
+    }
 
     const updateProfile = async (formData) => {
         isLoading.value = true;

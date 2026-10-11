@@ -51,6 +51,9 @@ class UpdateSessionStatus extends Command
         $ahora = Carbon::now('America/Mexico_City');
         $hoy   = $ahora->toDateString();
 
+        // Restablecer plantillas vencidas a su estado base
+        $plantillasReset = app(\App\Services\PublicarProgramacionService::class)->resetearPlantillasVencidas();
+
         // FINALIZADA siempre va primero: evita que una sesión que ya terminó
         // sea marcada EN_CURSO momentáneamente en la misma corrida.
         $finalizadas = $this->finalizarSesiones($ahora, $hoy);
@@ -61,7 +64,7 @@ class UpdateSessionStatus extends Command
             $this->procesarNoShows($ahora, $hoy);
         }
 
-        $this->line("[{$ahora->format('H:i:s')}] FINALIZADA: +{$finalizadas} | EN_CURSO: +{$iniciadas}");
+        $this->line("[{$ahora->format('H:i:s')}] FINALIZADA: +{$finalizadas} | EN_CURSO: +{$iniciadas} | PLANTILLAS_RESET: {$plantillasReset}");
 
         return self::SUCCESS;
     }
@@ -71,10 +74,11 @@ class UpdateSessionStatus extends Command
     // -------------------------------------------------------------------------
 
     /**
-     * Finaliza toda sesión cuyo margen post-hora_fin ya expiró.
+     * Finaliza toda sesión cuyo margen post-hora_fin ya expiró o cuya fecha ya pasó.
      *
      * Condición de tiempo (absoluta):
-     *   hora_fin + 20 min ≤ ahora   →   hora_fin ≤ ahora - 20 min
+     *   fecha_sesion < hoy (sesiones pasadas)
+     *   O (fecha_sesion = hoy Y hora_fin ≤ ahora - 20 min)
      *
      * Estados elegibles: DISPONIBLE, LLENA, EN_CURSO.
      * Incluir DISPONIBLE y LLENA es la clave de la idempotencia: rescata sesiones
@@ -83,39 +87,33 @@ class UpdateSessionStatus extends Command
      */
     private function finalizarSesiones(Carbon $ahora, string $hoy): int
     {
-        // hora_fin debe ser <= (ahora - 20 min) para que el margen de gracia haya expirado.
-        $momentoCorte = $ahora->copy()->subMinutes(20);
+        $momentoCorte   = $ahora->copy()->subMinutes(20);
+        $corteHoyValido = ($momentoCorte->toDateString() === $hoy);
+        $corte          = $momentoCorte->format('H:i:s');
 
-        // Guard de medianoche: si restar 20 minutos cruza a un día anterior,
-        // significa que llevamos < 20 min en este día y ninguna sesión puede haber
-        // terminado aún — salimos sin tocar nada para evitar falsos positivos.
-        if ($momentoCorte->toDateString() !== $hoy) {
-            return 0;
-        }
+        $query = DB::table('sesiones_activas')
+            ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO', 'EN_CURSO'])
+            ->where(function ($q) use ($hoy, $corteHoyValido, $corte) {
+                // 1. Sesiones de fechas pasadas (< hoy) ya terminaron en su totalidad
+                $q->where('fecha_sesion', '<', $hoy);
 
-        $corte = $momentoCorte->format('H:i:s');
+                // 2. Sesiones de hoy cuya hora_fin + 20 min ya expiró
+                if ($corteHoyValido) {
+                    $q->orWhere(function ($sub) use ($hoy, $corte) {
+                        $sub->where('fecha_sesion', $hoy)
+                            ->where('hora_fin', '<=', $corte);
+                    });
+                }
+            });
 
-        $afectadas = DB::table('sesiones_activas as sa')
-            ->join('actividades_plantilla as ap', 'ap.id_actividad_plantilla', '=', 'sa.id_actividad_plantilla')
-            ->join('plantillas_programacion as pp', 'pp.id_plantilla', '=', 'ap.id_plantilla')
-            ->whereNull('ap.deleted_at')
-            ->where('sa.fecha_sesion', $hoy)
-            // Idempotente: cualquier estado activo puede finalizar si el tiempo lo dice.
-            ->whereIn('sa.estatus_sesion', ['DISPONIBLE', 'LLENO', 'EN_CURSO'])
-            // La sesión terminó hace más de 20 minutos (margen de gracia expirado).
-            ->where('sa.hora_fin', '<=', $corte)
-            // Condición de negocio: plantilla publicada y vigente para la fecha de la sesión.
-            ->where('pp.publicada', true)
-            ->whereColumn('pp.fecha_inicio', '<=', 'sa.fecha_sesion')
-            ->whereColumn('pp.fecha_fin',    '>=', 'sa.fecha_sesion')
-            ->update(['sa.estatus_sesion' => 'FINALIZADA']);
+        $afectadas = $query->update(['estatus_sesion' => 'FINALIZADA']);
 
         if ($afectadas > 0) {
             Log::info("sessions:update-status [FINALIZADA] {$ahora} — {$afectadas} sesión(es) finalizadas.", [
                 'corte_hora_fin' => $corte,
                 'fecha'          => $hoy,
             ]);
-            $this->line("  → {$afectadas} sesión(es) marcadas FINALIZADA (hora_fin ≤ {$corte})");
+            $this->line("  → {$afectadas} sesión(es) marcadas FINALIZADA (fecha < {$hoy} o hora_fin ≤ {$corte})");
         }
 
         return $afectadas;
@@ -285,21 +283,14 @@ class UpdateSessionStatus extends Command
             ? $momentoCorteViva->format('H:i:s')
             : '00:00:00';
 
-        $afectadas = DB::table('sesiones_activas as sa')
-            ->join('actividades_plantilla as ap', 'ap.id_actividad_plantilla', '=', 'sa.id_actividad_plantilla')
-            ->join('plantillas_programacion as pp', 'pp.id_plantilla', '=', 'ap.id_plantilla')
-            ->whereNull('ap.deleted_at')
-            ->where('sa.fecha_sesion', $hoy)
-            ->whereIn('sa.estatus_sesion', ['DISPONIBLE', 'LLENO'])
+        $afectadas = DB::table('sesiones_activas')
+            ->where('fecha_sesion', $hoy)
+            ->whereIn('estatus_sesion', ['DISPONIBLE', 'LLENO'])
             // La sesión arranca dentro de los próximos 15 min (o ya arrancó).
-            ->where('sa.hora_inicio', '<=', $ventanaInicio)
+            ->where('hora_inicio', '<=', $ventanaInicio)
             // La sesión aún no entró en el margen de finalización — está "viva".
-            ->where('sa.hora_fin', '>', $corteViva)
-            // Condición de negocio: plantilla publicada y vigente.
-            ->where('pp.publicada', true)
-            ->whereColumn('pp.fecha_inicio', '<=', 'sa.fecha_sesion')
-            ->whereColumn('pp.fecha_fin',    '>=', 'sa.fecha_sesion')
-            ->update(['sa.estatus_sesion' => 'EN_CURSO']);
+            ->where('hora_fin', '>', $corteViva)
+            ->update(['estatus_sesion' => 'EN_CURSO']);
 
         if ($afectadas > 0) {
             Log::info("sessions:update-status [EN_CURSO] {$ahora} — {$afectadas} sesión(es) iniciadas.", [

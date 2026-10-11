@@ -16,7 +16,10 @@ class PublicarPlantillaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'semana_inicio' => ['required', 'date_format:Y-m-d'],
+            'semana_inicio'            => ['required', 'date_format:Y-m-d'],
+            'omitir_dias'              => ['nullable', 'array'],
+            'omitir_dias.*'            => ['string', 'in:LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO'],
+            'omitir_sesiones_pasadas'  => ['nullable', 'boolean'],
         ];
     }
 
@@ -25,6 +28,8 @@ class PublicarPlantillaRequest extends FormRequest
         return [
             'semana_inicio.required'    => 'El campo semana_inicio es obligatorio.',
             'semana_inicio.date_format' => 'El campo semana_inicio debe tener el formato YYYY-MM-DD.',
+            'omitir_dias.array'         => 'El campo omitir_dias debe ser un arreglo de días.',
+            'omitir_dias.*.in'          => 'Cada día en omitir_dias debe ser un día de la semana válido en mayúsculas.',
         ];
     }
 

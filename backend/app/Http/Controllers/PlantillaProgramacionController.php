@@ -10,6 +10,7 @@ use App\Models\DraftProgramacion;
 use App\Models\PlantillaProgramacion;
 use App\Services\PublicarProgramacionService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -208,6 +209,10 @@ class PlantillaProgramacionController extends Controller
         $resultado = $service->publicar(
             $plantillaId,
             $request->string('semana_inicio')->toString(),
+            [
+                'omitir_dias'             => $request->input('omitir_dias', []),
+                'omitir_sesiones_pasadas' => $request->boolean('omitir_sesiones_pasadas', true),
+            ]
         );
 
         return response()->json([
@@ -229,9 +234,43 @@ class PlantillaProgramacionController extends Controller
         ], 200);
     }
 
-    // GET /api/v1/programacion/plantillas
-    public function index(): JsonResponse
+    // GET /api/v1/programacion/plantillas/semanas-ocupadas
+    // Devuelve las semanas que tienen sesiones publicadas junto con el nombre de la plantilla que las ocupa
+    public function semanasOcupadas(PublicarProgramacionService $service): JsonResponse
     {
+        $service->resetearPlantillasVencidas();
+
+        $sesiones = DB::table('sesiones_activas as sa')
+            ->join('actividades_plantilla as ap', 'ap.id_actividad_plantilla', '=', 'sa.id_actividad_plantilla')
+            ->join('plantillas_programacion as pp', 'pp.id_plantilla', '=', 'ap.id_plantilla')
+            ->where('pp.publicada', true)
+            ->select('pp.id_plantilla', 'pp.nombre_plantilla', 'sa.fecha_sesion')
+            ->distinct()
+            ->get();
+
+        $semanasMap = [];
+        foreach ($sesiones as $s) {
+            $fecha = Carbon::parse($s->fecha_sesion);
+            $lunes = $fecha->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+            if (!isset($semanasMap[$lunes])) {
+                $semanasMap[$lunes] = [
+                    'semana_inicio'    => $lunes,
+                    'id_plantilla'     => $s->id_plantilla,
+                    'nombre_plantilla' => $s->nombre_plantilla,
+                ];
+            }
+        }
+
+        return response()->json([
+            'data' => array_values($semanasMap),
+        ], 200);
+    }
+
+    // GET /api/v1/programacion/plantillas
+    public function index(PublicarProgramacionService $service): JsonResponse
+    {
+        $service->resetearPlantillasVencidas();
+
         $plantillas = PlantillaProgramacion::withoutGlobalScopes()
             ->withCount('actividades')
             ->orderBy('id_plantilla')

@@ -14,7 +14,7 @@ services:
       - ./backend:/var/www
       - backend_vendor:/var/www/vendor           # vendor compartido entre app, scheduler y worker
       - dompdf_fonts:/var/www/storage/fonts      # caché de fuentes DOMPDF persistente
-      - C:/torneos-storage:/torneos-storage
+      - ./torneos-storage:/torneos-storage
     networks:
       - socdep-network
     depends_on:

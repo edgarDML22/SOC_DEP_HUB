@@ -52,11 +52,11 @@ class PublicarProgramacionService
      *   sesiones_creadas: int
      * }
      */
-    public function publicar(int $idPlantilla, string $semanaInicio): array
+    public function publicar(int $idPlantilla, string $semanaInicio, array $opciones = []): array
     {
         $rango = $this->calcularRangoSemana($semanaInicio);
 
-        return DB::transaction(function () use ($idPlantilla, $rango): array {
+        return DB::transaction(function () use ($idPlantilla, $rango, $opciones): array {
 
             $this->verificarConflictoDeSemana($rango);
 
@@ -64,16 +64,19 @@ class PublicarProgramacionService
                 ->with(['actividades' => fn($q) => $q->where('estatus', 'ACTIVO')])
                 ->findOrFail($idPlantilla);
 
-            $rows = $this->proyectarSesiones($plantilla->actividades, $rango);
+            $rows = $this->proyectarSesiones($plantilla->actividades, $rango, $opciones);
 
             $lunes   = $rango['lunes']->toDateString();
             $domingo = $rango['domingo']->toDateString();
 
+            // Mantener el rango más amplio si ya hay fechas de semanas previas/posteriores publicadas
+            $nuevoInicio = $plantilla->fecha_inicio && $plantilla->fecha_inicio < $lunes ? $plantilla->fecha_inicio : $lunes;
+            $nuevoFin    = $plantilla->fecha_fin && $plantilla->fecha_fin > $domingo ? $plantilla->fecha_fin : $domingo;
+
             $plantilla->update([
-                'estatus_plantilla' => true,
-                'publicada'         => true,
-                'fecha_inicio'      => $lunes,
-                'fecha_fin'         => $domingo,
+                'publicada'    => true,
+                'fecha_inicio' => $nuevoInicio,
+                'fecha_fin'    => $nuevoFin,
             ]);
 
             if (!empty($rows)) {
@@ -141,10 +144,16 @@ class PublicarProgramacionService
      *   cantidad_inscritos: int
      * }>
      */
-    public function proyectarSesiones(Collection $actividades, array $rango): array
+    public function proyectarSesiones(Collection $actividades, array $rango, array $opciones = []): array
     {
         $lunes = $rango['lunes'];
         $rows  = [];
+
+        $diasAOmitir   = array_map('strtoupper', $opciones['omitir_dias'] ?? []);
+        $omitirPasadas = $opciones['omitir_sesiones_pasadas'] ?? true;
+        $now           = Carbon::now('America/Mexico_City');
+        $hoyStr        = $now->toDateString();
+        $horaActual    = $now->format('H:i:s');
 
         foreach ($actividades as $actividad) {
             $diaISO = self::DIA_ISO[$actividad->dia_semana] ?? null;
@@ -153,8 +162,23 @@ class PublicarProgramacionService
                 continue;
             }
 
+            // Omitir días marcados explícitamente (ej. festivo / ocasión especial)
+            if (in_array(strtoupper($actividad->dia_semana), $diasAOmitir, true)) {
+                continue;
+            }
+
             // El lunes es ISO 1; sumar (diaISO - 1) días da la fecha exacta del día en esa semana.
             $fechaSesion = $lunes->copy()->addDays($diaISO - 1)->toDateString();
+
+            // Validación de sesiones en el pasado (ej. publicación de emergencia un lunes en la madrugada/noche)
+            if ($omitirPasadas) {
+                if ($fechaSesion < $hoyStr) {
+                    continue; // Día ya transcurrido en la semana actual
+                }
+                if ($fechaSesion === $hoyStr && $actividad->hora_inicio <= $horaActual) {
+                    continue; // Horario que ya inició o concluyó hoy
+                }
+            }
 
             $row = [
                 'id_actividad_plantilla'  => $actividad->id_actividad_plantilla,
@@ -205,11 +229,42 @@ class PublicarProgramacionService
      *
      * @return array{sesiones_eliminadas: int}
      */
+    /**
+     * Revisa todas las plantillas marcadas como publicadas cuyo período ya concluyó
+     * (fecha_fin < hoy en America/Mexico_City) y las restablece a su estado base:
+     * estatus_plantilla = false, publicada = false, fecha_inicio = null, fecha_fin = null.
+     */
+    public function resetearPlantillasVencidas(): int
+    {
+        $hoy = Carbon::now('America/Mexico_City')->toDateString();
+
+        $vencidas = PlantillaProgramacion::withoutGlobalScopes()
+            ->where('publicada', true)
+            ->whereNotNull('fecha_fin')
+            ->where('fecha_fin', '<', $hoy)
+            ->get();
+
+        $afectadas = 0;
+        foreach ($vencidas as $plantilla) {
+            $this->resetearPlantilla($plantilla);
+            $afectadas++;
+        }
+
+        return $afectadas;
+    }
+
     public function despublicar(int $idPlantilla): array
     {
         return DB::transaction(function () use ($idPlantilla): array {
 
             $plantilla = PlantillaProgramacion::withoutGlobalScopes()->findOrFail($idPlantilla);
+
+            // Si la plantilla ya concluyó su período, restablecerla a su estado base directamente sin bloquear
+            $hoy = Carbon::now('America/Mexico_City')->toDateString();
+            if ($plantilla->fecha_fin && $plantilla->fecha_fin < $hoy) {
+                $this->resetearPlantilla($plantilla);
+                return ['sesiones_eliminadas' => 0];
+            }
 
             $idActividades = $plantilla->actividades()->pluck('id_actividad_plantilla');
 
@@ -217,20 +272,28 @@ class PublicarProgramacionService
                 return ['sesiones_eliminadas' => 0];
             }
 
-            $sesiones = SesionActiva::withoutGlobalScopes()
-                ->whereIn('id_actividad_plantilla', $idActividades)
-                ->get(['id_sesion', 'estatus_sesion', 'cantidad_inscritos']);
+            // Consultar únicamente las sesiones del período activo de la plantilla actual
+            $querySesiones = SesionActiva::withoutGlobalScopes()
+                ->whereIn('id_actividad_plantilla', $idActividades);
+
+            if ($plantilla->fecha_inicio && $plantilla->fecha_fin) {
+                $querySesiones->whereBetween('fecha_sesion', [$plantilla->fecha_inicio, $plantilla->fecha_fin]);
+            } else {
+                $querySesiones->where('fecha_sesion', '>=', $hoy);
+            }
+
+            $sesiones = $querySesiones->get(['id_sesion', 'estatus_sesion', 'cantidad_inscritos']);
 
             if ($sesiones->isEmpty()) {
                 $this->resetearPlantilla($plantilla);
                 return ['sesiones_eliminadas' => 0];
             }
 
-            $dentroVentana = $this->verificarVentana30min($idActividades->toArray());
+            $dentroVentana = $this->verificarVentana30min($idActividades->toArray(), $plantilla);
 
             if (!$dentroVentana) {
                 $sesionesConInscritos = $sesiones->where('cantidad_inscritos', '>', 0)->count();
-                $sesionesCompletadas  = $sesiones->where('estatus_sesion', 'COMPLETADA')->count();
+                $sesionesCompletadas  = $sesiones->whereIn('estatus_sesion', ['FINALIZADA', 'COMPLETADA'])->count();
 
                 if ($sesionesConInscritos > 0 || $sesionesCompletadas > 0) {
                     throw new DespublicacionBloqueadaException($sesionesConInscritos, $sesionesCompletadas);
@@ -256,13 +319,18 @@ class PublicarProgramacionService
      *
      * @param  int[]  $idActividades
      */
-    private function verificarVentana30min(array $idActividades): bool
+    private function verificarVentana30min(array $idActividades, ?PlantillaProgramacion $plantilla = null): bool
     {
         try {
-            $masAntigua = DB::table('sesiones_activas')
+            $query = DB::table('sesiones_activas')
                 ->whereIn('id_actividad_plantilla', $idActividades)
-                ->whereNotNull('fecha_publicacion')
-                ->min('fecha_publicacion');
+                ->whereNotNull('fecha_publicacion');
+
+            if ($plantilla && $plantilla->fecha_inicio && $plantilla->fecha_fin) {
+                $query->whereBetween('fecha_sesion', [$plantilla->fecha_inicio, $plantilla->fecha_fin]);
+            }
+
+            $masAntigua = $query->min('fecha_publicacion');
 
             if ($masAntigua === null) {
                 return false;
@@ -275,13 +343,12 @@ class PublicarProgramacionService
         }
     }
 
-    private function resetearPlantilla(PlantillaProgramacion $plantilla): void
+    public function resetearPlantilla(PlantillaProgramacion $plantilla): void
     {
         $plantilla->update([
-            'estatus_plantilla' => false,
-            'publicada'         => false,
-            'fecha_inicio'      => null,
-            'fecha_fin'         => null,
+            'publicada'    => false,
+            'fecha_inicio' => null,
+            'fecha_fin'    => null,
         ]);
     }
 

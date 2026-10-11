@@ -87,7 +87,7 @@ onMounted(() => plantillasStore.fetchPlantillas())
 </script>
 
 <template>
-  <div class="p-6 font-sans bg-surface-50 min-h-screen animate-fade-in">
+  <div class="p-6 font-sans bg-surface-50 min-h-full animate-fade-in">
     <div class="max-w-[1550px] mx-auto space-y-8">
       
       <!-- CABECERA: TÍTULO + BOTÓN ACCIÓN -->

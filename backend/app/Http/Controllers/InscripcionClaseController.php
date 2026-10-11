@@ -66,8 +66,7 @@ class InscripcionClaseController extends Controller
                 'espacio:id_espacio,nombre_espacio',
             ])
             ->whereHas('actividadPlantilla.plantilla', function ($q) {
-                $q->where('estatus_plantilla', true)
-                    ->where('publicada', true)
+                $q->where('publicada', true)
                     ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
                     ->whereColumn('plantillas_programacion.fecha_fin', '>=', 'sesiones_activas.fecha_sesion');
             });

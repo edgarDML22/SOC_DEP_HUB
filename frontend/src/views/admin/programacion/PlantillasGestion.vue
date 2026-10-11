@@ -4,7 +4,8 @@ import { usePlantillasStore } from '@/stores/programacion/plantillasStore'
 import { useAlerts } from '@/composables/useAlerts'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
-import { IconEdit, IconTrash, IconWarning } from '@/components/icons'
+import { IconEdit, IconTrash, IconWarning, IconTrophy, IconCalendar, IconLock, IconShield } from '@/components/icons'
+import api from '@/services/api'
 
 const store = usePlantillasStore()
 const { toastSuccess, toastError } = useAlerts()
@@ -24,52 +25,193 @@ function toLocalDateString(d) {
   return `${y}-${m}-${dd}`
 }
 
-// Devuelve el próximo lunes estrictamente mayor que hoy (nunca hoy mismo).
-// Usa hora local para evitar que toISOString() adelante/atrase un día por UTC.
-function getNextMonday(offsetWeeks = 0) {
+// Devuelve el lunes de la semana actual (hoy o el lunes anterior más cercano)
+function getBaseMonday() {
   const d   = new Date()
-  const day = d.getDay()                      // 0 dom … 6 sab; 1 = lunes
-  // Si hoy es lunes (1) → próximo lunes en 7 días; resto → días que faltan hasta el lunes
-  const daysUntilMonday = day === 1 ? 7 : (8 - day) % 7
-  d.setDate(d.getDate() + daysUntilMonday + offsetWeeks * 7)
+  const day = d.getDay() // 0 dom ... 6 sab; 1 lunes
+  const diffToMonday = day === 0 ? 6 : day - 1
+  d.setDate(d.getDate() - diffToMonday)
+  return d
+}
+
+// Devuelve el lunes con desplazamiento de semanas respecto a la base
+function getMonday(offsetWeeks = 0) {
+  const d = getBaseMonday()
+  d.setDate(d.getDate() + offsetWeeks * 7)
   return toLocalDateString(d)
 }
 
-// Las dos únicas opciones posibles
-const opcionSemana1 = computed(() => getNextMonday(0))
-const opcionSemana2 = computed(() => getNextMonday(1))
+// Opciones de semanas disponibles:
+// Si hoy es domingo (día 0): la semana entrante que empieza mañana es getMonday(1).
+// Si hoy es lunes a sábado: getMonday(0) permite publicación inmediata/de emergencia para la semana en curso.
+const hoyEsDomingo = computed(() => new Date().getDay() === 0)
 
-// Selección múltiple: el usuario puede elegir una o las dos
+const opcionSemana1 = computed(() => hoyEsDomingo.value ? getMonday(1) : getMonday(0))
+const opcionSemana2 = computed(() => hoyEsDomingo.value ? getMonday(2) : getMonday(1))
+const opcionSemana3 = computed(() => hoyEsDomingo.value ? getMonday(3) : getMonday(2))
+
+const labelSemana1 = computed(() => hoyEsDomingo.value ? 'Semana entrante' : 'Semana en curso')
+const labelSemana2 = computed(() => 'Semana siguiente')
+const labelSemana3 = computed(() => 'En dos semanas')
+
+// Semanas ocupadas por otras publicaciones
+const semanasOcupadas = ref([])
+const cargandoSemanasOcupadas = ref(false)
+
+function getOcupacionSemana(fechaLunes) {
+  return semanasOcupadas.value.find(s => s.semana_inicio === fechaLunes) ?? null
+}
+
+function esSemanaBloqueada(fechaLunes) {
+  const ocupacion = getOcupacionSemana(fechaLunes)
+  if (!ocupacion) return false
+  // Si está ocupada por otra plantilla, bloquea. Si está ocupada por esta misma plantilla ya publicada, también bloquea para no solapar.
+  return true
+}
+
+const opcionesSemanas = computed(() => [
+  {
+    fecha: opcionSemana1.value,
+    label: labelSemana1.value,
+  },
+  {
+    fecha: opcionSemana2.value,
+    label: labelSemana2.value,
+  },
+  {
+    fecha: opcionSemana3.value,
+    label: labelSemana3.value,
+  },
+])
+
+const todasLasSemanasOcupadas = computed(() =>
+  opcionesSemanas.value.length > 0 && opcionesSemanas.value.every(op => esSemanaBloqueada(op.fecha))
+)
+
+// Selección múltiple de semanas
 const semanasSeleccionadas = ref([])          // array de 'YYYY-MM-DD'
 
+// Opciones avanzadas: días a omitir (feriados / festivos) y filtro de pasadas
+const DIA_META = {
+  LUNES:     { key: 'LUNES',     short: 'Lun', full: 'Lunes',     color: 'sky' },
+  MARTES:    { key: 'MARTES',    short: 'Mar', full: 'Martes',    color: 'blue' },
+  MIERCOLES: { key: 'MIERCOLES', short: 'Mié', full: 'Miércoles', color: 'indigo' },
+  JUEVES:    { key: 'JUEVES',    short: 'Jue', full: 'Jueves',    color: 'violet' },
+  VIERNES:   { key: 'VIERNES',   short: 'Vie', full: 'Viernes',   color: 'purple' },
+  SABADO:    { key: 'SABADO',    short: 'Sáb', full: 'Sábado',    color: 'amber' },
+  DOMINGO:   { key: 'DOMINGO',   short: 'Dom', full: 'Domingo',   color: 'rose' },
+}
+const diasSemanaOpciones = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']
+const omitirDias = ref([])
+const omitirSesionesPasadas = ref(true)
+
+function toggleDiaOmitido(dia) {
+  const idx = omitirDias.value.indexOf(dia)
+  if (idx === -1) omitirDias.value.push(dia)
+  else omitirDias.value.splice(idx, 1)
+}
+
 function toggleSemana(fecha) {
+  if (esSemanaBloqueada(fecha)) return
   const idx = semanasSeleccionadas.value.indexOf(fecha)
   if (idx === -1) semanasSeleccionadas.value.push(fecha)
   else            semanasSeleccionadas.value.splice(idx, 1)
 }
 
-function openPublish(p) {
+const actividadesTarget = ref([])
+const cargandoDetallePlantilla = ref(false)
+
+// Cuenta las actividades base por día de la semana
+const actividadesPorDia = computed(() => {
+  const map = {}
+  diasSemanaOpciones.forEach(d => { map[d] = 0 })
+  for (const act of actividadesTarget.value) {
+    if (map[act.dia_semana] !== undefined) {
+      map[act.dia_semana]++
+    }
+  }
+  return map
+})
+
+// Actividades efectivas por semana restando los días excluidos
+const actividadesEfectivasSemana = computed(() => {
+  if (!publishTarget.value) return 0
+  if (actividadesTarget.value.length === 0) {
+    return publishTarget.value.total_actividades ?? 0
+  }
+  let count = 0
+  for (const act of actividadesTarget.value) {
+    if (!omitirDias.value.includes(act.dia_semana)) {
+      count++
+    }
+  }
+  return count
+})
+
+// No permitir publicar si todos los 7 días de la semana están excluidos
+const todosLosDiasExcluidos = computed(() =>
+  diasSemanaOpciones.every(d => omitirDias.value.includes(d))
+)
+
+async function openPublish(p) {
   publishTarget.value       = p
+  actividadesTarget.value   = []
   semanasSeleccionadas.value = []
+  omitirDias.value          = []
+  omitirSesionesPasadas.value = true
   publishSuccess.value      = false
   publishError.value        = ''
   publishConfirmInput.value = ''
   showPublishModal.value    = true
+
+  // Consultar en paralelo las semanas ya ocupadas y el detalle de actividades de la plantilla
+  try {
+    cargandoSemanasOcupadas.value = true
+    cargandoDetallePlantilla.value = true
+
+    const [resOcupadas, resDetalle] = await Promise.all([
+      api.get('/programacion/plantillas/semanas-ocupadas'),
+      api.get(`/programacion/plantillas/${p.id_plantilla}`)
+    ])
+
+    if (resOcupadas.data?.data) {
+      semanasOcupadas.value = resOcupadas.data.data
+    }
+    if (resDetalle.data?.data?.actividades) {
+      actividadesTarget.value = resDetalle.data.data.actividades
+    }
+
+    // Preseleccionar la primera semana disponible que NO esté bloqueada
+    const opcionesDisponibles = [opcionSemana1.value, opcionSemana2.value, opcionSemana3.value]
+    const primeraLibre = opcionesDisponibles.find(op => !esSemanaBloqueada(op))
+    if (primeraLibre) {
+      semanasSeleccionadas.value = [primeraLibre]
+    }
+  } catch (err) {
+    console.error('Error cargando datos para publicar plantilla:', err)
+  } finally {
+    cargandoSemanasOcupadas.value = false
+    cargandoDetallePlantilla.value = false
+  }
 }
 
 function closePublish() {
   showPublishModal.value    = false
   publishTarget.value       = null
+  actividadesTarget.value   = []
   publishError.value        = ''
   publishConfirmInput.value = ''
   semanasSeleccionadas.value = []
+  omitirDias.value          = []
 }
 
 const publishConfirmed = computed(() => publishConfirmInput.value === 'CONFIRMAR')
 
-// Al menos una semana seleccionada + texto de confirmación correcto
+// Al menos una semana seleccionada + al menos una actividad efectiva (no todas excluidas) + texto de confirmación correcto
 const publishReady = computed(() =>
-  semanasSeleccionadas.value.length > 0 && publishConfirmed.value
+  semanasSeleccionadas.value.length > 0 &&
+  actividadesEfectivasSemana.value > 0 &&
+  publishConfirmed.value
 )
 
 // Llama al backend una vez por semana seleccionada (en orden cronológico)
@@ -85,7 +227,11 @@ async function submitPublish() {
     const semana = semanas[i]
     const esUltima = i === semanas.length - 1
     try {
-      const result = await store.publicarPlantilla(publishTarget.value.id_plantilla, semana, esUltima)
+      const opciones = {
+        omitir_dias: omitirDias.value,
+        omitir_sesiones_pasadas: omitirSesionesPasadas.value,
+      }
+      const result = await store.publicarPlantilla(publishTarget.value.id_plantilla, semana, esUltima, opciones)
       totalCreadas += result?.data?.sesiones_creadas ?? 0
     } catch (e) {
       const meta = e?.response?.data?.meta
@@ -102,13 +248,11 @@ async function submitPublish() {
 
   if (errores.length === 0) {
     publishSuccess.value = true
-    setTimeout(() => {
-      closePublish()
-      toastSuccess(`${totalCreadas} sesiones publicadas correctamente.`)
-    }, 1000)
+    closePublish()
+    toastSuccess(`${totalCreadas} sesiones publicadas correctamente.`)
   } else if (totalCreadas > 0) {
-    // Publicación parcial: algunas semanas OK, otras con conflicto
     publishError.value = errores.join(' | ')
+    closePublish()
     toastSuccess(`${totalCreadas} sesiones publicadas (con advertencias).`)
   } else {
     publishError.value = errores.join(' | ')
@@ -322,7 +466,7 @@ function getMenuItems(p) {
   })
 
   if (!p.publicada) {
-    const canPublish = p.estatus_plantilla && (p.total_actividades ?? 0) > 0
+    const canPublish = (p.total_actividades ?? 0) > 0
     items.push({
       label: 'Publicar',
       icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>',
@@ -758,7 +902,7 @@ defineExpose({ openCreate })
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           @click.self="closePublish"
         >
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col relative">
+          <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col relative max-h-[92vh]">
 
             <!-- Overlay de éxito -->
             <Transition
@@ -769,183 +913,326 @@ defineExpose({ openCreate })
               leave-from-class="opacity-100"
               leave-to-class="opacity-0"
             >
-              <div v-if="publishSuccess" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
-                  <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <div v-if="publishSuccess" class="absolute inset-0 z-30 bg-white/95 backdrop-blur-xs rounded-3xl flex flex-col items-center justify-center gap-4">
+                <div class="w-20 h-20 rounded-full bg-emerald-600 flex items-center justify-center shadow-xl animate-scale-in">
+                  <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <p class="text-base font-black text-slate-800">Programación publicada</p>
+                <div class="text-center">
+                  <p class="text-xl font-black text-slate-900 tracking-tight">¡Programación publicada con éxito!</p>
+                  <p class="text-xs font-semibold text-slate-500 mt-1">Las sesiones ya se encuentran activas en el calendario del club.</p>
+                </div>
               </div>
             </Transition>
 
-            <!-- Header verde -->
-            <div class="flex items-center justify-between p-6 border-b border-emerald-100 bg-emerald-50">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-emerald-100 rounded-xl">
-                  <svg class="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+            <!-- Header con banner degradado sutil -->
+            <div class="flex items-center justify-between px-6 py-4.5 border-b border-emerald-100 bg-linear-to-r from-emerald-50/80 via-emerald-50/40 to-teal-50/60 shrink-0">
+              <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-sm shadow-emerald-600/20 shrink-0">
+                  <IconCalendar class="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p class="text-[10px] uppercase font-black tracking-widest text-emerald-500">Publicar programación</p>
-                  <h3 class="text-lg font-black text-emerald-900 leading-tight">Confirmar publicación</h3>
+                  <h3 class="text-base font-black text-slate-900 leading-tight">Publicar Programación Oficial</h3>
+                  <p class="text-xs font-medium text-slate-500 mt-0.5">
+                    Genera las sesiones de actividades en vivo según los horarios de la plantilla seleccionada.
+                  </p>
                 </div>
               </div>
-              <button @click="closePublish" class="text-slate-400 hover:text-slate-600 bg-white/70 hover:bg-white p-2 rounded-xl transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <button
+                @click="closePublish"
+                class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-xl transition-all active:scale-95"
+                title="Cerrar modal"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <!-- Body -->
-            <div class="p-6 space-y-5">
+            <!-- Body en layout de 2 columnas -->
+            <div class="flex-1 overflow-y-auto p-6 min-h-0 space-y-6">
 
-              <!-- Info de la plantilla -->
-              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center gap-3">
-                <div class="p-2 bg-blue-100 rounded-lg shrink-0">
-                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-xs text-slate-500 font-semibold">Plantilla a publicar</p>
-                  <p class="text-sm font-extrabold text-slate-800 truncate">{{ publishTarget?.nombre_plantilla }}</p>
-                  <p class="text-xs text-slate-500 mt-0.5">
-                    <span class="font-bold text-blue-600">{{ publishTarget?.total_actividades ?? 0 }}</span>
-                    sesiones por semana seleccionada
-                  </p>
-                </div>
-              </div>
-
-              <!-- Selección de semanas -->
-              <div class="space-y-3">
-                <div>
-                  <p class="text-sm font-bold text-slate-700">Selecciona una o ambas semanas</p>
-                  <p class="text-xs text-slate-400 mt-0.5">Las sesiones se generarán para cada semana que elijas.</p>
-                </div>
-
-                <div class="space-y-2">
-                  <!-- Opción semana 1 -->
-                  <button
-                    type="button"
-                    @click="toggleSemana(opcionSemana1)"
-                    class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl border-2 transition-all text-left focus:outline-none"
-                    :class="semanasSeleccionadas.includes(opcionSemana1)
-                      ? 'border-emerald-400 bg-emerald-50/70 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'"
-                  >
-                    <!-- Checkbox visual -->
-                    <div
-                      class="w-4.5 h-4.5 rounded border-2 flex items-center justify-center shrink-0 transition-all mt-px"
-                      :class="semanasSeleccionadas.includes(opcionSemana1)
-                        ? 'border-emerald-500 bg-emerald-500'
-                        : 'border-slate-300 bg-white'"
-                    >
-                      <svg v-if="semanasSeleccionadas.includes(opcionSemana1)" class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-[11px] font-semibold tracking-wide"
-                        :class="semanasSeleccionadas.includes(opcionSemana1) ? 'text-emerald-600' : 'text-slate-400'"
-                      >Próxima semana</p>
-                      <p class="text-sm font-bold leading-snug mt-0.5"
-                        :class="semanasSeleccionadas.includes(opcionSemana1) ? 'text-emerald-900' : 'text-slate-700'"
-                      >
-                        {{ formatDate(opcionSemana1) }}
-                        <span class="font-normal mx-1.5" :class="semanasSeleccionadas.includes(opcionSemana1) ? 'text-emerald-400' : 'text-slate-300'">—</span>
-                        {{ formatDate(toLocalDateString(new Date(new Date(opcionSemana1 + 'T12:00:00').getTime() + 6 * 86400000))) }}
-                      </p>
-                    </div>
-                    <div v-if="semanasSeleccionadas.includes(opcionSemana1)" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  </button>
-
-                  <!-- Opción semana 2 -->
-                  <button
-                    type="button"
-                    @click="toggleSemana(opcionSemana2)"
-                    class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl border-2 transition-all text-left focus:outline-none"
-                    :class="semanasSeleccionadas.includes(opcionSemana2)
-                      ? 'border-emerald-400 bg-emerald-50/70 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'"
-                  >
-                    <div
-                      class="w-4.5 h-4.5 rounded border-2 flex items-center justify-center shrink-0 transition-all mt-px"
-                      :class="semanasSeleccionadas.includes(opcionSemana2)
-                        ? 'border-emerald-500 bg-emerald-500'
-                        : 'border-slate-300 bg-white'"
-                    >
-                      <svg v-if="semanasSeleccionadas.includes(opcionSemana2)" class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-[11px] font-semibold tracking-wide"
-                        :class="semanasSeleccionadas.includes(opcionSemana2) ? 'text-emerald-600' : 'text-slate-400'"
-                      >Semana siguiente</p>
-                      <p class="text-sm font-bold leading-snug mt-0.5"
-                        :class="semanasSeleccionadas.includes(opcionSemana2) ? 'text-emerald-900' : 'text-slate-700'"
-                      >
-                        {{ formatDate(opcionSemana2) }}
-                        <span class="font-normal mx-1.5" :class="semanasSeleccionadas.includes(opcionSemana2) ? 'text-emerald-400' : 'text-slate-300'">—</span>
-                        {{ formatDate(toLocalDateString(new Date(new Date(opcionSemana2 + 'T12:00:00').getTime() + 6 * 86400000))) }}
-                      </p>
-                    </div>
-                    <div v-if="semanasSeleccionadas.includes(opcionSemana2)" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  </button>
-                </div>
-              </div>
-
-              <!-- Confirmación estilo GitHub — aparece solo cuando hay semana(s) seleccionadas -->
-              <Transition name="fade-down">
-                <div v-if="semanasSeleccionadas.length > 0" class="space-y-2.5">
-                  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                    <p class="text-xs font-bold text-emerald-800">
-                      Para confirmar, escribe
-                      <span class="font-black tracking-widest text-emerald-900">CONFIRMAR</span>
-                      en el campo de abajo:
-                    </p>
+              <!-- Badge banner de plantilla seleccionada -->
+              <div class="bg-linear-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <IconTrophy class="w-5 h-5 text-emerald-400" />
                   </div>
+                  <div class="min-w-0">
+                    <span class="text-[10px] font-bold tracking-wider text-slate-400">Plantilla seleccionada</span>
+                    <h4 class="text-base font-black truncate leading-tight">{{ publishTarget?.nombre_plantilla }}</h4>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span class="text-xs font-black text-emerald-300 tabular-nums">
+                    {{ actividadesEfectivasSemana }}
+                  </span>
+                  <span class="text-xs font-semibold text-slate-300">
+                    actividades base / semana
+                  </span>
+                  <span v-if="omitirDias.length > 0 && publishTarget?.total_actividades" class="text-[10px] text-slate-400 font-normal">
+                    (de {{ publishTarget?.total_actividades }})
+                  </span>
+                </div>
+              </div>
+
+              <!-- Grid Horizontal: Columna Izquierda (Semanas) | Columna Derecha (Días Especiales y Opciones) -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+
+                <!-- ── COLUMNA IZQUIERDA: SELECTOR DE SEMANAS ── -->
+                <div class="space-y-3 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4.5">
+                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <IconCalendar class="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <h4 class="text-xs font-black text-slate-800">Semanas a programar</h4>
+                        <p class="text-[11px] font-medium text-slate-500">Elige el periodo en el que se crearán las sesiones</p>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 tabular-nums">
+                      {{ semanasSeleccionadas.length }} elegida(s)
+                    </span>
+                  </div>
+
+                  <div class="space-y-2 pt-1">
+                    <div
+                      v-for="opcion in opcionesSemanas"
+                      :key="opcion.fecha"
+                    >
+                      <!-- Opción BLOQUEADA (Ocupada por otra plantilla) -->
+                      <div
+                        v-if="esSemanaBloqueada(opcion.fecha)"
+                        class="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 bg-slate-100/70 text-slate-400 select-none cursor-not-allowed relative mt-2.5"
+                      >
+                        <!-- Pestañita flotante en la parte superior derecha pegada al recuadro -->
+                        <div class="absolute -top-2.5 right-3 pointer-events-none z-10">
+                          <span class="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 border border-slate-300 shadow-2xs tracking-tight">
+                            <IconLock class="w-2.5 h-2.5 shrink-0 text-slate-500" />
+                            Ocupada por programación {{ getOcupacionSemana(opcion.fecha)?.nombre_plantilla || '' }}
+                          </span>
+                        </div>
+
+                        <div class="w-5 h-5 rounded-md border-2 border-slate-300 bg-slate-200/80 flex items-center justify-center shrink-0 text-slate-400">
+                          <IconLock class="w-3 h-3 text-slate-400" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <span class="inline-block text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-500">
+                            {{ opcion.label }}
+                          </span>
+                          <p class="text-xs font-bold text-slate-400 leading-tight mt-1 tabular-nums whitespace-nowrap">
+                            {{ formatDate(opcion.fecha) }}
+                            <span class="text-slate-300 mx-1">→</span>
+                            {{ formatDate(toLocalDateString(new Date(new Date(opcion.fecha + 'T12:00:00').getTime() + 6 * 86400000))) }}
+                          </p>
+                        </div>
+                      </div>
+
+                      <!-- Opción DISPONIBLE (Seleccionable) -->
+                      <button
+                        v-else
+                        type="button"
+                        @click="toggleSemana(opcion.fecha)"
+                        class="w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left focus:outline-none group relative cursor-pointer"
+                        :class="semanasSeleccionadas.includes(opcion.fecha)
+                          ? 'border-emerald-500 bg-white shadow-xs ring-2 ring-emerald-500/10'
+                          : 'border-slate-200 bg-white/60 hover:border-slate-300 hover:bg-white'"
+                      >
+                        <div
+                          class="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all"
+                          :class="semanasSeleccionadas.includes(opcion.fecha)
+                            ? 'border-emerald-500 bg-emerald-500'
+                            : 'border-slate-300 bg-white group-hover:border-slate-400'"
+                        >
+                          <svg v-if="semanasSeleccionadas.includes(opcion.fecha)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <span class="inline-block text-[10px] font-bold px-1.5 py-0.2 rounded"
+                            :class="semanasSeleccionadas.includes(opcion.fecha) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'"
+                          >
+                            {{ opcion.label }}
+                          </span>
+                          <p class="text-xs font-bold text-slate-800 leading-tight mt-1 tabular-nums">
+                            {{ formatDate(opcion.fecha) }}
+                            <span class="text-slate-400 mx-1">→</span>
+                            {{ formatDate(toLocalDateString(new Date(new Date(opcion.fecha + 'T12:00:00').getTime() + 6 * 86400000))) }}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ── COLUMNA DERECHA: DÍAS ESPECIALES Y REGLAS DE PUBLICACIÓN ── -->
+                <div class="space-y-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4.5">
+                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-1.5">
+                          <h4 class="text-xs font-black text-slate-800">Días especiales o feriados</h4>
+                          <span class="text-[10px] font-semibold text-slate-400">(Opcional)</span>
+                        </div>
+                        <p class="text-[11px] font-medium text-slate-500">Omite días festivos específicos de la programación</p>
+                      </div>
+                    </div>
+                    <span v-if="omitirDias.length > 0" class="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-100 text-rose-700">
+                      {{ omitirDias.length }} excluido(s)
+                    </span>
+                  </div>
+
+                  <!-- Chips de días de la semana con estilo consistente -->
+                  <div>
+                    <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                      <button
+                        v-for="dia in diasSemanaOpciones"
+                        :key="dia"
+                        type="button"
+                        @click="toggleDiaOmitido(dia)"
+                        class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all border font-sans group relative"
+                        :class="omitirDias.includes(dia)
+                          ? 'bg-rose-50 border-rose-300 text-rose-700 shadow-xs ring-1 ring-rose-400/20'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'"
+                        :title="omitirDias.includes(dia) ? `Excluido: ${DIA_META[dia].full}` : `Clic para excluir ${DIA_META[dia].full}`"
+                      >
+                        <!-- Indicador o icono -->
+                        <span class="text-[10px] font-bold tracking-wide"
+                          :class="omitirDias.includes(dia) ? 'text-rose-700 font-extrabold' : 'text-slate-800'"
+                        >
+                          {{ DIA_META[dia].short }}
+                        </span>
+                        <span class="text-[8px] font-medium mt-0.5"
+                          :class="omitirDias.includes(dia) ? 'text-rose-600 font-bold' : 'text-slate-400'"
+                        >
+                          {{ omitirDias.includes(dia) ? 'Excluido' : (actividadesPorDia[dia] ? `${actividadesPorDia[dia]} act.` : 'Activo') }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Reglas automáticas -->
+                  <div class="pt-2 border-t border-slate-200/60 space-y-2">
+                    <label class="flex items-start gap-3 p-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer select-none">
+                      <input
+                        v-model="omitirSesionesPasadas"
+                        type="checkbox"
+                        class="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                      />
+                      <div class="text-xs">
+                        <span class="font-bold text-slate-800">Filtrar horas ya transcurridas</span>
+                        <p class="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">
+                          Si estás publicando durante la semana en curso (ej. lunes en la madrugada), se omitirán automáticamente las clases que ya concluyeron hoy.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Alerta si todas las semanas próximas están ocupadas -->
+              <div v-if="todasLasSemanasOcupadas" class="flex items-center gap-2.5 bg-slate-100 border border-slate-300 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                <IconLock class="w-4 h-4 text-slate-500 shrink-0" />
+                <span>
+                  Todas las semanas próximas disponibles ya tienen una programación publicada. Retira alguna programación existente para poder publicar esta.
+                </span>
+              </div>
+
+              <!-- Alerta si se excluyeron todas las actividades (0 efectivas) -->
+              <div v-if="actividadesEfectivasSemana === 0" class="flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                <IconWarning class="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  No puedes publicar la programación porque se han excluido todas las actividades base (0 actividades resultantes). Desmarca al menos un día para continuar.
+                </span>
+              </div>
+
+              <!-- Alerta de advertencia / resumen de exclusión -->
+              <div v-if="omitirDias.length > 0" class="flex items-center gap-2.5 bg-rose-50/80 border border-rose-200 text-rose-800 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>
+                  No se generará ninguna sesión para los siguientes días: <strong class="font-extrabold text-rose-900">{{ omitirDias.map(d => DIA_META[d].full).join(', ') }}</strong>.
+                </span>
+              </div>
+
+              <!-- Error 409 u otro error de servidor -->
+              <Transition name="fade-down">
+                <div v-if="publishError" class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
+                  <IconWarning class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <p class="text-xs font-bold text-red-800 leading-relaxed">{{ publishError }}</p>
+                </div>
+              </Transition>
+
+            </div>
+
+            <!-- Footer: Confirmación estilo GitHub en línea + Botones de Acción -->
+            <div class="p-5 border-t border-slate-200/80 bg-slate-50/80 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <!-- Caja de confirmación de seguridad estilo GitHub -->
+              <div class="flex-1 max-w-sm bg-white border border-slate-200/90 rounded-2xl p-2.5 shadow-2xs">
+                <div class="flex items-center justify-between gap-2 mb-1.5 px-0.5">
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <IconShield class="w-3.5 h-3.5 text-slate-400" />
+                    <span class="text-[11px] font-bold text-slate-700">Confirmación requerida</span>
+                  </div>
+                  <span class="text-[10px] font-medium text-slate-400">
+                    Escribe <strong class="font-black text-slate-700 font-mono tracking-wider">CONFIRMAR</strong>
+                  </span>
+                </div>
+                <div class="relative">
                   <input
                     v-model="publishConfirmInput"
                     type="text"
                     placeholder="CONFIRMAR"
                     autocomplete="off"
-                    class="w-full border-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 tracking-wider placeholder:tracking-normal placeholder:font-normal focus:outline-none focus:ring-2 transition-colors"
+                    spellcheck="false"
+                    class="w-full h-9 rounded-xl px-3 pr-8 text-xs font-mono font-bold tracking-widest uppercase transition-all focus:outline-none"
                     :class="publishConfirmed
-                      ? 'border-emerald-400 bg-emerald-50 focus:ring-emerald-500/40'
-                      : 'border-slate-200 focus:ring-emerald-500/40 focus:border-emerald-500'"
+                      ? 'border-2 border-emerald-500 bg-emerald-50/40 text-emerald-900 ring-2 ring-emerald-500/15'
+                      : 'border border-slate-200 bg-slate-50/50 text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10'"
                   />
+                  <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg v-if="publishConfirmed" class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <IconLock v-else class="w-3.5 h-3.5 text-slate-400" />
+                  </div>
                 </div>
-              </Transition>
+              </div>
 
-              <!-- Error 409 u otro error de servidor -->
-              <Transition name="fade-down">
-                <div v-if="publishError" class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
-                  <IconWarning class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                  <p class="text-xs font-bold text-red-800 leading-relaxed">{{ publishError }}</p>
-                </div>
-              </Transition>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
-              <button
-                @click="closePublish"
-                class="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="submitPublish"
-                :disabled="!publishReady || store.isSaving"
-                class="px-6 py-2.5 text-sm font-extrabold text-white rounded-xl shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                :class="publishReady && !store.isSaving ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-600'"
-              >
-                {{ store.isSaving ? 'Publicando...' : 'Confirmar publicación' }}
-              </button>
+              <!-- Botones de Acción -->
+              <div class="flex items-center justify-end gap-2.5">
+                <button
+                  @click="closePublish"
+                  class="px-4 py-2.5 text-xs font-extrabold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  @click="submitPublish"
+                  :disabled="!publishReady || store.isSaving"
+                  class="px-6 py-2.5 text-xs font-extrabold text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  :class="publishReady && !store.isSaving ? 'bg-emerald-600 hover:bg-emerald-700 active:scale-95' : 'bg-emerald-600'"
+                >
+                  <svg v-if="store.isSaving" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{{ store.isSaving ? 'Publicando...' : 'Confirmar publicación' }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
