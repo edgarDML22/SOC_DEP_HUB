@@ -18,7 +18,6 @@ services:
     networks:
       - socdep-network
     depends_on:
-      - nosql
       - redis
     command: >-
       sh -c "
@@ -57,7 +56,6 @@ services:
       - socdep-network
     depends_on:
       - app
-      - nosql
       - redis
 
   # WORKER: Procesador de colas (Notificaciones de No-Shows, etc.)
@@ -82,7 +80,6 @@ services:
       - socdep-network
     depends_on:
       - app
-      - nosql
       - redis
 
   # FRONTEND: Vue.js + Vite
@@ -108,18 +105,6 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    networks:
-      - socdep-network
-
-  # NOSQL: MongoDB para Telemetría (RF-12)
-  nosql:
-    image: mongo:latest
-    container_name: socdep-nosql
-    restart: unless-stopped
-    environment:
-      - TZ=America/Mexico_City
-    ports:
-      - "27017:27017"
     networks:
       - socdep-network
 
