@@ -41,7 +41,7 @@ onMounted(() => {
       }
     })
   }
-  
+
   familyStore.fetchMiembros(socioId)
 })
 
@@ -86,21 +86,21 @@ const canAddMore = computed(() => totalMiembros.value < 6)
 const formatParentesco = (parentesco, genero) => {
   if (!parentesco) return '-'
   const normalized = parentesco.toUpperCase()
-  
+
   if (normalized === 'HIJO/A' || normalized === 'HIJO' || normalized === 'HIJA') {
     if (genero === 'M') return 'Hijo'
     if (genero === 'F') return 'Hija'
     return 'Hijo/a'
   }
-  
+
   if (normalized === 'CONYUGE' || normalized === 'CÓNYUGE') {
     return 'Cónyuge'
   }
-  
+
   if (normalized === 'OTRO') {
     return 'Otro'
   }
-  
+
   return parentesco
 }
 
@@ -163,7 +163,7 @@ const deleteMiembro = async (miembro) => {
       await familyStore.eliminarMiembro(socioId, miembro.id_miembro)
     }
   )
-  
+
   if (result.isConfirmed) {
     toastInfo('Eliminado', 'Miembro familiar eliminado.', 'success')
   }
@@ -209,23 +209,21 @@ const buildMenuItems = (miembro) => [
 <template>
   <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
     <div class="max-w-7xl mx-auto space-y-8">
-      
+
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-4">
           <button @click="goBack"
-              class="w-11 h-11 bg-white border border-surface-200 rounded-xl flex items-center justify-center text-surface-600 hover:bg-surface-50 hover:text-primary-600 transition-all shadow-sm group shrink-0">
-              <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none"
-                  stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-              </svg>
+            class="w-11 h-11 bg-white border border-surface-200 rounded-xl flex items-center justify-center text-surface-600 hover:bg-surface-50 hover:text-primary-600 transition-all shadow-sm group shrink-0">
+            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor"
+              viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
           </button>
-          <AdminPageHeader 
-            title="Gestión de Familiares" 
-            :subtitle="`Socio Titular: ${currentSocio?.nombre_completo || 'Cargando...'}`"
-          />
+          <AdminPageHeader title="Gestión de Familiares"
+            :subtitle="`Socio Titular: ${currentSocio?.nombre_completo || 'Cargando...'}`" />
         </div>
-        
+
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-surface-200">
             <span class="text-sm font-semibold text-surface-500">Ocupación</span>
@@ -233,11 +231,8 @@ const buildMenuItems = (miembro) => [
               {{ totalMiembros }} / 6
             </span>
           </div>
-          <button 
-            @click="openCreateModal"
-            :disabled="!canAddMore"
-            class="px-5 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl shadow-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
+          <button @click="openCreateModal" :disabled="!canAddMore"
+            class="px-5 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl shadow-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
             + Añadir Familiar
           </button>
         </div>
@@ -245,112 +240,117 @@ const buildMenuItems = (miembro) => [
 
 
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible">
-  <div v-if="loading.fetch" class="p-12 flex justify-center">
-    <LoadingSpinner />
-  </div>
-
-  <div v-else-if="miembros.length === 0" class="p-16 flex flex-col items-center justify-center text-center">
-    <h3 class="text-base font-black text-surface-900">Sin Familiares</h3>
-    <p class="text-sm text-surface-500 mt-1 max-w-xs">No se han registrado miembros familiares para este socio.</p>
-  </div>
-
-  <template v-else>
-
-    <!-- VISTA TABLA (pantalla grande) -->
-    <div class="hidden md:block overflow-x-auto">
-      <table class="w-full text-sm text-left text-slate-600">
-        <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
-          <tr>
-            <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Nombre</th>
-            <th scope="col" class="px-6 py-4 text-left font-extrabold">Correo</th>
-            <th scope="col" class="px-6 py-4 text-left font-extrabold">Género</th>
-            <th scope="col" class="px-6 py-4 text-left font-extrabold">Parentesco</th>
-            <th scope="col" class="px-6 py-4 text-left font-extrabold">Edad</th>
-            <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-surface-100">
-          <tr v-for="miembro in miembros" :key="miembro.id_miembro" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
-            <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.nombre_completo }}</td>
-            <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.correo || 'N/A' }}</td>
-            <td class="px-6 py-4"><BadgeStatus :status="miembro.genero" /></td>
-            <td class="px-6 py-4 font-semibold text-surface-900">{{ formatParentesco(miembro.parentesco, miembro.genero) }}</td>
-            <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.edad }} años</td>
-            <td class="px-6 py-4 text-right">
-              <ActionMenu :items="buildMenuItems(miembro)" align="right" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- VISTA TARJETAS (pantalla chica) -->
-    <div class="md:hidden p-4 space-y-4">
-      <div
-        v-for="miembro in miembros"
-        :key="miembro.id_miembro"
-        class="bg-white border border-surface-200 rounded-2xl shadow-sm"
-      >
-        <!-- Encabezado: avatar, nombre, correo y menú -->
-        <div class="flex items-center gap-3 px-4 py-3">
-          <div class="w-10 h-10 shrink-0 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-black">
-            {{ getIniciales(miembro.nombre_completo) }}
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-surface-900 truncate">{{ miembro.nombre_completo }}</p>
-            <p class="text-xs font-medium text-surface-500 truncate">{{ miembro.correo || 'N/A' }}</p>
-          </div>
-          <ActionMenu :items="buildMenuItems(miembro)" align="right" />
+        <div v-if="loading.fetch" class="p-12 flex justify-center">
+          <LoadingSpinner />
         </div>
 
-        <!-- Etiquetas: parentesco y género -->
-        <div class="flex items-center gap-2 px-4 py-3 border-t border-surface-100">
-          <span class="px-2.5 py-1 rounded-full bg-surface-100 text-surface-600 text-[10px] font-black uppercase tracking-wider">
-            {{ formatParentesco(miembro.parentesco, miembro.genero) }}
-          </span>
-          <BadgeStatus :status="miembro.genero" />
+        <div v-else-if="miembros.length === 0" class="p-16 flex flex-col items-center justify-center text-center">
+          <h3 class="text-base font-black text-surface-900">Sin Familiares</h3>
+          <p class="text-sm text-surface-500 mt-1 max-w-xs">No se han registrado miembros familiares para este socio.
+          </p>
         </div>
 
-        <!-- Datos alineados -->
-        <div class="px-4 py-3 border-t border-surface-100 space-y-2">
-          <div class="flex items-center justify-between text-sm">
-            <span class="font-semibold text-surface-500">Edad</span>
-            <span class="font-bold text-surface-900">{{ miembro.edad }} años</span>
+        <template v-else>
+
+          <!-- VISTA TABLA (pantalla grande) -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-600">
+              <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+                <tr>
+                  <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Nombre</th>
+                  <th scope="col" class="px-6 py-4 text-left font-extrabold">Correo</th>
+                  <th scope="col" class="px-6 py-4 text-left font-extrabold">Género</th>
+                  <th scope="col" class="px-6 py-4 text-left font-extrabold">Parentesco</th>
+                  <th scope="col" class="px-6 py-4 text-left font-extrabold">Edad</th>
+                  <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-100">
+                <tr v-for="miembro in miembros" :key="miembro.id_miembro"
+                  class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                  <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.nombre_completo }}</td>
+                  <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.correo || 'N/A' }}</td>
+                  <td class="px-6 py-4">
+                    <BadgeStatus :status="miembro.genero" />
+                  </td>
+                  <td class="px-6 py-4 font-semibold text-surface-900">{{ formatParentesco(miembro.parentesco,
+                    miembro.genero) }}</td>
+                  <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.edad }} años</td>
+                  <td class="px-6 py-4 text-right">
+                    <ActionMenu :items="buildMenuItems(miembro)" align="right" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="font-semibold text-surface-500">Correo</span>
-            <span class="font-bold text-surface-900 truncate ml-4">{{ miembro.correo || 'N/A' }}</span>
+
+          <!-- VISTA TARJETAS (pantalla chica) -->
+          <div class="md:hidden p-4 space-y-4">
+            <div v-for="miembro in miembros" :key="miembro.id_miembro"
+              class="bg-white border border-surface-200 rounded-2xl shadow-sm">
+              <!-- Encabezado: avatar, nombre, correo y menú -->
+              <div class="flex items-center gap-3 px-4 py-3">
+                <div
+                  class="w-10 h-10 shrink-0 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-black">
+                  {{ getIniciales(miembro.nombre_completo) }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-bold text-surface-900 truncate">{{ miembro.nombre_completo }}</p>
+                  <p class="text-xs font-medium text-surface-500 truncate">{{ miembro.correo || 'N/A' }}</p>
+                </div>
+                <ActionMenu :items="buildMenuItems(miembro)" align="right" />
+              </div>
+
+              <!-- Etiquetas: parentesco y género -->
+              <div class="flex items-center gap-2 px-4 py-3 border-t border-surface-100">
+                <span
+                  class="px-2.5 py-1 rounded-full bg-surface-100 text-surface-600 text-[10px] font-black uppercase tracking-wider">
+                  {{ formatParentesco(miembro.parentesco, miembro.genero) }}
+                </span>
+                <BadgeStatus :status="miembro.genero" />
+              </div>
+
+              <!-- Datos alineados -->
+              <div class="px-4 py-3 border-t border-surface-100 space-y-2">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="font-semibold text-surface-500">Edad</span>
+                  <span class="font-bold text-surface-900">{{ miembro.edad }} años</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="font-semibold text-surface-500">Correo</span>
+                  <span class="font-bold text-surface-900 truncate ml-4">{{ miembro.correo || 'N/A' }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+
+        </template>
       </div>
-    </div>
-
-  </template>
-</div>
 
     </div>
 
 
     <Teleport to="body">
-      <Transition 
-        enter-active-class="transition-all duration-300 ease-out" 
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100" 
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" 
-        leave-to-class="opacity-0"
-      >
-        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="closeFormModal">
+      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="showModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="closeFormModal">
           <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col overflow-hidden">
-            
+
             <div class="px-7 py-5 border-b border-surface-100 flex justify-between items-center">
               <div>
                 <h2 class="text-lg font-black text-surface-900 leading-tight">
                   {{ step === 2 ? 'Familiar Registrado' : 'Registrar Familiar' }}
                 </h2>
               </div>
-              <button v-if="step !== 2" @click="closeFormModal" class="w-8 h-8 rounded-full bg-surface-100 hover:bg-surface-200 flex items-center justify-center">
-                <svg class="w-4 h-4 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <button v-if="step !== 2" @click="closeFormModal"
+                class="w-8 h-8 rounded-full bg-surface-100 hover:bg-surface-200 flex items-center justify-center">
+                <svg class="w-4 h-4 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -382,7 +382,8 @@ const buildMenuItems = (miembro) => [
                       <option value="HIJO/A">Hijo/a</option>
                       <option value="OTRO">Otro</option>
                     </select>
-                    <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    <IconChevronDown
+                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
                   </div>
                 </div>
                 <div class="space-y-1.5">
@@ -398,7 +399,8 @@ const buildMenuItems = (miembro) => [
                       <option value="F">Femenino</option>
                       <option value="O">Otro</option>
                     </select>
-                    <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                    <IconChevronDown
+                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
@@ -444,18 +446,25 @@ const buildMenuItems = (miembro) => [
 
             <div v-else-if="step === 2" class="p-8 flex flex-col items-center text-center">
               <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                </svg>
               </div>
               <h3 class="text-xl font-black text-surface-900 mb-1">Registro Exitoso</h3>
-              <p class="text-sm text-surface-500 mb-6">El familiar ha sido agregado y su código de acceso está listo.</p>
-              
+              <p class="text-sm text-surface-500 mb-6">El familiar ha sido agregado y su código de acceso está listo.
+              </p>
+
               <div class="p-4 bg-white border border-surface-200 rounded-2xl shadow-sm mb-6">
-                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrGeneratedData?.qr}`" alt="QR Code" class="w-36 h-36 object-contain">
+                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrGeneratedData?.qr}`"
+                  alt="QR Code" class="w-36 h-36 object-contain">
               </div>
               <div class="flex flex-col gap-3 w-full">
-                <button @click="copiarImagenAlPortapapeles(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrGeneratedData?.qr}`)"
-                  class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200" style="background-size: 200% auto;">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button
+                  @click="copiarImagenAlPortapapeles(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrGeneratedData?.qr}`)"
+                  class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200"
+                  style="background-size: 200% auto;">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
                     <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                   </svg>
@@ -472,26 +481,29 @@ const buildMenuItems = (miembro) => [
 
 
     <Teleport to="body">
-      <Transition 
-        enter-active-class="transition-all duration-300 ease-out" 
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100" 
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" 
-        leave-to-class="opacity-0"
-      >
-        <div v-if="showQrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm" @click.self="showQrModal = false">
+      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="showQrModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
+          @click.self="showQrModal = false">
           <div class="bg-white w-full max-w-sm rounded-4xl shadow-2xl flex flex-col overflow-hidden text-center p-8">
             <h2 class="text-xl font-black text-surface-900 leading-tight mb-1">Código de Acceso</h2>
-            <p class="text-sm text-surface-500 font-medium mb-6">{{ qrModalData?.nombre }} - {{ qrModalData?.parentesco }}</p>
-            
+            <p class="text-sm text-surface-500 font-medium mb-6">{{ qrModalData?.nombre }} - {{ qrModalData?.parentesco
+            }}
+            </p>
+
             <div class="mx-auto p-4 bg-white border border-surface-200 rounded-2xl shadow-sm mb-6">
-              <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrModalData?.qr}`" alt="QR Code" class="w-40 h-40 object-contain mx-auto">
+              <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrModalData?.qr}`"
+                alt="QR Code" class="w-40 h-40 object-contain mx-auto">
             </div>
             <div class="flex flex-col gap-3 w-full">
-              <button @click="copiarImagenAlPortapapeles(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrModalData?.qr}`)"
-                class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200" style="background-size: 200% auto;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <button
+                @click="copiarImagenAlPortapapeles(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrModalData?.qr}`)"
+                class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200"
+                style="background-size: 200% auto;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
                   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                 </svg>
