@@ -123,12 +123,6 @@ Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink'
 // SDH 187: Actualizar estatus de la cuenta del socio
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
-// SDH-116: Historial de sesiones del instructor (auth comentada temporalmente para pruebas)
-Route::get('/v1/instructor/historial-sesiones', [SesionInstructorController::class, 'historialSesiones']);
-// ->middleware(['auth:sanctum']);
-Route::get('/instructor/historial-sesiones', [SesionInstructorController::class, 'historialSesiones']);
-// ->middleware(['auth:sanctum']);
-
 // Miembros Familiares
 // Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
 
@@ -312,6 +306,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // US-32/33: Hub QR — datos del día y pase de lista
     Route::get('/v1/instructor/datos-hoy', [SesionInstructorController::class, 'datosHoy']);
+    Route::get('/v1/instructor/historial-sesiones', [SesionInstructorController::class, 'historialSesiones']);
+    Route::get('/instructor/historial-sesiones', [SesionInstructorController::class, 'historialSesiones']);
     Route::get('/v1/instructor/sesiones/{idSesion}/lista-inscriptos', [SesionInstructorController::class, 'listaInscriptos']);
     Route::get('/v1/instructor/sesiones/{idSesion}/qr-lookup/{codigo}', [SesionInstructorController::class, 'qrLookup']);
     Route::post('/v1/instructor/sesiones/{idSesion}/confirmar-asistencia', [SesionInstructorController::class, 'confirmarAsistencia']);

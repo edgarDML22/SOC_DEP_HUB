@@ -133,15 +133,8 @@ class SesionInstructorController extends Controller
      */
     public function historialSesiones(Request $request): JsonResponse
     {
-        // 1. Obtener ID del instructor (comentado temporalmente para pruebas en Postman)
+        // 1. Obtener ID del instructor
         $idInstructor = $this->idInstructorActual();
-        if (!$idInstructor && !$request->boolean('test_sin_perfil')) {
-            $idInstructor = $request->query('id_instructor')
-                ? (int) $request->query('id_instructor')
-                : (DB::table('instructores')->value('id_instructor') ?? 1);
-        }
-
-        // Validación de perfil instructor (descomentar completamente en producción)
         if (!$idInstructor) {
             return response()->json([
                 'success' => false,
