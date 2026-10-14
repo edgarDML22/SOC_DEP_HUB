@@ -366,7 +366,13 @@ class SesionInstructorController extends Controller
             'metodo'                    => ['required', 'in:ESCANER_QR,MANUAL,SIN_REGISTRO'],
         ]);
 
-        $sesion = SesionActiva::withoutGlobalScopes()->findOrFail($idSesion);
+        $sesion = SesionActiva::withoutGlobalScopes()->find($idSesion);
+        if (!$sesion) {
+            return response()->json([
+                'success' => false,
+                'message' => "La sesión #{$idSesion} no fue encontrada en la base de datos.",
+            ], 404);
+        }
 
         $idInstructor = $this->idInstructorActual();
         abort_if(
@@ -384,24 +390,19 @@ class SesionInstructorController extends Controller
             ], 409);
         }
 
-
         return DB::transaction(function () use ($request, $sesion) {
             $erroresParciales = [];
             $registrados      = 0;
+            $noShowsRegistrados = 0;
 
             // Cargar pares (id_usuario, tipo_usuario) ya registrados para deduplicación.
-            // La clave compuesta es necesaria porque id_usuario no es globalmente único:
-            // un socio_titular con id=1 y un miembro_familiar con id=1 son personas distintas.
-            // Clave: SOCIO_TITULAR:<id> para coincidir con $tipoInscripcion usado abajo
             $yaRegistrados = RegistroAsistencia::where('id_sesion', $sesion->id_sesion)
                 ->where('asistencia', true)
                 ->get(['id_usuario', 'tipo_usuario'])
                 ->mapWithKeys(fn($r) => [strtoupper($r->tipo_usuario) . ":{$r->id_usuario}" => true]);
 
             foreach ($request->confirmados as $confirmado) {
-                $idUsuario   = (int) $confirmado['id_usuario'];
-                // registros_asistencia → MAYUSCULAS (SOCIO_TITULAR, MIEMBRO_FAMILIAR, INVITADO)
-                // inscripciones_clases → minusculas (socio_titular, miembro_familiar, invitado)
+                $idUsuario       = (int) $confirmado['id_usuario'];
                 $tipoRegistro    = $this->normalizarTipoUsuarioAsistencia($confirmado['tipo_usuario']);
                 $tipoInscripcion = strtolower($confirmado['tipo_usuario']);
                 $codigoQr        = strtoupper($confirmado['codigo_qr'] ?? '');
@@ -420,14 +421,6 @@ class SesionInstructorController extends Controller
                             'asistencia'          => true,
                             'metodo_registro'     => $request->metodo,
                             'fecha_hora_registro' => now(),
-                        ]);
-
-                        Log::info('UPDATE inscripciones_clases params', [
-                            'id_sesion'        => $sesion->id_sesion,
-                            'id_usuario'       => $idUsuario,
-                            'tipo_inscripcion' => $tipoInscripcion,
-                            'tipo_registro'    => $tipoRegistro,
-                            'confirmado_raw'   => $confirmado ?? null,
                         ]);
 
                         DB::statement(
@@ -454,7 +447,51 @@ class SesionInstructorController extends Controller
                 }
             }
 
-            if ($registrados > 0) {
+            if ($request->boolean('cerrar_lista')) {
+                $pendientes = InscripcionClase::where('id_sesion', $sesion->id_sesion)
+                    ->whereIn('estatus_inscripcion', ['CONFIRMADA', 'LISTA_ESPERA'])
+                    ->whereNotIn('tipo_usuario', ['invitado'])
+                    ->get();
+
+                foreach ($pendientes as $inscripcion) {
+                    $clavePendiente = $this->normalizarTipoUsuarioAsistencia($inscripcion->tipo_usuario) . ":{$inscripcion->id_usuario}";
+                    if ($yaRegistrados->has($clavePendiente)) {
+                        continue;
+                    }
+
+                    try {
+                        RegistroAsistencia::create([
+                            'id_sesion'           => $sesion->id_sesion,
+                            'id_usuario'          => $inscripcion->id_usuario,
+                            'tipo_usuario'        => $this->normalizarTipoUsuarioAsistencia($inscripcion->tipo_usuario),
+                            'asistencia'          => false,
+                            'metodo_registro'     => 'SIN_REGISTRO',
+                            'fecha_hora_registro' => now(),
+                        ]);
+
+                        $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
+
+                        if (in_array(strtolower((string) $inscripcion->tipo_usuario), ['socio_titular', 'socio'], true)) {
+                            SocioTitular::find($inscripcion->id_usuario)?->increment('contador_no_shows');
+                        } elseif (in_array(strtolower((string) $inscripcion->tipo_usuario), ['miembro_familiar', 'familiar'], true)) {
+                            $familiar = MiembrosFamiliares::find($inscripcion->id_usuario);
+                            if ($familiar) {
+                                $familiar->increment('contador_no_shows');
+                                if ($familiar->socio_id) {
+                                    SocioTitular::find($familiar->socio_id)?->increment('contador_no_shows');
+                                }
+                            }
+                        }
+
+                        \App\Jobs\ProcesarAlertaNoShowJob::dispatch($inscripcion);
+                        $noShowsRegistrados++;
+                    } catch (\Throwable $e) {
+                        Log::warning("confirmarAsistencia: error marcando no-show para inscripcion #{$inscripcion->id_inscripcion}: {$e->getMessage()}");
+                    }
+                }
+            }
+
+            if ($registrados > 0 || $noShowsRegistrados > 0) {
                 $sesion->update(['lista_asistencia_enviada' => true]);
             }
 
@@ -463,14 +500,107 @@ class SesionInstructorController extends Controller
                     'success'           => false,
                     'message'           => "Se registraron {$registrados} participante(s), pero hubo errores en algunos códigos.",
                     'total_registrados' => $registrados,
+                    'total_no_shows'    => $noShowsRegistrados,
                     'errores_parciales' => $erroresParciales,
                 ], 207);
             }
 
             return response()->json([
                 'success'           => true,
-                'message'           => "Asistencia confirmada. {$registrados} participante(s) registrado(s).",
+                'message'           => "Asistencia procesada. {$registrados} asistencias confirmadas, {$noShowsRegistrados} no-shows registrados.",
                 'total_registrados' => $registrados,
+                'total_no_shows'    => $noShowsRegistrados,
+            ]);
+        });
+    }
+
+    /**
+     * POST /api/v1/instructor/sesiones/{idSesion}/marcar-no-show
+     *
+     * Registra inasistencia (No-Show) para un participante o para los pendientes
+     * al cerrar la lista, emitiendo la alerta correspondiente al socio titular.
+     */
+    public function marcarNoShow(Request $request, int $idSesion): JsonResponse
+    {
+        $sesion = SesionActiva::withoutGlobalScopes()->find($idSesion);
+        if (!$sesion) {
+            return response()->json([
+                'success' => false,
+                'message' => "La sesión #{$idSesion} no fue encontrada en la base de datos.",
+            ], 404);
+        }
+
+        $idInstructor = $this->idInstructorActual();
+        abort_if(
+            $sesion->id_instructor !== $idInstructor,
+            403,
+            'No autorizado para esta sesión.'
+        );
+
+        $idUsuario   = $request->input('id_usuario');
+        $tipoUsuario = $request->input('tipo_usuario', 'socio_titular');
+
+        return DB::transaction(function () use ($request, $sesion, $idUsuario, $tipoUsuario) {
+            $query = InscripcionClase::where('id_sesion', $sesion->id_sesion)
+                ->whereIn('estatus_inscripcion', ['CONFIRMADA', 'LISTA_ESPERA']);
+
+            if ($idUsuario) {
+                $query->where('id_usuario', (int) $idUsuario);
+                if ($tipoUsuario) {
+                    $query->where('tipo_usuario', strtolower((string) $tipoUsuario));
+                }
+            }
+
+            $inscripciones = $query->get();
+
+            if ($inscripciones->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron inscripciones pendientes para marcar como No-Show en esta sesión.',
+                ], 404);
+            }
+
+            $procesados = 0;
+            foreach ($inscripciones as $inscripcion) {
+                $tipoRegistro = $this->normalizarTipoUsuarioAsistencia($inscripcion->tipo_usuario);
+
+                RegistroAsistencia::updateOrCreate(
+                    [
+                        'id_sesion'    => $sesion->id_sesion,
+                        'id_usuario'   => $inscripcion->id_usuario,
+                        'tipo_usuario' => $tipoRegistro,
+                    ],
+                    [
+                        'asistencia'          => false,
+                        'metodo_registro'     => $request->input('metodo', 'MANUAL'),
+                        'fecha_hora_registro' => now(),
+                    ]
+                );
+
+                $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
+
+                if (in_array(strtolower((string) $inscripcion->tipo_usuario), ['socio_titular', 'socio'], true)) {
+                    SocioTitular::find($inscripcion->id_usuario)?->increment('contador_no_shows');
+                } elseif (in_array(strtolower((string) $inscripcion->tipo_usuario), ['miembro_familiar', 'familiar'], true)) {
+                    $familiar = MiembrosFamiliares::find($inscripcion->id_usuario);
+                    if ($familiar) {
+                        $familiar->increment('contador_no_shows');
+                        if ($familiar->socio_id) {
+                            SocioTitular::find($familiar->socio_id)?->increment('contador_no_shows');
+                        }
+                    }
+                }
+
+                \App\Jobs\ProcesarAlertaNoShowJob::dispatch($inscripcion);
+                $procesados++;
+            }
+
+            $sesion->update(['lista_asistencia_enviada' => true]);
+
+            return response()->json([
+                'success'        => true,
+                'message'        => "Se registraron {$procesados} inasistencia(s) y se emitieron las alertas de No-Show.",
+                'total_no_shows' => $procesados,
             ]);
         });
     }
@@ -482,9 +612,9 @@ class SesionInstructorController extends Controller
     /** @return int|null id_instructor del usuario autenticado */
     private function idInstructorActual(): ?int
     {
-        /** @var User $user */
+        /** @var User|null $user */
         $user = auth()->user();
-        return $user->instructor?->id_instructor;
+        return $user?->instructor?->id_instructor;
     }
 
     /**
