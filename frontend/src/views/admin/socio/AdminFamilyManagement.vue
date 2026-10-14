@@ -104,6 +104,12 @@ const formatParentesco = (parentesco, genero) => {
   return parentesco
 }
 
+const getIniciales = (nombre) => {
+  if (!nombre) return '?'
+  const partes = nombre.trim().split(/\s+/)
+  return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase()
+}
+
 
 const openCreateModal = () => {
   if (!canAddMore.value) {
@@ -239,42 +245,88 @@ const buildMenuItems = (miembro) => [
 
 
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible">
-        <div v-if="loading.fetch" class="p-12 flex justify-center">
-          <LoadingSpinner />
-        </div>
-        
-        <div v-else-if="miembros.length === 0" class="p-16 flex flex-col items-center justify-center text-center">
-          <h3 class="text-base font-black text-surface-900">Sin Familiares</h3>
-          <p class="text-sm text-surface-500 mt-1 max-w-xs">No se han registrado miembros familiares para este socio.</p>
+  <div v-if="loading.fetch" class="p-12 flex justify-center">
+    <LoadingSpinner />
+  </div>
+
+  <div v-else-if="miembros.length === 0" class="p-16 flex flex-col items-center justify-center text-center">
+    <h3 class="text-base font-black text-surface-900">Sin Familiares</h3>
+    <p class="text-sm text-surface-500 mt-1 max-w-xs">No se han registrado miembros familiares para este socio.</p>
+  </div>
+
+  <template v-else>
+
+    <!-- VISTA TABLA (pantalla grande) -->
+    <div class="hidden md:block overflow-x-auto">
+      <table class="w-full text-sm text-left text-slate-600">
+        <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+          <tr>
+            <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Nombre</th>
+            <th scope="col" class="px-6 py-4 text-left font-extrabold">Correo</th>
+            <th scope="col" class="px-6 py-4 text-left font-extrabold">Género</th>
+            <th scope="col" class="px-6 py-4 text-left font-extrabold">Parentesco</th>
+            <th scope="col" class="px-6 py-4 text-left font-extrabold">Edad</th>
+            <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+          <tr v-for="miembro in miembros" :key="miembro.id_miembro" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+            <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.nombre_completo }}</td>
+            <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.correo || 'N/A' }}</td>
+            <td class="px-6 py-4"><BadgeStatus :status="miembro.genero" /></td>
+            <td class="px-6 py-4 font-semibold text-surface-900">{{ formatParentesco(miembro.parentesco, miembro.genero) }}</td>
+            <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.edad }} años</td>
+            <td class="px-6 py-4 text-right">
+              <ActionMenu :items="buildMenuItems(miembro)" align="right" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- VISTA TARJETAS (pantalla chica) -->
+    <div class="md:hidden p-4 space-y-4">
+      <div
+        v-for="miembro in miembros"
+        :key="miembro.id_miembro"
+        class="bg-white border border-surface-200 rounded-2xl shadow-sm"
+      >
+        <!-- Encabezado: avatar, nombre, correo y menú -->
+        <div class="flex items-center gap-3 px-4 py-3">
+          <div class="w-10 h-10 shrink-0 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-black">
+            {{ getIniciales(miembro.nombre_completo) }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-bold text-surface-900 truncate">{{ miembro.nombre_completo }}</p>
+            <p class="text-xs font-medium text-surface-500 truncate">{{ miembro.correo || 'N/A' }}</p>
+          </div>
+          <ActionMenu :items="buildMenuItems(miembro)" align="right" />
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm text-left text-slate-600">
-            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
-              <tr>
-                <th scope="col" class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Nombre</th>
-                <th scope="col" class="px-6 py-4 text-left font-extrabold">Correo</th>
-                <th scope="col" class="px-6 py-4 text-left font-extrabold">Género</th>
-                <th scope="col" class="px-6 py-4 text-left font-extrabold">Parentesco</th>
-                <th scope="col" class="px-6 py-4 text-left font-extrabold">Edad</th>
-                <th scope="col" class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-100">
-              <tr v-for="miembro in miembros" :key="miembro.id_miembro" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
-                <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.nombre_completo }}</td>
-                <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.correo || 'N/A' }}</td>
-                <td class="px-6 py-4"><BadgeStatus :status="miembro.genero" /></td>
-                <td class="px-6 py-4 font-semibold text-surface-900">{{ formatParentesco(miembro.parentesco, miembro.genero) }}</td>
-                <td class="px-6 py-4 font-semibold text-surface-900">{{ miembro.edad }} años</td>
-                <td class="px-6 py-4 text-right">
-                  <ActionMenu :items="buildMenuItems(miembro)" align="right" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Etiquetas: parentesco y género -->
+        <div class="flex items-center gap-2 px-4 py-3 border-t border-surface-100">
+          <span class="px-2.5 py-1 rounded-full bg-surface-100 text-surface-600 text-[10px] font-black uppercase tracking-wider">
+            {{ formatParentesco(miembro.parentesco, miembro.genero) }}
+          </span>
+          <BadgeStatus :status="miembro.genero" />
+        </div>
+
+        <!-- Datos alineados -->
+        <div class="px-4 py-3 border-t border-surface-100 space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-semibold text-surface-500">Edad</span>
+            <span class="font-bold text-surface-900">{{ miembro.edad }} años</span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-semibold text-surface-500">Correo</span>
+            <span class="font-bold text-surface-900 truncate ml-4">{{ miembro.correo || 'N/A' }}</span>
+          </div>
         </div>
       </div>
+    </div>
+
+  </template>
+</div>
 
     </div>
 
