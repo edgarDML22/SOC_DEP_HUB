@@ -32,45 +32,20 @@ class SesionActivaController extends Controller
     {
         app(\App\Services\PublicarProgramacionService::class)->resetearPlantillasVencidas();
 
-        $plantillasPublicadas = PlantillaProgramacion::where('publicada', true)
-            ->get();
-
-        if ($plantillasPublicadas->isEmpty()) {
-            return response()->json([
-                'data' => [],
-                'meta' => [
-                    'total'                    => 0,
-                    'per_page'                 => 30,
-                    'current_page'             => 1,
-                    'last_page'                => 1,
-                    'plantilla_activa_encontrada' => false,
-                ],
-            ], 200);
-        }
-
-        // Filtrar sesiones que pertenezcan a las plantillas publicadas Y estén dentro
-        // del rango de fechas estipulado (fecha_inicio a fecha_fin) de su respectiva programación.
-        $query = SesionActiva::withoutGlobalScopes()->with([
-            'actividadPlantilla:id_actividad_plantilla,id_plantilla',
-            'actividadPlantilla.disciplina.categorias',
-            'disciplina:id_disciplina,nombre_disciplina',
-            'espacio:id_espacio,nombre_espacio',
-            'instructorPrincipal:id_instructor,nombre_completo',
-        ])
-            ->where(function ($subQ) use ($plantillasPublicadas) {
-                foreach ($plantillasPublicadas as $plantilla) {
-                    $subQ->orWhere(function ($pQ) use ($plantilla) {
-                        $pQ->whereHas('actividadPlantilla', function ($apQ) use ($plantilla) {
-                            $apQ->where('id_plantilla', $plantilla->id_plantilla);
-                        });
-                        if ($plantilla->fecha_inicio && $plantilla->fecha_fin) {
-                            $pQ->whereBetween('fecha_sesion', [$plantilla->fecha_inicio, $plantilla->fecha_fin]);
-                        } elseif ($plantilla->fecha_inicio) {
-                            $pQ->where('fecha_sesion', '>=', $plantilla->fecha_inicio);
-                        }
-                    });
+        $query = SesionActiva::withoutGlobalScopes()
+            ->publicadaYVigente()
+            ->with([
+                'actividadPlantilla:id_actividad_plantilla,id_plantilla',
+                'actividadPlantilla.disciplina.categorias',
+                'disciplina:id_disciplina,nombre_disciplina',
+                'espacio:id_espacio,nombre_espacio',
+                'instructorPrincipal:id_instructor,nombre_completo',
+            ])
+            ->withCount([
+                'inscripcionesClase as inscripciones_count' => function ($q) {
+                    $q->whereIn(DB::raw('estatus_inscripcion::text'), ['CONFIRMADA', 'ASISTIO']);
                 }
-            });
+            ]);
 
         // ── Filtros opcionales ────────────────────────────────────────────────
         if ($estatus = $request->query('estatus')) {
@@ -125,30 +100,105 @@ class SesionActivaController extends Controller
         $perPage = min((int) $request->query('per_page', 30), 1000);
         $paginado = $query->paginate($perPage);
 
-        $data = $paginado->getCollection()->map(fn($s) => [
-            'id_sesion'            => $s->id_sesion,
-            'fecha_sesion'         => $s->fecha_sesion,
-            'estatus_sesion'       => $s->estatus_sesion,
-            'cantidad_inscritos'   => $s->cantidad_inscritos,
-            'dia_semana'           => $s->dia_semana,
-            'hora_inicio'          => $s->hora_inicio,
-            'hora_fin'             => $s->hora_fin,
-            'disciplina'           => $s->disciplina?->nombre_disciplina,
-            'categoria'            => $s->actividadPlantilla?->disciplina?->categorias?->first()?->nombre,
-            'requiere_inscripcion' => (bool) $s->requiere_inscripcion,
-            'instructor'           => $s->instructorPrincipal?->nombre_completo,
-            'espacio'              => $s->espacio?->nombre_espacio,
-        ]);
+        $data = $paginado->getCollection()->map(function ($s) {
+            $inscritos = (int) ($s->inscripciones_count ?? 0);
+
+            return [
+                'id_sesion'            => $s->id_sesion,
+                'fecha_sesion'         => $s->fecha_sesion,
+                'estatus_sesion'       => $s->estatus_sesion,
+                'cantidad_inscritos'   => $inscritos,
+                'inscripciones_count'  => $inscritos,
+                'inscritos'            => $inscritos,
+                'cupo_maximo'          => $s->cupo_maximo,
+                'dia_semana'           => $s->dia_semana,
+                'hora_inicio'          => $s->hora_inicio,
+                'hora_fin'             => $s->hora_fin,
+                'disciplina'           => $s->disciplina?->nombre_disciplina,
+                'categoria'            => $s->actividadPlantilla?->disciplina?->categorias?->first()?->nombre,
+                'requiere_inscripcion' => (bool) $s->requiere_inscripcion,
+                'instructor'           => $s->instructorPrincipal?->nombre_completo,
+                'espacio'              => $s->espacio?->nombre_espacio,
+            ];
+        });
+
+        $hayPlantillaActiva = PlantillaProgramacion::where(function ($q) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('plantillas_programacion', 'estatus')) {
+                $q->where('estatus', 'PUBLICADA');
+            } else {
+                $q->where('publicada', true)
+                  ->orWhere('estatus_plantilla', true);
+            }
+        })->exists();
 
         return response()->json([
             'data' => $data,
             'meta' => [
-                'total'                    => $paginado->total(),
-                'per_page'                 => $paginado->perPage(),
-                'current_page'             => $paginado->currentPage(),
-                'last_page'                => $paginado->lastPage(),
-                'plantilla_activa_encontrada' => true,
+                'total'                       => $paginado->total(),
+                'per_page'                    => $paginado->perPage(),
+                'current_page'                => $paginado->currentPage(),
+                'last_page'                   => $paginado->lastPage(),
+                'plantilla_activa_encontrada' => $hayPlantillaActiva,
             ],
+        ], 200);
+    }
+
+    /**
+     * GET /api/v1/programacion/resumen-ocupacion
+     *
+     * Resumen de ocupación e inscripciones considerando únicamente
+     * sesiones de plantillas publicadas y vigentes.
+     */
+    public function resumenOcupacion(Request $request): JsonResponse
+    {
+        $query = SesionActiva::withoutGlobalScopes()
+            ->publicadaYVigente()
+            ->withCount([
+                'inscripcionesClase as inscripciones_count' => function ($q) {
+                    $q->whereIn(DB::raw('estatus_inscripcion::text'), ['CONFIRMADA', 'ASISTIO']);
+                }
+            ]);
+
+        if ($fecha = $request->query('fecha')) {
+            $query->where('fecha_sesion', $fecha);
+        } elseif ($request->query('fecha_inicio') && $request->query('fecha_fin')) {
+            $query->whereBetween('fecha_sesion', [$request->query('fecha_inicio'), $request->query('fecha_fin')]);
+        }
+
+        if ($espacioId = $request->query('id_espacio')) {
+            $query->where('id_espacio', $espacioId);
+        }
+
+        if ($disciplinaId = $request->query('id_disciplina')) {
+            $query->where('id_disciplina', $disciplinaId);
+        }
+
+        $sesiones = $query->get();
+
+        $totalSesiones = $sesiones->count();
+        $totalInscritos = (int) $sesiones->sum('inscripciones_count');
+        $capacidadTotal = (int) $sesiones->sum('cupo_maximo');
+        $porcentajeOcupacion = $capacidadTotal > 0
+            ? round(($totalInscritos / $capacidadTotal) * 100, 2)
+            : 0;
+
+        return response()->json([
+            'success'              => true,
+            'total_sesiones'       => $totalSesiones,
+            'inscripciones_count'  => $totalInscritos,
+            'inscritos'            => $totalInscritos,
+            'capacidad_total'      => $capacidadTotal,
+            'porcentaje_ocupacion' => $porcentajeOcupacion,
+            'sesiones'             => $sesiones->map(fn($s) => [
+                'id_sesion'           => $s->id_sesion,
+                'fecha_sesion'        => $s->fecha_sesion,
+                'hora_inicio'         => $s->hora_inicio,
+                'hora_fin'            => $s->hora_fin,
+                'cupo_maximo'         => $s->cupo_maximo,
+                'inscripciones_count' => (int) $s->inscripciones_count,
+                'inscritos'           => (int) $s->inscripciones_count,
+                'cantidad_inscritos'  => (int) $s->inscripciones_count,
+            ]),
         ], 200);
     }
 
@@ -159,8 +209,15 @@ class SesionActivaController extends Controller
      */
     public function opciones(): JsonResponse
     {
-        $plantillasPublicadas = PlantillaProgramacion::where('publicada', true)
-            ->get();
+        $plantillasPublicadas = PlantillaProgramacion::where(function ($q) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('plantillas_programacion', 'estatus')) {
+                $q->where('estatus', 'PUBLICADA');
+            } else {
+                $q->where('publicada', true)
+                  ->orWhere('estatus_plantilla', true);
+            }
+        })->get();
+
 
         if ($plantillasPublicadas->isEmpty()) {
             return response()->json([
