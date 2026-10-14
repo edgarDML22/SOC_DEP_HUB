@@ -310,6 +310,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructor/sesiones/{idSesion}/qr-lookup/{codigo}', [SesionInstructorController::class, 'qrLookup']);
     Route::post('/v1/instructor/sesiones/{idSesion}/confirmar-asistencia', [SesionInstructorController::class, 'confirmarAsistencia']);
 
+    // SDH-118: Desglose detallado de asistencia y lista de alumnos por sesión histórica
+    Route::get('/v1/instructor/historial-sesiones/{id}', [SesionInstructorController::class, 'detalleSesionHistorial']);
+    Route::get('/instructor/historial-sesiones/{id}', [SesionInstructorController::class, 'detalleSesionHistorial']);
+
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
 
