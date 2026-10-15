@@ -33,7 +33,8 @@ class CalcularNoShows extends Command
         $hoy = \Carbon\Carbon::today('America/Mexico_City');
 
         // 1. PROCESAR INSCRIPCIONES A CLASES
-        InscripcionClase::whereDate('fecha_transaccion', $hoy)
+        InscripcionClase::publicadaYVigente()
+            ->whereDate('fecha_transaccion', $hoy)
             ->where('estatus_inscripcion', 'CONFIRMADA')
             ->chunkById(100, function ($inscripciones) use ($hoy) {
                 foreach ($inscripciones as $inscripcion) {

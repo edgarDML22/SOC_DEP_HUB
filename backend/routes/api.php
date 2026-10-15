@@ -234,6 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas de utilidad/negocio de Reservaciones
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
+    Route::get('/v1/espacios/{id}/agenda', [AgendaEspacioController::class, 'getScheduleForSpace']);
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
     Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
 
@@ -435,12 +436,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('sesiones-activas/opciones', [SesionActivaController::class, 'opciones']);
         Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
+        Route::get('resumen-ocupacion', [SesionActivaController::class, 'resumenOcupacion']);
         Route::patch('sesiones-activas/{id}', [SesionActivaController::class, 'update']);
         Route::get('sesiones-activas/{id}/asistencia', [SesionActivaController::class, 'asistencia']);
     });
 
     // SDH-308: Actividades Programadas e Inscripciones
     Route::prefix('v1/actividades')->group(function () {
+        Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
         Route::get('sesiones', [InscripcionClaseController::class, 'indexSesiones']);
         Route::get('instructores', [InscripcionClaseController::class, 'listarInstructores']); // para filtros
         Route::get('mis-inscripciones', [InscripcionClaseController::class, 'misInscripciones']);

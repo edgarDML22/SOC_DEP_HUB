@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AgendaEspacioRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AgendaEspacioController extends Controller
 {
@@ -12,9 +13,13 @@ class AgendaEspacioController extends Controller
     {
         $filtros    = $request->validated();
         $fecha      = $filtros['date'] ?? now()->toDateString();
-        $id_espacio = $filtros['id_espacio'];
-        $id_socio   = $request->user()->user_id;
+        $id_espacio = $filtros['id_espacio'] ?? $request->route('id');
+        $id_socio   = $request->user()?->user_id ?? (int) $request->input('id_socio', 1);
         $ahora      = now('America/Mexico_City');
+
+        $plantillaStatusCond = Schema::hasColumn('plantillas_programacion', 'estatus')
+            ? "pp.estatus = 'PUBLICADA'"
+            : "(pp.publicada = TRUE OR pp.estatus_plantilla = TRUE)";
 
         $bloques = DB::select("
             SELECT hora_inicio AS inicio, hora_fin AS fin, 'reserva' AS tipo
@@ -30,9 +35,18 @@ class AgendaEspacioController extends Controller
 
             SELECT sa.hora_inicio, sa.hora_fin, 'sesion' AS tipo
             FROM   sesiones_activas sa
+            JOIN   actividades_plantilla ap ON ap.id_actividad_plantilla = sa.id_actividad_plantilla
+            JOIN   plantillas_programacion pp ON pp.id_plantilla = ap.id_plantilla
             WHERE  sa.fecha_sesion = ?
               AND  sa.id_espacio   = ?
               AND  sa.estatus_sesion NOT IN ('CANCELADA', 'FINALIZADA')
+              AND  {$plantillaStatusCond}
+              AND  pp.deleted_at IS NULL
+              AND  ap.deleted_at IS NULL
+              AND  pp.fecha_inicio IS NOT NULL
+              AND  pp.fecha_fin IS NOT NULL
+              AND  sa.fecha_sesion >= pp.fecha_inicio
+              AND  sa.fecha_sesion <= pp.fecha_fin
 
             -- PASO 3: Encuentros de torneo en este espacio
             UNION ALL
@@ -58,11 +72,20 @@ class AgendaEspacioController extends Controller
             SELECT sa.hora_inicio, sa.hora_fin, 'conflicto_personal' AS tipo
             FROM   inscripciones_clases ic
             JOIN   sesiones_activas sa ON sa.id_sesion = ic.id_sesion
+            JOIN   actividades_plantilla ap ON ap.id_actividad_plantilla = sa.id_actividad_plantilla
+            JOIN   plantillas_programacion pp ON pp.id_plantilla = ap.id_plantilla
             WHERE  ic.id_usuario = ?
               AND  ic.tipo_usuario = 'socio_titular'
               AND  sa.fecha_sesion = ?
               AND  ic.estatus_inscripcion != 'CANCELADA'
               AND  sa.estatus_sesion NOT IN ('CANCELADA', 'FINALIZADA')
+              AND  {$plantillaStatusCond}
+              AND  pp.deleted_at IS NULL
+              AND  ap.deleted_at IS NULL
+              AND  pp.fecha_inicio IS NOT NULL
+              AND  pp.fecha_fin IS NOT NULL
+              AND  sa.fecha_sesion >= pp.fecha_inicio
+              AND  sa.fecha_sesion <= pp.fecha_fin
 
             UNION ALL
 
