@@ -63,6 +63,8 @@ const clearFilters = () => {
   listFilters.value.search = ''
   listFilters.value.tipo = listFilters.value.estatus = null
 }
+const showFiltersMobile = ref(false)
+const hasSelectFilters = computed(() => !!(listFilters.value.tipo || listFilters.value.estatus))
 
 // ── FRANJA DE COLOR ESTATUS ────────────────────────────────────
 const statusAccentLeft = (estatus) => ({
@@ -243,20 +245,42 @@ onMounted(() => {
       <!-- BARRA DE FILTROS -->
       <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
         <template #search>
-          <SearchInput v-model="listFilters.search" placeholder="Buscar espacio por nombre…" />
+          <div class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+              <SearchInput v-model="listFilters.search" placeholder="Buscar espacio por nombre…" />
+            </div>
+
+            <!-- Botón filtros (solo móvil / tablet) -->
+            <button type="button" @click="showFiltersMobile = !showFiltersMobile" aria-label="Mostrar filtros"
+              class="lg:hidden relative w-11 h-11 shrink-0 flex items-center justify-center rounded-xl border transition-colors cursor-pointer"
+              :class="showFiltersMobile || hasSelectFilters
+                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'bg-white text-surface-500 border-surface-200'">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              <span v-if="hasSelectFilters"
+                class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white"></span>
+            </button>
+          </div>
         </template>
 
-        <FilterSelect label="Tipo de uso" v-model="listFilters.tipo" :options="OPT_TIPO">
-          <template #icon>
-            <IconLayers />
-          </template>
-        </FilterSelect>
+        <!-- Selects: colapsables en móvil, normales en desktop -->
+        <div :class="showFiltersMobile ? 'grid grid-cols-2 gap-3 w-full col-span-full' : 'hidden'"
+          class="lg:contents [&>*]:w-full [&>*]:min-w-0">
+          <FilterSelect label="Tipo de uso" v-model="listFilters.tipo" :options="OPT_TIPO">
+            <template #icon>
+              <IconLayers />
+            </template>
+          </FilterSelect>
 
-        <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_STATUS">
-          <template #icon>
-            <IconAlertCircle />
-          </template>
-        </FilterSelect>
+          <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_STATUS">
+            <template #icon>
+              <IconAlertCircle />
+            </template>
+          </FilterSelect>
+        </div>
       </FilterContainer>
 
       <!-- SKELETON -->
