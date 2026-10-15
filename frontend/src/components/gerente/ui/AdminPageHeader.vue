@@ -49,7 +49,7 @@ defineProps({
     </div>
 
     <!-- Slot para botones/acciones del lado derecho -->
-    <div v-if="$slots.default" class="flex items-center gap-3 shrink-0 flex-wrap">
+    <div v-if="$slots.default" class="flex items-center justify-end w-full sm:w-auto gap-3 shrink-0 flex-wrap ml-auto">
       <slot />
     </div>
   </div>

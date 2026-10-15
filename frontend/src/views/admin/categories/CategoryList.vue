@@ -148,19 +148,21 @@ const buildMenuItems = (cat) => [
 
             <AdminPageHeader title="Categorías de Disciplinas"
                 subtitle="Administra las categorías disponibles para clasificar deportes" back-route="disciplines-list">
-                <span class="text-sm font-bold text-slate-500">
-                    {{ filteredCategories.length }}
-                    <span class="font-medium text-slate-400">de {{ categories.length }}</span>
-                </span>
-                <button @click="openCreate" class="w-full md:w-auto justify-center flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer border-none">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="16" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                    </svg>
-                    Nueva Categoría
-                </button>
+                <div class="flex items-center justify-end w-full sm:w-auto gap-3 ml-auto shrink-0">
+                    <span class="text-sm font-bold text-slate-500 whitespace-nowrap">
+                        {{ filteredCategories.length }}
+                        <span class="font-medium text-slate-400">de {{ categories.length }}</span>
+                    </span>
+                    <button @click="openCreate" class="justify-center flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                    text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer border-none shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="16" />
+                            <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                        Nueva Categoría
+                    </button>
+                </div>
             </AdminPageHeader>
 
             <!-- FILTROS -->
@@ -227,20 +229,6 @@ const buildMenuItems = (cat) => [
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
-                                    <!-- Botón Editar (Visible en Desktop) -->
-                                    <button @click="openEdit(cat)" class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600
-                                            text-xs font-bold text-white hover:bg-blue-700
-                                            transition-colors shadow-sm">
-                                        <IconEdit class="w-3.5 h-3.5" />
-                                        Editar
-                                    </button>
-                                    <!-- Botón Eliminar (Visible en Desktop) -->
-                                    <button @click="remove(cat)" class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50
-                                            text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white
-                                            transition-all border border-red-100 hover:border-red-600">
-                                        <IconTrash class="w-3.5 h-3.5" />
-                                        Eliminar
-                                    </button>
                                     <ActionMenu :items="buildMenuItems(cat)" align="right" />
                                 </div>
                             </div>
@@ -250,10 +238,10 @@ const buildMenuItems = (cat) => [
 
                 <div class="md:hidden flex flex-col gap-3">
                     <div v-for="cat in filteredCategories" :key="cat.id_categoria"
-                        class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                        class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 space-y-2.5">
 
-                        <!-- Encabezado: icono, nombre, badge y menú -->
-                        <div class="flex items-center gap-3 px-4 py-3">
+                        <!-- Fila 1: icono, nombre y menú de tres puntos -->
+                        <div class="flex items-center gap-3">
                             <div class="w-1.5 h-10 shrink-0 rounded-full bg-blue-500" />
                             <div
                                 class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm shrink-0">
@@ -262,34 +250,23 @@ const buildMenuItems = (cat) => [
                             <p class="flex-1 min-w-0 text-sm font-bold text-slate-900 truncate leading-tight">
                                 {{ formatText(cat.nombre) }}
                             </p>
-                            <BadgeStatus :status="cat.estatus" size="sm" class="shrink-0" />
                             <ActionMenu :items="buildMenuItems(cat)" align="right" />
                         </div>
 
-                        <!-- Cuerpo: descripción y disciplinas asociadas -->
-                        <div class="px-4 py-3 border-t border-slate-100 space-y-2">
+                        <!-- Fila 2: descripción (tal y como está) y disciplinas asociadas -->
+                        <div>
                             <p class="text-xs text-slate-500 font-medium line-clamp-3 leading-relaxed">
                                 {{ cat.descripcion || 'Sin descripción disponible.' }}
                             </p>
-                            <!-- AJUSTAR: usa el campo real de tu API -->
                             <span v-if="cat.disciplinas?.length"
-                                class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wide bg-indigo-50 text-indigo-700 border-indigo-100">
+                                class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wide bg-indigo-50 text-indigo-700 border-indigo-100 mt-2">
                                 {{ cat.disciplinas.length }} disciplinas
                             </span>
                         </div>
 
-                        <!-- Pie: acciones rápidas -->
-                        <div class="px-4 py-3 border-t border-slate-100 flex gap-2">
-                            <button type="button" @click="openEdit(cat)"
-                                class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer">
-                                <IconEdit class="w-3.5 h-3.5" />
-                                Editar
-                            </button>
-                            <button type="button" @click="remove(cat)"
-                                class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold cursor-pointer">
-                                <IconTrash class="w-3.5 h-3.5" />
-                                Eliminar
-                            </button>
+                        <!-- Fila 3: estatus alineado a la derecha sin líneas separadoras -->
+                        <div class="flex justify-end pt-1">
+                            <BadgeStatus :status="cat.estatus" size="sm" />
                         </div>
                     </div>
                 </div>
@@ -315,8 +292,7 @@ const buildMenuItems = (cat) => [
                                             {{ editingCategory ? 'Editar Categoría' : 'Nueva Categoría' }}
                                         </h2>
                                         <p class="text-xs text-slate-500 font-medium mt-0.5">
-                                            {{ editingCategory ? 'Modifica los datos de la categoría.' : 'Crea una nueva
-                                            clasificación para disciplinas.' }}
+                                            {{ editingCategory ? 'Modifica los datos de la categoría.' : 'Crea una nueva clasificación para disciplinas.' }}
                                         </p>
                                     </div>
                                     <button @click="showModal = false"
