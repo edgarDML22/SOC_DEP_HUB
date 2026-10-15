@@ -95,6 +95,11 @@ class SesionActiva extends Model
         return $this->hasMany(InscripcionClase::class, 'id_sesion', 'id_sesion');
     }
 
+    public function registroAsistencias()
+    {
+        return $this->hasMany(RegistroAsistencia::class, 'id_sesion', 'id_sesion');
+    }
+
     // -------------------------------------------------------------------------
     // Atributos dinámicos
     // -------------------------------------------------------------------------

@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class SesionInstructorController extends Controller
 {
@@ -124,6 +125,199 @@ class SesionInstructorController extends Controller
             'reservaciones' => $reservaciones,
             'encuentros'    => $encuentros,
         ]);
+    }
+
+    /**
+     * GET /api/v1/instructor/historial-sesiones
+     * Historial de sesiones del instructor con filtros y métricas agregadas.
+     */
+    public function historialSesiones(Request $request): JsonResponse
+    {
+        // 1. Obtener ID del instructor
+        $idInstructor = $this->idInstructorActual();
+        if (!$idInstructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El usuario no tiene un perfil de instructor válido.',
+            ], 403);
+        }
+
+        // 2. Validación de parámetros de búsqueda
+        $validator = Validator::make($request->all(), [
+            'filtro_estatus' => ['nullable', 'string', 'in:completadas,canceladas,todas'],
+            'fecha_desde'    => ['nullable', 'date_format:Y-m-d'],
+            'fecha_hasta'    => ['nullable', 'date_format:Y-m-d', 'after_or_equal:fecha_desde'],
+            'id_disciplina'  => ['nullable', 'integer'],
+            'per_page'       => ['nullable', 'integer', 'min:5', 'max:100'],
+        ], [
+            'fecha_hasta.after_or_equal' => 'El rango de fechas es inválido: fecha_desde no puede ser mayor que fecha_hasta.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Errores de validación en los parámetros de búsqueda.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $filtroEstatus = $request->query('filtro_estatus', 'todas');
+        $fechaDesde    = $request->query('fecha_desde');
+        $fechaHasta    = $request->query('fecha_hasta');
+        $idDisciplina  = $request->query('id_disciplina');
+        $perPage       = (int) $request->query('per_page', 15);
+        $hoy           = Carbon::today()->toDateString();
+
+        // 3. Construir consulta con SesionActiva::withoutGlobalScopes()
+        $query = SesionActiva::withoutGlobalScopes()
+            ->where('id_instructor', $idInstructor);
+
+        if ($filtroEstatus === 'completadas') {
+            $query->where(function ($q) use ($hoy) {
+                $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA'])
+                  ->orWhere(function ($sub) use ($hoy) {
+                      $sub->whereNotIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                          ->whereDate('fecha_sesion', '<', $hoy);
+                  });
+            });
+        } elseif ($filtroEstatus === 'canceladas') {
+            $query->whereIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA']);
+        } else {
+            // 'todas': completadas, canceladas o pasadas
+            $query->where(function ($q) use ($hoy) {
+                $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA', 'CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                  ->orWhereDate('fecha_sesion', '<', $hoy);
+            });
+        }
+
+        // Filtro de fechas
+        if ($fechaDesde) {
+            $query->whereDate('fecha_sesion', '>=', $fechaDesde);
+        }
+        if ($fechaHasta) {
+            $query->whereDate('fecha_sesion', '<=', $fechaHasta);
+        } else {
+            $query->whereDate('fecha_sesion', '<=', $hoy);
+        }
+
+        // Filtro de disciplina
+        if ($idDisciplina) {
+            $query->where('id_disciplina', $idDisciplina);
+        }
+
+        // Eager loading y conteo de asistencias confirmadas
+        $query->with([
+            'disciplina:id_disciplina,nombre_disciplina',
+            'espacio:id_espacio,nombre_espacio',
+        ])->withCount([
+            'registroAsistencias as asistencias_registros' => function ($q) {
+                $q->where('asistencia', true);
+            },
+            'inscripcionesClase as asistencias_inscripciones' => function ($q) {
+                $q->where('estatus_inscripcion', 'ASISTIO');
+            },
+        ]);
+
+        // Ordenar descendentemente por fecha y hora de inicio, luego paginar
+        $sesiones = $query->orderByDesc('fecha_sesion')
+            ->orderByDesc('hora_inicio')
+            ->paginate($perPage);
+
+        // Formatear datos de respuesta
+        $data = $sesiones->getCollection()->map(function ($s) use ($hoy) {
+            $estatus     = $s->estatus_sesion;
+            $esCancelada = in_array($estatus, ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA']);
+
+            if ($esCancelada) {
+                $estatusRespuesta = 'CANCELADA';
+            } elseif ($estatus === 'FINALIZADA' || $estatus === 'COMPLETADA' || $s->fecha_sesion < $hoy) {
+                $estatusRespuesta = 'COMPLETADA';
+            } else {
+                $estatusRespuesta = $estatus;
+            }
+
+            $asistencias = max((int) ($s->asistencias_registros ?? 0), (int) ($s->asistencias_inscripciones ?? 0));
+
+            return [
+                'id_sesion'               => (int) $s->id_sesion,
+                'disciplina'              => $s->disciplina?->nombre_disciplina ?? '—',
+                'espacio'                 => $s->espacio?->nombre_espacio ?? '—',
+                'fecha_sesion'            => $s->fecha_sesion ? Carbon::parse($s->fecha_sesion)->format('Y-m-d') : null,
+                'hora_inicio'             => substr($s->hora_inicio ?? '', 0, 5),
+                'hora_fin'                => substr($s->hora_fin ?? '', 0, 5),
+                'cantidad_inscritos'      => (int) $s->cantidad_inscritos,
+                'asistencias_confirmadas' => $asistencias,
+                'cupo_maximo'             => (int) $s->cupo_maximo,
+                'requiere_inscripcion'    => (bool) $s->requiere_inscripcion,
+                'estatus_sesion'          => $estatusRespuesta,
+                'motivo_cancelacion'      => $esCancelada ? ($s->motivo_cancelacion ?? null) : null,
+            ];
+        })->values();
+
+        // 4. Métricas agregadas para nodo meta
+        $metricsBase = SesionActiva::withoutGlobalScopes()
+            ->where('id_instructor', $idInstructor);
+
+        if ($fechaDesde) {
+            $metricsBase->whereDate('fecha_sesion', '>=', $fechaDesde);
+        }
+        if ($fechaHasta) {
+            $metricsBase->whereDate('fecha_sesion', '<=', $fechaHasta);
+        } else {
+            $metricsBase->whereDate('fecha_sesion', '<=', $hoy);
+        }
+
+        if ($idDisciplina) {
+            $metricsBase->where('id_disciplina', $idDisciplina);
+        }
+
+        $totalCompletadas = (clone $metricsBase)->where(function ($q) use ($hoy) {
+            $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA'])
+              ->orWhere(function ($sub) use ($hoy) {
+                  $sub->whereNotIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                      ->whereDate('fecha_sesion', '<', $hoy);
+              });
+        })->count();
+
+        $totalCanceladas = (clone $metricsBase)
+            ->whereIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+            ->count();
+
+        $idsCompletadas = (clone $metricsBase)->where(function ($q) use ($hoy) {
+            $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA'])
+              ->orWhere(function ($sub) use ($hoy) {
+                  $sub->whereNotIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                      ->whereDate('fecha_sesion', '<', $hoy);
+              });
+        })->pluck('id_sesion');
+
+        $totalAlumnosAtendidos = 0;
+        if ($idsCompletadas->isNotEmpty()) {
+            $sesionesConAsistencia = SesionActiva::withoutGlobalScopes()
+                ->whereIn('id_sesion', $idsCompletadas)
+                ->withCount([
+                    'registroAsistencias as asistencias_registros' => fn($q) => $q->where('asistencia', true),
+                    'inscripcionesClase as asistencias_inscripciones' => fn($q) => $q->where('estatus_inscripcion', 'ASISTIO'),
+                ])
+                ->get();
+
+            $totalAlumnosAtendidos = $sesionesConAsistencia->sum(function ($s) {
+                return max((int) ($s->asistencias_registros ?? 0), (int) ($s->asistencias_inscripciones ?? 0));
+            });
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+            'meta'    => [
+                'total_sesiones_completadas' => $totalCompletadas,
+                'total_sesiones_canceladas'  => $totalCanceladas,
+                'total_alumnos_atendidos'    => $totalAlumnosAtendidos,
+                'current_page'               => $sesiones->currentPage(),
+                'last_page'                  => $sesiones->lastPage(),
+                'total'                      => $sesiones->total(),
+            ],
+        ], 200);
     }
 
     /**
