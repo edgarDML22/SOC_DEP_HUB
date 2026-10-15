@@ -128,6 +128,13 @@ class SesionInstructorController extends Controller
     }
 
     /**
+     * sdh118: Desglose detallado de asistencia y lista de alumnos por sesion historica
+     * GET /api/v1/instructor/historial-sesiones/{id}
+     */
+    public function detalleSesionHistorial(Request $request, int $id): JsonResponse
+    {
+        $idInstructor = $this->idInstructorActual() ?? ($request->has('id_instructor') ? (int) $request->query('id_instructor') : null);
+
      * GET /api/v1/instructor/historial-sesiones
      * Historial de sesiones del instructor con filtros y métricas agregadas.
      */
@@ -142,6 +149,181 @@ class SesionInstructorController extends Controller
             ], 403);
         }
 
+        $sesion = SesionActiva::withoutGlobalScopes()
+            ->with([
+                'disciplina:id_disciplina,nombre_disciplina',
+                'espacio:id_espacio,nombre_espacio',
+            ])
+            ->find($id);
+
+        if (!$sesion || (int) $sesion->id_instructor !== (int) $idInstructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesión no encontrada o sin permisos de acceso.',
+            ], 404);
+        }
+
+        $inscripciones = InscripcionClase::where('id_sesion', $id)->get();
+        $registrosAsistencia = RegistroAsistencia::where('id_sesion', $id)->get();
+
+        $asistenciasMap = [];
+        foreach ($registrosAsistencia as $reg) {
+            $key = strtolower($reg->tipo_usuario) . ':' . $reg->id_usuario;
+            $asistenciasMap[$key] = $reg;
+        }
+
+        $participantes = [];
+        foreach ($inscripciones as $insc) {
+            $tipo = strtolower($insc->tipo_usuario ?? 'socio_titular');
+            $idUsr = (int) $insc->id_usuario;
+            $participantes["{$tipo}:{$idUsr}"] = [
+                'tipo_usuario'        => $tipo,
+                'id_usuario'          => $idUsr,
+                'estatus_inscripcion' => $insc->estatus_inscripcion,
+            ];
+        }
+
+        foreach ($registrosAsistencia as $reg) {
+            $tipo = match (strtoupper($reg->tipo_usuario)) {
+                'SOCIO_TITULAR'    => 'socio_titular',
+                'MIEMBRO_FAMILIAR' => 'miembro_familiar',
+                default            => strtolower($reg->tipo_usuario),
+            };
+            $idUsr = (int) $reg->id_usuario;
+            $key = "{$tipo}:{$idUsr}";
+            if (!isset($participantes[$key])) {
+                $participantes[$key] = [
+                    'tipo_usuario'        => $tipo,
+                    'id_usuario'          => $idUsr,
+                    'estatus_inscripcion' => 'CONFIRMADA',
+                ];
+            }
+        }
+
+        $idsSocios = [];
+        $idsFamiliares = [];
+        $idsInvitados = [];
+
+        foreach ($participantes as $p) {
+            if ($p['tipo_usuario'] === 'socio_titular' || $p['tipo_usuario'] === 'socio') {
+                $idsSocios[] = $p['id_usuario'];
+            } elseif ($p['tipo_usuario'] === 'miembro_familiar' || $p['tipo_usuario'] === 'familiar') {
+                $idsFamiliares[] = $p['id_usuario'];
+            } elseif ($p['tipo_usuario'] === 'invitado') {
+                $idsInvitados[] = $p['id_usuario'];
+            }
+        }
+
+        $socios = !empty($idsSocios)
+            ? SocioTitular::whereIn('id_socio', array_unique($idsSocios))->get()->keyBy('id_socio')
+            : collect();
+
+        $familiares = !empty($idsFamiliares)
+            ? MiembrosFamiliares::with('socio:id_socio,numero_accion')->whereIn('id_miembro', array_unique($idsFamiliares))->get()->keyBy('id_miembro')
+            : collect();
+
+        $invitados = !empty($idsInvitados)
+            ? Invitados::with('socioTitular:id_socio,nombre_completo,numero_accion')->whereIn('id_invitado', array_unique($idsInvitados))->get()->keyBy('id_invitado')
+            : collect();
+
+        $asistentesList = [];
+        $asistieronCount = 0;
+        $noShowsCount = 0;
+
+        foreach ($participantes as $p) {
+            $tipo = $p['tipo_usuario'];
+            $idUsr = $p['id_usuario'];
+            $regKey = ($tipo === 'socio_titular' || $tipo === 'socio')
+                ? 'socio_titular:' . $idUsr
+                : (($tipo === 'miembro_familiar' || $tipo === 'familiar') ? 'miembro_familiar:' . $idUsr : 'invitado:' . $idUsr);
+
+            $reg = $asistenciasMap[$regKey] ?? ($asistenciasMap[$tipo . ':' . $idUsr] ?? null);
+
+            if ($reg) {
+                $estatusAsistencia = $reg->asistencia ? 'ASISTIO' : 'NO_SHOW';
+                $horaRegistro = $reg->fecha_hora_registro ? \Carbon\Carbon::parse($reg->fecha_hora_registro)->format('H:i:s') : null;
+                $metodo = $this->normalizarMetodoDisplay($reg->metodo_registro);
+            } else {
+                $estatusAsistencia = strtoupper($p['estatus_inscripcion']) === 'CANCELADA' ? 'CANCELO' : 'NO_SHOW';
+                $horaRegistro = null;
+                $metodo = 'SISTEMA';
+            }
+
+            if ($estatusAsistencia === 'ASISTIO') {
+                $asistieronCount++;
+            } elseif ($estatusAsistencia === 'NO_SHOW') {
+                $noShowsCount++;
+            }
+
+            $nombre = "Usuario #{$idUsr}";
+            $numeroAccion = null;
+            $fotoPerfil = null;
+            $parentesco = null;
+            $socioAnfitrion = null;
+
+            if ($tipo === 'socio_titular' || $tipo === 'socio') {
+                $socio = $socios->get($idUsr);
+                $nombre = $socio?->nombre_completo ?? "Socio #{$idUsr}";
+                $numeroAccion = $socio?->numero_accion;
+                $fotoPerfil = $this->resolverFotoPerfil($idUsr, 'socio_titular');
+                $tipoDisplay = 'Socio Titular';
+            } elseif ($tipo === 'miembro_familiar' || $tipo === 'familiar') {
+                $fam = $familiares->get($idUsr);
+                $nombre = $fam?->nombre_completo ?? "Familiar #{$idUsr}";
+                $parentesco = $fam?->parentesco;
+                $numeroAccion = $fam?->socio?->numero_accion;
+                $tipoDisplay = 'Miembro Familiar';
+            } else {
+                $inv = $invitados->get($idUsr);
+                $nombre = $inv?->nombre_invitado ?? "Invitado #{$idUsr}";
+                $socioAnfitrion = $inv?->socioTitular?->nombre_completo;
+                $numeroAccion = $inv?->socioTitular?->numero_accion;
+                $tipoDisplay = 'Invitado';
+            }
+
+            $item = [
+                'nombre'             => $nombre,
+                'tipo'               => $tipoDisplay,
+                'numero_accion'      => $numeroAccion,
+            ];
+
+            if ($fotoPerfil !== null) {
+                $item['foto_perfil'] = $fotoPerfil;
+            }
+            if ($parentesco !== null) {
+                $item['parentesco'] = $parentesco;
+            }
+            if ($socioAnfitrion !== null) {
+                $item['socio_anfitrion'] = $socioAnfitrion;
+            }
+
+            $item['estatus_asistencia'] = $estatusAsistencia;
+            $item['hora_registro']      = $horaRegistro;
+            $item['metodo']             = $metodo;
+
+            $asistentesList[] = $item;
+        }
+
+        $horarioInicio = $sesion->hora_inicio ? \Carbon\Carbon::parse($sesion->hora_inicio)->format('H:i') : '';
+        $horarioFin = $sesion->hora_fin ? \Carbon\Carbon::parse($sesion->hora_fin)->format('H:i') : '';
+        $horario = ($horarioInicio && $horarioFin) ? "{$horarioInicio} - {$horarioFin}" : ($sesion->horario ?? '');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id_sesion'    => (int) $sesion->id_sesion,
+                'disciplina'   => $sesion->disciplina?->nombre_disciplina ?? 'N/A',
+                'espacio'      => $sesion->espacio?->nombre_espacio ?? 'N/A',
+                'fecha_sesion' => $sesion->fecha_sesion ? \Carbon\Carbon::parse($sesion->fecha_sesion)->format('Y-m-d') : null,
+                'horario'      => $horario,
+                'resumen'      => [
+                    'inscritos'  => count($participantes),
+                    'asistieron' => $asistieronCount,
+                    'no_shows'   => $noShowsCount,
+                ],
+                'asistentes'   => $asistentesList,
+            ],
+        ]);
         // 2. Validación de parámetros de búsqueda
         $validator = Validator::make($request->all(), [
             'filtro_estatus' => ['nullable', 'string', 'in:completadas,canceladas,todas'],
@@ -1053,6 +1235,20 @@ class SesionInstructorController extends Controller
         return $equipo?->nombre_equipo ?? "Equipo #{$id}";
     }
 
+    // sdh118: normalizar metodo de registro
+    private function normalizarMetodoDisplay(?string $metodo): string
+    {
+        if (!$metodo) {
+            return 'SISTEMA';
+        }
+        $m = strtoupper($metodo);
+        if (str_contains($m, 'QR')) {
+            return 'QR_SCANNER';
+        }
+        if (str_contains($m, 'MANUAL')) {
+            return 'MANUAL_INSTRUCTOR';
+        }
+        return $m;
     // sdh117: Normalizar canal de registro
     private function normalizarMetodoDisplay(?string $metodo): string
     {
