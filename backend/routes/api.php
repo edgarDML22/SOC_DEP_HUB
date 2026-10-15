@@ -138,8 +138,6 @@ Route::middleware(['check.turno'])->group(function () {
     });
 });
 
-
-
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -236,6 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas de utilidad/negocio de Reservaciones
     Route::get('/v1/schedules/availability', [AgendaEspacioController::class, 'getScheduleForSpace']);
+    Route::get('/v1/espacios/{id}/agenda', [AgendaEspacioController::class, 'getScheduleForSpace']);
     Route::post('/v1/reservaciones/{id}/acompanantes', [ReservacionController::class, 'addAcompanante']);
     Route::put('/v1/reservations/{id}/draft/acompanantes', [ReservacionController::class, 'syncAcompanantesDraft']);
 
@@ -313,6 +312,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructor/sesiones/{idSesion}/lista-inscriptos', [SesionInstructorController::class, 'listaInscriptos']);
     Route::get('/v1/instructor/sesiones/{idSesion}/qr-lookup/{codigo}', [SesionInstructorController::class, 'qrLookup']);
     Route::post('/v1/instructor/sesiones/{idSesion}/confirmar-asistencia', [SesionInstructorController::class, 'confirmarAsistencia']);
+    Route::post('/v1/instructor/sesiones/{idSesion}/marcar-no-show', [SesionInstructorController::class, 'marcarNoShow']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
@@ -392,6 +392,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/socio/mi-agenda', [SocioAgendaController::class, 'miAgenda']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
+    Route::get('/v1/socio/historial-actividades', [InscripcionClaseController::class, 'misInscripciones']);
 
     // RUTAS PRE REGISTROS — prefijo canónico, verbos HTTP correctos
     Route::prefix('v1/torneos/{id}/pre-registros')->group(function () {
@@ -440,12 +441,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('sesiones-activas/opciones', [SesionActivaController::class, 'opciones']);
         Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
+        Route::get('resumen-ocupacion', [SesionActivaController::class, 'resumenOcupacion']);
         Route::patch('sesiones-activas/{id}', [SesionActivaController::class, 'update']);
         Route::get('sesiones-activas/{id}/asistencia', [SesionActivaController::class, 'asistencia']);
     });
 
     // SDH-308: Actividades Programadas e Inscripciones
     Route::prefix('v1/actividades')->group(function () {
+        Route::get('sesiones-activas', [SesionActivaController::class, 'index']);
         Route::get('sesiones', [InscripcionClaseController::class, 'indexSesiones']);
         Route::get('instructores', [InscripcionClaseController::class, 'listarInstructores']); // para filtros
         Route::get('mis-inscripciones', [InscripcionClaseController::class, 'misInscripciones']);

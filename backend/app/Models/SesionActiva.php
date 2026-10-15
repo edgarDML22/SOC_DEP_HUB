@@ -45,6 +45,36 @@ class SesionActiva extends Model
         return $this->belongsTo(ActividadPlantilla::class, 'id_actividad_plantilla', 'id_actividad_plantilla');
     }
 
+    public function plantilla()
+    {
+        return $this->hasOneThrough(
+            PlantillaProgramacion::class,
+            ActividadPlantilla::class,
+            'id_actividad_plantilla',
+            'id_plantilla',
+            'id_actividad_plantilla',
+            'id_plantilla'
+        );
+    }
+
+    public function scopePublicadaYVigente($query)
+    {
+        return $query->whereHas('actividadPlantilla.plantilla', function ($p) {
+            $p->where(function ($sub) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('plantillas_programacion', 'estatus')) {
+                    $sub->where('estatus', 'PUBLICADA');
+                } else {
+                    $sub->where('publicada', true)
+                        ->orWhere('estatus_plantilla', true);
+                }
+            })
+            ->whereNotNull('plantillas_programacion.fecha_inicio')
+            ->whereNotNull('plantillas_programacion.fecha_fin')
+            ->whereColumn('plantillas_programacion.fecha_inicio', '<=', 'sesiones_activas.fecha_sesion')
+            ->whereColumn('plantillas_programacion.fecha_fin', '>=', 'sesiones_activas.fecha_sesion');
+        });
+    }
+
     public function disciplina()
     {
         return $this->belongsTo(\App\Models\Disciplina::class, 'id_disciplina', 'id_disciplina');
