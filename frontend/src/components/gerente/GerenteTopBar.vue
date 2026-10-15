@@ -16,6 +16,8 @@ const notificationsList = ref([])
 import { computed } from 'vue'
 const activeCount = computed(() => notificationsList.value.length)
 
+const emit = defineEmits(['toggle-sidebar'])
+
 const toggleMenu = () => menuOpen.value = !menuOpen.value
 const toggleNotifications = () => showNotifications.value = !showNotifications.value
 const closeMenu = () => menuOpen.value = false
@@ -32,15 +34,22 @@ onMounted(() => {
 
 <template>
   <header class="topbar">
-    <!-- LEFT -->
-    <div class="left">
+    <div class="left flex items-center gap-3">
+      <button
+        type="button"
+        class="lg:hidden p-2 -ml-2 rounded-xl text-surface-600 hover:text-surface-900 hover:bg-surface-200 transition-colors focus:outline-none flex items-center justify-center cursor-pointer"
+        aria-label="Abrir menú"
+        @click="emit('toggle-sidebar')"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
     </div>
 
-    <!-- RIGHT -->
     <div class="right">
       <span class="role">{{ profileStore.role === 'SUBGERENTE' ? 'Subgerente' : 'Gerente' }}</span>
       
-      <!-- BOTÓN DE MODO OSCURO -->
       <DarkModeToggle />
 
       <div class="notification-wrapper">
@@ -107,16 +116,13 @@ onMounted(() => {
         </Transition>
       </div>
 
-      <!-- 👤 AVATAR -->
       <div class="avatar-container relative">
         <div class="nav-avatar" @click="toggleMenu">
           {{ profileStore.userInitials }}
         </div>
 
-        <!-- OVERLAY INVISIBLE PARA CERRAR -->
         <div v-if="menuOpen" class="fixed inset-0 z-10" @click="closeMenu"></div>
 
-        <!-- DROPDOWN REDISEÑADO -->
         <Transition enter-active-class="transition ease-out duration-200"
           enter-from-class="transform opacity-0 scale-95 translate-y-1" enter-to-class="transform opacity-100 scale-100 translate-y-0"
           leave-active-class="transition ease-in duration-150" leave-from-class="transform opacity-100 scale-100 translate-y-0"
@@ -124,7 +130,6 @@ onMounted(() => {
           <div v-if="menuOpen" class="absolute right-0 mt-3 w-64 origin-top-right rounded-2xl bg-slate-950 
                       shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-20 
                       overflow-hidden border border-slate-800/60 flex flex-col p-2 gap-1 font-sans">
-              <!-- INFORMACIÓN PERSONAL -->
               <button @click="showProfileModal = true; closeMenu()"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-all text-left">
                 <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +139,6 @@ onMounted(() => {
                 Información Personal
               </button>
 
-              <!-- SOPORTE TÉCNICO -->
               <button @click="profileStore.getSupportLink(); closeMenu()"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-all text-left">
                 <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -146,7 +150,6 @@ onMounted(() => {
 
               <div class="border-t border-slate-800/60 my-1"></div>
 
-              <!-- CERRAR SESIÓN -->
               <button @click="profileStore.logout(); closeMenu()"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all text-left">
                 <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -160,7 +163,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- PROFILE MODAL -->
     <AdminProfileModal v-model="showProfileModal" />
   </header>
 </template>
@@ -175,19 +177,15 @@ onMounted(() => {
   padding: 0 20px;
   align-items: center;
   position: relative;
-  z-index: 40;
+  z-index: 30;
 }
 
-/* SEARCH */
-
-/* RIGHT */
 .right {
   display: flex;
   align-items: center;
   gap: 15px;
 }
 
-/* 🔥 GERENTE BADGE */
 .role {
   background: var(--color-surface-200);
   padding: 6px 12px;
@@ -197,7 +195,6 @@ onMounted(() => {
   color: var(--color-surface-700);
 }
 
-/* 🔔 NOTIFICATIONS */
 .notification-wrapper {
   position: relative;
 }
@@ -251,7 +248,6 @@ onMounted(() => {
   z-index: 50;
 }
 
-/* 👤 AVATAR */
 .nav-avatar {
   width: 38px;
   height: 38px;
