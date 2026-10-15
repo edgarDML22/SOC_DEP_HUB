@@ -332,6 +332,18 @@ onMounted(async () => {
               <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
             </div>
 
+        <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_ESTATUS">
+          <template #icon>
+            <IconAlertCircle />
+          </template>
+        </FilterSelect>
+
+        <FilterSelect label="Disciplina" v-model="listFilters.disciplina" :options="disciplinasOpts">
+          <template #icon>
+            <IconTarget />
+          </template>
+        </FilterSelect>
+      </FilterContainer>
             <button type="button" @click="showFilters = !showFilters"
               class="relative w-11 h-11 shrink-0 flex items-center justify-center rounded-xl border shadow-sm transition-colors cursor-pointer"
               :class="showFilters
@@ -520,6 +532,15 @@ onMounted(async () => {
                   <span v-if="instructor.hora_entrada || instructor.hora_salida"
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50">
                     <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
+                    <span>
+                      {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0,
+                      5) ??
+                      '--' }}
+                    </span>
+                  </span>
+                  <span v-else
+                    class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
+                    Sin horario
                     {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0, 5)
                       ?? '--' }}
                   </span>
@@ -545,6 +566,9 @@ onMounted(async () => {
                     <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
                     {{ d.nombre_disciplina }}
                   </span>
+                  <span v-else
+                    class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
+                    Sin fecha
                   <span v-if="instructor.disciplinas.length > 3"
                     class="px-2 py-1 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
                     +{{ instructor.disciplinas.length - 3 }} más
