@@ -45,6 +45,18 @@ class SesionActiva extends Model
         return $this->belongsTo(ActividadPlantilla::class, 'id_actividad_plantilla', 'id_actividad_plantilla');
     }
 
+    public function plantilla()
+    {
+        return $this->hasOneThrough(
+            PlantillaProgramacion::class,
+            ActividadPlantilla::class,
+            'id_actividad_plantilla',
+            'id_plantilla',
+            'id_actividad_plantilla',
+            'id_plantilla'
+        );
+    }
+
     public function disciplina()
     {
         return $this->belongsTo(\App\Models\Disciplina::class, 'id_disciplina', 'id_disciplina');

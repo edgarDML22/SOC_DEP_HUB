@@ -138,8 +138,6 @@ Route::middleware(['check.turno'])->group(function () {
     });
 });
 
-
-
 // ==========================================
 // RUTAS PROTEGIDAS (Requieren Token)
 // ==========================================
@@ -388,6 +386,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/socio/mi-agenda', [SocioAgendaController::class, 'miAgenda']);
     Route::get('/v1/socio/torneos/disponibles', [SocioTournamentController::class, 'disponibles']);
     Route::get('/v1/socio/torneos/historial', [SocioTournamentController::class, 'historial']);
+    Route::get('/v1/socio/historial-actividades', [InscripcionClaseController::class, 'misInscripciones']);
 
     // RUTAS PRE REGISTROS — prefijo canónico, verbos HTTP correctos
     Route::prefix('v1/torneos/{id}/pre-registros')->group(function () {
