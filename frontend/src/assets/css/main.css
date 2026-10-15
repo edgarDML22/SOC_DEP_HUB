@@ -1,3 +1,6 @@
+/* Tipografías de la Landing (Space Grotesk + Plus Jakarta Sans) */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 /* Importamos Tailwind v4 */
 @import "tailwindcss";
 
@@ -163,6 +166,18 @@
   button.bg-surface-900.text-white {
     color: var(--color-surface-100) !important;
   }
+}
+
+/* =========================================================================
+   TIPOGRAFÍAS DE LA LANDING PÚBLICA
+   Utilidades reutilizables para las secciones del sitio público.
+   ========================================================================= */
+.lp-display {
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Roboto', 'Helvetica Neue', Helvetica, sans-serif;
+}
+
+.lp-body {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Roboto', 'Helvetica Neue', Helvetica, sans-serif;
 }
 
 /* Transición suave y fluida para todos los cambios de tema */
