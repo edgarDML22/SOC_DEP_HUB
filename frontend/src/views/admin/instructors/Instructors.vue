@@ -292,21 +292,13 @@ onMounted(async () => {
           <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
         </template>
 
-        <FilterSelect
-          label="Estatus"
-          v-model="listFilters.estatus"
-          :options="OPT_ESTATUS"
-        >
+        <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_ESTATUS">
           <template #icon>
             <IconAlertCircle />
           </template>
         </FilterSelect>
 
-        <FilterSelect
-          label="Disciplina"
-          v-model="listFilters.disciplina"
-          :options="disciplinasOpts"
-        >
+        <FilterSelect label="Disciplina" v-model="listFilters.disciplina" :options="disciplinasOpts">
           <template #icon>
             <IconTarget />
           </template>
@@ -399,10 +391,13 @@ onMounted(async () => {
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
                     <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
                     <span>
-                      {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0, 5) ?? '--' }}
+                      {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0,
+                      5) ??
+                      '--' }}
                     </span>
                   </span>
-                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
+                  <span v-else
+                    class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
                     Sin horario
                   </span>
                 </td>
@@ -415,7 +410,8 @@ onMounted(async () => {
                       {{ instructor.fecha_afiliacion }}
                     </span>
                   </span>
-                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
+                  <span v-else
+                    class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
                     Sin fecha
                   </span>
                 </td>
@@ -441,22 +437,19 @@ onMounted(async () => {
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
           @click.self="showNewModal = false">
           <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4"
-            enter-to-class="opacity-100 scale-100 translate-y-0">
+            enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
             <div v-if="showNewModal" class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl shadow-surface-900/20
                      flex flex-col max-h-[92vh] overflow-hidden relative">
               <!-- Overlay de éxito (animate-scale-in) -->
-              <Transition
-                enter-active-class="transition-opacity duration-150 ease-out"
-                enter-from-class="opacity-0"
-                enter-to-class="opacity-100"
-                leave-active-class="transition-opacity duration-200 ease-in"
-                leave-from-class="opacity-100"
-                leave-to-class="opacity-0"
-              >
-                <div v-if="showSuccessOverlay" class="absolute inset-0 z-50 bg-white/95 backdrop-blur-[2px] rounded-4xl flex flex-col items-center justify-center gap-4">
-                  <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
-                    <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <Transition enter-active-class="transition-opacity duration-150 ease-out" enter-from-class="opacity-0"
+                enter-to-class="opacity-100" leave-active-class="transition-opacity duration-200 ease-in"
+                leave-from-class="opacity-100" leave-to-class="opacity-0">
+                <div v-if="showSuccessOverlay"
+                  class="absolute inset-0 z-50 bg-white/95 backdrop-blur-[2px] rounded-4xl flex flex-col items-center justify-center gap-4">
+                  <div
+                    class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
+                    <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
@@ -533,9 +526,11 @@ onMounted(async () => {
                     <div class="relative">
                       <select v-model="newInstructor.estatus"
                         class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
-                        <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}
+                        </option>
                       </select>
-                      <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+                      <IconChevronDown
+                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -547,14 +542,16 @@ onMounted(async () => {
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-1.5">
                     <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha de
+                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha
+                      de
                       Nacimiento</label>
                     <DatePicker v-model="newInstructor.fecha_nacimiento" dateFormat="yy-mm-dd" showIcon
                       iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
                   </div>
                   <div class="space-y-1.5">
                     <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha de
+                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha
+                      de
                       Afiliación</label>
                     <DatePicker v-model="newInstructor.fecha_afiliacion" dateFormat="yy-mm-dd" showIcon
                       iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
@@ -590,27 +587,27 @@ onMounted(async () => {
                   </div>
                   <div v-else
                     class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-1 pr-2 custom-scrollbar">
-                      <button v-for="d in disciplinasList" :key="d.id_disciplina" type="button"
-                        @click="toggleDisciplina(d.id_disciplina)"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
-                        :class="newInstructor.disciplinas.includes(d.id_disciplina)
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-surface-50 text-surface-600 border-surface-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md'">
-                        <div class="w-8 h-8 flex items-center justify-center shrink-0 transition-colors">
-                          <DisciplineIcon :name="d.nombre_disciplina" class="w-6 h-6 shrink-0" />
-                        </div>
-                        <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
+                    <button v-for="d in disciplinasList" :key="d.id_disciplina" type="button"
+                      @click="toggleDisciplina(d.id_disciplina)"
+                      class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
+                      :class="newInstructor.disciplinas.includes(d.id_disciplina)
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-surface-50 text-surface-600 border-surface-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md'">
+                      <div class="w-8 h-8 flex items-center justify-center shrink-0 transition-colors">
+                        <DisciplineIcon :name="d.nombre_disciplina" class="w-6 h-6 shrink-0" />
+                      </div>
+                      <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
 
-                        <!-- Icono de Check Dinámico -->
-                        <div
-                          class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
-                          :class="newInstructor.disciplinas.includes(d.id_disciplina) ? 'border-white text-white' : 'border-surface-300 bg-surface-50 text-transparent group-hover:border-blue-400 group-hover:text-blue-300'">
-                          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </div>
-                      </button>
+                      <!-- Icono de Check Dinámico -->
+                      <div
+                        class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
+                        :class="newInstructor.disciplinas.includes(d.id_disciplina) ? 'border-white text-white' : 'border-surface-300 bg-surface-50 text-transparent group-hover:border-blue-400 group-hover:text-blue-300'">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
+                          stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                    </button>
                   </div>
                 </div>
 
@@ -628,21 +625,12 @@ onMounted(async () => {
     </Teleport>
 
     <!-- MODAL: CAMBIAR ESTATUS -->
-    <InstructorStatusModal
-      :show="showStatusModal"
-      :instructor-id="statusModalInstructorId"
-      @close="showStatusModal = false"
-      @updated="onStatusUpdated"
-    />
+    <InstructorStatusModal :show="showStatusModal" :instructor-id="statusModalInstructorId"
+      @close="showStatusModal = false" @updated="onStatusUpdated" />
 
     <!-- MODAL: GESTIONAR DISCIPLINAS -->
-    <ManageDisciplinesModal
-      :show="showDisciplinesModal"
-      type="instructor"
-      :item="selectedInstructor"
-      @close="showDisciplinesModal = false"
-      @saved="fetchInstructors(true)"
-    />
+    <ManageDisciplinesModal :show="showDisciplinesModal" type="instructor" :item="selectedInstructor"
+      @close="showDisciplinesModal = false" @saved="fetchInstructors(true)" />
 
   </main>
 </template>
