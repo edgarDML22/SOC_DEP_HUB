@@ -332,18 +332,6 @@ onMounted(async () => {
               <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
             </div>
 
-        <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_ESTATUS">
-          <template #icon>
-            <IconAlertCircle />
-          </template>
-        </FilterSelect>
-
-        <FilterSelect label="Disciplina" v-model="listFilters.disciplina" :options="disciplinasOpts">
-          <template #icon>
-            <IconTarget />
-          </template>
-        </FilterSelect>
-      </FilterContainer>
             <button type="button" @click="showFilters = !showFilters"
               class="relative w-11 h-11 shrink-0 flex items-center justify-center rounded-xl border shadow-sm transition-colors cursor-pointer"
               :class="showFilters
