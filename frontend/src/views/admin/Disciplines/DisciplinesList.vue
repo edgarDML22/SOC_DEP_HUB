@@ -255,29 +255,31 @@ onMounted(() => {
 
       <!-- CABECERA -->
       <AdminPageHeader title="Disciplinas" subtitle="Gestiona los deportes y actividades del club.">
-        <span class="text-sm font-bold text-surface-500">
-          {{ filteredDisciplines.length }}
-          <span class="font-medium text-surface-400">de {{ disciplines.length }}</span>
-        </span>
-        <button @click="router.push({ name: 'disciplines-categories' })" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-surface-200 shadow-sm
-                 text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-          </svg>
-          Categorías
-        </button>
-        <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="16" />
-            <line x1="8" y1="12" x2="16" y2="12" />
-          </svg>
-          Nueva Disciplina
-        </button>
+        <div class="flex items-center justify-end w-full sm:w-auto gap-3 ml-auto flex-wrap">
+          <span class="text-sm font-bold text-surface-500 whitespace-nowrap">
+            {{ filteredDisciplines.length }}
+            <span class="font-medium text-surface-400">de {{ disciplines.length }}</span>
+          </span>
+          <button @click="router.push({ name: 'disciplines-categories' })" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-surface-200 shadow-sm
+                   text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Categorías
+          </button>
+          <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                   text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+            Nueva Disciplina
+          </button>
+        </div>
       </AdminPageHeader>
 
       <!-- FILTROS -->
@@ -400,49 +402,48 @@ onMounted(() => {
         </div>
 
         <!-- Tablas Móviles -->
-        <div class="md:hidden flex flex-col gap-3.5">
+        <div class="md:hidden flex flex-col gap-3">
           <div v-for="discipline in filteredDisciplines" :key="discipline.id_disciplina"
-            class="bg-white border border-surface-200 rounded-2xl shadow-sm">
+            class="bg-white border border-surface-200 rounded-2xl shadow-sm px-4 py-3">
 
-            <!-- Encabezado: franja, icono, nombre, categoría y acciones -->
-            <div class="flex items-center gap-3 px-4 py-3">
-              <div class="w-1.5 h-10 shrink-0 rounded-full"
+            <div class="flex items-center gap-3.5">
+              <!-- Barra lateral de acento con width reducido -->
+              <div class="w-1 h-14 shrink-0 rounded-full"
                 :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').left" />
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0"
+
+              <!-- Icono agrandado proporcionalmente -->
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm shrink-0"
                 :class="categoryPalette(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '').icon">
-                <DisciplineIcon :name="discipline.nombre_disciplina" :icon="discipline.icono" class="w-5 h-5" />
+                <DisciplineIcon :name="discipline.nombre_disciplina" :icon="discipline.icono" class="w-7 h-7" />
               </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-bold text-surface-900 truncate leading-tight">
+
+              <!-- Contenido central: Título y fila de categoría + estatus alineados a la izquierda -->
+              <div class="min-w-0 flex-1 flex flex-col gap-2.5 justify-center">
+                <!-- Fila 1: Título de la disciplina agrandado -->
+                <p class="text-base sm:text-lg font-black text-surface-900 truncate leading-tight">
                   {{ discipline.nombre_disciplina }}
                 </p>
-                <span
-                  class="inline-block mt-1 text-[10px] font-bold tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 uppercase">
-                  {{ formatCategoryEnum(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
-                </span>
+
+                <!-- Fila 2: Categoría y Estatus juntos alineados hacia la izquierda -->
+                <div class="flex items-center justify-start gap-2 flex-wrap">
+                  <span
+                    class="inline-flex items-center text-[10px] font-bold tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 uppercase whitespace-nowrap">
+                    {{ formatCategoryEnum(discipline.categorias?.[0]?.nombre || discipline.categoria_disciplina || '—') }}
+                  </span>
+                  <BadgeStatus :status="discipline.estatus" size="sm" />
+                </div>
               </div>
-              <ActionMenu :items="buildMenuItems(discipline)" align="right" />
+
+              <!-- Botón de los tres puntos centrado verticalmente en la card -->
+              <div class="self-center shrink-0">
+                <ActionMenu :items="buildMenuItems(discipline)" align="right" />
+              </div>
             </div>
 
-            <!-- Cuerpo: estatus y descripción -->
-            <div class="px-4 py-3 border-t border-surface-100 space-y-2">
-              <BadgeStatus :status="discipline.estatus" size="sm" />
-              <p v-if="discipline.descripcion" class="text-xs text-surface-500 line-clamp-2">
-                {{ discipline.descripcion }}
-              </p>
-            </div>
-
-            <!-- Pie: acciones rápidas -->
-            <div class="px-4 py-3 border-t border-surface-100 flex gap-2">
-              <button type="button" @click="buildMenuItems(discipline)[0].action()"
-                class="flex-1 px-3 py-2 rounded-xl bg-surface-900 text-white text-xs font-bold cursor-pointer">
-                Ver detalles
-              </button>
-              <button type="button" @click="openStatusModal(discipline)"
-                class="flex-1 px-3 py-2 rounded-xl bg-white border border-surface-200 text-surface-700 text-xs font-bold cursor-pointer">
-                Cambiar estatus
-              </button>
-            </div>
+            <!-- Descripción opcional compacta si existe -->
+            <p v-if="discipline.descripcion" class="text-xs text-surface-500 line-clamp-2 mt-2 pt-2 border-t border-surface-100">
+              {{ discipline.descripcion }}
+            </p>
           </div>
         </div>
 

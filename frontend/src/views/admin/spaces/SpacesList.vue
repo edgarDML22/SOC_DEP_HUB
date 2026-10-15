@@ -227,19 +227,21 @@ onMounted(() => {
 
       <!-- CABECERA -->
       <AdminPageHeader title="Espacios Físicos" subtitle="Gestiona las canchas, salones e instalaciones del club.">
-        <span class="text-sm font-bold text-surface-500">
-          {{ filteredSpaces.length }}
-          <span class="font-medium text-surface-400">de {{ spaces.length }}</span>
-        </span>
-        <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="16" />
-            <line x1="8" y1="12" x2="16" y2="12" />
-          </svg>
-          Nuevo Espacio
-        </button>
+        <div class="flex items-center justify-end w-full sm:w-auto gap-3 ml-auto shrink-0">
+          <span class="text-sm font-bold text-surface-500 whitespace-nowrap">
+            {{ filteredSpaces.length }}
+            <span class="font-medium text-surface-400">de {{ spaces.length }}</span>
+          </span>
+          <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
+                   text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+            Nuevo Espacio
+          </button>
+        </div>
       </AdminPageHeader>
 
       <!-- BARRA DE FILTROS -->
@@ -385,12 +387,12 @@ onMounted(() => {
         </div>
 
         <!-- TARJETAS (móvil / tablet) -->
-        <div class="lg:hidden flex flex-col gap-3.5">
+        <div class="lg:hidden flex flex-col gap-3">
           <div v-for="space in filteredSpaces" :key="space.id_espacio"
-            class="bg-white border border-surface-200 rounded-2xl shadow-sm">
+            class="bg-white border border-surface-200 rounded-2xl shadow-sm p-4 space-y-3">
 
-            <!-- Encabezado: franja de estatus, icono, nombre, capacidad y acciones -->
-            <div class="flex items-center gap-3 px-4 py-3">
+            <!-- Fila 1: franja de estatus, icono, nombre, capacidad y acciones -->
+            <div class="flex items-center gap-3">
               <div class="w-1.5 h-10 shrink-0 rounded-full" :class="statusAccentLeft(space.estatus)" />
               <div
                 class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
@@ -400,38 +402,42 @@ onMounted(() => {
                 <p class="text-sm font-bold text-surface-900 truncate leading-tight">
                   {{ space.nombre_espacio }}
                 </p>
-                <p class="text-xs font-bold text-surface-400">
+                <p class="text-xs font-bold text-surface-400 mt-0.5">
                   {{ space.capacidad_maxima ?? '—' }} pers.
                 </p>
               </div>
               <ActionMenu :items="buildMenuItems(space)" align="right" />
             </div>
 
-            <!-- Cuerpo: estatus y tipo de uso -->
-            <div class="px-4 py-3 border-t border-surface-100 flex flex-wrap items-center gap-2">
-              <BadgeStatus :status="space.estatus" size="sm" />
-              <span v-for="badge in tipoBadges(space)" :key="badge.label"
-                class="text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wide"
-                :class="badge.classes">
-                {{ badge.label }}
-              </span>
-            </div>
-
-            <!-- Disciplinas (máx. 3 + "N más") -->
-            <div class="px-4 py-3 border-t border-surface-100">
-              <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1.5">
-                <span v-for="d in space.disciplinas.slice(0, 3)" :key="d.id_disciplina"
-                  class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-50 border border-surface-200 text-[10px] font-bold text-surface-600">
-                  <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
-                  {{ d.nombre_disciplina }}
-                </span>
-                <span v-if="space.disciplinas.length > 3"
-                  class="px-2 py-1 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
-                  +{{ space.disciplinas.length - 3 }} más
+            <!-- Fila 2: Estatus y modalidad a la izquierda + Disciplinas alineadas a la derecha -->
+            <div class="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+              <!-- Izquierda: Estatus y Tipo de uso (modalidad) -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <BadgeStatus :status="space.estatus" size="sm" />
+                <span v-for="badge in tipoBadges(space)" :key="badge.label"
+                  class="text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wide"
+                  :class="badge.classes">
+                  {{ badge.label }}
                 </span>
               </div>
-              <span v-else class="text-xs text-surface-400 italic">Sin disciplinas asignadas</span>
+
+              <!-- Derecha: Disciplinas -->
+              <div class="flex items-center justify-end gap-1.5 ml-auto flex-wrap">
+                <template v-if="space.disciplinas?.length">
+                  <span v-for="d in space.disciplinas.slice(0, 2)" :key="d.id_disciplina"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-50 border border-surface-200 text-[10px] font-bold text-surface-600">
+                    <DisciplineIcon :name="d.nombre_disciplina" class="w-3 h-3 shrink-0" />
+                    {{ d.nombre_disciplina }}
+                  </span>
+                  <span v-if="space.disciplinas.length > 2"
+                    class="px-1.5 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                    +{{ space.disciplinas.length - 2 }}
+                  </span>
+                </template>
+                <span v-else class="text-[11px] text-surface-400 italic">Sin disciplinas</span>
+              </div>
             </div>
+
           </div>
         </div>
 
