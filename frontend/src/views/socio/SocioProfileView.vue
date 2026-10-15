@@ -5,7 +5,7 @@ import { useProfileStore } from '@/stores/profiles/socioStore';
 import PanelPenalizaciones from '@/components/socio/PanelPenalizaciones.vue';
 import {
   IconArrowLeft, IconEdit, IconUser, IconIdCard, IconCreditCard,
-  IconShield, IconLock, IconCalendar, IconMail, IconGender
+  IconShield, IconLock, IconCalendar, IconMail, IconGender, IconHistory
 } from '@/components/icons';
 
 const router = useRouter();
@@ -391,6 +391,23 @@ const formatearFecha = (fecha) => {
           
           <!-- Inserción del nuevo panel unificado -->
           <PanelPenalizaciones />
+
+          <!-- Acceso a Historial de Actividades -->
+          <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shrink-0 shadow-sm border border-surface-100 group-hover:bg-primary-50 group-hover:border-primary-200 transition-all">
+                <IconHistory class="w-5 h-5" />
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-surface-900 m-0 leading-tight">Historial</h3>
+                <p class="text-[11px] font-medium text-surface-500 m-0 mt-0.5 uppercase tracking-wider">Asistencias y No-Shows</p>
+              </div>
+            </div>
+            
+            <button @click="$router.push('/socio/history')" class="w-full bg-surface-50 hover:bg-surface-100 text-surface-700 border border-surface-200 rounded-xl px-4 py-2.5 font-semibold transition-all active:scale-95 flex items-center justify-center mt-1 text-sm shadow-sm group-hover:shadow cursor-pointer">
+              Ver Historial de Actividades
+            </button>
+          </div>
 
           <div class="bg-white rounded-3xl border border-surface-200 p-5 flex flex-col gap-4 shadow-sm group hover:border-primary-200 transition-colors">
             <div class="flex items-center gap-3">
