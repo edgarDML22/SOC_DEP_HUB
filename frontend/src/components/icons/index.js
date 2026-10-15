@@ -34,6 +34,8 @@ export { default as IconGrid } from './IconGrid.vue';
 export { default as IconTarget } from './IconTarget.vue';
 export { default as IconFilter } from './IconFilter.vue';
 export { default as IconChevronDown } from './IconChevronDown.vue';
+export { default as IconChevronLeft } from './IconChevronLeft.vue';
+export { default as IconChevronRight } from './IconChevronRight.vue';
 export { default as IconWarning } from './IconWarning.vue';
 export { default as IconTrash } from './IconTrash.vue';
 
