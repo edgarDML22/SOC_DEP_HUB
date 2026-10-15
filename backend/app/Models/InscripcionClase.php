@@ -59,4 +59,17 @@ class InscripcionClase extends Model
     {
         return $this->belongsTo(PasesDiarios::class, 'id_pase_invitado', 'id_pase');
     }
+
+    public function scopePublicadaYVigente($query)
+    {
+        return $query->whereHas('sesion', function ($q) {
+            $q->withoutGlobalScopes()->publicadaYVigente();
+        });
+    }
+
+    public function scopeActiva($query)
+    {
+        return $query->whereIn(\Illuminate\Support\Facades\DB::raw('estatus_inscripcion::text'), ['CONFIRMADA', 'ASISTIO']);
+    }
 }
+

@@ -181,45 +181,147 @@ class InscripcionClaseController extends Controller
     // ─── 3. Historial de inscripciones del usuario ────────────────────────────
 
     /**
-     * GET /api/v1/actividades/mis-inscripciones
+     * Historial de actividades e inscripciones del socio.
      */
     public function misInscripciones(Request $request): JsonResponse
     {
         $user = $request->user();
-        $userId = $user->user_id;
-        $rol = $user->rol;
 
+        if (!$user || !in_array($user->rol, ['socio_titular', 'miembro_familiar'], true)) {
+            return response()->json([
+                'message' => 'No tienes autorización para consultar el historial de actividades.'
+            ], 403);
+        }
+
+        // Validación de parámetros
+        $tab = strtolower((string) $request->query('tab', 'todas'));
+        if (!in_array($tab, ['asistencias', 'no_shows', 'todas'], true)) {
+            return response()->json([
+                'message' => 'El parámetro tab debe ser asistencias, no_shows o todas.'
+            ], 422);
+        }
+
+        $fechaDesde = $request->query('fecha_desde');
+        $fechaHasta = $request->query('fecha_hasta');
+
+        if ($fechaDesde && !Carbon::hasFormat($fechaDesde, 'Y-m-d')) {
+            return response()->json([
+                'message' => 'El formato de fecha_desde debe ser YYYY-MM-DD.'
+            ], 422);
+        }
+
+        if ($fechaHasta && !Carbon::hasFormat($fechaHasta, 'Y-m-d')) {
+            return response()->json([
+                'message' => 'El formato de fecha_hasta debe ser YYYY-MM-DD.'
+            ], 422);
+        }
+
+        if ($fechaDesde && $fechaHasta && $fechaDesde > $fechaHasta) {
+            return response()->json([
+                'message' => 'La fecha_desde debe ser menor o igual a fecha_hasta.'
+            ], 422);
+        }
+
+        $perPage = max(1, min(100, (int) $request->query('per_page', 15)));
+        $page = max(1, (int) $request->query('page', 1));
+
+        $userId = $user->user_id;
+        $rol    = $user->rol;
+
+        // Alcance según rol
         if ($rol === 'socio_titular') {
             $miembrosIds = MiembrosFamiliares::where('socio_id', $userId)->pluck('id_miembro')->toArray();
             $pasesIds = PasesDiarios::whereHas('invitado', function ($q) use ($userId) {
                 $q->where('socio_id', $userId);
             })->pluck('id_pase')->toArray();
 
-            // Convertir a IDs negativos para pases de invitados
             $negativePasesIds = array_map(fn($id) => -$id, $pasesIds);
 
-            $query = InscripcionClase::where(function ($q) use ($userId, $miembrosIds, $negativePasesIds) {
+            $userScope = function ($q) use ($userId, $miembrosIds, $negativePasesIds, $pasesIds) {
                 $q->where(function ($sub) use ($userId) {
                     $sub->where('tipo_usuario', 'socio_titular')
                         ->where('id_usuario', $userId);
                 })
-                    ->orWhere(function ($sub) use ($miembrosIds) {
-                        $sub->where('tipo_usuario', 'miembro_familiar')
-                            ->whereIn('id_usuario', $miembrosIds);
-                    })
-                    ->orWhere(function ($sub) use ($negativePasesIds) {
-                        $sub->where('tipo_usuario', 'socio_titular')
-                            ->whereIn('id_usuario', $negativePasesIds);
+                ->orWhere(function ($sub) use ($miembrosIds) {
+                    $sub->where('tipo_usuario', 'miembro_familiar')
+                        ->where(function ($fam) use ($miembrosIds) {
+                            $fam->whereIn('id_usuario', $miembrosIds)
+                                ->orWhereIn('id_miembro_familiar', $miembrosIds);
+                        });
+                });
+
+                if (!empty($pasesIds)) {
+                    $q->orWhere(function ($inv) use ($negativePasesIds, $pasesIds) {
+                        $inv->whereIn('id_usuario', $negativePasesIds)
+                            ->orWhereIn('id_pase_invitado', $pasesIds);
                     });
-            });
+                }
+            };
         } else {
-            $query = InscripcionClase::where('id_usuario', $userId)->where('tipo_usuario', 'miembro_familiar');
+            $userScope = function ($q) use ($userId) {
+                $q->where('tipo_usuario', 'miembro_familiar')
+                    ->where(function ($sub) use ($userId) {
+                        $sub->where('id_usuario', $userId)
+                            ->orWhere('id_miembro_familiar', $userId);
+                    });
+            };
         }
 
-        $inscripciones = $query->with([
+        // Exclusión de plantillas no publicadas y filtros de fecha
+        $sesionScope = function ($q) use ($fechaDesde, $fechaHasta) {
+            $q->withoutGlobalScopes();
+
+            if ($fechaDesde) {
+                $q->where('fecha_sesion', '>=', $fechaDesde);
+            }
+
+            if ($fechaHasta) {
+                $q->where('fecha_sesion', '<=', $fechaHasta);
+            }
+
+            $q->whereHas('plantilla', function ($p) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('plantillas_programacion', 'estatus')) {
+                    $p->where('estatus', 'PUBLICADA');
+                } else {
+                    $p->where(function ($sub) {
+                        $sub->where('publicada', true)
+                            ->orWhere('estatus_plantilla', true);
+                    });
+                }
+            });
+        };
+
+        // Conteos para badges
+        $baseQuery = InscripcionClase::where($userScope)
+            ->whereHas('sesion', $sesionScope);
+
+        $totalAsistencias = (clone $baseQuery)
+            ->where('estatus_inscripcion', 'ASISTIO')
+            ->count();
+
+        $totalNoShows = (clone $baseQuery)
+            ->whereIn(DB::raw('estatus_inscripcion::text'), ['NO_SHOW', 'FALTA'])
+            ->count();
+
+        // Listado paginado
+        $listQuery = (clone $baseQuery)
+            ->join('sesiones_activas', 'inscripciones_clases.id_sesion', '=', 'sesiones_activas.id_sesion')
+            ->select('inscripciones_clases.*')
+            ->orderByDesc('sesiones_activas.fecha_sesion')
+            ->orderByDesc('sesiones_activas.hora_inicio')
+            ->orderByDesc('inscripciones_clases.id_inscripcion');
+
+        if ($tab === 'asistencias') {
+            $listQuery->where('inscripciones_clases.estatus_inscripcion', 'ASISTIO');
+        } elseif ($tab === 'no_shows') {
+            $listQuery->whereIn(DB::raw('inscripciones_clases.estatus_inscripcion::text'), ['NO_SHOW', 'FALTA']);
+        }
+
+        $listQuery->with([
             'sesion' => fn($q) => $q->withoutGlobalScopes()
                 ->select([
                     'id_sesion',
+                    'id_actividad_plantilla',
                     'id_disciplina',
                     'id_espacio',
                     'id_instructor',
@@ -234,44 +336,75 @@ class InscripcionClaseController extends Controller
                     'espacio:id_espacio,nombre_espacio',
                     'instructorPrincipal:id_instructor,nombre_completo',
                 ]),
+            'socio:id_socio,nombre_completo',
             'miembroFamiliar:id_miembro,nombre_completo,parentesco',
             'paseInvitado.invitado:id_invitado,nombre_invitado',
-        ])
-            ->orderByDesc('fecha_transaccion')
-            ->get()
-            ->map(function ($i) {
-                $sesion = $i->sesion;
-                $requiereInscripcion = (bool) $sesion?->requiere_inscripcion;
+        ]);
 
-                return [
-                    'id_inscripcion' => $i->id_inscripcion,
-                    'id_sesion' => $sesion?->id_sesion,
-                    'estatus_inscripcion' => $i->estatus_inscripcion,
-                    'fecha_transaccion' => $i->fecha_transaccion,
-                    'tipo_usuario' => ($i->id_usuario < 0) ? 'invitado' : $i->tipo_usuario,
-                    'familiar' => $i->miembroFamiliar ? [
-                        'id' => $i->miembroFamiliar->id_miembro,
-                        'nombre' => $i->miembroFamiliar->nombre_completo,
-                        'parentesco' => $i->miembroFamiliar->parentesco,
-                    ] : null,
-                    'invitado' => $i->paseInvitado?->invitado ? [
-                        'id_pase' => $i->paseInvitado->id_pase,
-                        'nombre' => $i->paseInvitado->invitado->nombre_invitado,
-                    ] : null,
-                    'fecha_sesion' => $sesion?->fecha_sesion,
-                    'estatus_sesion' => $sesion?->estatus_sesion,
-                    'hora_inicio' => $sesion?->hora_inicio ? substr($sesion->hora_inicio, 0, 5) : null,
-                    'hora_fin' => $sesion?->hora_fin ? substr($sesion->hora_fin, 0, 5) : null,
-                    'nombre_actividad' => $sesion?->disciplina?->nombre_disciplina ?? 'Actividad',
-                    'disciplina' => $sesion?->disciplina?->nombre_disciplina,
-                    'instructor' => $sesion?->instructorPrincipal?->nombre_completo,
-                    'espacio' => $sesion?->espacio?->nombre_espacio,
-                    'requiere_inscripcion' => $requiereInscripcion,
-                    'tipo_clase' => $requiereInscripcion ? 'Cerrada' : 'Abierta',
-                ];
-            });
+        $paginated = $listQuery->paginate($perPage, ['inscripciones_clases.*'], 'page', $page);
 
-        return response()->json(['data' => $inscripciones], 200);
+        $data = collect($paginated->items())->map(function ($i) use ($user, $userId) {
+            $sesion = $i->sesion;
+
+            $horario = 'Por definir';
+            if ($sesion && $sesion->hora_inicio && $sesion->hora_fin) {
+                $horario = substr($sesion->hora_inicio, 0, 5) . ' - ' . substr($sesion->hora_fin, 0, 5);
+            } elseif ($sesion && $sesion->hora_inicio) {
+                $horario = substr($sesion->hora_inicio, 0, 5);
+            }
+
+            $estatus = $i->estatus_inscripcion;
+            if ($estatus === 'FALTA') {
+                $estatus = 'NO_SHOW';
+            }
+
+            if ($i->id_usuario < 0 || $i->tipo_usuario === 'invitado' || $i->id_pase_invitado) {
+                $invitado = $i->paseInvitado?->invitado;
+                if (!$invitado && $i->id_usuario < 0) {
+                    $pase = PasesDiarios::with('invitado')->find(abs($i->id_usuario));
+                    $invitado = $pase?->invitado;
+                }
+                $nombre = $invitado?->nombre_invitado ?? 'Invitado';
+                $beneficiario = "{$nombre} (Invitado)";
+            } elseif ($i->tipo_usuario === 'miembro_familiar') {
+                $familiar = $i->miembroFamiliar;
+                if (!$familiar && $i->id_miembro_familiar) {
+                    $familiar = MiembrosFamiliares::find($i->id_miembro_familiar);
+                }
+                $nombre = $familiar?->nombre_completo ?? 'Familiar';
+                $beneficiario = "{$nombre} (Familiar)";
+            } else {
+                $titular = $i->socio;
+                if (!$titular && $user?->rol === 'socio_titular') {
+                    $titular = SocioTitular::find($userId);
+                }
+                $nombre = $titular?->nombre_completo ?? 'Titular';
+                $beneficiario = "{$nombre} (Titular)";
+            }
+
+            return [
+                'id_inscripcion' => $i->id_inscripcion,
+                'id_sesion' => $sesion?->id_sesion,
+                'disciplina' => $sesion?->disciplina?->nombre_disciplina ?? 'Actividad',
+                'instructor' => $sesion?->instructorPrincipal?->nombre_completo ?? 'Sin instructor',
+                'espacio' => $sesion?->espacio?->nombre_espacio ?? 'Sin espacio',
+                'fecha_sesion' => $sesion?->fecha_sesion,
+                'horario' => $horario,
+                'estatus_inscripcion' => $estatus,
+                'beneficiario' => $beneficiario,
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => [
+                'total_asistencias' => $totalAsistencias,
+                'total_no_shows' => $totalNoShows,
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+            ],
+        ], 200);
     }
 
     // ─── 4. Estado de inscripción del usuario en una sesión ───────────────────
@@ -539,17 +672,19 @@ class InscripcionClaseController extends Controller
             return response()->json(['message' => 'No tienes autorización para cancelar esta inscripción.'], 403);
         }
 
-        // ── Cargar sesión — hora_inicio y requiere_inscripcion desde el snapshot ──
+        // ── Cargar sesión — hora_inicio y requiere_inscripcion desde el snapshot o actividadPlantilla ──
         $sesion = SesionActiva::withoutGlobalScopes()
-            ->select(['id_sesion', 'fecha_sesion', 'hora_inicio', 'requiere_inscripcion'])
+            ->select(['id_sesion', 'id_actividad_plantilla', 'fecha_sesion', 'hora_inicio', 'requiere_inscripcion'])
+            ->with('actividadPlantilla')
             ->find($inscripcion->id_sesion);
 
         // ── Calcular minutos restantes ─────────────────────────────────────────
         $minutosRestantes = PHP_INT_MAX; // default seguro si no hay sesión
+        $horaInicio = $sesion?->hora_inicio ?? $sesion?->actividadPlantilla?->hora_inicio;
 
-        if ($sesion && $sesion->hora_inicio) {
+        if ($sesion && $horaInicio) {
             $fechaHoraInicio = Carbon::parse(
-                $sesion->fecha_sesion . ' ' . $sesion->hora_inicio,
+                $sesion->fecha_sesion . ' ' . $horaInicio,
                 'America/Mexico_City'
             );
             $minutosRestantes = Carbon::now('America/Mexico_City')
@@ -557,7 +692,7 @@ class InscripcionClaseController extends Controller
         }
 
         // ── Determinar si aplica penalización ─────────────────────────────────
-        $esCerrada = (bool) ($sesion?->requiere_inscripcion ?? false);
+        $esCerrada = (bool) ($sesion?->requiere_inscripcion || ($sesion?->actividadPlantilla?->requiere_inscripcion ?? false));
         $esInvitado = $inscripcion->id_usuario < 0;
         $hayPenalizacion = $esCerrada && !$esInvitado && $minutosRestantes < 120;
 
