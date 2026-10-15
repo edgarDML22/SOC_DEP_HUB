@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class SesionInstructorController extends Controller
 {
@@ -124,6 +125,568 @@ class SesionInstructorController extends Controller
             'reservaciones' => $reservaciones,
             'encuentros'    => $encuentros,
         ]);
+    }
+
+    /**
+     * sdh118: Desglose detallado de asistencia y lista de alumnos por sesion historica
+     * GET /api/v1/instructor/historial-sesiones/{id}
+     */
+    public function detalleSesionHistorial(Request $request, int $id): JsonResponse
+    {
+        $idInstructor = $this->idInstructorActual() ?? ($request->has('id_instructor') ? (int) $request->query('id_instructor') : null);
+
+     * GET /api/v1/instructor/historial-sesiones
+     * Historial de sesiones del instructor con filtros y métricas agregadas.
+     */
+    public function historialSesiones(Request $request): JsonResponse
+    {
+        // 1. Obtener ID del instructor
+        $idInstructor = $this->idInstructorActual();
+        if (!$idInstructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El usuario no tiene un perfil de instructor válido.',
+            ], 403);
+        }
+
+        $sesion = SesionActiva::withoutGlobalScopes()
+            ->with([
+                'disciplina:id_disciplina,nombre_disciplina',
+                'espacio:id_espacio,nombre_espacio',
+            ])
+            ->find($id);
+
+        if (!$sesion || (int) $sesion->id_instructor !== (int) $idInstructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesión no encontrada o sin permisos de acceso.',
+            ], 404);
+        }
+
+        $inscripciones = InscripcionClase::where('id_sesion', $id)->get();
+        $registrosAsistencia = RegistroAsistencia::where('id_sesion', $id)->get();
+
+        $asistenciasMap = [];
+        foreach ($registrosAsistencia as $reg) {
+            $key = strtolower($reg->tipo_usuario) . ':' . $reg->id_usuario;
+            $asistenciasMap[$key] = $reg;
+        }
+
+        $participantes = [];
+        foreach ($inscripciones as $insc) {
+            $tipo = strtolower($insc->tipo_usuario ?? 'socio_titular');
+            $idUsr = (int) $insc->id_usuario;
+            $participantes["{$tipo}:{$idUsr}"] = [
+                'tipo_usuario'        => $tipo,
+                'id_usuario'          => $idUsr,
+                'estatus_inscripcion' => $insc->estatus_inscripcion,
+            ];
+        }
+
+        foreach ($registrosAsistencia as $reg) {
+            $tipo = match (strtoupper($reg->tipo_usuario)) {
+                'SOCIO_TITULAR'    => 'socio_titular',
+                'MIEMBRO_FAMILIAR' => 'miembro_familiar',
+                default            => strtolower($reg->tipo_usuario),
+            };
+            $idUsr = (int) $reg->id_usuario;
+            $key = "{$tipo}:{$idUsr}";
+            if (!isset($participantes[$key])) {
+                $participantes[$key] = [
+                    'tipo_usuario'        => $tipo,
+                    'id_usuario'          => $idUsr,
+                    'estatus_inscripcion' => 'CONFIRMADA',
+                ];
+            }
+        }
+
+        $idsSocios = [];
+        $idsFamiliares = [];
+        $idsInvitados = [];
+
+        foreach ($participantes as $p) {
+            if ($p['tipo_usuario'] === 'socio_titular' || $p['tipo_usuario'] === 'socio') {
+                $idsSocios[] = $p['id_usuario'];
+            } elseif ($p['tipo_usuario'] === 'miembro_familiar' || $p['tipo_usuario'] === 'familiar') {
+                $idsFamiliares[] = $p['id_usuario'];
+            } elseif ($p['tipo_usuario'] === 'invitado') {
+                $idsInvitados[] = $p['id_usuario'];
+            }
+        }
+
+        $socios = !empty($idsSocios)
+            ? SocioTitular::whereIn('id_socio', array_unique($idsSocios))->get()->keyBy('id_socio')
+            : collect();
+
+        $familiares = !empty($idsFamiliares)
+            ? MiembrosFamiliares::with('socio:id_socio,numero_accion')->whereIn('id_miembro', array_unique($idsFamiliares))->get()->keyBy('id_miembro')
+            : collect();
+
+        $invitados = !empty($idsInvitados)
+            ? Invitados::with('socioTitular:id_socio,nombre_completo,numero_accion')->whereIn('id_invitado', array_unique($idsInvitados))->get()->keyBy('id_invitado')
+            : collect();
+
+        $asistentesList = [];
+        $asistieronCount = 0;
+        $noShowsCount = 0;
+
+        foreach ($participantes as $p) {
+            $tipo = $p['tipo_usuario'];
+            $idUsr = $p['id_usuario'];
+            $regKey = ($tipo === 'socio_titular' || $tipo === 'socio')
+                ? 'socio_titular:' . $idUsr
+                : (($tipo === 'miembro_familiar' || $tipo === 'familiar') ? 'miembro_familiar:' . $idUsr : 'invitado:' . $idUsr);
+
+            $reg = $asistenciasMap[$regKey] ?? ($asistenciasMap[$tipo . ':' . $idUsr] ?? null);
+
+            if ($reg) {
+                $estatusAsistencia = $reg->asistencia ? 'ASISTIO' : 'NO_SHOW';
+                $horaRegistro = $reg->fecha_hora_registro ? \Carbon\Carbon::parse($reg->fecha_hora_registro)->format('H:i:s') : null;
+                $metodo = $this->normalizarMetodoDisplay($reg->metodo_registro);
+            } else {
+                $estatusAsistencia = strtoupper($p['estatus_inscripcion']) === 'CANCELADA' ? 'CANCELO' : 'NO_SHOW';
+                $horaRegistro = null;
+                $metodo = 'SISTEMA';
+            }
+
+            if ($estatusAsistencia === 'ASISTIO') {
+                $asistieronCount++;
+            } elseif ($estatusAsistencia === 'NO_SHOW') {
+                $noShowsCount++;
+            }
+
+            $nombre = "Usuario #{$idUsr}";
+            $numeroAccion = null;
+            $fotoPerfil = null;
+            $parentesco = null;
+            $socioAnfitrion = null;
+
+            if ($tipo === 'socio_titular' || $tipo === 'socio') {
+                $socio = $socios->get($idUsr);
+                $nombre = $socio?->nombre_completo ?? "Socio #{$idUsr}";
+                $numeroAccion = $socio?->numero_accion;
+                $fotoPerfil = $this->resolverFotoPerfil($idUsr, 'socio_titular');
+                $tipoDisplay = 'Socio Titular';
+            } elseif ($tipo === 'miembro_familiar' || $tipo === 'familiar') {
+                $fam = $familiares->get($idUsr);
+                $nombre = $fam?->nombre_completo ?? "Familiar #{$idUsr}";
+                $parentesco = $fam?->parentesco;
+                $numeroAccion = $fam?->socio?->numero_accion;
+                $tipoDisplay = 'Miembro Familiar';
+            } else {
+                $inv = $invitados->get($idUsr);
+                $nombre = $inv?->nombre_invitado ?? "Invitado #{$idUsr}";
+                $socioAnfitrion = $inv?->socioTitular?->nombre_completo;
+                $numeroAccion = $inv?->socioTitular?->numero_accion;
+                $tipoDisplay = 'Invitado';
+            }
+
+            $item = [
+                'nombre'             => $nombre,
+                'tipo'               => $tipoDisplay,
+                'numero_accion'      => $numeroAccion,
+            ];
+
+            if ($fotoPerfil !== null) {
+                $item['foto_perfil'] = $fotoPerfil;
+            }
+            if ($parentesco !== null) {
+                $item['parentesco'] = $parentesco;
+            }
+            if ($socioAnfitrion !== null) {
+                $item['socio_anfitrion'] = $socioAnfitrion;
+            }
+
+            $item['estatus_asistencia'] = $estatusAsistencia;
+            $item['hora_registro']      = $horaRegistro;
+            $item['metodo']             = $metodo;
+
+            $asistentesList[] = $item;
+        }
+
+        $horarioInicio = $sesion->hora_inicio ? \Carbon\Carbon::parse($sesion->hora_inicio)->format('H:i') : '';
+        $horarioFin = $sesion->hora_fin ? \Carbon\Carbon::parse($sesion->hora_fin)->format('H:i') : '';
+        $horario = ($horarioInicio && $horarioFin) ? "{$horarioInicio} - {$horarioFin}" : ($sesion->horario ?? '');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id_sesion'    => (int) $sesion->id_sesion,
+                'disciplina'   => $sesion->disciplina?->nombre_disciplina ?? 'N/A',
+                'espacio'      => $sesion->espacio?->nombre_espacio ?? 'N/A',
+                'fecha_sesion' => $sesion->fecha_sesion ? \Carbon\Carbon::parse($sesion->fecha_sesion)->format('Y-m-d') : null,
+                'horario'      => $horario,
+                'resumen'      => [
+                    'inscritos'  => count($participantes),
+                    'asistieron' => $asistieronCount,
+                    'no_shows'   => $noShowsCount,
+                ],
+                'asistentes'   => $asistentesList,
+            ],
+        ]);
+        // 2. Validación de parámetros de búsqueda
+        $validator = Validator::make($request->all(), [
+            'filtro_estatus' => ['nullable', 'string', 'in:completadas,canceladas,todas'],
+            'fecha_desde'    => ['nullable', 'date_format:Y-m-d'],
+            'fecha_hasta'    => ['nullable', 'date_format:Y-m-d', 'after_or_equal:fecha_desde'],
+            'id_disciplina'  => ['nullable', 'integer'],
+            'per_page'       => ['nullable', 'integer', 'min:5', 'max:100'],
+        ], [
+            'fecha_hasta.after_or_equal' => 'El rango de fechas es inválido: fecha_desde no puede ser mayor que fecha_hasta.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Errores de validación en los parámetros de búsqueda.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $filtroEstatus = $request->query('filtro_estatus', 'todas');
+        $fechaDesde    = $request->query('fecha_desde');
+        $fechaHasta    = $request->query('fecha_hasta');
+        $idDisciplina  = $request->query('id_disciplina');
+        $perPage       = (int) $request->query('per_page', 15);
+        $hoy           = Carbon::today()->toDateString();
+
+        // 3. Construir consulta con SesionActiva::withoutGlobalScopes()
+        $query = SesionActiva::withoutGlobalScopes()
+            ->where('id_instructor', $idInstructor);
+
+        if ($filtroEstatus === 'completadas') {
+            $query->where(function ($q) use ($hoy) {
+                $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA'])
+                  ->orWhere(function ($sub) use ($hoy) {
+                      $sub->whereNotIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                          ->whereDate('fecha_sesion', '<', $hoy);
+                  });
+            });
+        } elseif ($filtroEstatus === 'canceladas') {
+            $query->whereIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA']);
+        } else {
+            // 'todas': completadas, canceladas o pasadas
+            $query->where(function ($q) use ($hoy) {
+                $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA', 'CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                  ->orWhereDate('fecha_sesion', '<', $hoy);
+            });
+        }
+
+        // Filtro de fechas
+        if ($fechaDesde) {
+            $query->whereDate('fecha_sesion', '>=', $fechaDesde);
+        }
+        if ($fechaHasta) {
+            $query->whereDate('fecha_sesion', '<=', $fechaHasta);
+        } else {
+            $query->whereDate('fecha_sesion', '<=', $hoy);
+        }
+
+        // Filtro de disciplina
+        if ($idDisciplina) {
+            $query->where('id_disciplina', $idDisciplina);
+        }
+
+        // Eager loading y conteo de asistencias confirmadas
+        $query->with([
+            'disciplina:id_disciplina,nombre_disciplina',
+            'espacio:id_espacio,nombre_espacio',
+        ])->withCount([
+            'registroAsistencias as asistencias_registros' => function ($q) {
+                $q->where('asistencia', true);
+            },
+            'inscripcionesClase as asistencias_inscripciones' => function ($q) {
+                $q->where('estatus_inscripcion', 'ASISTIO');
+            },
+        ]);
+
+        // Ordenar descendentemente por fecha y hora de inicio, luego paginar
+        $sesiones = $query->orderByDesc('fecha_sesion')
+            ->orderByDesc('hora_inicio')
+            ->paginate($perPage);
+
+        // Formatear datos de respuesta
+        $data = $sesiones->getCollection()->map(function ($s) use ($hoy) {
+            $estatus     = $s->estatus_sesion;
+            $esCancelada = in_array($estatus, ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA']);
+
+            if ($esCancelada) {
+                $estatusRespuesta = 'CANCELADA';
+            } elseif ($estatus === 'FINALIZADA' || $estatus === 'COMPLETADA' || $s->fecha_sesion < $hoy) {
+                $estatusRespuesta = 'COMPLETADA';
+            } else {
+                $estatusRespuesta = $estatus;
+            }
+
+            $asistencias = max((int) ($s->asistencias_registros ?? 0), (int) ($s->asistencias_inscripciones ?? 0));
+
+            return [
+                'id_sesion'               => (int) $s->id_sesion,
+                'disciplina'              => $s->disciplina?->nombre_disciplina ?? '—',
+                'espacio'                 => $s->espacio?->nombre_espacio ?? '—',
+                'fecha_sesion'            => $s->fecha_sesion ? Carbon::parse($s->fecha_sesion)->format('Y-m-d') : null,
+                'hora_inicio'             => substr($s->hora_inicio ?? '', 0, 5),
+                'hora_fin'                => substr($s->hora_fin ?? '', 0, 5),
+                'cantidad_inscritos'      => (int) $s->cantidad_inscritos,
+                'asistencias_confirmadas' => $asistencias,
+                'cupo_maximo'             => (int) $s->cupo_maximo,
+                'requiere_inscripcion'    => (bool) $s->requiere_inscripcion,
+                'estatus_sesion'          => $estatusRespuesta,
+                'motivo_cancelacion'      => $esCancelada ? ($s->motivo_cancelacion ?? null) : null,
+            ];
+        })->values();
+
+        // 4. Métricas agregadas para nodo meta
+        $metricsBase = SesionActiva::withoutGlobalScopes()
+            ->where('id_instructor', $idInstructor);
+
+        if ($fechaDesde) {
+            $metricsBase->whereDate('fecha_sesion', '>=', $fechaDesde);
+        }
+        if ($fechaHasta) {
+            $metricsBase->whereDate('fecha_sesion', '<=', $fechaHasta);
+        } else {
+            $metricsBase->whereDate('fecha_sesion', '<=', $hoy);
+        }
+
+        if ($idDisciplina) {
+            $metricsBase->where('id_disciplina', $idDisciplina);
+        }
+
+        $totalCompletadas = (clone $metricsBase)->where(function ($q) use ($hoy) {
+            $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA'])
+              ->orWhere(function ($sub) use ($hoy) {
+                  $sub->whereNotIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                      ->whereDate('fecha_sesion', '<', $hoy);
+              });
+        })->count();
+
+        $totalCanceladas = (clone $metricsBase)
+            ->whereIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+            ->count();
+
+        $idsCompletadas = (clone $metricsBase)->where(function ($q) use ($hoy) {
+            $q->whereIn(DB::raw('estatus_sesion::text'), ['FINALIZADA', 'COMPLETADA'])
+              ->orWhere(function ($sub) use ($hoy) {
+                  $sub->whereNotIn(DB::raw('estatus_sesion::text'), ['CANCELADA', 'CANCELADA_POR_TORNEO', 'CANCELADA_POR_LLUVIA'])
+                      ->whereDate('fecha_sesion', '<', $hoy);
+              });
+        })->pluck('id_sesion');
+
+        $totalAlumnosAtendidos = 0;
+        if ($idsCompletadas->isNotEmpty()) {
+            $sesionesConAsistencia = SesionActiva::withoutGlobalScopes()
+                ->whereIn('id_sesion', $idsCompletadas)
+                ->withCount([
+                    'registroAsistencias as asistencias_registros' => fn($q) => $q->where('asistencia', true),
+                    'inscripcionesClase as asistencias_inscripciones' => fn($q) => $q->where('estatus_inscripcion', 'ASISTIO'),
+                ])
+                ->get();
+
+            $totalAlumnosAtendidos = $sesionesConAsistencia->sum(function ($s) {
+                return max((int) ($s->asistencias_registros ?? 0), (int) ($s->asistencias_inscripciones ?? 0));
+            });
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+            'meta'    => [
+                'total_sesiones_completadas' => $totalCompletadas,
+                'total_sesiones_canceladas'  => $totalCanceladas,
+                'total_alumnos_atendidos'    => $totalAlumnosAtendidos,
+                'current_page'               => $sesiones->currentPage(),
+                'last_page'                  => $sesiones->lastPage(),
+                'total'                      => $sesiones->total(),
+            ],
+        ], 200);
+    }
+
+    // sdh117: Desglose de asistencia por sesión histórica
+    public function detalleSesionHistorial(Request $request, int $id): JsonResponse
+    {
+        $sesion = SesionActiva::withoutGlobalScopes()->with([
+            'disciplina:id_disciplina,nombre_disciplina',
+            'espacio:id_espacio,nombre_espacio',
+        ])->find($id);
+
+        if (!$sesion) {
+            return response()->json([
+                'success' => false,
+                'message' => "La sesión #{$id} no fue encontrada.",
+            ], 404);
+        }
+
+        // sdh117: Validar pertenencia del instructor a la sesión
+        $idInstructor = $this->idInstructorActual();
+        if (!$idInstructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El usuario no tiene un perfil de instructor válido.',
+            ], 403);
+        }
+
+        if ((int) $sesion->id_instructor !== (int) $idInstructor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado para consultar el desglose de esta sesión.',
+            ], 403);
+        }
+
+        // sdh117: Cargar inscripciones y registros de asistencia
+        $inscripciones = InscripcionClase::where('id_sesion', $id)->get();
+        $registros = RegistroAsistencia::where('id_sesion', $id)->get();
+
+        // sdh117: Consolidar participantes únicos
+        $participantes = collect();
+
+        foreach ($inscripciones as $ins) {
+            $clave = strtolower($ins->tipo_usuario) . ':' . $ins->id_usuario;
+            $participantes->put($clave, [
+                'id_usuario'           => (int) $ins->id_usuario,
+                'tipo_usuario'         => strtolower($ins->tipo_usuario),
+                'estatus_inscripcion'  => strtoupper($ins->estatus_inscripcion ?? 'CONFIRMADA'),
+                'id_miembro_familiar'  => $ins->id_miembro_familiar,
+                'id_pase_invitado'     => $ins->id_pase_invitado,
+            ]);
+        }
+
+        foreach ($registros as $reg) {
+            $tipoNorm = match (strtoupper($reg->tipo_usuario)) {
+                'SOCIO_TITULAR', 'SOCIO'       => 'socio_titular',
+                'MIEMBRO_FAMILIAR', 'FAMILIAR' => 'miembro_familiar',
+                'INVITADO'                     => 'invitado',
+                default                        => strtolower($reg->tipo_usuario),
+            };
+            $clave = "{$tipoNorm}:{$reg->id_usuario}";
+
+            if (!$participantes->has($clave)) {
+                $participantes->put($clave, [
+                    'id_usuario'          => (int) $reg->id_usuario,
+                    'tipo_usuario'        => $tipoNorm,
+                    'estatus_inscripcion' => $reg->asistencia ? 'ASISTIO' : 'NO_SHOW',
+                    'id_miembro_familiar' => null,
+                    'id_pase_invitado'    => null,
+                ]);
+            }
+        }
+
+        // sdh117: Precargar entidades para evitar N+1
+        $idsSocios = $participantes->where('tipo_usuario', 'socio_titular')->pluck('id_usuario')->unique();
+        $idsFamiliares = $participantes->where('tipo_usuario', 'miembro_familiar')->pluck('id_usuario')->unique();
+        $idsInvitados = $participantes->where('tipo_usuario', 'invitado')->pluck('id_usuario')->unique();
+
+        $sociosDb = $idsSocios->isNotEmpty()
+            ? SocioTitular::whereIn('id_socio', $idsSocios)->get(['id_socio', 'nombre_completo', 'numero_accion'])->keyBy('id_socio')
+            : collect();
+
+        $familiaresDb = $idsFamiliares->isNotEmpty()
+            ? MiembrosFamiliares::with('socio:id_socio,numero_accion,nombre_completo')
+                ->whereIn('id_miembro', $idsFamiliares)
+                ->get()
+                ->keyBy('id_miembro')
+            : collect();
+
+        $invitadosDb = $idsInvitados->isNotEmpty()
+            ? Invitados::with('socioTitular:id_socio,numero_accion,nombre_completo')
+                ->whereIn('id_invitado', $idsInvitados)
+                ->get()
+                ->keyBy('id_invitado')
+            : collect();
+
+        $registrosMap = $registros->mapWithKeys(function ($r) {
+            $tipoNorm = match (strtoupper($r->tipo_usuario)) {
+                'SOCIO_TITULAR', 'SOCIO'       => 'socio_titular',
+                'MIEMBRO_FAMILIAR', 'FAMILIAR' => 'miembro_familiar',
+                'INVITADO'                     => 'invitado',
+                default                        => strtolower($r->tipo_usuario),
+            };
+            return ["{$tipoNorm}:{$r->id_usuario}" => $r];
+        });
+
+        // sdh117: Mapear lista de asistentes
+        $asistentes = $participantes->values()->map(function ($p) use ($sociosDb, $familiaresDb, $invitadosDb, $registrosMap) {
+            $tipoUsuario = $p['tipo_usuario'];
+            $idUsuario   = $p['id_usuario'];
+            $clave       = "{$tipoUsuario}:{$idUsuario}";
+            $reg         = $registrosMap->get($clave);
+
+            $nombre       = '—';
+            $numeroAccion = null;
+
+            if ($tipoUsuario === 'socio_titular') {
+                $socio = $sociosDb->get($idUsuario);
+                $nombre = $socio?->nombre_completo ?? "Socio #{$idUsuario}";
+                $numeroAccion = $socio?->numero_accion;
+            } elseif ($tipoUsuario === 'miembro_familiar') {
+                $familiar = $familiaresDb->get($idUsuario);
+                $nombre = $familiar?->nombre_completo ?? "Familiar #{$idUsuario}";
+                $numeroAccion = $familiar?->socio?->numero_accion;
+            } elseif ($tipoUsuario === 'invitado') {
+                $invitado = $invitadosDb->get($idUsuario);
+                $nombre = $invitado?->nombre_invitado ?? "Invitado #{$idUsuario}";
+                $numeroAccion = $invitado?->socioTitular?->numero_accion;
+            }
+
+            $horaRegistro = null;
+            $metodo = 'SISTEMA';
+
+            if ($reg) {
+                if ($reg->asistencia) {
+                    $estatusAsistencia = 'ASISTIO';
+                    $horaRegistro = $reg->fecha_hora_registro ? Carbon::parse($reg->fecha_hora_registro)->format('H:i:s') : null;
+                    $metodo = $this->normalizarMetodoDisplay($reg->metodo_registro);
+                } else {
+                    $estatusAsistencia = 'NO_SHOW';
+                }
+            } else {
+                $estatusIns = $p['estatus_inscripcion'];
+                if ($estatusIns === 'ASISTIO') {
+                    $estatusAsistencia = 'ASISTIO';
+                    $metodo = 'MANUAL';
+                } elseif (in_array($estatusIns, ['FALTA', 'NO_SHOW'])) {
+                    $estatusAsistencia = 'NO_SHOW';
+                } elseif ($estatusIns === 'CANCELADA') {
+                    $estatusAsistencia = 'CANCELO';
+                } else {
+                    $estatusAsistencia = 'NO_SHOW';
+                }
+            }
+
+            return [
+                'nombre'             => $nombre,
+                'tipo'               => $this->formatearTipoUsuario($tipoUsuario),
+                'numero_accion'      => $numeroAccion,
+                'estatus_asistencia' => $estatusAsistencia,
+                'hora_registro'      => $horaRegistro,
+                'metodo'             => $metodo,
+            ];
+        });
+
+        // sdh117: Resumen nominal
+        $totalInscritos  = $asistentes->count();
+        $totalAsistieron = $asistentes->where('estatus_asistencia', 'ASISTIO')->count();
+        $totalNoShows    = $asistentes->where('estatus_asistencia', 'NO_SHOW')->count();
+
+        $horaInicio = substr($sesion->hora_inicio ?? '', 0, 5);
+        $horaFin    = substr($sesion->hora_fin ?? '', 0, 5);
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id_sesion'    => (int) $sesion->id_sesion,
+                'disciplina'   => $sesion->disciplina?->nombre_disciplina ?? '—',
+                'espacio'      => $sesion->espacio?->nombre_espacio ?? '—',
+                'fecha_sesion' => $sesion->fecha_sesion ? Carbon::parse($sesion->fecha_sesion)->format('Y-m-d') : null,
+                'horario'      => "{$horaInicio} - {$horaFin}",
+                'resumen'      => [
+                    'inscritos'  => $totalInscritos,
+                    'asistieron' => $totalAsistieron,
+                    'no_shows'   => $totalNoShows,
+                ],
+                'asistentes'   => $asistentes->values()->all(),
+            ],
+        ], 200);
     }
 
     /**
@@ -366,7 +929,13 @@ class SesionInstructorController extends Controller
             'metodo'                    => ['required', 'in:ESCANER_QR,MANUAL,SIN_REGISTRO'],
         ]);
 
-        $sesion = SesionActiva::withoutGlobalScopes()->findOrFail($idSesion);
+        $sesion = SesionActiva::withoutGlobalScopes()->find($idSesion);
+        if (!$sesion) {
+            return response()->json([
+                'success' => false,
+                'message' => "La sesión #{$idSesion} no fue encontrada en la base de datos.",
+            ], 404);
+        }
 
         $idInstructor = $this->idInstructorActual();
         abort_if(
@@ -384,24 +953,19 @@ class SesionInstructorController extends Controller
             ], 409);
         }
 
-
         return DB::transaction(function () use ($request, $sesion) {
             $erroresParciales = [];
             $registrados      = 0;
+            $noShowsRegistrados = 0;
 
             // Cargar pares (id_usuario, tipo_usuario) ya registrados para deduplicación.
-            // La clave compuesta es necesaria porque id_usuario no es globalmente único:
-            // un socio_titular con id=1 y un miembro_familiar con id=1 son personas distintas.
-            // Clave: SOCIO_TITULAR:<id> para coincidir con $tipoInscripcion usado abajo
             $yaRegistrados = RegistroAsistencia::where('id_sesion', $sesion->id_sesion)
                 ->where('asistencia', true)
                 ->get(['id_usuario', 'tipo_usuario'])
                 ->mapWithKeys(fn($r) => [strtoupper($r->tipo_usuario) . ":{$r->id_usuario}" => true]);
 
             foreach ($request->confirmados as $confirmado) {
-                $idUsuario   = (int) $confirmado['id_usuario'];
-                // registros_asistencia → MAYUSCULAS (SOCIO_TITULAR, MIEMBRO_FAMILIAR, INVITADO)
-                // inscripciones_clases → minusculas (socio_titular, miembro_familiar, invitado)
+                $idUsuario       = (int) $confirmado['id_usuario'];
                 $tipoRegistro    = $this->normalizarTipoUsuarioAsistencia($confirmado['tipo_usuario']);
                 $tipoInscripcion = strtolower($confirmado['tipo_usuario']);
                 $codigoQr        = strtoupper($confirmado['codigo_qr'] ?? '');
@@ -420,14 +984,6 @@ class SesionInstructorController extends Controller
                             'asistencia'          => true,
                             'metodo_registro'     => $request->metodo,
                             'fecha_hora_registro' => now(),
-                        ]);
-
-                        Log::info('UPDATE inscripciones_clases params', [
-                            'id_sesion'        => $sesion->id_sesion,
-                            'id_usuario'       => $idUsuario,
-                            'tipo_inscripcion' => $tipoInscripcion,
-                            'tipo_registro'    => $tipoRegistro,
-                            'confirmado_raw'   => $confirmado ?? null,
                         ]);
 
                         DB::statement(
@@ -454,7 +1010,51 @@ class SesionInstructorController extends Controller
                 }
             }
 
-            if ($registrados > 0) {
+            if ($request->boolean('cerrar_lista')) {
+                $pendientes = InscripcionClase::where('id_sesion', $sesion->id_sesion)
+                    ->whereIn('estatus_inscripcion', ['CONFIRMADA', 'LISTA_ESPERA'])
+                    ->whereNotIn('tipo_usuario', ['invitado'])
+                    ->get();
+
+                foreach ($pendientes as $inscripcion) {
+                    $clavePendiente = $this->normalizarTipoUsuarioAsistencia($inscripcion->tipo_usuario) . ":{$inscripcion->id_usuario}";
+                    if ($yaRegistrados->has($clavePendiente)) {
+                        continue;
+                    }
+
+                    try {
+                        RegistroAsistencia::create([
+                            'id_sesion'           => $sesion->id_sesion,
+                            'id_usuario'          => $inscripcion->id_usuario,
+                            'tipo_usuario'        => $this->normalizarTipoUsuarioAsistencia($inscripcion->tipo_usuario),
+                            'asistencia'          => false,
+                            'metodo_registro'     => 'SIN_REGISTRO',
+                            'fecha_hora_registro' => now(),
+                        ]);
+
+                        $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
+
+                        if (in_array(strtolower((string) $inscripcion->tipo_usuario), ['socio_titular', 'socio'], true)) {
+                            SocioTitular::find($inscripcion->id_usuario)?->increment('contador_no_shows');
+                        } elseif (in_array(strtolower((string) $inscripcion->tipo_usuario), ['miembro_familiar', 'familiar'], true)) {
+                            $familiar = MiembrosFamiliares::find($inscripcion->id_usuario);
+                            if ($familiar) {
+                                $familiar->increment('contador_no_shows');
+                                if ($familiar->socio_id) {
+                                    SocioTitular::find($familiar->socio_id)?->increment('contador_no_shows');
+                                }
+                            }
+                        }
+
+                        \App\Jobs\ProcesarAlertaNoShowJob::dispatch($inscripcion);
+                        $noShowsRegistrados++;
+                    } catch (\Throwable $e) {
+                        Log::warning("confirmarAsistencia: error marcando no-show para inscripcion #{$inscripcion->id_inscripcion}: {$e->getMessage()}");
+                    }
+                }
+            }
+
+            if ($registrados > 0 || $noShowsRegistrados > 0) {
                 $sesion->update(['lista_asistencia_enviada' => true]);
             }
 
@@ -463,14 +1063,107 @@ class SesionInstructorController extends Controller
                     'success'           => false,
                     'message'           => "Se registraron {$registrados} participante(s), pero hubo errores en algunos códigos.",
                     'total_registrados' => $registrados,
+                    'total_no_shows'    => $noShowsRegistrados,
                     'errores_parciales' => $erroresParciales,
                 ], 207);
             }
 
             return response()->json([
                 'success'           => true,
-                'message'           => "Asistencia confirmada. {$registrados} participante(s) registrado(s).",
+                'message'           => "Asistencia procesada. {$registrados} asistencias confirmadas, {$noShowsRegistrados} no-shows registrados.",
                 'total_registrados' => $registrados,
+                'total_no_shows'    => $noShowsRegistrados,
+            ]);
+        });
+    }
+
+    /**
+     * POST /api/v1/instructor/sesiones/{idSesion}/marcar-no-show
+     *
+     * Registra inasistencia (No-Show) para un participante o para los pendientes
+     * al cerrar la lista, emitiendo la alerta correspondiente al socio titular.
+     */
+    public function marcarNoShow(Request $request, int $idSesion): JsonResponse
+    {
+        $sesion = SesionActiva::withoutGlobalScopes()->find($idSesion);
+        if (!$sesion) {
+            return response()->json([
+                'success' => false,
+                'message' => "La sesión #{$idSesion} no fue encontrada en la base de datos.",
+            ], 404);
+        }
+
+        $idInstructor = $this->idInstructorActual();
+        abort_if(
+            $sesion->id_instructor !== $idInstructor,
+            403,
+            'No autorizado para esta sesión.'
+        );
+
+        $idUsuario   = $request->input('id_usuario');
+        $tipoUsuario = $request->input('tipo_usuario', 'socio_titular');
+
+        return DB::transaction(function () use ($request, $sesion, $idUsuario, $tipoUsuario) {
+            $query = InscripcionClase::where('id_sesion', $sesion->id_sesion)
+                ->whereIn('estatus_inscripcion', ['CONFIRMADA', 'LISTA_ESPERA']);
+
+            if ($idUsuario) {
+                $query->where('id_usuario', (int) $idUsuario);
+                if ($tipoUsuario) {
+                    $query->where('tipo_usuario', strtolower((string) $tipoUsuario));
+                }
+            }
+
+            $inscripciones = $query->get();
+
+            if ($inscripciones->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron inscripciones pendientes para marcar como No-Show en esta sesión.',
+                ], 404);
+            }
+
+            $procesados = 0;
+            foreach ($inscripciones as $inscripcion) {
+                $tipoRegistro = $this->normalizarTipoUsuarioAsistencia($inscripcion->tipo_usuario);
+
+                RegistroAsistencia::updateOrCreate(
+                    [
+                        'id_sesion'    => $sesion->id_sesion,
+                        'id_usuario'   => $inscripcion->id_usuario,
+                        'tipo_usuario' => $tipoRegistro,
+                    ],
+                    [
+                        'asistencia'          => false,
+                        'metodo_registro'     => $request->input('metodo', 'MANUAL'),
+                        'fecha_hora_registro' => now(),
+                    ]
+                );
+
+                $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
+
+                if (in_array(strtolower((string) $inscripcion->tipo_usuario), ['socio_titular', 'socio'], true)) {
+                    SocioTitular::find($inscripcion->id_usuario)?->increment('contador_no_shows');
+                } elseif (in_array(strtolower((string) $inscripcion->tipo_usuario), ['miembro_familiar', 'familiar'], true)) {
+                    $familiar = MiembrosFamiliares::find($inscripcion->id_usuario);
+                    if ($familiar) {
+                        $familiar->increment('contador_no_shows');
+                        if ($familiar->socio_id) {
+                            SocioTitular::find($familiar->socio_id)?->increment('contador_no_shows');
+                        }
+                    }
+                }
+
+                \App\Jobs\ProcesarAlertaNoShowJob::dispatch($inscripcion);
+                $procesados++;
+            }
+
+            $sesion->update(['lista_asistencia_enviada' => true]);
+
+            return response()->json([
+                'success'        => true,
+                'message'        => "Se registraron {$procesados} inasistencia(s) y se emitieron las alertas de No-Show.",
+                'total_no_shows' => $procesados,
             ]);
         });
     }
@@ -482,9 +1175,9 @@ class SesionInstructorController extends Controller
     /** @return int|null id_instructor del usuario autenticado */
     private function idInstructorActual(): ?int
     {
-        /** @var User $user */
+        /** @var User|null $user */
         $user = auth()->user();
-        return $user->instructor?->id_instructor;
+        return $user?->instructor?->id_instructor;
     }
 
     /**
@@ -540,5 +1233,42 @@ class SesionInstructorController extends Controller
 
         $equipo = \App\Models\EquipoTorneo::select('id_equipo', 'nombre_equipo')->find($id);
         return $equipo?->nombre_equipo ?? "Equipo #{$id}";
+    }
+
+    // sdh118: normalizar metodo de registro
+    private function normalizarMetodoDisplay(?string $metodo): string
+    {
+        if (!$metodo) {
+            return 'SISTEMA';
+        }
+        $m = strtoupper($metodo);
+        if (str_contains($m, 'QR')) {
+            return 'QR_SCANNER';
+        }
+        if (str_contains($m, 'MANUAL')) {
+            return 'MANUAL_INSTRUCTOR';
+        }
+        return $m;
+    // sdh117: Normalizar canal de registro
+    private function normalizarMetodoDisplay(?string $metodo): string
+    {
+        if (!$metodo) return 'SISTEMA';
+        return match (strtoupper($metodo)) {
+            'ESCANER_QR', 'QR_SCANNER', 'QR', 'ESCANER' => 'QR_SCANNER',
+            'MANUAL', 'INGRESO_MANUAL', 'INSTRUCTOR'    => 'MANUAL',
+            'SISTEMA', 'AUTOMATICO'                     => 'SISTEMA',
+            default                                     => strtoupper($metodo),
+        };
+    }
+
+    // sdh117: Formato legible de tipo de usuario
+    private function formatearTipoUsuario(string $tipo): string
+    {
+        return match (strtolower($tipo)) {
+            'socio_titular', 'socio'       => 'Socio Titular',
+            'miembro_familiar', 'familiar' => 'Miembro Familiar',
+            'invitado'                     => 'Invitado',
+            default                        => ucwords(str_replace('_', ' ', $tipo)),
+        };
     }
 }

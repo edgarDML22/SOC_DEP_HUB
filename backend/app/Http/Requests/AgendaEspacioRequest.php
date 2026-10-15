@@ -12,6 +12,13 @@ class AgendaEspacioRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->route('id') && !$this->has('id_espacio')) {
+            $this->merge(['id_espacio' => $this->route('id')]);
+        }
+    }
+
     public function rules(): array
     {
         return [

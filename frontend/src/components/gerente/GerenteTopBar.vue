@@ -43,6 +43,11 @@ const closeNotifications = () => {
   showNotifications.value = false
 }
 
+const emit = defineEmits(['toggle-sidebar'])
+
+const toggleMenu = () => menuOpen.value = !menuOpen.value
+const toggleNotifications = () => showNotifications.value = !showNotifications.value
+const closeMenu = () => menuOpen.value = false
 const markAllAsRead = () => {
   notificationsList.value = []
 }
@@ -63,6 +68,13 @@ onMounted(() => {
         class="lg:hidden flex items-center justify-center p-2 rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 focus:outline-none transition-colors shrink-0 cursor-pointer"
         aria-label="Abrir menu de navegacion"
         @click="handleToggleSidebar"
+  <header class="topbar">
+    <div class="left flex items-center gap-3">
+      <button
+        type="button"
+        class="lg:hidden p-2 -ml-2 rounded-xl text-surface-600 hover:text-surface-900 hover:bg-surface-200 transition-colors focus:outline-none flex items-center justify-center cursor-pointer"
+        aria-label="Abrir menú"
+        @click="emit('toggle-sidebar')"
       >
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -96,6 +108,15 @@ onMounted(() => {
           aria-label="Notificaciones"
           @click="toggleNotifications"
         >
+    </div>
+
+    <div class="right">
+      <span class="role">{{ profileStore.role === 'SUBGERENTE' ? 'Subgerente' : 'Gerente' }}</span>
+      
+      <DarkModeToggle />
+
+      <div class="notification-wrapper">
+        <button class="notification-btn" @click="toggleNotifications">
           <IconBell class="w-5 h-5 transition-transform group-hover:scale-110" />
           <span
             v-if="activeCount > 0"
@@ -190,6 +211,37 @@ onMounted(() => {
         >
           {{ profileStore.userInitials }}
         </button>
+      <div class="avatar-container relative">
+        <div class="nav-avatar" @click="toggleMenu">
+          {{ profileStore.userInitials }}
+        </div>
+
+        <div v-if="menuOpen" class="fixed inset-0 z-10" @click="closeMenu"></div>
+
+        <Transition enter-active-class="transition ease-out duration-200"
+          enter-from-class="transform opacity-0 scale-95 translate-y-1" enter-to-class="transform opacity-100 scale-100 translate-y-0"
+          leave-active-class="transition ease-in duration-150" leave-from-class="transform opacity-100 scale-100 translate-y-0"
+          leave-to-class="transform opacity-0 scale-95 translate-y-1">
+          <div v-if="menuOpen" class="absolute right-0 mt-3 w-64 origin-top-right rounded-2xl bg-slate-950 
+                      shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-20 
+                      overflow-hidden border border-slate-800/60 flex flex-col p-2 gap-1 font-sans">
+              <button @click="showProfileModal = true; closeMenu()"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-all text-left">
+                <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Información Personal
+              </button>
+
+              <button @click="profileStore.getSupportLink(); closeMenu()"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-all text-left">
+                <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Soporte Técnico
+              </button>
 
         <!-- Overlay para cerrar dropdown de perfil -->
         <div
@@ -244,6 +296,14 @@ onMounted(() => {
               </svg>
               Cerrar Sesion
             </button>
+              <button @click="profileStore.logout(); closeMenu()"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all text-left">
+                <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Cerrar Sesión
+              </button>
           </div>
         </Transition>
       </div>
@@ -253,3 +313,110 @@ onMounted(() => {
     <AdminProfileModal v-model="showProfileModal" />
   </header>
 </template>
+    <AdminProfileModal v-model="showProfileModal" />
+  </header>
+</template>
+
+<style scoped>
+.topbar {
+  height: 70px;
+  background: var(--color-surface-100);
+  border-bottom: 1px solid var(--color-surface-200);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  align-items: center;
+  position: relative;
+  z-index: 30;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.role {
+  background: var(--color-surface-200);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-surface-700);
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  position: relative;
+  padding: 10px;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-btn:hover {
+  background-color: var(--color-surface-200);
+  color: var(--color-surface-900);
+}
+
+.notification-btn:active {
+  transform: scale(0.95);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  border-radius: 999px;
+  height: 16px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 320px;
+  z-index: 50;
+}
+
+.nav-avatar {
+  width: 38px;
+  height: 38px;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+}
+
+.nav-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+  border-color: #93c5fd;
+}
+</style>

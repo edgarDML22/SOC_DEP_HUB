@@ -312,38 +312,24 @@ const handleDeleteGuest = async () => {
           </div>
         </template>
 
-        <div class="flex items-center gap-4">
+        <!-- Métricas de Pases e Invitados (Grid 2 columnas compacto en mobile, flex en desktop) -->
+        <div class="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:gap-3 w-full sm:w-auto">
           <!-- Total Invitados -->
-          <div class="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-surface-200 rounded-2xl shadow-sm">
-            <span class="text-[11px] font-black uppercase tracking-wider text-surface-400">Total Invitados</span>
-            <div class="px-3 py-1 bg-surface-100 text-surface-900 rounded-xl text-sm font-black">
+          <div class="flex items-center justify-between sm:justify-start gap-2 px-3 py-2.5 sm:px-4 bg-white border border-surface-200 rounded-2xl shadow-xs">
+            <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-surface-400">Total Invitados</span>
+            <div class="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-surface-100 text-surface-900 rounded-xl text-xs sm:text-sm font-black">
               {{ guests.length }}
             </div>
           </div>
 
           <!-- Pases Activos -->
-          <div class="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-surface-200 rounded-2xl shadow-sm">
-            <span class="text-[11px] font-black uppercase tracking-wider text-surface-400">Pases Activos</span>
-            <div class="px-3 py-1 rounded-xl text-sm font-black transition-colors"
+          <div class="flex items-center justify-between sm:justify-start gap-2 px-3 py-2.5 sm:px-4 bg-white border border-surface-200 rounded-2xl shadow-xs">
+            <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-surface-400">Pases Activos</span>
+            <div class="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl text-xs sm:text-sm font-black transition-colors"
               :class="activePasses >= 5 ? 'bg-red-100 text-red-700' : 'bg-primary-100 text-primary-700'">
               {{ activePasses }} / 5
             </div>
           </div>
-
-          <!-- Botón Registrar (Se oculta si llega al límite) -->
-          <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 translate-x-4" enter-to-class="opacity-100 translate-x-0"
-            leave-active-class="transition-all duration-200 ease-in" leave-from-class="opacity-100 translate-x-0"
-            leave-to-class="opacity-0 translate-x-4">
-            <button v-if="activePasses < 5"
-              class="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
-              @click="openCreateModal">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Registrar Invitado
-            </button>
-          </Transition>
         </div>
       </AdminPageHeader>
 
@@ -369,9 +355,28 @@ const handleDeleteGuest = async () => {
         </div>
       </Transition>
 
-      <!-- BARRA DE BÚSQUEDA -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-4">
-        <SearchInput v-model="search" placeholder="Buscar por nombre, correo o teléfono…" />
+      <!-- BARRA DE BÚSQUEDA Y NUEVO INVITADO -->
+      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-3 sm:p-4">
+        <div class="flex flex-col sm:flex-row gap-2 w-full items-stretch sm:items-center">
+          <div class="flex-1 min-w-0">
+            <SearchInput v-model="search" placeholder="Buscar por nombre, correo o teléfono…" />
+          </div>
+
+          <!-- Botón Registrar / Nuevo Invitado -->
+          <Transition enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 sm:translate-x-4" enter-to-class="opacity-100 sm:translate-x-0"
+            leave-active-class="transition-all duration-200 ease-in" leave-from-class="opacity-100 sm:translate-x-0"
+            leave-to-class="opacity-0 sm:translate-x-4">
+            <button v-if="activePasses < 5"
+              class="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md shadow-primary-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0 w-full sm:w-auto"
+              @click="openCreateModal">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>Nuevo Invitado</span>
+            </button>
+          </Transition>
+        </div>
       </div>
 
       <!-- TABLA DE INVITADOS -->
@@ -409,75 +414,149 @@ const handleDeleteGuest = async () => {
             botón superior.</p>
         </div>
 
-        <!-- Tabla -->
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
-              <tr>
-                <th class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Invitado</th>
-                <th class="px-6 py-4 text-left font-extrabold">Contacto</th>
-                <th class="px-6 py-4 text-left font-extrabold">Estatus Invitado</th>
-                <th class="px-6 py-4 text-left font-extrabold">Daily Pass</th>
-                <th class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-100">
-              <tr v-for="guest in filteredGuests" :key="guest.id_invitado"
-                class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
-                <!-- Info Invitado -->
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-4">
-                    <div
-                      class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shadow-sm shrink-0"
-                      :class="avatarGradient(guest.nombre_invitado)">
-                      {{ initials(guest.nombre_invitado) }}
+        <!-- Contenido con datos: Tabla (Desktop) y Tarjetas (Móvil) -->
+        <template v-else>
+          <!-- Tabla desktop (visible solo en >= 1024px) -->
+          <div class="overflow-x-auto hidden lg:block">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-900 text-white text-[11px] uppercase font-bold tracking-widest sticky top-0 z-10">
+                <tr>
+                  <th class="px-6 py-4 text-left font-extrabold rounded-tl-2xl">Invitado</th>
+                  <th class="px-6 py-4 text-left font-extrabold">Contacto</th>
+                  <th class="px-6 py-4 text-left font-extrabold">Estatus Invitado</th>
+                  <th class="px-6 py-4 text-left font-extrabold">Daily Pass</th>
+                  <th class="px-6 py-4 text-right font-extrabold rounded-tr-2xl">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-100">
+                <tr v-for="guest in filteredGuests" :key="guest.id_invitado"
+                  class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors group">
+                  <!-- Info Invitado -->
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="w-9 h-9 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shadow-sm shrink-0"
+                        :class="avatarGradient(guest.nombre_invitado)">
+                        {{ initials(guest.nombre_invitado) }}
+                      </div>
+                      <div>
+                        <p class="font-bold text-surface-900 text-sm leading-none">{{ guest.nombre_invitado }}</p>
+                        <p class="text-[10px] text-surface-400 mt-1.5 font-medium">Invitado desde {{
+                          dateFormat(guest.fecha_registro) || 'N/A' }}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p class="font-bold text-surface-900 text-sm leading-none">{{ guest.nombre_invitado }}</p>
-                      <p class="text-[10px] text-surface-400 mt-1.5 font-medium">Invitado desde {{
-                        dateFormat(guest.fecha_registro) || 'N/A' }}
-                      </p>
+                  </td>
+
+                  <!-- Contacto -->
+                  <td class="px-6 py-4">
+                    <div class="space-y-1.5">
+                      <div class="flex items-center gap-2 text-surface-600">
+                        <IconMail class="w-3.5 h-3.5 text-surface-300" />
+                        <span class="text-xs font-medium">{{ guest.correo || '—' }}</span>
+                      </div>
+                      <div class="flex items-center gap-2 text-surface-600">
+                        <IconPhone class="w-3.5 h-3.5 text-surface-300" />
+                        <span class="text-xs font-medium">{{ guest.telefono || '—' }}</span>
+                      </div>
                     </div>
+                  </td>
+
+                  <!-- Estatus Invitado -->
+                  <td class="px-6 py-4">
+                    <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
+                  </td>
+
+                  <!-- Daily Pass -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col gap-1">
+                      <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
+                      <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400 ml-1">
+                        Expira: {{ dateFormat(guest.fecha_expiracion) }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Acciones -->
+                  <td class="px-6 py-4 text-right">
+                    <ActionMenu :items="buildMenuItems(guest)" align="right" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ═══ Tarjetas Móvil (< 1024px) ═══ -->
+          <div class="lg:hidden flex flex-col gap-3.5 p-3 sm:p-4">
+            <!-- Mensaje si la búsqueda no arroja resultados -->
+            <div v-if="filteredGuests.length === 0" class="p-8 text-center text-sm font-semibold text-surface-400">
+              No se encontraron invitados que coincidan con la búsqueda.
+            </div>
+
+            <div v-for="guest in filteredGuests" :key="'card-' + guest.id_invitado"
+              tabindex="0"
+              class="group bg-white rounded-2xl border border-surface-200/90 shadow-xs hover:shadow-md hover:border-surface-300 transition-all duration-200 p-4 focus:outline-hidden animate-row-in">
+
+              <!-- Encabezado: Avatar + Nombre + Fecha + ActionMenu (Siempre visible) -->
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div
+                    class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shrink-0 shadow-xs"
+                    :class="avatarGradient(guest.nombre_invitado)">
+                    {{ initials(guest.nombre_invitado) }}
                   </div>
-                </td>
-
-                <!-- Contacto -->
-                <td class="px-6 py-4">
-                  <div class="space-y-1.5">
-                    <div class="flex items-center gap-2 text-surface-600">
-                      <IconMail class="w-3.5 h-3.5 text-surface-300" />
-                      <span class="text-xs font-medium">{{ guest.correo || '—' }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-surface-600">
-                      <IconPhone class="w-3.5 h-3.5 text-surface-300" />
-                      <span class="text-xs font-medium">{{ guest.telefono || '—' }}</span>
-                    </div>
-                  </div>
-                </td>
-
-                <!-- Estatus Invitado -->
-                <td class="px-6 py-4">
-                  <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
-                </td>
-
-                <!-- Daily Pass -->
-                <td class="px-6 py-4">
-                  <div class="flex flex-col gap-1">
-                    <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
-                    <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400 ml-1">
-                      Expira: {{ dateFormat(guest.fecha_expiracion) }}
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-bold text-surface-900 text-sm truncate">
+                      {{ guest.nombre_invitado }}
+                    </span>
+                    <span class="text-surface-400 text-[11px] font-medium tracking-wide">
+                      Invitado desde {{ dateFormat(guest.fecha_registro) || 'N/A' }}
                     </span>
                   </div>
-                </td>
-
-                <!-- Acciones -->
-                <td class="px-6 py-4 text-right">
+                </div>
+                <div class="shrink-0" @click.stop>
                   <ActionMenu :items="buildMenuItems(guest)" align="right" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                </div>
+              </div>
+
+              <!-- Contenido desplegable en hover / focus -->
+              <div class="max-h-0 opacity-0 overflow-hidden group-hover:max-h-60 group-hover:opacity-100 group-focus-within:max-h-60 group-focus-within:opacity-100 transition-all duration-300 ease-in-out">
+                <!-- Información de Contacto -->
+                <div class="border-t border-surface-100 mt-3 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-surface-600 text-xs">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <IconMail class="w-3.5 h-3.5 text-surface-400 shrink-0" />
+                    <span class="truncate">{{ guest.correo || '—' }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 min-w-0">
+                    <IconPhone class="w-3.5 h-3.5 text-surface-400 shrink-0" />
+                    <span class="truncate">{{ guest.telefono || '—' }}</span>
+                  </div>
+                </div>
+
+                <!-- Estatus y Daily Pass alineados -->
+                <div class="border-t border-surface-100 mt-2.5 pt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <!-- Estatus Invitado -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-surface-400 font-semibold text-[11px]">Estatus:</span>
+                    <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
+                  </div>
+
+                  <!-- Daily Pass -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-surface-400 font-semibold text-[11px]">Daily Pass:</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
+                      <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400">
+                        (Exp: {{ dateFormat(guest.fecha_expiracion) }})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 

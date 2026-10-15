@@ -257,7 +257,9 @@ class EspacioFisicoController extends Controller
     private function getActividadProgramada($fecha, $categoria_disciplina = null): array
     {
         // 1. Iniciamos la consulta en sesiones_activas
-        $query = SesionActiva::where('fecha_sesion', $fecha)
+        $query = SesionActiva::withoutGlobalScopes()
+            ->publicadaYVigente()
+            ->where('fecha_sesion', $fecha)
             ->whereHas('actividadPlantilla.espacioFisico', function ($q) {
                 $q->where('es_clase_programada', true);
             })
@@ -265,7 +267,11 @@ class EspacioFisicoController extends Controller
                 'actividadPlantilla.espacioFisico',
                 'actividadPlantilla.disciplina'
             ])
-            ->withCount('inscripcionesClase');
+            ->withCount([
+                'inscripcionesClase' => function ($q) {
+                    $q->whereIn(DB::raw('estatus_inscripcion::text'), ['CONFIRMADA', 'ASISTIO']);
+                }
+            ]);
 
         // 2. Filtro por categoría (whereHas)
         if ($categoria_disciplina) {

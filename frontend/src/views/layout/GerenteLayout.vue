@@ -2,14 +2,43 @@
 import GerenteSideBar from '@/components/gerente/GerenteSideBar.vue'
 import GerenteTopBar from '@/components/gerente/GerenteTopBar.vue'
 import { useAdminStore } from '@/stores/profiles/adminStore'
-import { onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { isRouteLoading } from '@/router'
 
 const profileStore = useAdminStore()
+const isMobileSidebarOpen = ref(false)
+
+const toggleMobileSidebar = () => {
+  isMobileSidebarOpen.value = !isMobileSidebarOpen.value
+}
+
+const closeMobileSidebar = () => {
+  isMobileSidebarOpen.value = false
+}
+
+// Bloquea el scroll cuando el drawer móvil está abierto
+watch(isMobileSidebarOpen, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
+})
+
+// Cierra el drawer móvil y restaura el scroll al pasar a resolución de escritorio
+const handleResize = () => {
+  if (window.innerWidth >= 1024 && isMobileSidebarOpen.value) {
+    isMobileSidebarOpen.value = false
+    document.body.style.overflow = ''
+  }
+}
 
 onMounted(() => {
   window.scrollTo(0, 0)
   profileStore.fetchProfile()
+  window.addEventListener('resize', handleResize)
+})
+
+// Limpieza de listeners y restauración del scroll al desmontar
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  document.body.style.overflow = ''
 })
 </script>
 
@@ -29,10 +58,16 @@ onMounted(() => {
       </div>
     </Transition>
 
-    <GerenteSideBar />
+    <GerenteSideBar
+      v-model:isMobileOpen="isMobileSidebarOpen"
+      @close="closeMobileSidebar"
+    />
 
     <main class="flex-1 flex flex-col min-h-0 relative h-full">
-      <GerenteTopBar class="shrink-0" />
+      <GerenteTopBar
+        class="shrink-0"
+        @toggle-sidebar="toggleMobileSidebar"
+      />
       
       <div class="flex-1 overflow-y-auto min-h-0 relative bg-surface-50">
         
@@ -44,7 +79,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Animación premium de alta gama para la barra de progreso superior */
 @keyframes progress {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
