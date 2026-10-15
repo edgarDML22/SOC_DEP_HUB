@@ -38,14 +38,30 @@ class CalcularNoShows extends Command
             ->where('estatus_inscripcion', 'CONFIRMADA')
             ->chunkById(100, function ($inscripciones) use ($hoy) {
                 foreach ($inscripciones as $inscripcion) {
-                    $existeEnMongo = RegistroAsistencia::where('socio_id', $inscripcion->id_usuario)
-                        ->where('id_sesion', $inscripcion->id_sesion)
-                        ->whereBetween('timestamp', [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()])
+                    $asistio = RegistroAsistencia::where('id_sesion', $inscripcion->id_sesion)
+                        ->where('id_usuario', $inscripcion->id_usuario)
+                        ->where('asistencia', true)
                         ->exists();
 
-                    if (!$existeEnMongo) {
+                    if (!$asistio) {
+                        $tipoRegistro = match (strtolower((string) $inscripcion->tipo_usuario)) {
+                            'socio_titular', 'socio'        => 'SOCIO_TITULAR',
+                            'miembro_familiar', 'familiar'  => 'MIEMBRO_FAMILIAR',
+                            default                         => strtoupper((string) $inscripcion->tipo_usuario),
+                        };
+
+                        RegistroAsistencia::create([
+                            'id_sesion'           => $inscripcion->id_sesion,
+                            'id_usuario'          => $inscripcion->id_usuario,
+                            'tipo_usuario'        => $tipoRegistro,
+                            'asistencia'          => false,
+                            'metodo_registro'     => 'SIN_REGISTRO',
+                            'fecha_hora_registro' => now('America/Mexico_City'),
+                        ]);
+
                         $inscripcion->update(['estatus_inscripcion' => 'FALTA']);
-                        $this->aplicarPenalizacion($inscripcion->id_usuario, 'de la clase');
+                        $this->aplicarPenalizacion($inscripcion->id_usuario, $inscripcion->tipo_usuario, 'de la clase');
+                        \App\Jobs\ProcesarAlertaNoShowJob::dispatch($inscripcion);
                     }
                 }
             });
@@ -55,39 +71,43 @@ class CalcularNoShows extends Command
             ->where('estatus_operativo', 'ACTIVA')
             ->chunkById(100, function ($reservaciones) use ($hoy) {
                 foreach ($reservaciones as $reserva) {
-                    // Para espacios, buscamos por socio_id y el id_espacio
-                    $existeEnMongo = RegistroAsistencia::where('socio_id', $reserva->id_socio_titular)
-                        ->where('id_espacio', $reserva->id_espacio)
-                        ->whereBetween('timestamp', [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()])
-                        ->exists();
-
-                    if (!$existeEnMongo) {
-                        $reserva->update(['estatus_operativo' => 'NO_SHOW']);
-                        $this->aplicarPenalizacion($reserva->id_socio_titular, 'del espacio reservado');
-                    }
+                    // Si la reserva expiró sin check-in ni asistencia
+                    $reserva->update(['estatus_operativo' => 'NO_SHOW']);
+                    $this->aplicarPenalizacion($reserva->id_socio_titular, 'socio_titular', 'del espacio reservado');
                 }
             });
 
-        $this->info('Cruce políglota completado.');
+        $this->info('Cálculo de No-Shows y alertas completado.');
     }
 
     /**
      * Lógica compartida para incrementar contador y penalizar.
      */
-    private function aplicarPenalizacion($socioId, $contexto)
+    private function aplicarPenalizacion($usuarioId, $tipoUsuario = 'socio_titular', $contexto = 'de la clase')
     {
+        $socioId = $usuarioId;
+
+        if (in_array(strtolower((string) $tipoUsuario), ['miembro_familiar', 'familiar'], true)) {
+            $familiar = \App\Models\MiembrosFamiliares::find($usuarioId);
+            if ($familiar) {
+                $familiar->increment('contador_no_shows');
+                $socioId = $familiar->socio_id;
+            }
+        }
+
         $socio = SocioTitular::find($socioId);
         if ($socio) {
             $socio->increment('contador_no_shows');
             $socio->refresh();
 
-            if ($socio->contador_no_shows >= 3 && $socio->estatus_cuenta !== 'PENALIZADO') {
+            if ($socio->contador_no_shows >= 3 && !in_array($socio->estatus_cuenta, ['SUSPENDIDO', 'PENALIZADO'], true)) {
                 $socio->estatus_cuenta = 'PENALIZADO';
-                $socio->fecha_fin_penalizacion = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
+                $socio->estatus_penalizacion = 'PENALIZADO';
+                $socio->fecha_fin_penalizacion_reserva = \Carbon\Carbon::now('America/Mexico_City')->addDays(7)->startOfDay();
                 $socio->save();
             }
 
-            // Enviar notificación
+            // Enviar notificación por correo si tiene
             if ($socio->correo_electronico) {
                 try {
                     Notification::route('mail', $socio->correo_electronico)

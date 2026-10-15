@@ -175,11 +175,17 @@ class UpdateSessionStatus extends Command
                     }
 
                     DB::transaction(function () use ($inscripcion, $ahora) {
+                        $tipoRegistro = match (strtolower((string) $inscripcion->tipo_usuario)) {
+                            'socio_titular', 'socio'        => 'SOCIO_TITULAR',
+                            'miembro_familiar', 'familiar'  => 'MIEMBRO_FAMILIAR',
+                            default                         => strtoupper((string) $inscripcion->tipo_usuario),
+                        };
+
                         // Registrar la falta
                         RegistroAsistencia::create([
                             'id_sesion'           => $inscripcion->id_sesion,
                             'id_usuario'          => $inscripcion->id_usuario,
-                            'tipo_usuario'        => $inscripcion->tipo_usuario,
+                            'tipo_usuario'        => $tipoRegistro,
                             'asistencia'          => false,
                             'metodo_registro'     => 'SIN_REGISTRO',
                             'fecha_hora_registro' => $ahora,
@@ -225,6 +231,8 @@ class UpdateSessionStatus extends Command
                                 Log::warning("sessions:update-status [NO-SHOW] Fallo notificación socio #{$socioId}: {$e->getMessage()}");
                             }
                         }
+
+                        \App\Jobs\ProcesarAlertaNoShowJob::dispatch($inscripcion);
                     });
                 }
             }, 'id_inscripcion');

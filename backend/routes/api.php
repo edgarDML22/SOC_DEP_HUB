@@ -123,12 +123,6 @@ Route::get('/v1/system/support-link', [SystemController::class, 'getSupportLink'
 // SDH 187: Actualizar estatus de la cuenta del socio
 Route::patch('/v1/socios/{id}/estatus-cuenta', [SocioController::class, 'updateEstatusController']);
 
-// Miembros Familiares
-// Route::get('/v1/miembros-familiares', [AdminFamilyController::class, 'show']);
-
-// 2. Ruta de prueba conectada a PostgreSQL (Añadida desde Incoming)
-
-
 // SDH-164 protec por middleware que el insturctor que tenga el turno pueda acceder a estas rutas
 Route::middleware(['check.turno'])->group(function () {
     Route::get('/v1/ludoteca/test-turno-ludoteca', function () {
@@ -308,6 +302,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/instructor/sesiones/{idSesion}/lista-inscriptos', [SesionInstructorController::class, 'listaInscriptos']);
     Route::get('/v1/instructor/sesiones/{idSesion}/qr-lookup/{codigo}', [SesionInstructorController::class, 'qrLookup']);
     Route::post('/v1/instructor/sesiones/{idSesion}/confirmar-asistencia', [SesionInstructorController::class, 'confirmarAsistencia']);
+    Route::post('/v1/instructor/sesiones/{idSesion}/marcar-no-show', [SesionInstructorController::class, 'marcarNoShow']);
 
     // SDH-23: Register event (Asistencia de sesión)
     Route::post('/v1/instructor/register-event', [RegisterEventController::class, 'register_event']);
