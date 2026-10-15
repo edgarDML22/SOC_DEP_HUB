@@ -521,16 +521,8 @@ onMounted(async () => {
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50">
                     <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
                     <span>
-                      {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0,
-                      5) ??
-                      '--' }}
+                      {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0, 5) ?? '--' }}
                     </span>
-                  </span>
-                  <span v-else
-                    class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
-                    Sin horario
-                    {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0, 5)
-                      ?? '--' }}
                   </span>
                   <span v-else class="text-xs font-medium text-surface-400">Sin horario</span>
                 </div>
@@ -554,9 +546,6 @@ onMounted(async () => {
                     <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
                     {{ d.nombre_disciplina }}
                   </span>
-                  <span v-else
-                    class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-surface-100/50 text-surface-400 border border-surface-200/30 font-sans">
-                    Sin fecha
                   <span v-if="instructor.disciplinas.length > 3"
                     class="px-2 py-1 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
                     +{{ instructor.disciplinas.length - 3 }} más
