@@ -110,13 +110,7 @@
             <IconGrid class="h-3.5 w-3.5" aria-hidden="true" />
             Pre-Registro de Torneos
           </RouterLink>
-          <RouterLink
-            to="/login"
-            class="lp-body inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-[#131f38]/90 px-8 py-4 text-[15px] font-semibold uppercase tracking-[0.05em] text-white shadow-[0_4px_20px_rgba(15,23,42,0.40)] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#131f38] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 sm:w-auto"
-          >
-            <IconUser class="h-3.5 w-3.5 text-[#60A5FA]" aria-hidden="true" />
-            Portal de Socios / Admin
-          </RouterLink>
+        
         </div>
 
         <!-- Glassmorphic stat ribbon -->
