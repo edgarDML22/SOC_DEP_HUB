@@ -15,20 +15,17 @@ import {
 
 const router = useRouter();
 
-// ─── 1. Estado Reactivo Requerido ──────────────────────────────────────────
-const activeTab = ref('asistencias'); // 'asistencias' | 'no_shows'
-const selectedDateRange = ref('current_month'); // 'current_month' | 'last_month' | 'last_3_months'
+const activeTab = ref('asistencias');
+const selectedDateRange = ref('current_month');
 const historyItems = ref([]);
 const isLoading = ref(true);
 const hasError = ref(false);
 const totalAsistencias = ref(0);
 const totalNoShows = ref(0);
 
-// Control de apertura del desplegable de fecha
 const isDateDropdownOpen = ref(false);
 const dateDropdownRef = ref(null);
 
-// Opciones de filtrado temporal con descripción
 const datePillOptions = [
   { key: 'current_month', label: 'Este Mes', hint: 'Mes en curso' },
   { key: 'last_month', label: 'Mes Pasado', hint: 'Mes anterior' },
@@ -51,7 +48,6 @@ const handleClickOutside = (event) => {
   }
 };
 
-// ─── 2. Métricas y Estadísticas Computadas ──────────────────────────────────
 const attendancePercentage = computed(() => {
   const total = totalAsistencias.value + totalNoShows.value;
   if (total === 0) return '--';
@@ -82,7 +78,7 @@ const attendanceBadgeClasses = computed(() => {
   return 'bg-rose-500/20 text-rose-200 border-rose-400/30';
 });
 
-// ─── 3. Utilidades de Fecha Nativas (YYYY-MM-DD) ───────────────────────────
+// Calcula rangos de fecha en formato YYYY-MM-DD para los filtros del backend
 const calculateDateRange = (rangeKey) => {
   const now = new Date();
   const year = now.getFullYear();
@@ -113,7 +109,6 @@ const calculateDateRange = (rangeKey) => {
     };
   }
 
-  // Por defecto: 'current_month'
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 0);
   return {
@@ -136,7 +131,7 @@ const formatHora = (hora) => {
   return String(hora).substring(0, 5);
 };
 
-// ─── 4. Clasificación de Estados de Negocio ────────────────────────────────
+// Clasificación de estatus de asistencia según las respuestas del servidor
 const extractStatus = (itemOrStatus) => {
   if (!itemOrStatus) return '';
   if (typeof itemOrStatus === 'object') {
@@ -155,7 +150,7 @@ const isAsistenciaStatus = (itemOrStatus) => {
   return ['ASISTIDA', 'ASISTIO', 'COMPLETADA', 'PRESENTE', 'CONFIRMADA'].includes(s);
 };
 
-// ─── 5. Conexión Reactiva a la API con Normalización Defensiva ─────────────
+// Sincroniza el historial según la pestaña activa y el filtro de fechas
 const fetchHistory = async () => {
   isLoading.value = true;
   hasError.value = false;
@@ -175,7 +170,7 @@ const fetchHistory = async () => {
     const meta = response.data?.meta || response.data?.resumen || {};
     const items = Array.isArray(rawData) ? rawData : [];
 
-    // Filtro defensivo de fecha
+    // Validamos que los registros correspondan al rango seleccionado
     const inDateRange = (item) => {
       const rawDate = item.fecha_sesion || item.fecha_transaccion;
       if (!rawDate) return false;
@@ -198,7 +193,6 @@ const fetchHistory = async () => {
       totalNoShows.value = scopedItems.filter(isNoShowStatus).length;
     }
 
-    // Filtrado estricto por pestaña activa
     if (activeTab.value === 'asistencias') {
       historyItems.value = scopedItems.filter(isAsistenciaStatus);
     } else {
@@ -227,7 +221,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
-// ─── 6. Soporte Táctil (Swipe Gestures) en Dispositivos Móviles ────────────
+// Soporte de deslizamiento táctil horizontal en móviles
 let touchStartX = 0;
 let touchStartY = 0;
 
@@ -259,9 +253,6 @@ const handleTouchEnd = (event) => {
   <main class="w-full bg-surface-50 min-h-screen font-sans p-4 md:p-6 lg:p-8 pb-28 md:pb-12 flex justify-center selection:bg-primary-500/20">
     <div class="w-full max-w-5xl flex flex-col gap-6">
 
-      <!-- ══════════════════════════════════════════
-           BOTÓN VOLVER
-      ══════════════════════════════════════════ -->
       <div>
         <button
           @click="router.push('/socio/home')"
@@ -274,9 +265,6 @@ const handleTouchEnd = (event) => {
         </button>
       </div>
 
-      <!-- ══════════════════════════════════════════
-           BANNER HERO: DASHBOARD DE RENDIMIENTO
-      ══════════════════════════════════════════ -->
       <section
         class="relative overflow-hidden rounded-3xl md:rounded-[2.5rem] bg-linear-to-br from-primary-900 via-primary-800 to-primary-700 text-white p-6 sm:p-8 shadow-xl shadow-primary-900/15 border border-white/10"
       >
@@ -284,7 +272,6 @@ const handleTouchEnd = (event) => {
         <div class="absolute -bottom-16 -left-16 w-56 h-56 bg-primary-400/20 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="relative z-10 flex flex-col gap-6">
-          <!-- Fila Superior: Título y Badge de Cumplimiento -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="space-y-1.5 max-w-xl">
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-bold tracking-wider uppercase">
@@ -299,7 +286,6 @@ const handleTouchEnd = (event) => {
               </p>
             </div>
 
-            <!-- Badge Destacado de Salud Estadística -->
             <div
               :class="attendanceBadgeClasses"
               class="inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border backdrop-blur-md self-start sm:self-center shrink-0 shadow-sm transition-all"
@@ -316,7 +302,6 @@ const handleTouchEnd = (event) => {
             </div>
           </div>
 
-          <!-- Mini Tarjetas KPI Integradas -->
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
             <div class="bg-white/10 hover:bg-white/15 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 transition-all">
               <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-200 block">Asistencias</span>
@@ -354,19 +339,13 @@ const handleTouchEnd = (event) => {
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           BARRA UNIFICADA: PESTAÑAS Y SELECTOR DESPLEGABLE
-           (Elimina los dos menús apilados anteriores)
-      ══════════════════════════════════════════ -->
       <section aria-label="Navegación de historial y filtro" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-surface-200/80 dark:border-surface-200/60 pb-3">
         
-        <!-- Pestañas Principales Estilo Nav Pill Suave -->
         <div
           role="tablist"
           aria-label="Tipo de registro de historial"
-          class="flex items-center gap-2"
+          class="flex items-center gap-2.5 w-full sm:w-auto"
         >
-          <!-- Tab Asistencias -->
           <button
             id="tab-asistencias"
             role="tab"
@@ -375,23 +354,22 @@ const handleTouchEnd = (event) => {
             :tabindex="activeTab === 'asistencias' ? 0 : -1"
             @click="activeTab = 'asistencias'"
             @keydown.right.prevent="activeTab = 'no_shows'"
-            class="px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 focus:outline-none cursor-pointer active:scale-95 border"
+            class="flex-1 sm:flex-initial py-3 px-4 sm:px-6 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2.5 focus:outline-none cursor-pointer active:scale-98 border shadow-xs"
             :class="activeTab === 'asistencias'
-              ? 'bg-primary-600 text-white border-primary-600 shadow-sm shadow-primary-700/20'
+              ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-700/20'
               : 'bg-white dark:bg-surface-100 text-surface-600 dark:text-surface-300 border-surface-200 dark:border-surface-300 hover:bg-surface-50 dark:hover:bg-surface-200'"
           >
             <span>Asistencias</span>
             <span
-              class="px-2 py-0.5 rounded-full text-[11px] font-black transition-colors"
+              class="min-w-6 px-2.5 py-0.5 rounded-full text-xs font-black transition-colors"
               :class="activeTab === 'asistencias'
-                ? 'bg-white/20 text-white'
+                ? 'bg-white/25 text-white'
                 : 'bg-surface-100 text-surface-700 dark:bg-surface-200 dark:text-surface-300'"
             >
               {{ totalAsistencias }}
             </span>
           </button>
 
-          <!-- Tab Inasistencias (No-Shows) -->
           <button
             id="tab-no-shows"
             role="tab"
@@ -400,16 +378,17 @@ const handleTouchEnd = (event) => {
             :tabindex="activeTab === 'no_shows' ? 0 : -1"
             @click="activeTab = 'no_shows'"
             @keydown.left.prevent="activeTab = 'asistencias'"
-            class="px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 focus:outline-none cursor-pointer active:scale-95 border"
+            class="flex-1 sm:flex-initial py-3 px-4 sm:px-6 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 sm:gap-2.5 focus:outline-none cursor-pointer active:scale-98 border shadow-xs"
             :class="activeTab === 'no_shows'
-              ? 'bg-amber-600 text-white border-amber-600 shadow-sm shadow-amber-600/20'
+              ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
               : 'bg-white dark:bg-surface-100 text-surface-600 dark:text-surface-300 border-surface-200 dark:border-surface-300 hover:bg-surface-50 dark:hover:bg-surface-200'"
           >
-            <span class="truncate">Inasistencias <span class="hidden xs:inline text-[11px] opacity-80">(No-Shows)</span></span>
+            <span>Inasistencias</span>
+            <span class="hidden md:inline text-xs opacity-80 font-normal">(No-Shows)</span>
             <span
-              class="px-2 py-0.5 rounded-full text-[11px] font-black shrink-0 transition-colors flex items-center gap-1"
+              class="min-w-6 px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 transition-colors flex items-center justify-center gap-1"
               :class="activeTab === 'no_shows'
-                ? 'bg-white/20 text-white'
+                ? 'bg-white/25 text-white'
                 : totalNoShows > 0
                   ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/70 dark:text-amber-300'
                   : 'bg-surface-100 text-surface-700 dark:bg-surface-200 dark:text-surface-300'"
@@ -420,23 +399,25 @@ const handleTouchEnd = (event) => {
           </button>
         </div>
 
-        <!-- Selector de Periodo Desplegable Ocultable (Dropdown Elegante) -->
-        <div class="relative self-start sm:self-auto" ref="dateDropdownRef">
+        <div class="relative w-full sm:w-auto" ref="dateDropdownRef">
           <button
             @click="isDateDropdownOpen = !isDateDropdownOpen"
-            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-surface-100 border border-surface-200 dark:border-surface-300 text-xs sm:text-sm font-bold text-surface-700 dark:text-surface-200 shadow-2xs hover:border-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-all cursor-pointer active:scale-95"
+            class="w-full sm:w-64 inline-flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white dark:bg-surface-100 border border-surface-200 dark:border-surface-300 text-sm font-bold text-surface-700 dark:text-surface-200 shadow-xs hover:border-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-all cursor-pointer active:scale-98"
             aria-haspopup="true"
             :aria-expanded="isDateDropdownOpen"
           >
-            <IconCalendar class="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" />
-            <span>{{ currentRangeLabel }}</span>
+            <div class="inline-flex items-center gap-2.5 truncate">
+              <div class="w-6 h-6 rounded-lg bg-primary-50 dark:bg-primary-950/60 border border-primary-200/60 dark:border-primary-800/60 flex items-center justify-center shrink-0">
+                <IconCalendar class="w-3.5 h-3.5 text-primary-600 dark:text-primary-400 shrink-0" />
+              </div>
+              <span class="truncate">{{ currentRangeLabel }}</span>
+            </div>
             <IconChevronDown
-              class="w-3.5 h-3.5 text-surface-400 transition-transform duration-200"
+              class="w-4 h-4 text-surface-400 shrink-0 transition-transform duration-200"
               :class="isDateDropdownOpen ? 'rotate-180 text-primary-600' : ''"
             />
           </button>
 
-          <!-- Menú Flotante Desplegable -->
           <transition
             enter-active-class="transition duration-150 ease-out"
             enter-from-class="opacity-0 scale-95 -translate-y-1"
@@ -447,7 +428,7 @@ const handleTouchEnd = (event) => {
           >
             <div
               v-if="isDateDropdownOpen"
-              class="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-60 bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 dark:border-surface-300 shadow-xl p-2 z-50 space-y-1 backdrop-blur-xl"
+              class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-64 bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 dark:border-surface-300 shadow-xl p-2 z-50 space-y-1 backdrop-blur-xl"
             >
               <div class="px-3 py-1.5 text-[10px] font-extrabold text-surface-400 uppercase tracking-wider">
                 Seleccionar Periodo
@@ -456,13 +437,13 @@ const handleTouchEnd = (event) => {
                 v-for="pill in datePillOptions"
                 :key="pill.key"
                 @click="selectDateRange(pill.key)"
-                class="w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer group"
+                class="w-full flex items-center justify-between p-3 rounded-xl text-left transition-all cursor-pointer group"
                 :class="selectedDateRange === pill.key
                   ? 'bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 font-bold'
                   : 'hover:bg-surface-50 dark:hover:bg-surface-200 text-surface-700 dark:text-surface-200'"
               >
                 <div>
-                  <span class="block text-xs sm:text-sm font-bold">{{ pill.label }}</span>
+                  <span class="block text-sm font-bold">{{ pill.label }}</span>
                   <span class="block text-[11px] font-medium text-surface-400 mt-0.5">{{ pill.hint }}</span>
                 </div>
                 <div v-if="selectedDateRange === pill.key" class="w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0">
@@ -477,7 +458,7 @@ const handleTouchEnd = (event) => {
 
       </section>
 
-      <!-- Banner de Advertencia Sutil para No-Shows -->
+      <!-- Alerta informativa cuando se seleccionan inasistencias -->
       <transition
         enter-active-class="transition duration-200 ease-out"
         enter-from-class="opacity-0 -translate-y-2"
@@ -504,9 +485,6 @@ const handleTouchEnd = (event) => {
         </div>
       </transition>
 
-      <!-- ══════════════════════════════════════════
-           CONTENEDOR DE CONTENIDO (CON SOPORTE SWIPE)
-      ══════════════════════════════════════════ -->
       <section
         id="panel-history-items"
         role="tabpanel"
@@ -515,7 +493,6 @@ const handleTouchEnd = (event) => {
         @touchend="handleTouchEnd"
         class="touch-pan-y min-h-[320px] flex flex-col"
       >
-        <!-- 1. ESTADO DE CARGA (SKELETONS PULSANTES) -->
         <div
           v-if="isLoading"
           class="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -545,7 +522,6 @@ const handleTouchEnd = (event) => {
           </div>
         </div>
 
-        <!-- 2. ESTADO DE ERROR HTTP / FALLO DE RED -->
         <div
           v-else-if="hasError"
           class="bg-white dark:bg-surface-100 rounded-3xl border border-rose-200 dark:border-rose-900/60 p-8 md:p-12 text-center shadow-xs max-w-lg mx-auto flex flex-col items-center gap-4 my-auto"
@@ -575,7 +551,6 @@ const handleTouchEnd = (event) => {
           </button>
         </div>
 
-        <!-- 3. ESTADO VACÍO (EMPTY STATE) -->
         <div
           v-else-if="historyItems.length === 0"
           class="bg-white dark:bg-surface-100 rounded-3xl border border-surface-200/80 dark:border-surface-200/60 p-8 md:p-14 text-center shadow-xs flex flex-col items-center gap-5 max-w-xl mx-auto my-auto w-full transition-all"
@@ -614,20 +589,17 @@ const handleTouchEnd = (event) => {
           </router-link>
         </div>
 
-        <!-- 4. CONTENEDOR DE LISTADO: TARJETAS DE ACTIVIDAD ESTILO PASS / TICKET -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <article
             v-for="item in historyItems"
             :key="item.id_inscripcion || item.id_sesion"
             class="bg-white dark:bg-surface-100 rounded-3xl border border-surface-200/90 dark:border-surface-200/70 p-5 flex flex-col justify-between gap-4 shadow-2xs hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition-all group relative overflow-hidden"
           >
-            <!-- Línea de acento lateral según estatus -->
             <div
               class="absolute left-0 top-0 bottom-0 w-1.5 transition-colors"
               :class="isNoShowStatus(item) ? 'bg-amber-500' : 'bg-emerald-500'"
             ></div>
 
-            <!-- Cabecera de la tarjeta: Ícono, Título y Badge de Asistencia -->
             <div class="flex items-start justify-between gap-3 pl-1">
               <div class="flex items-start gap-3.5 min-w-0">
                 <div class="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950/50 border border-primary-100 dark:border-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
@@ -640,7 +612,6 @@ const handleTouchEnd = (event) => {
                   <h3 class="text-sm sm:text-base font-bold text-surface-900 dark:text-surface-100 truncate m-0 group-hover:text-primary-700 dark:group-hover:text-primary-400 transition-colors">
                     {{ item.nombre_actividad || item.disciplina || 'Actividad Deportiva' }}
                   </h3>
-                  <!-- Espacio o Instructor -->
                   <p class="text-xs font-medium text-surface-500 dark:text-surface-400 truncate m-0 mt-0.5">
                     {{ item.espacio || 'Instalaciones del Club' }}
                     <span v-if="item.instructor" class="opacity-90"> • Prof. {{ item.instructor }}</span>
@@ -648,7 +619,6 @@ const handleTouchEnd = (event) => {
                 </div>
               </div>
 
-              <!-- Badge de Estado de Asistencia con Iconografía -->
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase shrink-0 border shadow-2xs"
                 :class="isNoShowStatus(item)
@@ -663,9 +633,7 @@ const handleTouchEnd = (event) => {
               </span>
             </div>
 
-            <!-- Metadatos de Fecha, Horario y Participante -->
             <div class="pt-3 border-t border-surface-100 dark:border-surface-200/80 flex flex-wrap items-center justify-between gap-2.5 text-xs font-medium text-surface-600 dark:text-surface-400 pl-1">
-              <!-- Fecha y Horario con pastillas suaves -->
               <div class="flex items-center gap-2.5 flex-wrap">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-50 dark:bg-surface-200/50 text-surface-800 dark:text-surface-200 font-semibold border border-surface-200/60 dark:border-surface-300/60">
                   <IconCalendar class="w-3.5 h-3.5 text-primary-600 dark:text-primary-400 shrink-0" />
@@ -677,7 +645,6 @@ const handleTouchEnd = (event) => {
                 </span>
               </div>
 
-              <!-- Badges de Participante y Categoría -->
               <div class="flex items-center gap-1.5">
                 <span
                   v-if="item.familiar"
