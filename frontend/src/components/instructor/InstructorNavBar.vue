@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useInstructorStore } from '@/stores/profiles/instructorStore'
 import { useNotificacionesStore } from '@/stores/profiles/notificacionesStore'
-import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby, IconQr } from '@/components/icons';
+import { IconHome, IconCalendar, IconClock, IconUser, IconBell, IconBaby, IconQr, IconHistory } from '@/components/icons';
 import DarkModeToggle from '@/components/ui/DarkModeToggle.vue'
 
 const profileStore = useInstructorStore();
@@ -152,8 +152,12 @@ onUnmounted(() => {
                         <strong class="block text-sm font-bold text-surface-900">{{ profileStore.userInitials }} (Instructor)</strong>
                     </div>
                     
-                    <router-link to="/instructor/profile" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">
+                    <router-link to="/instructor/profile" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3" @click="menuOpen = false">
                         <IconUser class="w-[18px] h-[18px]" /> Mi Perfil
+                    </router-link>
+
+                    <router-link to="/instructor/sessions" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3" @click="menuOpen = false">
+                        <IconHistory class="w-[18px] h-[18px]" /> Historial de Clases
                     </router-link>
                     
                     <router-link to="/instructor/encuentros" class="px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-primary-700 rounded-lg transition-colors flex items-center gap-3">

@@ -12,6 +12,7 @@ import {
   IconUser,
   IconBaby,
   IconTrophy,
+  IconHistory,
 } from '@/components/icons';
 
 const profileStore = useInstructorStore();
@@ -293,6 +294,23 @@ onMounted(async () => {
             <div class="flex-1 min-w-0">
               <p class="font-bold text-surface-900 text-sm leading-tight">Arbitraje de Torneos</p>
               <p class="text-surface-500 text-xs mt-0.5 leading-snug">Reporta resultados de tus encuentros</p>
+            </div>
+            <svg class="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </router-link>
+
+          <!-- Historial de Clases Impartidas -->
+          <router-link
+            to="/instructor/sessions"
+            class="group bg-white border border-surface-100 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <div class="w-11 h-11 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-colors duration-200">
+              <IconHistory class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-surface-900 text-sm leading-tight">Historial de Clases</p>
+              <p class="text-surface-500 text-xs mt-0.5 leading-snug">Consulta asistencia y sesiones pasadas</p>
             </div>
             <svg class="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>

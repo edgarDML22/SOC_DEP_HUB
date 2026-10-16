@@ -279,10 +279,17 @@ const router = createRouter({
         },
         {
           path: 'sessions',
+          name: 'instructor-sessions',
+          alias: 'history',
+          component: () => import('../views/instructor/InstructorSessionsView.vue'),
+        },
+        {
+          path: 'history',
           component: () => import('../views/instructor/InstructorSessionsView.vue'),
         },
         {
           path: 'sessions/:id',
+          name: 'instructor-session-details',
           component: () => import('../views/instructor/SessionDetails.vue'),
         },
         {
