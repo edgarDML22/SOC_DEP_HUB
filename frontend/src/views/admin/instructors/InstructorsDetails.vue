@@ -203,7 +203,7 @@ const goBack = () => {
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
                                     <div
                                         class="bg-surface-50/50 rounded-2xl p-4 border border-surface-100 flex flex-col gap-1.5">
                                         <span
@@ -247,64 +247,90 @@ const goBack = () => {
                     </div>
 
                     <!-- TARJETA MÓVIL -->
-                    <article class="md:hidden bg-white border border-surface-200 rounded-2xl shadow-sm">
+                    <article class="md:hidden bg-white border border-surface-200 rounded-2xl shadow-sm overflow-hidden">
 
-                        <!-- Encabezado: avatar, nombre y correo -->
-                        <div class="flex items-center gap-3 px-4 py-3">
-                            <div class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shrink-0 shadow-sm"
+                        <!-- Cabecera: avatar grande + nombre (centrado en móvil) -->
+                        <div
+                            class="flex flex-col items-center sm:flex-row sm:items-start text-center sm:text-left gap-3 sm:gap-4 px-4 py-6">
+                            <div class="w-20 h-20 rounded-2xl bg-linear-to-br flex items-center justify-center text-white font-black text-2xl shrink-0 shadow-md"
                                 :class="avatarGradient(instructor.nombre_completo)">
                                 {{ initials(instructor.nombre_completo) }}
                             </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-bold text-surface-900 truncate leading-tight">
+                            <div class="min-w-0 w-full sm:flex-1">
+                                <h2 class="text-lg font-black text-surface-900 leading-tight wrap-break-word">
                                     {{ instructor.nombre_completo }}
-                                </p>
-                                <p class="text-xs text-surface-400 truncate">
-                                    {{ instructor.correo_electronico ?? 'Sin correo' }}
-                                </p>
+                                </h2>
+                                <div class="mt-2 flex justify-center sm:justify-start">
+                                    <BadgeStatus :status="instructor.estatus" />
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Cuerpo: estatus, horario y teléfono -->
-                        <div class="px-4 py-3 border-t border-surface-100 space-y-3">
-                            <div class="flex items-center justify-between gap-3">
-                                <BadgeStatus :status="instructor.estatus" />
-                                <span v-if="instructor.hora_entrada || instructor.hora_salida"
-                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50">
-                                    <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
-                                    {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{
-                                        instructor.hora_salida?.substring(0, 5) ?? '--' }}
-                                </span>
-                                <span v-else class="text-xs font-medium text-surface-400">Sin horario</span>
-                            </div>
-
+                        <!-- Contacto: lista clave-valor táctil -->
+                        <div class="border-t border-surface-100 divide-y divide-surface-100">
                             <a v-if="instructor.telefono" :href="`tel:${instructor.telefono}`"
-                                class="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:underline">
-                                <IconPhone class="w-4 h-4 shrink-0" />
-                                {{ instructor.telefono }}
+                                class="flex items-center justify-between gap-3 px-4 min-h-14 py-3 active:bg-surface-50 transition-colors">
+                                <span class="flex items-center gap-2 text-sm font-semibold text-surface-500">
+                                    <IconPhone class="w-4 h-4 shrink-0" /> Teléfono
+                                </span>
+                                <span class="text-sm font-bold text-primary-600 truncate">{{ instructor.telefono
+                                    }}</span>
                             </a>
-                            <span v-else class="inline-flex items-center gap-2 text-sm text-surface-400">
-                                <IconPhone class="w-4 h-4 shrink-0" />
-                                Sin teléfono
-                            </span>
+                            <div v-else class="flex items-center justify-between gap-3 px-4 min-h-14 py-3">
+                                <span class="flex items-center gap-2 text-sm font-semibold text-surface-500">
+                                    <IconPhone class="w-4 h-4 shrink-0" /> Teléfono
+                                </span>
+                                <span class="text-sm text-surface-400">Sin teléfono</span>
+                            </div>
+
+                            <a v-if="instructor.correo_electronico" :href="`mailto:${instructor.correo_electronico}`"
+                                class="flex items-center justify-between gap-3 px-4 min-h-14 py-3 active:bg-surface-50 transition-colors">
+                                <span class="text-sm font-semibold text-surface-500 shrink-0">Correo</span>
+                                <span class="text-sm font-bold text-primary-600 truncate">{{
+                                    instructor.correo_electronico }}</span>
+                            </a>
+                            <div v-else class="flex items-center justify-between gap-3 px-4 min-h-14 py-3">
+                                <span class="text-sm font-semibold text-surface-500">Correo</span>
+                                <span class="text-sm text-surface-400">Sin correo</span>
+                            </div>
                         </div>
 
-                        <!-- Fechas -->
-                        <div class="px-4 py-3 border-t border-surface-100 space-y-2">
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="font-semibold text-surface-500">Contratación</span>
-                                <span class="font-bold text-surface-900">{{ dateFormat(instructor.fecha_afiliacion) ||
-                                    'N/A' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="font-semibold text-surface-500">Nacimiento</span>
-                                <span class="font-bold text-surface-900">{{ dateFormat(instructor.fecha_nacimiento) ||
-                                    'N/A' }}</span>
+                        <!-- Turnos y horarios: lista clave-valor táctil -->
+                        <div class="border-t border-surface-100">
+                            <p
+                                class="px-4 pt-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-surface-400">
+                                Turno y horario laboral
+                            </p>
+                            <div class="divide-y divide-surface-100">
+                                <div class="flex items-center justify-between gap-3 px-4 min-h-12 py-3">
+                                    <span class="flex items-center gap-2 text-sm font-semibold text-surface-500">
+                                        <IconClock class="w-4 h-4 text-surface-400 shrink-0" /> Hora entrada
+                                    </span>
+                                    <span class="text-sm font-bold text-surface-900">{{
+                                        instructor.hora_entrada?.substring(0, 5) || 'N/A' }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3 px-4 min-h-12 py-3">
+                                    <span class="flex items-center gap-2 text-sm font-semibold text-surface-500">
+                                        <IconClock class="w-4 h-4 text-surface-400 shrink-0" /> Hora salida
+                                    </span>
+                                    <span class="text-sm font-bold text-surface-900">{{
+                                        instructor.hora_salida?.substring(0, 5) || 'N/A' }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3 px-4 min-h-12 py-3">
+                                    <span class="text-sm font-semibold text-surface-500">Contratación</span>
+                                    <span class="text-sm font-bold text-surface-900">{{
+                                        dateFormat(instructor.fecha_afiliacion) || 'N/A' }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3 px-4 min-h-12 py-3">
+                                    <span class="text-sm font-semibold text-surface-500">Nacimiento</span>
+                                    <span class="text-sm font-bold text-surface-900">{{
+                                        dateFormat(instructor.fecha_nacimiento) || 'N/A' }}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Pie: acción -->
-                        <div class="px-4 py-3 border-t border-surface-100">
+                        <!-- Pie -->
+                        <div class="px-4 py-4 border-t border-surface-100">
                             <ConfirmButton label="Gestionar Información Personal" @click="showEditModal = true"
                                 class="w-full" />
                         </div>
@@ -326,19 +352,16 @@ const goBack = () => {
                         enter-from-class="opacity-0 scale-95 translate-y-4"
                         enter-to-class="opacity-100 scale-100 translate-y-0">
                         <div v-if="showEditModal"
-                            class="bg-white rounded-2xl sm:rounded-4xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-
+                            class="bg-white w-full max-w-lg mx-2 max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-4xl p-4 sm:p-6 shadow-2xl">
                             <!-- Cabecera -->
-                            <div
-                                class="flex justify-between items-center px-5 sm:px-8 py-5 sm:py-6 bg-white border-b border-surface-100">
+                            <div class="flex justify-between items-center pb-4 border-b border-surface-100">
                                 <div>
                                     <h2 class="text-lg font-black text-surface-900">Editar Instructor</h2>
                                     <p class="text-xs font-medium text-surface-500 mt-1 uppercase tracking-wider">
-                                        Modifica
-                                        la información personal</p>
+                                        Modifica la información personal</p>
                                 </div>
                                 <button @click="showEditModal = false"
-                                    class="w-9 h-9 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
+                                    class="w-9 h-9 shrink-0 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                         stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -347,7 +370,7 @@ const goBack = () => {
                             </div>
 
                             <!-- Cuerpo -->
-                            <div class="p-5 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 bg-surface-50/30">
+                            <div class="py-5 space-y-4">
                                 <div class="space-y-1.5">
                                     <label
                                         class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
@@ -356,7 +379,7 @@ const goBack = () => {
                                         class="w-full px-4 py-3.5 sm:py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div class="space-y-1.5">
                                         <label
                                             class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono</label>
@@ -380,7 +403,7 @@ const goBack = () => {
                                         class="w-full px-4 py-3.5 sm:py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-surface-400 cursor-not-allowed outline-none" />
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div class="space-y-1.5">
                                         <label
                                             class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora
@@ -398,12 +421,12 @@ const goBack = () => {
                                 </div>
                             </div>
 
-                            <!-- Pie -->
+                            <!-- Pie: botones apilados en móvil -->
                             <div
-                                class="px-5 sm:px-8 py-4 sm:py-5 bg-white border-t border-surface-100 flex items-center justify-end gap-3">
-                                <CancelButton @click="showEditModal = false" />
-                                <ConfirmButton label="Guardar Cambios" :loading="isSaving"
-                                    @click="saveEditInstructor" />
+                                class="pt-4 border-t border-surface-100 w-full flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                                <CancelButton @click="showEditModal = false" class="w-full sm:w-auto" />
+                                <ConfirmButton label="Guardar Cambios" :loading="isSaving" @click="saveEditInstructor"
+                                    class="w-full sm:w-auto" />
                             </div>
                         </div>
                     </Transition>
