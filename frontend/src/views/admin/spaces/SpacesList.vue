@@ -358,18 +358,18 @@ onMounted(() => {
 
                 <!-- Disciplinas -->
                 <td class="px-6 py-4 hidden lg:table-cell">
-                  <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1">
+                  <div v-if="space.disciplinas?.length" class="flex flex-wrap items-center gap-1.5">
                     <span v-for="d in space.disciplinas.slice(0, 3)" :key="d.id_disciplina"
-                      class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-50 border border-surface-200 text-[10px] font-bold text-surface-600">
-                      <DisciplineIcon :name="d.nombre_disciplina" class="w-3 h-3 shrink-0" />
+                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                      <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
                       {{ d.nombre_disciplina }}
                     </span>
                     <span v-if="space.disciplinas.length > 3"
-                      class="px-2 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
-                      +{{ space.disciplinas.length - 3 }}
+                      class="px-2 py-1 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                      +{{ space.disciplinas.length - 3 }} más
                     </span>
                   </div>
-                  <span v-else class="text-[11px] text-surface-400 italic">Sin disciplinas asignadas</span>
+                  <span v-else class="text-xs text-surface-400 italic">Sin disciplinas</span>
                 </td>
 
                 <!-- Estatus -->
@@ -409,32 +409,32 @@ onMounted(() => {
               <ActionMenu :items="buildMenuItems(space)" align="right" />
             </div>
 
-            <!-- Fila 2: Estatus y modalidad a la izquierda + Disciplinas alineadas a la derecha -->
+            <!-- Fila 2: Disciplinas a la izquierda + Estatus y modalidad cargados a la derecha -->
             <div class="flex items-center justify-between gap-2 flex-wrap pt-0.5">
-              <!-- Izquierda: Estatus y Tipo de uso (modalidad) -->
-              <div class="flex items-center gap-2 flex-wrap">
-                <BadgeStatus :status="space.estatus" size="sm" />
+              <!-- Izquierda: Disciplinas -->
+              <div class="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+                <template v-if="space.disciplinas?.length">
+                  <span v-for="d in space.disciplinas.slice(0, 2)" :key="d.id_disciplina"
+                    class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                    <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
+                    {{ d.nombre_disciplina }}
+                  </span>
+                  <span v-if="space.disciplinas.length > 2"
+                    class="px-2 py-1 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
+                    +{{ space.disciplinas.length - 2 }} más
+                  </span>
+                </template>
+                <span v-else class="text-xs text-surface-400 italic">Sin disciplinas</span>
+              </div>
+
+              <!-- Derecha: Tipo de uso (modalidad) y Estatus -->
+              <div class="flex items-center justify-end gap-2 shrink-0 ml-auto flex-wrap">
                 <span v-for="badge in tipoBadges(space)" :key="badge.label"
                   class="text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wide"
                   :class="badge.classes">
                   {{ badge.label }}
                 </span>
-              </div>
-
-              <!-- Derecha: Disciplinas -->
-              <div class="flex items-center justify-end gap-1.5 ml-auto flex-wrap">
-                <template v-if="space.disciplinas?.length">
-                  <span v-for="d in space.disciplinas.slice(0, 2)" :key="d.id_disciplina"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-50 border border-surface-200 text-[10px] font-bold text-surface-600">
-                    <DisciplineIcon :name="d.nombre_disciplina" class="w-3 h-3 shrink-0" />
-                    {{ d.nombre_disciplina }}
-                  </span>
-                  <span v-if="space.disciplinas.length > 2"
-                    class="px-1.5 py-0.5 rounded-lg bg-surface-100 text-surface-500 text-[10px] font-bold">
-                    +{{ space.disciplinas.length - 2 }}
-                  </span>
-                </template>
-                <span v-else class="text-[11px] text-surface-400 italic">Sin disciplinas</span>
+                <BadgeStatus :status="space.estatus" size="sm" />
               </div>
             </div>
 

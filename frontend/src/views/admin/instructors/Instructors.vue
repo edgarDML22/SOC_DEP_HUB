@@ -444,7 +444,8 @@ onMounted(async () => {
                   <td class="px-6 py-4 hidden md:table-cell">
                     <div v-if="instructor.disciplinas?.length" class="flex flex-wrap gap-1">
                       <span v-for="d in instructor.disciplinas.slice(0, 2)" :key="d.id_disciplina"
-                        class="px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                        <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
                         {{ d.nombre_disciplina }}
                       </span>
                       <span v-if="instructor.disciplinas.length > 2"
@@ -513,10 +514,9 @@ onMounted(async () => {
                 <ActionMenu :items="buildMenuItems(instructor)" align="right" />
               </div>
 
-              <!-- Cuerpo: estatus, horario y teléfono -->
-              <div class="px-4 py-3 border-t border-surface-100 space-y-3">
+              <!-- Cuerpo: horario y teléfono (sin línea separadora superior) -->
+              <div class="px-4 py-3 space-y-3">
                 <div class="flex items-center justify-between gap-3">
-                  <BadgeStatus :status="instructor.estatus" />
                   <span v-if="instructor.hora_entrada || instructor.hora_salida"
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50">
                     <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
@@ -525,22 +525,22 @@ onMounted(async () => {
                     </span>
                   </span>
                   <span v-else class="text-xs font-medium text-surface-400">Sin horario</span>
-                </div>
 
-                <a v-if="instructor.telefono" :href="`tel:${instructor.telefono}`"
-                  class="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:underline">
-                  <IconPhone class="w-4 h-4 shrink-0" />
-                  {{ instructor.telefono }}
-                </a>
-                <span v-else class="inline-flex items-center gap-2 text-sm text-surface-400">
-                  <IconPhone class="w-4 h-4 shrink-0" />
-                  Sin teléfono
-                </span>
+                  <a v-if="instructor.telefono" :href="`tel:${instructor.telefono}`"
+                    class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:underline">
+                    <IconPhone class="w-4 h-4 shrink-0" />
+                    {{ instructor.telefono }}
+                  </a>
+                  <span v-else class="inline-flex items-center gap-1.5 text-sm text-surface-400">
+                    <IconPhone class="w-4 h-4 shrink-0" />
+                    Sin teléfono
+                  </span>
+                </div>
               </div>
 
-              <!-- Disciplinas (máx. 3 + "N más") -->
-              <div class="px-4 py-3 border-t border-surface-100">
-                <div v-if="instructor.disciplinas?.length" class="flex flex-wrap gap-1.5">
+              <!-- Disciplinas a la izquierda y estatus cargado a la derecha -->
+              <div class="px-4 py-3 border-t border-surface-100 flex items-center justify-between gap-3">
+                <div v-if="instructor.disciplinas?.length" class="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
                   <span v-for="d in instructor.disciplinas.slice(0, 3)" :key="d.id_disciplina"
                     class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
                     <DisciplineIcon :name="d.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
@@ -552,15 +552,13 @@ onMounted(async () => {
                   </span>
                 </div>
                 <span v-else class="text-xs text-surface-400 italic">Sin disciplinas</span>
+
+                <div class="shrink-0 ml-auto">
+                  <BadgeStatus :status="instructor.estatus" />
+                </div>
               </div>
 
-              <!-- Pie: acceso rápido -->
-              <div class="px-4 py-3 border-t border-surface-100">
-                <button @click="verDetalles(instructor)"
-                  class="w-full px-4 py-2.5 rounded-xl bg-surface-900 text-white text-sm font-bold hover:bg-primary-600 transition-colors cursor-pointer">
-                  Ver detalles
-                </button>
-              </div>
+
             </div>
           </div>
         </template>
