@@ -7,6 +7,9 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
+import AppDatePicker from '@/components/ui/form/AppDatePicker.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
@@ -31,7 +34,7 @@ const OPT_CALIFICACION = [
 ]
 
 const OPT_ESTATUS = [
-    { label: 'Todos los estatus', value: null },
+    { label: 'Todos', value: null },
     { label: 'A tiempo', value: 'COMPLETADA_A_TIEMPO' },
     { label: 'Con retraso', value: 'COMPLETADA_CON_RETRASO' },
     { label: 'Forzado por sistema', value: 'FORZADO_POR_SISTEMA' },
@@ -165,6 +168,11 @@ watch(filteredRecord, () => {
     currentPage.value = 1
 })
 
+const OPT_ESTATUS_UI = computed(() => OPT_ESTATUS.map(o => ({ ...o, label: formatText(o.label) })))
+const activeFiltersCount = computed(() =>
+    ['fecha_inicio', 'fecha_fin', 'calificacion', 'estatus', 'tiempo'].filter(k => listFilters.value[k]).length
+)
+
 const hasActiveFilters = computed(() =>
     listFilters.value.search || listFilters.value.fecha_inicio || listFilters.value.fecha_fin ||
     listFilters.value.calificacion || listFilters.value.estatus || listFilters.value.tiempo
@@ -231,99 +239,23 @@ const buildMenuItems = (item) => [
         </AdminPageHeader>
 
         <!-- BARRA DE FILTROS -->
-        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-            <div class="flex flex-col gap-2">
+        <FilterContainer :has-active-filters="!!hasActiveFilters" :active-count="activeFiltersCount" @clear="clearFilters">
+            <template #search>
                 <SearchInput v-model="listFilters.search" placeholder="Buscar por menor, titular o acción…" />
+            </template>
+
+            <div class="flex flex-col gap-1.5">
+                <span class="px-1 text-[10px] font-black uppercase tracking-widest text-surface-400">Desde</span>
+                <AppDatePicker v-model="listFilters.fecha_inicio" :max-date="listFilters.fecha_fin || null" />
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                <!-- Desde -->
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Desde</label>
-                    <div class="relative">
-                        <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <input type="date" v-model="listFilters.fecha_inicio" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
-                    </div>
-                </div>
-
-                <!-- Hasta -->
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hasta</label>
-                    <div class="relative">
-                        <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <input type="date" v-model="listFilters.fecha_fin" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400 transition-all">
-                    </div>
-                </div>
-
-                <!-- Calificación -->
-                <div class="flex flex-col gap-1.5">
-                    <label
-                        class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Calificación</label>
-                    <div class="relative">
-                        <IconStar
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="listFilters.calificacion"
-                            class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
-                            <option v-for="opt in OPT_CALIFICACION" :key="opt.value" :value="opt.value">{{ opt.label }}
-                            </option>
-                        </select>
-                        <IconChevronDown
-                            class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    </div>
-                </div>
-
-                <!-- Estatus -->
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus
-                        Final</label>
-                    <div class="relative">
-                        <IconAlertCircle
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="listFilters.estatus"
-                            class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
-                            <option v-for="opt in OPT_ESTATUS" :key="opt.value" :value="opt.value">{{
-                                formatText(opt.label) }}
-                            </option>
-                        </select>
-                        <IconChevronDown
-                            class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    </div>
-                </div>
-
-                <!-- Tiempo -->
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Tiempo de
-                        Estancia</label>
-                    <div class="relative">
-                        <IconHourglass
-                            class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        <select v-model="listFilters.tiempo"
-                            class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all cursor-pointer">
-                            <option v-for="opt in OPT_TIEMPO" :key="opt.value" :value="opt.value">{{ opt.label }}
-                            </option>
-                        </select>
-                        <IconChevronDown
-                            class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    </div>
-                </div>
+            <div class="flex flex-col gap-1.5">
+                <span class="px-1 text-[10px] font-black uppercase tracking-widest text-surface-400">Hasta</span>
+                <AppDatePicker v-model="listFilters.fecha_fin" :min-date="listFilters.fecha_inicio || null" />
             </div>
-
-            <Transition enter-active-class="transition-all duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-                leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-                leave-to-class="opacity-0 -translate-y-1">
-                <div v-if="hasActiveFilters" class="flex justify-end">
-                    <button @click="clearFilters"
-                        class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                        Limpiar filtros
-                    </button>
-                </div>
-            </Transition>
-        </div>
+            <FilterSelect label="Calificación" v-model="listFilters.calificacion" :options="OPT_CALIFICACION"><template #icon><IconStar /></template></FilterSelect>
+            <FilterSelect label="Estatus final" v-model="listFilters.estatus" :options="OPT_ESTATUS_UI"><template #icon><IconAlertCircle /></template></FilterSelect>
+            <FilterSelect label="Tiempo de estancia" v-model="listFilters.tiempo" :options="OPT_TIEMPO"><template #icon><IconHourglass /></template></FilterSelect>
+        </FilterContainer>
 
         <!-- TABLA -->
         <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden min-h-[400px] relative flex flex-col">

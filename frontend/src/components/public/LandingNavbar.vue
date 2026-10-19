@@ -1,196 +1,123 @@
 <template>
   <header
-    class="sticky top-0 z-50 backdrop-blur-md bg-[#0e1c3d]/95 border-b border-blue-400/20"
-    role="banner"
+    class="sticky top-0 z-50 border-b transition-[background-color,box-shadow,border-color] duration-300"
+    :class="
+      isScrolled || isMenuOpen
+        ? 'border-lp-line bg-lp-paper/90 shadow-[0_8px_30px_-18px_rgba(30,64,175,0.35)] backdrop-blur-lg'
+        : 'border-transparent bg-lp-paper/60 backdrop-blur-md'
+    "
   >
-    <div class="max-w-7xl mx-auto px-6 md:px-12 h-14 md:h-16 flex items-center justify-between">
-      <!-- Logo -->
-      <RouterLink
-        to="/"
-        class="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded-lg px-1 py-1"
-        aria-label="Ir a inicio - Britania Club Deportivo"
-      >
-        <div class="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[#131f38] border border-blue-400/40 shadow-[0_0_10px_rgba(59,130,246,0.25)] overflow-hidden">
-          <span class="absolute inset-0 bg-gradient-to-tr from-blue-600/25 to-transparent" aria-hidden="true" />
-          <img
-            :src="logoSrc"
-            alt="Logo Britania Club Deportivo"
-            class="relative w-full h-full object-contain p-1"
-            loading="eager"
-            decoding="async"
-            width="36"
-            height="36"
-          />
-        </div>
-        <span class="flex items-baseline text-lg md:text-xl font-bold tracking-tight leading-none">
-          <span class="text-white">Britania</span>
-          <span class="ml-1 text-[#e61c24]">Club</span>
-        </span>
-      </RouterLink>
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-12">
+      <LandingLogo @click="handleLogoClick" />
 
-      <!-- Desktop Navigation -->
-      <nav class="hidden md:flex items-center gap-6" aria-label="Navegación principal">
+      <!-- Navegación de escritorio -->
+      <nav class="hidden items-center gap-1 lg:flex" aria-label="Navegación principal">
         <a
           v-for="link in navLinks"
           :key="link.id"
           :href="link.href"
-          class="relative text-xs font-semibold uppercase tracking-[0.05em] text-slate-300 hover:text-white transition-colors px-1 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded-md"
-          :class="{ 'text-white': activeSection === link.id }"
+          class="lp-body rounded-full px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+          :class="
+            activeSection === link.id
+              ? 'bg-primary-50 text-primary-700'
+              : 'text-lp-body hover:bg-primary-50/60 hover:text-primary-700'
+          "
+          :aria-current="activeSection === link.id ? 'location' : undefined"
           @click.prevent="handleNavClick(link)"
         >
           {{ link.label }}
-          <span
-            v-if="activeSection === link.id"
-            class="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-500 rounded-full shadow-[0_2px_8px_rgba(59,130,246,0.5)]"
-          />
         </a>
       </nav>
 
-      <!-- Desktop Actions -->
-      <div class="hidden md:flex items-center gap-2.5">
-        <RouterLink
-          to="/torneos"
-          class="inline-flex items-center gap-2 px-3.5 py-1.5 text-[11px] font-bold uppercase leading-tight tracking-[0.05em] text-blue-100 bg-blue-900/40 border border-blue-400/40 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.15)] transition-all duration-200 hover:border-blue-400 hover:bg-blue-800/50 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-          @click="emit('navigate', { to: '/torneos', type: 'button' })"
-        >
-          <span class="h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_6px_#60a5fa]" aria-hidden="true" />
-          <span>Pre-Registro<br />Torneos</span>
-        </RouterLink>
-        <RouterLink
-          to="/login"
-          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.05em] text-white bg-[#e61c24] rounded-lg shadow-[0_4px_20px_rgba(230,28,36,0.4)] transition-all duration-200 hover:bg-[#e61c24]/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e61c24]/60"
-          @click="emit('navigate', { to: '/login', type: 'button' })"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
+      <!-- Acciones de escritorio -->
+      <div class="hidden items-center gap-2 lg:flex">
+        <LandingButton to="/torneos" variant="outline" size="sm" class="hidden xl:inline-flex">
+          <IconTrophy class="h-4 w-4" aria-hidden="true" />
+          Pre-Registro Torneos
+        </LandingButton>
+        <LandingButton to="/login" size="sm">
+          <IconLock class="h-4 w-4" aria-hidden="true" />
           Iniciar Sesión
-        </RouterLink>
+        </LandingButton>
       </div>
 
-      <!-- Mobile Menu Button -->
+      <!-- Botón menú móvil -->
       <button
         ref="menuButton"
         type="button"
-        class="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-blue-400/30 bg-[#131f38] text-white transition-colors hover:border-blue-400/60 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700 ring-1 ring-primary-100 transition-colors hover:bg-primary-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-200 lg:hidden"
         :aria-expanded="isMenuOpen"
         aria-controls="mobile-menu"
         :aria-label="isMenuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'"
         @click="toggleMenu"
       >
-        <span class="sr-only">{{ isMenuOpen ? 'Cerrar menú' : 'Abrir menú' }}</span>
-        <svg
-          v-if="!isMenuOpen"
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-        <svg
-          v-else
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <template v-if="!isMenuOpen">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="14" y2="17" />
+          </template>
+          <template v-else>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </template>
         </svg>
       </button>
     </div>
 
-    <!-- Mobile Menu Panel -->
-    <div
-      v-if="isMenuOpen"
-      id="mobile-menu"
-      class="md:hidden absolute inset-x-0 top-full z-40 bg-[#0e1c3d]/98 backdrop-blur-xl border-b border-blue-400/20 shadow-lg transition-transform duration-300 ease-out"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Menú de navegación móvil"
+    <!-- Menú móvil -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      leave-active-class="transition duration-150 ease-in"
+      leave-to-class="opacity-0 -translate-y-2"
     >
-      <div class="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6">
-        <!-- Mobile Navigation Links -->
-        <nav class="flex flex-col gap-2" aria-label="Navegación móvil">
-          <a
-            v-for="link in navLinks"
-            :key="link.id + '-mobile'"
-            :href="link.href"
-            class="flex items-center justify-between px-3 py-3 text-base font-bold uppercase tracking-wide text-white/90 hover:text-white hover:bg-white/5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-            @click.prevent="handleMobileNavClick(link)"
-          >
-            {{ link.label }}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
+      <div v-if="isMenuOpen" id="mobile-menu" class="absolute inset-x-0 top-full lg:hidden">
+        <div class="max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-b-3xl border-b border-lp-line bg-lp-paper px-4 pb-6 pt-3 shadow-lp-lift sm:px-6">
+          <nav class="flex flex-col gap-1" aria-label="Navegación móvil">
+            <a
+              v-for="link in navLinks"
+              :key="link.id + '-mobile'"
+              :href="link.href"
+              class="lp-body flex items-center justify-between rounded-2xl px-4 py-3.5 text-base font-semibold transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+              :class="activeSection === link.id ? 'bg-primary-50 text-primary-700' : 'text-lp-ink hover:bg-primary-50/60'"
+              @click.prevent="handleMobileNavClick(link)"
             >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </a>
-        </nav>
+              {{ link.label }}
+              <IconChevronRight class="h-4 w-4 text-primary-400" aria-hidden="true" />
+            </a>
+          </nav>
 
-        <!-- Mobile Actions -->
-        <div class="flex flex-col gap-3 pt-4 border-t border-blue-400/15">
-          <RouterLink
-            to="/torneos"
-            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 py-3 text-sm font-bold uppercase tracking-wide text-blue-100 bg-blue-900/40 border border-blue-400/40 rounded-lg transition-all duration-200 hover:bg-blue-800/50 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-            @click="handleMobileButtonClick('/torneos')"
-          >
-            <span class="h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_6px_#60a5fa]" aria-hidden="true" />
-            Pre-Registro Torneos
-          </RouterLink>
-          <RouterLink
-            to="/login"
-            class="inline-flex items-center justify-center min-h-[44px] px-6 py-3 text-sm font-bold uppercase tracking-wide text-white bg-[#e61c24] rounded-lg shadow-[0_4px_20px_rgba(230,28,36,0.4)] transition-all duration-200 hover:bg-[#e61c24]/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e61c24]/60"
-            @click="handleMobileButtonClick('/login')"
-          >
-            Iniciar Sesión
-          </RouterLink>
+          <div class="mt-4 flex flex-col gap-2.5 border-t border-lp-line pt-5">
+            <LandingButton to="/torneos" variant="outline" block @click="closeMenu">
+              <IconTrophy class="h-4 w-4" aria-hidden="true" />
+              Pre-Registro Torneos
+            </LandingButton>
+            <LandingButton to="/login" block @click="closeMenu">
+              <IconLock class="h-4 w-4" aria-hidden="true" />
+              Iniciar Sesión
+            </LandingButton>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
+
+    <!-- Fondo del menú móvil: va en <body> porque el backdrop-blur del header
+         atraparía a un elemento fixed dentro de él -->
+    <Teleport to="body">
+      <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
+        <div v-if="isMenuOpen" class="fixed inset-0 z-40 bg-primary-900/25 backdrop-blur-[2px] lg:hidden" aria-hidden="true" @click="closeMenu" />
+      </Transition>
+    </Teleport>
   </header>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import logoSrc from '@/assets/LogoSocDep.png'
+import { IconTrophy, IconLock, IconChevronRight } from '@/components/icons'
+import LandingLogo from '@/components/public/landing/ui/LandingLogo.vue'
+import LandingButton from '@/components/public/landing/ui/LandingButton.vue'
 
 interface NavLink {
   id: string
@@ -221,9 +148,10 @@ const navLinks: NavLink[] = [
 ]
 
 const isMenuOpen = ref(false)
+const isScrolled = ref(false)
 const activeSection = ref<string>('')
 const menuButton = ref<HTMLButtonElement | null>(null)
-const observer = ref<IntersectionObserver | null>(null)
+let observer: IntersectionObserver | null = null
 
 const openMenu = () => {
   if (isMenuOpen.value) return
@@ -249,14 +177,16 @@ const handleNavClick = (link: NavLink) => {
 }
 
 const handleMobileNavClick = (link: NavLink) => {
-  activeSection.value = link.id
-  emit('navigate', { to: link.href, type: 'anchor' })
   closeMenu()
+  handleNavClick(link)
 }
 
-const handleMobileButtonClick = (to: string) => {
-  emit('navigate', { to, type: 'button' })
+// El logo apunta a "/" y la ruta no cambia estando en la landing,
+// así que cerramos el menú y subimos al inicio manualmente
+const handleLogoClick = () => {
   closeMenu()
+  activeSection.value = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -266,67 +196,49 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 }
 
-const setupIntersectionObserver = () => {
-  if (observer.value) {
-    observer.value.disconnect()
-  }
-
-  const sections = navLinks
-    .map((link) => document.getElementById(link.id))
-    .filter((el): el is HTMLElement => el !== null)
-
-  if (sections.length === 0) {
-    observer.value = null
-    return
-  }
-
-  const rootMargin = '-40% 0px -55% 0px'
-
-  observer.value = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const id = entry.target.id
-          if (id) {
-            activeSection.value = id
-          }
-        }
-      })
-    },
-    { root: null, rootMargin, threshold: [0, 0.1, 0.25, 0.5] }
-  )
-
-  sections.forEach((section) => {
-    observer.value?.observe(section)
-  })
+const handleScroll = () => {
+  isScrolled.value = window.scrollY > 8
 }
 
-watch(
-  () => route.fullPath,
-  () => {
-    closeMenu()
-  }
-)
+const handleResize = () => {
+  if (window.innerWidth >= 1024) closeMenu()
+}
+
+const setupIntersectionObserver = () => {
+  // Se observa también el hero para limpiar el enlace activo al volver arriba
+  const sections = ['inicio', ...navLinks.map((link) => link.id)]
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => el !== null)
+
+  if (sections.length === 0) return
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) activeSection.value = entry.target.id === 'inicio' ? '' : entry.target.id
+      })
+    },
+    { rootMargin: '-40% 0px -55% 0px' }
+  )
+  sections.forEach((section) => observer?.observe(section))
+}
+
+watch(() => route.fullPath, closeMenu)
 
 onMounted(() => {
+  handleScroll()
   document.addEventListener('keydown', handleKeyDown)
-  requestAnimationFrame(() => {
-    setupIntersectionObserver()
-  })
-  window.addEventListener('resize', () => {
-    if (window.innerWidth >= 768 && isMenuOpen.value) {
-      closeMenu()
-    }
-  })
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('resize', handleResize)
+  requestAnimationFrame(setupIntersectionObserver)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyDown)
-  observer.value?.disconnect()
-  observer.value = null
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', handleResize)
+  observer?.disconnect()
+  observer = null
   document.body.style.overflow = ''
 })
 </script>
-
-
-

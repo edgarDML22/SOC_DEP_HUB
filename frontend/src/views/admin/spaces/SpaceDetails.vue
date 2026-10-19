@@ -1,12 +1,16 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useSpacesStore } from '@/stores/admin/spaces';
 import { useDisciplinesStore } from '@/stores/admin/disciplines';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import AppModal from '@/components/ui/modal/AppModal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import SpaceFormFields from '@/components/admin/spaces/SpaceFormFields.vue';
+import { spaceToForm, validateSpaceForm } from '@/components/admin/spaces/spaceForm';
+import { IconEdit, IconWarning } from '@/components/icons';
+import { useAlerts } from '@/composables/useAlerts';
 
 // Iconos de Deportes
 import IconFutbol from '@/components/icons/disciplines/IconFutbol.vue';
@@ -28,6 +32,8 @@ const space = ref(null);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const isEditing = ref(false);
+const editErrors = ref({});
+const { toastSuccess, toastError } = useAlerts();
 
 const isEditable = computed(() => {
     return space.value?.estatus === 'MANTENIMIENTO' || space.value?.estatus === 'DESHABILITADO';
@@ -43,6 +49,13 @@ const editForm = ref({
     descripcion: '',
     disciplinas: []
 });
+
+// Al corregir un campo marcado, su error desaparece
+watch(editForm, () => {
+    const prev = editErrors.value;
+    if (!Object.keys(prev).length) return;
+    editErrors.value = Object.fromEntries(Object.entries(validateSpaceForm(editForm.value)).filter(([key]) => key in prev));
+}, { deep: true });
 
 onMounted(async () => {
     const id = route.params.id;
@@ -78,32 +91,28 @@ onMounted(async () => {
 });
 
 const resetForm = () => {
-    editForm.value = {
-        nombre_espacio: space.value.nombre_espacio,
-        capacidad_maxima: space.value.capacidad_maxima,
-        es_reserva_on_demand: !!space.value.es_reserva_on_demand,
-        es_clase_programada: !!space.value.es_clase_programada,
-        es_uso_libre: !!space.value.es_uso_libre,
-        estatus: space.value.estatus,
-        descripcion: space.value.descripcion || '',
-        disciplinas: space.value.disciplinas.map(d => d.id_disciplina)
-    };
+    editForm.value = spaceToForm(space.value);
+    editErrors.value = {};
 };
 
+// "Editar información" abre el modal (antes era un formulario dentro de la página)
 const toggleEdit = () => {
-    if (isEditing.value) resetForm();
+    if (!isEditing.value) resetForm();
     isEditing.value = !isEditing.value;
 };
 
 const handleUpdate = async () => {
+    editErrors.value = validateSpaceForm(editForm.value);
+    if (Object.keys(editErrors.value).length) return;
     isSaving.value = true;
     const res = await spacesStore.updateSpace(space.value.id_espacio, editForm.value);
     isSaving.value = false;
     if (res.success) {
         space.value = res.data;
         isEditing.value = false;
+        toastSuccess('Información del espacio actualizada');
     } else {
-        alert(res.error);
+        toastError(res.error || 'No se pudo actualizar el espacio');
     }
 };
 
@@ -124,7 +133,7 @@ const getIcon = (name) => {
 </script>
 
 <template>
-    <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-20 font-sans">
+    <main class="min-h-screen bg-surface-50 px-4 py-5 pb-20 font-sans sm:p-6 lg:p-8">
         <div class="max-w-5xl mx-auto space-y-6">
 
             <!-- Navegación Superior -->
@@ -195,27 +204,15 @@ const getIcon = (name) => {
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
-                                    <button @click="toggleEdit"
-                                        class="w-full sm:w-auto justify-center px-5 py-3 sm:py-2.5 rounded-xl font-bold transition-colors text-sm flex items-center gap-2 border shadow-sm"
-                                        :class="isEditing ? 'bg-surface-100 text-surface-700 border-surface-300 hover:bg-surface-200' : 'bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white border-primary-200 hover:border-primary-600'">
-                                        <svg v-if="!isEditing" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                            stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                        <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                            stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                        {{ isEditing ? 'Cancelar Edición' : 'Editar Información' }}
-                                    </button>
+                                    <AppButton variant="soft" class="w-full sm:w-auto" @click="toggleEdit">
+                                        <template #icon><IconEdit class="h-4 w-4" /></template>
+                                        Editar información
+                                    </AppButton>
                                 </div>
                             </div>
 
                             <!-- Vista de solo lectura -->
-                            <div v-if="!isEditing"
-                                class="grid grid-cols-1 lg:grid-cols-3 gap-6 border-t border-surface-100 pt-8 mt-8">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 border-t border-surface-100 pt-8 mt-8">
                                 <div class="space-y-6 lg:col-span-2">
                                     <h3
                                         class="text-sm font-black text-surface-900 uppercase tracking-widest flex items-center gap-2">
@@ -258,108 +255,30 @@ const getIcon = (name) => {
                                 </div>
                             </div>
 
-                            <!-- Edit Form -->
-                            <div v-else
-                                class="space-y-6 animate-in slide-in-from-top duration-300 border-t border-surface-100 pt-8 mt-8">
-                                <div v-if="!isEditable"
-                                    class="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 text-amber-800 text-sm font-semibold mb-6">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    La información principal solo puede editarse cuando el espacio está en MANTENIMIENTO
-                                    o DESHABILITADO para evitar conflictos.
-                                </div>
-
-                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"
-                                    :class="{ 'opacity-60 pointer-events-none': !isEditable }">
-                                    <div class="space-y-6 col-span-1 lg:col-span-3">
-                                        <div class="space-y-1.5">
-                                            <label
-                                                class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Nombre</label>
-                                            <input v-model="editForm.nombre_espacio" type="text"
-                                                class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-base sm:text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
-                                        </div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                            <div class="space-y-1.5">
-                                                <label
-                                                    class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Capacidad</label>
-                                                <input v-model="editForm.capacidad_maxima" type="number"
-                                                    inputmode="numeric" min="1"
-                                                    class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-base sm:text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
-                                            </div>
-                                        </div>
-                                        <div class="space-y-2">
-                                            <label
-                                                class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Configuración
-                                                de Uso</label>
-                                            <div class="flex flex-col gap-3">
-                                                <button
-                                                    @click="() => { editForm.es_reserva_on_demand = !editForm.es_reserva_on_demand; if (editForm.es_reserva_on_demand) editForm.es_uso_libre = false; }"
-                                                    type="button"
-                                                    :class="editForm.es_reserva_on_demand ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-4 ring-indigo-50' : 'bg-white border-surface-200 text-surface-500 hover:border-surface-300 hover:bg-surface-50'"
-                                                    class="flex items-center justify-between gap-3 px-5 py-4 min-h-16 rounded-[1.25rem] border-2 text-sm font-bold transition-all shadow-sm group active:scale-[0.98]">
-                                                    <span>Reserva On Demand</span>
-                                                    <div :class="editForm.es_reserva_on_demand ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-surface-300'"
-                                                        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
-                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-                                                            stroke="currentColor" stroke-width="4"
-                                                            stroke-linecap="round" stroke-linejoin="round">
-                                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                                        </svg>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    @click="() => { editForm.es_clase_programada = !editForm.es_clase_programada; if (editForm.es_clase_programada) editForm.es_uso_libre = false; }"
-                                                    type="button"
-                                                    :class="editForm.es_clase_programada ? 'bg-primary-50 border-primary-500 text-primary-700 ring-4 ring-primary-50' : 'bg-white border-surface-200 text-surface-500 hover:border-surface-300 hover:bg-surface-50'"
-                                                    class="flex items-center justify-between gap-3 px-5 py-4 min-h-16 rounded-[1.25rem] border-2 text-sm font-bold transition-all shadow-sm group active:scale-[0.98]">
-                                                    <span>Clase Programada</span>
-                                                    <div :class="editForm.es_clase_programada ? 'bg-primary-600 border-primary-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-surface-300'"
-                                                        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
-                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-                                                            stroke="currentColor" stroke-width="4"
-                                                            stroke-linecap="round" stroke-linejoin="round">
-                                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                                        </svg>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    @click="() => { editForm.es_uso_libre = !editForm.es_uso_libre; if (editForm.es_uso_libre) { editForm.es_reserva_on_demand = false; editForm.es_clase_programada = false; } }"
-                                                    type="button"
-                                                    :class="editForm.es_uso_libre ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-4 ring-emerald-50' : 'bg-white border-surface-200 text-surface-500 hover:border-surface-300 hover:bg-surface-50'"
-                                                    class="flex items-center justify-between gap-3 px-5 py-4 min-h-16 rounded-[1.25rem] border-2 text-sm font-bold transition-all shadow-sm group active:scale-[0.98]">
-                                                    <span>Uso Libre</span>
-                                                    <div :class="editForm.es_uso_libre ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-surface-200 bg-surface-50 text-transparent group-hover:border-surface-300'"
-                                                        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
-                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-                                                            stroke="currentColor" stroke-width="4"
-                                                            stroke-linecap="round" stroke-linejoin="round">
-                                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                                        </svg>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="space-y-1.5">
-                                            <label
-                                                class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Descripción</label>
-                                            <textarea v-model="editForm.descripcion" rows="4"
-                                                class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-base sm:text-sm font-medium text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all resize-none"></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full pt-6"
-                                    v-if="isEditable">
-                                    <CancelButton @click="toggleEdit" class="w-full sm:w-auto" />
-                                    <ConfirmButton label="Guardar Cambios" :loading="isSaving" @click="handleUpdate"
-                                        class="w-full sm:w-auto" />
-                                </div>
-                            </div>
                         </div>
                     </article>
                 </div>
             </Transition>
         </div>
+
+        <!-- MODAL: EDITAR INFORMACIÓN -->
+        <AppModal v-model="isEditing" title="Editar información" :subtitle="space?.nombre_espacio" :icon="IconEdit"
+            size="lg" :persistent="isSaving">
+            <div v-if="!isEditable" role="note"
+                class="mb-4 flex items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+                <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+                Para evitar conflictos con reservas y clases, la información solo puede editarse cuando el espacio está
+                en Mantenimiento o Deshabilitado. Cambia su estatus desde la lista de espacios.
+            </div>
+            <form id="space-edit-form" novalidate @submit.prevent="handleUpdate">
+                <SpaceFormFields v-model="editForm" :errors="editErrors" :disabled="!isEditable" />
+            </form>
+            <template #footer>
+                <AppButton variant="secondary" :disabled="isSaving" @click="isEditing = false">
+                    {{ isEditable ? 'Cancelar' : 'Cerrar' }}
+                </AppButton>
+                <AppButton v-if="isEditable" type="submit" form="space-edit-form" :loading="isSaving">Guardar cambios</AppButton>
+            </template>
+        </AppModal>
     </main>
 </template>

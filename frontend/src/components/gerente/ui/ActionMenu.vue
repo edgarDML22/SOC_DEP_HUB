@@ -25,6 +25,9 @@ const dropdownRef = ref(null)
 const loadingIdx = ref(-1)
 const placement = ref('bottom') // 'bottom' | 'top'
 const dropdownStyle = ref({})
+// Momento en que se abrió: los scrolls de los primeros instantes los provoca el reacomodo del
+// layout (p. ej. la topbar móvil que se oculta al llegar al final), no el usuario.
+let openedAt = 0
 
 const calculatePosition = () => {
   if (!triggerRef.value) return
@@ -70,7 +73,8 @@ const calculatePosition = () => {
   dropdownStyle.value = {
     top: `${Math.round(top)}px`,
     left: `${Math.round(left)}px`,
-    width: `${menuWidth}px`,
+    minWidth: `${menuWidth}px`,
+    maxWidth: `calc(100vw - ${margin * 2}px)`,
   }
 }
 
@@ -83,6 +87,7 @@ const toggle = async () => {
 
   calculatePosition()
   isOpen.value = true
+  openedAt = performance.now()
 
   await nextTick()
   if (dropdownRef.value && triggerRef.value) {
@@ -103,9 +108,15 @@ const toggle = async () => {
         top = Math.max(8, window.innerHeight - realHeight - 8)
       }
     }
+    // Ancho real (el menú crece con textos largos): se recalcula la posición horizontal
+    const realWidth = dropdownRef.value.offsetWidth
+    const margin = 8
+    let left = props.align === 'left' ? rect.left : rect.right - realWidth
+    left = Math.min(Math.max(left, margin), window.innerWidth - realWidth - margin)
     dropdownStyle.value = {
       ...dropdownStyle.value,
       top: `${Math.round(top)}px`,
+      left: `${Math.round(left)}px`,
     }
   }
 }
@@ -143,7 +154,13 @@ const onClickOutside = (e) => {
 }
 
 const onScroll = () => {
-  if (isOpen.value) close()
+  if (!isOpen.value) return
+  // Recién abierto: se reubica junto al botón en lugar de cerrarse
+  if (performance.now() - openedAt < 400) {
+    calculatePosition()
+    return
+  }
+  close()
 }
 
 const onResize = () => {
@@ -235,7 +252,7 @@ onUnmounted(() => {
               </span>
               <span v-else-if="item.icon" class="w-4 h-4 shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full" v-html="item.icon" />
               <span v-else class="w-4 h-4 shrink-0 rounded bg-surface-100" />
-              <span class="whitespace-nowrap pr-2">{{ item.label }}</span>
+              <span class="min-w-0 pr-2">{{ item.label }}</span>
             </button>
           </template>
         </div>

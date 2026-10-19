@@ -9,16 +9,24 @@ import { useAlerts } from '@/composables/useAlerts'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
-import { IconChevronDown, IconUser, IconMail, IconCalendar, IconGuests } from '@/components/icons'
+import AppModal from '@/components/ui/modal/AppModal.vue'
+import AppConfirmModal from '@/components/ui/modal/AppConfirmModal.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppField from '@/components/ui/form/AppField.vue'
+import AppInput from '@/components/ui/form/AppInput.vue'
+import AppSelect from '@/components/ui/form/AppSelect.vue'
+import AppDatePicker from '@/components/ui/form/AppDatePicker.vue'
+import QrCodeDisplay from '@/components/ui/qr/QrCodeDisplay.vue'
+import QrCodeModal from '@/components/ui/qr/QrCodeModal.vue'
+import { IconUser, IconMail, IconQr, IconTrash } from '@/components/icons'
+import IconUserPlus from '@/components/icons/IconUserPlus.vue'
 
 const route = useRoute()
 const router = useRouter()
 const familyStore = useAdminFamilyStore()
 const socioStore = useSocioStore()
-const { actionToast, toastInfo, confirmDelete } = useAlerts()
+const { toastInfo, toastSuccess, toastError, extractApiErrorMessage } = useAlerts()
 
 const socioId = route.params.id
 
@@ -66,6 +74,40 @@ const initialForm = {
   correo: ''
 }
 const formData = ref({ ...initialForm })
+const formErrors = ref({})
+
+const PARENTESCO_OPTIONS = [
+  { label: 'Cónyuge', value: 'CONYUGE' },
+  { label: 'Hijo/a', value: 'HIJO/A' },
+  { label: 'Otro', value: 'OTRO' }
+]
+const GENERO_OPTIONS = [
+  { label: 'Masculino', value: 'M' },
+  { label: 'Femenino', value: 'F' },
+  { label: 'Otro', value: 'O' }
+]
+// Fecha local (toISOString daría la fecha en UTC: "mañana" por la noche en México)
+const hoyIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date())
+
+const validateForm = () => {
+  const f = formData.value
+  const errors = {}
+  if (!f.nombre?.trim()) errors.nombre = 'Escribe el nombre completo.'
+  if (!f.parentesco) errors.parentesco = 'Selecciona el parentesco.'
+  if (!f.genero) errors.genero = 'Selecciona el género.'
+  if (!f.fecha_nacimiento) errors.fecha_nacimiento = 'Selecciona la fecha de nacimiento.'
+  if (f.correo && !/^\S+@\S+\.\S+$/.test(f.correo)) errors.correo = 'Ingresa un correo válido.'
+  formErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
+// Al corregir un campo marcado, su error desaparece (no se marcan campos nuevos mientras escribe)
+watch(formData, () => {
+  const prev = formErrors.value
+  if (!Object.keys(prev).length) return
+  validateForm()
+  formErrors.value = Object.fromEntries(Object.entries(formErrors.value).filter(([key]) => key in prev))
+}, { deep: true })
 
 
 const formEdadCalculada = computed(() => {
@@ -113,10 +155,11 @@ const getIniciales = (nombre) => {
 
 const openCreateModal = () => {
   if (!canAddMore.value) {
-    toastInfo('Límite alcanzado', 'Un socio puede tener un máximo de 6 familiares.', 'error')
+    toastInfo('Límite alcanzado', 'Un socio puede tener un máximo de 6 familiares.', 'warning')
     return
   }
   formData.value = { ...initialForm }
+  formErrors.value = {}
   step.value = 1
   showModal.value = true
 }
@@ -130,6 +173,7 @@ const closeFormModal = () => {
 }
 
 const submitForm = async () => {
+  if (!validateForm()) return
   try {
     const payload = {
       nombre_completo: formData.value.nombre,
@@ -141,7 +185,7 @@ const submitForm = async () => {
     }
 
     const nuevo = await familyStore.crearMiembro(socioId, payload)
-    toastInfo('Creado', 'Familiar registrado correctamente.', 'success')
+    toastSuccess('Familiar registrado correctamente')
 
     qrGeneratedData.value = {
       nombre: nuevo.nombre_completo,
@@ -150,35 +194,33 @@ const submitForm = async () => {
     }
     step.value = 2
   } catch (error) {
-    toastInfo('Error', 'Hubo un error al procesar la solicitud.', 'error')
+    toastError('No se pudo registrar al familiar')
   }
 }
 
-const deleteMiembro = async (miembro) => {
-  const result = await confirmDelete(
-    'Eliminar Familiar',
-    `¿Estás seguro de eliminar a ${miembro.nombre_completo}? Esta acción no se puede deshacer.`,
-    'Sí, Eliminar',
-    async () => {
-      await familyStore.eliminarMiembro(socioId, miembro.id_miembro)
-    }
-  )
+// ── ELIMINAR FAMILIAR ──
+// Nota: el endpoint DELETE /admin/socios/:id/familiares/:miembro tiene un bug pendiente en el back.
+// Si falla, el modal se queda abierto y muestra el motivo que devuelve el servidor.
+const showDeleteModal = ref(false)
+const miembroAEliminar = ref(null)
+const deleteError = ref('')
 
-  if (result.isConfirmed) {
-    toastInfo('Eliminado', 'Miembro familiar eliminado.', 'success')
-  }
+const deleteMiembro = (miembro) => {
+  miembroAEliminar.value = miembro
+  deleteError.value = ''
+  showDeleteModal.value = true
 }
-const copiarImagenAlPortapapeles = async (url) => {
+
+const confirmDeleteMiembro = async () => {
+  if (!miembroAEliminar.value) return
+  deleteError.value = ''
   try {
-    toastInfo('Procesando', 'Preparando imagen...', 'info')
-    const response = await fetch(url)
-    const blob = await response.blob()
-    await navigator.clipboard.write([
-      new ClipboardItem({ [blob.type]: blob })
-    ])
-    toastInfo('¡Listo!', 'Imagen del QR copiada al portapapeles', 'success')
-  } catch (err) {
-    toastInfo('Error', 'Usa clic derecho para copiar la imagen.', 'error')
+    await familyStore.eliminarMiembro(socioId, miembroAEliminar.value.id_miembro)
+    showDeleteModal.value = false
+    toastSuccess(`${miembroAEliminar.value.nombre_completo} fue eliminado de la familia`)
+  } catch (error) {
+    deleteError.value = extractApiErrorMessage(error)
+    toastError('No se pudo eliminar al familiar')
   }
 }
 
@@ -200,22 +242,22 @@ const buildMenuItems = (miembro) => [
   },
   {
     label: 'Eliminar',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-red-500"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>`,
+    destructive: true,
     action: () => deleteMiembro(miembro),
   },
 ]
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
-    <div class="max-w-7xl mx-auto space-y-8">
+  <main class="min-h-screen bg-surface-50 px-4 py-5 pb-16 font-sans sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
-
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <button @click="goBack"
-            class="w-11 h-11 bg-white border border-surface-200 rounded-xl flex items-center justify-center text-surface-600 hover:bg-surface-50 hover:text-primary-600 transition-all shadow-sm group shrink-0">
-            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor"
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+          <button @click="goBack" aria-label="Volver a socios"
+            class="group flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-600 shadow-sm transition-all hover:bg-surface-50 hover:text-primary-600">
+            <svg class="h-5 w-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor"
               viewBox="0 0 24 24" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
@@ -224,17 +266,17 @@ const buildMenuItems = (miembro) => [
             :subtitle="`Socio Titular: ${currentSocio?.nombre_completo || 'Cargando...'}`" />
         </div>
 
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-surface-200">
-            <span class="text-sm font-semibold text-surface-500">Ocupación</span>
-            <span class="text-sm font-black" :class="totalMiembros >= 6 ? 'text-red-500' : 'text-primary-600'">
+        <div class="grid grid-cols-[auto_1fr] items-center gap-3 sm:flex">
+          <div class="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 shadow-sm">
+            <span class="text-sm font-semibold text-surface-600">Ocupación</span>
+            <span class="text-sm font-black tabular-nums" :class="totalMiembros >= 6 ? 'text-rose-600' : 'text-primary-600'">
               {{ totalMiembros }} / 6
             </span>
           </div>
-          <button @click="openCreateModal" :disabled="!canAddMore"
-            class="px-5 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl shadow-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-            + Añadir Familiar
-          </button>
+          <AppButton :disabled="!canAddMore" @click="openCreateModal">
+            <template #icon><IconUserPlus class="h-4 w-4" /></template>
+            Añadir Familiar
+          </AppButton>
         </div>
       </div>
 
@@ -330,191 +372,79 @@ const buildMenuItems = (miembro) => [
     </div>
 
 
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="closeFormModal">
-          <div class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col overflow-hidden">
+    <!-- MODAL: REGISTRAR FAMILIAR (paso 1: formulario · paso 2: registro exitoso + QR) -->
+    <AppModal
+      v-model="showModal"
+      :title="step === 2 ? 'Familiar registrado' : 'Registrar familiar'"
+      :subtitle="step === 2 ? 'Su código de acceso ya está listo' : `Miembro de la familia de ${currentSocio?.nombre_completo || 'este socio'}`"
+      :icon="step === 2 ? IconQr : IconUserPlus"
+      :tone="step === 2 ? 'emerald' : 'blue'"
+      :persistent="loading.create"
+      @close="closeFormModal"
+    >
+      <form v-if="step === 1" id="family-form" class="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2" novalidate @submit.prevent="submitForm">
+        <AppField label="Nombre completo" for="fam-nombre" required :error="formErrors.nombre" class="sm:col-span-2">
+          <AppInput id="fam-nombre" v-model="formData.nombre" :icon="IconUser" placeholder="Ej. Juan Pérez" autocomplete="off" :invalid="!!formErrors.nombre" />
+        </AppField>
 
-            <div class="px-7 py-5 border-b border-surface-100 flex justify-between items-center">
-              <div>
-                <h2 class="text-lg font-black text-surface-900 leading-tight">
-                  {{ step === 2 ? 'Familiar Registrado' : 'Registrar Familiar' }}
-                </h2>
-              </div>
-              <button v-if="step !== 2" @click="closeFormModal"
-                class="w-8 h-8 rounded-full bg-surface-100 hover:bg-surface-200 flex items-center justify-center">
-                <svg class="w-4 h-4 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+        <AppField label="Parentesco" required :error="formErrors.parentesco">
+          <AppSelect v-model="formData.parentesco" :options="PARENTESCO_OPTIONS" placeholder="Seleccionar" :invalid="!!formErrors.parentesco" />
+        </AppField>
 
+        <AppField label="Género" required :error="formErrors.genero">
+          <AppSelect v-model="formData.genero" :options="GENERO_OPTIONS" placeholder="Seleccionar" :invalid="!!formErrors.genero" />
+        </AppField>
 
-            <div v-if="step === 1" class="p-7 space-y-5 bg-surface-50/30">
-              <div class="space-y-1.5">
-                <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                  Nombre Completo <span class="text-red-400">*</span>
-                </label>
-                <div class="relative">
-                  <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input v-model="formData.nombre" type="text"
-                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
-                    placeholder="Ej. Juan Pérez">
-                </div>
-              </div>
+        <AppField label="Fecha de nacimiento" required :error="formErrors.fecha_nacimiento">
+          <AppDatePicker v-model="formData.fecha_nacimiento" :max-date="hoyIso" :invalid="!!formErrors.fecha_nacimiento" />
+        </AppField>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                    Parentesco <span class="text-red-400">*</span>
-                  </label>
-                  <div class="relative">
-                    <IconGuests class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                    <select v-model="formData.parentesco"
-                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-sm">
-                      <option value="" disabled>Seleccionar</option>
-                      <option value="CONYUGE">Cónyuge</option>
-                      <option value="HIJO/A">Hijo/a</option>
-                      <option value="OTRO">Otro</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                    Género <span class="text-red-400">*</span>
-                  </label>
-                  <div class="relative">
-                    <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                    <select v-model="formData.genero"
-                      class="w-full pl-11 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-sm">
-                      <option value="" disabled>Seleccionar</option>
-                      <option value="M">Masculino</option>
-                      <option value="F">Femenino</option>
-                      <option value="O">Otro</option>
-                    </select>
-                    <IconChevronDown
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
+        <AppField label="Edad" hint="Se calcula con la fecha de nacimiento">
+          <AppInput :model-value="formEdadCalculada === '-' ? '—' : `${formEdadCalculada} años`" readonly tabindex="-1" />
+        </AppField>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                    Fecha de Nacimiento <span class="text-red-400">*</span>
-                  </label>
-                  <div class="relative">
-                    <IconCalendar class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                    <input v-model="formData.fecha_nacimiento" type="date"
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm">
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                    Edad
-                  </label>
-                  <input type="text" :value="formEdadCalculada" readonly
-                    class="w-full px-4 py-3 bg-surface-100 border border-surface-200 rounded-xl text-sm font-bold text-surface-500 cursor-not-allowed">
-                </div>
-              </div>
+        <AppField label="Correo" for="fam-correo" optional :error="formErrors.correo" class="sm:col-span-2">
+          <AppInput id="fam-correo" v-model="formData.correo" type="email" :icon="IconMail" placeholder="correo@ejemplo.com" autocomplete="off" :invalid="!!formErrors.correo" />
+        </AppField>
+      </form>
 
-              <div class="space-y-1.5">
-                <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                  Correo (Opcional)
-                </label>
-                <div class="relative">
-                  <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input v-model="formData.correo" type="email"
-                    class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
-                    placeholder="correo@ejemplo.com">
-                </div>
-              </div>
+      <div v-else class="pt-2">
+        <QrCodeDisplay :value="qrGeneratedData?.qr" :name="qrGeneratedData?.nombre" :caption="qrGeneratedData?.parentesco" />
+      </div>
 
-              <div class="pt-4 flex justify-end gap-3 border-t border-surface-100 mt-4">
-                <CancelButton label="Cancelar" @click="closeFormModal" />
-                <ConfirmButton label="Registrar" :loading="loading.create" @click="submitForm" />
-              </div>
-            </div>
+      <template #footer>
+        <template v-if="step === 1">
+          <AppButton variant="secondary" :disabled="loading.create" @click="closeFormModal">Cancelar</AppButton>
+          <AppButton type="submit" form="family-form" :loading="loading.create">Registrar familiar</AppButton>
+        </template>
+        <AppButton v-else tone="emerald" @click="closeFormModal">Finalizar</AppButton>
+      </template>
+    </AppModal>
 
+    <!-- MODAL: ELIMINAR FAMILIAR -->
+    <AppConfirmModal
+      v-model="showDeleteModal"
+      title="¿Eliminar familiar?"
+      :icon="IconTrash"
+      tone="rose"
+      confirm-label="Sí, eliminar"
+      :loading="loading.delete"
+      :error="deleteError"
+      @confirm="confirmDeleteMiembro"
+    >
+      Se eliminará a <strong class="text-surface-900">{{ miembroAEliminar?.nombre_completo }}</strong>
+      ({{ formatParentesco(miembroAEliminar?.parentesco, miembroAEliminar?.genero) }}) de la familia de este socio
+      y su código de acceso dejará de funcionar.
+      <span class="mt-3 block text-xs font-medium text-surface-500">Esta acción no se puede deshacer.</span>
+    </AppConfirmModal>
 
-            <div v-else-if="step === 2" class="p-8 flex flex-col items-center text-center">
-              <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-              <h3 class="text-xl font-black text-surface-900 mb-1">Registro Exitoso</h3>
-              <p class="text-sm text-surface-500 mb-6">El familiar ha sido agregado y su código de acceso está listo.
-              </p>
-
-              <div class="p-4 bg-white border border-surface-200 rounded-2xl shadow-sm mb-6">
-                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrGeneratedData?.qr}`"
-                  alt="QR Code" class="w-36 h-36 object-contain">
-              </div>
-              <div class="flex flex-col gap-3 w-full">
-                <button
-                  @click="copiarImagenAlPortapapeles(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrGeneratedData?.qr}`)"
-                  class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200"
-                  style="background-size: 200% auto;">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                  </svg>
-                  Copiar Código QR
-                </button>
-                <ConfirmButton label="Finalizar" @click="closeFormModal" class="w-full" />
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showQrModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showQrModal = false">
-          <div class="bg-white w-full max-w-sm rounded-4xl shadow-2xl flex flex-col overflow-hidden text-center p-8">
-            <h2 class="text-xl font-black text-surface-900 leading-tight mb-1">Código de Acceso</h2>
-            <p class="text-sm text-surface-500 font-medium mb-6">{{ qrModalData?.nombre }} - {{ qrModalData?.parentesco
-            }}
-            </p>
-
-            <div class="mx-auto p-4 bg-white border border-surface-200 rounded-2xl shadow-sm mb-6">
-              <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrModalData?.qr}`"
-                alt="QR Code" class="w-40 h-40 object-contain mx-auto">
-            </div>
-            <div class="flex flex-col gap-3 w-full">
-              <button
-                @click="copiarImagenAlPortapapeles(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrModalData?.qr}`)"
-                class="w-full rounded-xl px-4 py-3 font-bold transition-all flex items-center justify-center gap-2 active:scale-95 bg-linear-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-md shadow-primary-200"
-                style="background-size: 200% auto;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                </svg>
-                Copiar Código QR
-              </button>
-              <CancelButton label="Cerrar" @click="showQrModal = false" class="w-full" />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- MODAL: CÓDIGO QR -->
+    <QrCodeModal
+      v-model="showQrModal"
+      :value="qrModalData?.qr"
+      :name="qrModalData?.nombre"
+      :caption="qrModalData?.parentesco"
+    />
 
   </main>
 </template>

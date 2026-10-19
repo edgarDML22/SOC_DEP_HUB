@@ -26,7 +26,7 @@ const esSubgerente = computed(() => userData.rol === 'subgerente')
 // ── FILTROS ────────────────────────────────────────────────────
 const search = ref('')
 const STATUS_OPTS = [
-  { label: 'Todos los estados', value: null },
+  { label: 'Todos', value: null },
   { label: 'En Planificación', value: 'EN_PLANIFICACION' },
   { label: 'En Inscripción', value: 'EN_INSCRIPCION' },
   { label: 'Programado', value: 'PROGRAMADO' },

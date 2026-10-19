@@ -17,60 +17,51 @@ const swalApp = Swal.mixin({
     customClass: baseClasses
 })
 
-// Toasts base
-const toastInfo = (title, text, type = 'info') => {
-    const iconColor = type === 'success' ? '#15803d' :
-        type === 'error' ? 'var(--color-state-error)' : 'var(--color-state-info)';
-    Swal.fire({
-        toast: true,
-        position: 'bottom-end',
-        icon: type,
-        iconColor: iconColor,
-        title: title,
-        text: text,
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        background: 'white',
-        customClass: { popup: 'swal-border-radius' }
-    });
+// ─── Toasts (abajo a la derecha) ─────────────────────────────────────────
+// Un solo estilo para todas las alertas de éxito / error / info / advertencia.
+// El diseño vive en main.css (.app-toast) para que se vea igual en toda la app.
+const TOAST_UI = {
+    success: { icon: 'success', color: '#059669' },
+    error: { icon: 'error', color: '#e11d48' },
+    info: { icon: 'info', color: '#2563eb' },
+    warning: { icon: 'warning', color: '#d97706' },
 }
 
-// Action Toast (estilo homogéneo para acciones exitosas/fallidas)
-const actionToast = (title, type = 'success') => {
-    const bgColors = {
-        success: '#f0fdf4', // green-50
-        error: '#fef2f2',   // red-50
-        info: '#eff6ff'     // blue-50
-    }
-    const textColors = {
-        success: '#166534', // green-800
-        error: '#991b1b',   // red-800
-        info: '#1e40af'     // blue-800
-    }
-    const iconColors = {
-        success: '#15803d', // dark green / emerald-700
-        error: '#dc2626',   // red-600
-        info: '#2563eb'     // blue-600
-    }
-    
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+))
+
+const showToast = ({ title, text = '', type = 'success' }) => {
+    const kind = TOAST_UI[type] ? type : 'info'
+    // Título y texto van juntos en una sola fila para que queden centrados con el ícono
+    // (se escapan porque pueden incluir nombres capturados por usuarios)
+    const content = `<span class="app-toast__title-main">${escapeHtml(title)}</span>`
+        + (text ? `<span class="app-toast__text">${escapeHtml(text)}</span>` : '')
     Swal.fire({
         toast: true,
         position: 'bottom-end',
-        icon: type,
-        iconColor: iconColors[type],
-        title: title,
+        icon: TOAST_UI[kind].icon,
+        iconColor: TOAST_UI[kind].color,
+        title: content,
         showConfirmButton: false,
-        timer: type === 'error' ? 4500 : 3000,
+        timer: kind === 'error' ? 4500 : 3200,
         timerProgressBar: true,
-        background: bgColors[type] || 'white',
-        color: textColors[type] || '#1f2937',
-        customClass: { 
-            popup: '!rounded-xl !shadow-lg border border-slate-200 !mt-4 !mr-4',
-            title: '!text-sm !font-medium !mt-0'
+        customClass: {
+            popup: `app-toast app-toast--${kind}`,
+            title: 'app-toast__title',
+            timerProgressBar: 'app-toast__bar'
+        },
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
         }
     });
 }
+
+// Compatibilidad: toastInfo(título, texto, tipo) y actionToast(título, tipo) usan el mismo diseño
+const toastInfo = (title, text, type = 'info') => showToast({ title, text, type })
+
+const actionToast = (title, type = 'success') => showToast({ title, type })
 
 const toastSuccess = (title) => {
     actionToast(title, 'success')
@@ -246,6 +237,7 @@ export const handleApiError = (error) => {
 
 export const useAlerts = () => {
     return {
+        showToast,
         toastInfo,
         actionToast,
         toastSuccess,

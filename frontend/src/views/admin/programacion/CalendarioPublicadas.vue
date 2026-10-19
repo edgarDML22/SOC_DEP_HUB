@@ -485,7 +485,7 @@ function opacidadColumna(diaKey) {
           v-model="filtroEstatus"
           class="select-slim py-1.5 pl-2 pr-6 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all appearance-none shrink-0"
         >
-          <option value="">Todos los estatus</option>
+          <option value="">Todos</option>
           <option value="DISPONIBLE">Disponible</option>
           <option value="EN_CURSO">En Curso</option>
           <option value="FINALIZADA">Finalizada</option>
@@ -500,7 +500,7 @@ function opacidadColumna(diaKey) {
           v-model="filtroEspacio"
           class="select-slim py-1.5 pl-2 pr-6 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all appearance-none shrink-0 max-w-[160px]"
         >
-          <option value="">Todos los espacios</option>
+          <option value="">Todos</option>
           <option v-for="esp in espaciosUnicos" :key="esp" :value="esp">{{ esp }}</option>
         </select>
 

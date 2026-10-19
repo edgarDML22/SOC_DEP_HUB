@@ -1,11 +1,34 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { IconBell } from '@/components/icons'
 import { useAdminStore } from '@/stores/profiles/adminStore'
 import AdminProfileModal from '@/components/gerente/ui/AdminProfileModal.vue'
 import DarkModeToggle from '@/components/ui/DarkModeToggle.vue'
 
 const profileStore = useAdminStore()
+const route = useRoute()
+
+// Nombre de la sección actual (mismos textos que el sidebar), según el primer segmento de /admin/...
+const SECTION_TITLES = {
+  dashboard: 'Dashboard',
+  reports: 'Reportes',
+  reservations: 'Reservas',
+  ludoteca: 'Ludoteca',
+  tournaments: 'Torneos',
+  activities: 'Actividades',
+  socios: 'Socios',
+  instructors: 'Instructores',
+  managers: 'Gerentes',
+  spaces: 'Espacios',
+  disciplines: 'Disciplinas',
+}
+const sectionTitle = computed(() => {
+  const segment = route.path.split('/')[2] || ''
+  if (segment === 'disciplines' && route.path.includes('/categories')) return 'Categorías'
+  if (segment === 'ludoteca' && route.path.includes('/turnos')) return 'Asignar Turnos'
+  return SECTION_TITLES[segment] || ''
+})
 
 const menuOpen = ref(false)
 const showNotifications = ref(false)
@@ -55,9 +78,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <header class="topbar h-16 sm:h-[70px] bg-surface-100 border-b border-surface-200 px-3 sm:px-6 flex items-center justify-between relative z-30 select-none">
+  <header class="topbar h-16 sm:h-[70px] lg:h-[76px] bg-surface-100 border-b border-surface-200 px-3 sm:px-6 flex items-center justify-between gap-2 relative z-30 select-none">
     <!-- Seccion Izquierda: Boton Hamburguesa y Titulo de Modulo Activo -->
-    <div class="left flex items-center gap-2 sm:gap-3 min-w-0 mr-2 sm:mr-4">
+    <div class="left flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
       <button
         type="button"
         class="lg:hidden flex items-center justify-center p-2 rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 focus:outline-none transition-colors shrink-0 cursor-pointer"
@@ -69,13 +92,10 @@ onMounted(() => {
         </svg>
       </button>
 
-      <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
-        <img
-          src="@/assets/LogoSocDep.jpg"
-          alt="Britania"
-          class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover shrink-0 shadow-xs"
-        />
-      </div>
+      <!-- Sin logo: el sidebar ya lo muestra (evita duplicarlo) -->
+      <p v-if="sectionTitle" class="m-0 truncate text-base sm:text-lg font-bold text-surface-900 tracking-tight">
+        {{ sectionTitle }}
+      </p>
     </div>
 
     <!-- Seccion Derecha: Badge de Rol, Modo Oscuro, Notificaciones y Perfil -->

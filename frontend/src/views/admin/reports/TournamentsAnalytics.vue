@@ -361,7 +361,7 @@ const individualHistorico = computed(() => {
             <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
             <select v-model="selectedDisciplina"
                     class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 appearance-none focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer">
-              <option value="">Todas las disciplinas</option>
+              <option value="">Todas</option>
               <option v-for="d in disciplines" :key="d.id_disciplina" :value="d.id_disciplina">{{ d.nombre_disciplina }}</option>
             </select>
           </div>

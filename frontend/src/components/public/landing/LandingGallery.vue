@@ -1,33 +1,23 @@
 <template>
   <section
     id="galeria"
-    class="relative w-full border-b border-blue-500/20 bg-gradient-to-b from-[#0F172A] via-[#131F38] to-[#0B1326] py-16 md:py-24 scroll-mt-20"
-    role="region"
+    class="relative scroll-mt-20 bg-lp-paper py-16 md:py-24"
     aria-label="Galería del club"
   >
-    <div class="mx-auto flex max-w-7xl flex-col items-center gap-12 px-6 md:gap-16 md:px-12">
-      <!-- Header -->
-      <div class="flex w-full max-w-3xl flex-col items-center gap-2 text-center">
-        <span class="lp-display text-xs font-semibold uppercase tracking-[0.16em] text-[#60A5FA]">
-          Galería
-        </span>
-        <h2
-          class="lp-display text-3xl font-bold leading-[1.15] tracking-[-0.025em] text-white sm:text-4xl lg:text-[48px]"
-        >
-          Experiencias en el Club
-        </h2>
-        <p class="lp-body mt-2 text-base leading-relaxed text-[#CBD5E1]">
-          La energía, la pasión y los momentos que definen la vida diaria de nuestros
-          socios en Britania Club.
-        </p>
-      </div>
+    <div class="mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 md:gap-14 lg:px-12">
+      <LandingSectionHeading
+        eyebrow="Galería"
+        title="Experiencias en el Club"
+        description="La energía, la pasión y los momentos que definen la vida diaria de nuestros socios en Britania Club."
+      />
 
-      <!-- Grid -->
-      <div class="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Mosaico: 2 columnas en móvil, 4 en escritorio -->
+      <div class="grid grid-flow-dense auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[190px] sm:gap-4 md:grid-cols-4 md:auto-rows-[200px]">
         <figure
-          v-for="(item, index) in galleryItems"
+          v-for="item in galleryItems"
           :key="item.id"
-          class="group relative h-72 overflow-hidden rounded-2xl border border-blue-400/20 bg-[#131F38]"
+          class="group relative m-0 overflow-hidden rounded-3xl bg-primary-100"
+          :class="item.span"
         >
           <img
             v-if="!imageErrorMap[item.id]"
@@ -36,26 +26,18 @@
             class="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
             decoding="async"
-            width="408"
-            height="288"
             @error="imageErrorMap[item.id] = true"
           />
           <div
             v-else
-            class="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1A2849] to-[#0F172A]"
+            class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-sky-100"
             aria-hidden="true"
           >
-            <span class="lp-display text-sm uppercase tracking-[0.2em] text-blue-300/50">
-              Britania Club
-            </span>
+            <span class="lp-display text-sm uppercase tracking-[0.2em] text-primary-400">Britania Club</span>
           </div>
 
-          <div
-            class="pointer-events-none absolute inset-0 bg-[linear-gradient(0deg,rgba(11,19,38,0.85)_0%,rgba(11,19,38,0)_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            aria-hidden="true"
-          />
           <figcaption
-            class="lp-body absolute bottom-0 left-0 right-0 translate-y-2 px-5 pb-4 text-sm font-medium text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+            class="absolute bottom-2.5 left-2.5 max-w-[calc(100%-1.25rem)] truncate rounded-full bg-lp-paper/90 px-3 py-1.5 text-xs font-semibold text-lp-ink shadow-lp-soft backdrop-blur-sm transition-transform duration-300 group-hover:-translate-y-0.5 sm:bottom-4 sm:left-4 sm:text-sm"
           >
             {{ item.caption }}
           </figcaption>
@@ -67,6 +49,7 @@
 
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
+import LandingSectionHeading from './ui/LandingSectionHeading.vue'
 
 /**
  * FOTOGRAFÍAS — Galería
@@ -86,45 +69,51 @@ const localList = Object.entries(localModules)
 const galleryData = [
   {
     id: 'g1',
+    span: 'col-span-2 md:row-span-2',
     caption: 'Canchas de tenis al atardecer',
     alt: 'Canchas de tenis del club',
     fallback:
-      'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=408&q=80&auto=format&fit=crop'
+      'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800&q=80&auto=format&fit=crop'
   },
   {
     id: 'g2',
+    span: '',
     caption: 'Alberca climatizada',
     alt: 'Alberca climatizada del club',
     fallback:
-      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=408&q=80&auto=format&fit=crop'
+      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=800&q=80&auto=format&fit=crop'
   },
   {
     id: 'g3',
+    span: 'md:row-span-2',
     caption: 'Sesión de pádel',
     alt: 'Jugadores de pádel en el club',
     fallback:
-      'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=408&q=80&auto=format&fit=crop'
+      'https://images.unsplash.com/photo-1612534847738-b3af9bc31f0c?w=800&q=80&auto=format&fit=crop'
   },
   {
     id: 'g4',
+    span: 'col-span-2 md:col-span-1',
     caption: 'Entrenamiento funcional',
     alt: 'Área de entrenamiento funcional',
     fallback:
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=408&q=80&auto=format&fit=crop'
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80&auto=format&fit=crop'
   },
   {
     id: 'g5',
+    span: 'col-span-2',
     caption: 'Eventos y vida social',
     alt: 'Evento social en el club',
     fallback:
-      'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=408&q=80&auto=format&fit=crop'
+      'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800&q=80&auto=format&fit=crop'
   },
   {
     id: 'g6',
+    span: 'col-span-2',
     caption: 'Áreas verdes y familia',
     alt: 'Áreas verdes y familia en el club',
     fallback:
-      'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=408&q=80&auto=format&fit=crop'
+      'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=800&q=80&auto=format&fit=crop'
   }
 ]
 

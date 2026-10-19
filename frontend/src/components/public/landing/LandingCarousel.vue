@@ -1,140 +1,135 @@
 <template>
   <section
     id="deportes"
-    class="relative w-full border-b border-blue-500/20 bg-gradient-to-b from-[#131F38] to-[#0F172A] py-16 md:py-24 scroll-mt-20"
-    role="region"
+    class="relative scroll-mt-20 bg-lp-mist py-16 md:py-24"
     aria-label="Deportes y actividades"
   >
-    <div class="mx-auto flex max-w-7xl flex-col gap-10 px-6 md:gap-12 md:px-12">
-      <!-- Header -->
-      <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-        <div class="flex max-w-2xl flex-col gap-2">
-          <span class="lp-display text-xs font-semibold uppercase tracking-[0.16em] text-[#60A5FA]">
-            Deportes y Actividades
-          </span>
-          <h2
-            class="lp-display text-3xl font-bold leading-[1.15] tracking-[-0.025em] text-white sm:text-4xl lg:text-[48px]"
-          >
-            Nuestras Instalaciones
-          </h2>
-          <p class="lp-body max-w-xl text-base leading-relaxed text-[#CBD5E1]">
-            Descubre los espacios de primer nivel que tenemos preparados para ti, tu
-            familia y atletas de todos los niveles competitivos.
-          </p>
-        </div>
+    <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-6 md:gap-12 lg:px-12">
+      <!-- Encabezado + filtros -->
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <LandingSectionHeading
+          eyebrow="Deportes y Actividades"
+          title="Nuestras Instalaciones"
+          description="Descubre los espacios de primer nivel que tenemos preparados para ti, tu familia y atletas de todos los niveles competitivos."
+          align="left"
+        />
 
-        <!-- Filter group -->
-        <div
-          class="flex flex-wrap items-center gap-2 rounded-xl border border-blue-400/25 bg-[#0B1326]/90 p-1.5 shadow-[inset_0_2px_4px_1px_rgba(0,0,0,0.05)]"
-          role="tablist"
-          aria-label="Filtrar instalaciones"
-        >
-          <button
-            v-for="category in categories"
-            :key="category.id"
-            type="button"
-            role="tab"
-            :aria-selected="activeCategory === category.id"
-            class="lp-body rounded-lg px-4 py-1.5 text-xs font-bold uppercase tracking-[0.05em] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-            :class="
-              activeCategory === category.id
-                ? 'bg-[#E61C24] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
-                : 'font-semibold tracking-[0.01em] text-[#CBD5E1] hover:bg-white/5 hover:text-white'
-            "
-            @click="selectCategory(category.id)"
+        <!-- En móvil los filtros se desplazan en una sola fila -->
+        <div class="lp-no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div
+            class="inline-flex gap-1 rounded-full bg-lp-paper p-1.5 shadow-lp-soft ring-1 ring-primary-100"
+            role="tablist"
+            aria-label="Filtrar instalaciones"
           >
-            {{ category.label }}
-          </button>
+            <button
+              v-for="category in categories"
+              :key="category.id"
+              type="button"
+              role="tab"
+              :aria-selected="activeCategory === category.id"
+              class="shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+              :class="
+                activeCategory === category.id
+                  ? 'bg-primary-700 text-white shadow-[0_8px_16px_-10px_rgba(29,78,216,0.9)]'
+                  : 'text-lp-body hover:bg-primary-50 hover:text-primary-700'
+              "
+              @click="selectCategory(category.id)"
+            >
+              {{ category.label }}
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Cards -->
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <article
-          v-for="facility in filteredFacilities"
-          :key="facility.id"
-          class="group flex flex-col overflow-hidden rounded-2xl border border-blue-400/30 bg-gradient-to-b from-[#1A2849] to-[#0F172A] shadow-[0_10px_15px_-3px_rgba(0,0,0,0.10),0_4px_6px_-4px_rgba(0,0,0,0.10)]"
+      <!-- Tarjetas: carrusel deslizable en móvil, cuadrícula desde sm -->
+      <div>
+        <div
+          ref="track"
+          class="lp-no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+          @scroll.passive="onTrackScroll"
         >
-          <!-- Image -->
-          <div class="relative h-56 overflow-hidden">
-            <img
-              v-if="!imageErrorMap[facility.id]"
-              :src="facility.image"
-              :alt="facility.alt"
-              class="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-              decoding="async"
-              width="552"
-              height="224"
-              @error="imageErrorMap[facility.id] = true"
-            />
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1A2849] to-[#0F172A]"
-              aria-hidden="true"
-            >
-              <component :is="facility.icon" class="h-12 w-12 text-blue-300/70" />
+          <article
+            v-for="facility in filteredFacilities"
+            :key="facility.id"
+            class="group flex w-[82%] shrink-0 snap-start flex-col overflow-hidden rounded-3xl bg-lp-paper shadow-lp-soft ring-1 ring-primary-100/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-lp-lift sm:w-auto"
+          >
+            <div class="relative h-48 overflow-hidden bg-primary-100 sm:h-52">
+              <img
+                v-if="!imageErrorMap[facility.id]"
+                :src="facility.image"
+                :alt="facility.alt"
+                class="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
+                width="552"
+                height="224"
+                @error="imageErrorMap[facility.id] = true"
+              />
+              <div
+                v-else
+                class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-sky-100"
+                aria-hidden="true"
+              >
+                <component :is="facility.icon" class="h-12 w-12 text-primary-400" />
+              </div>
+
+              <span
+                class="absolute left-3 top-3 rounded-full bg-lp-paper/95 px-3 py-1 text-xs font-bold text-primary-700 shadow-lp-soft backdrop-blur-sm"
+              >
+                {{ facility.badge }}
+              </span>
             </div>
 
-            <div
-              class="pointer-events-none absolute inset-0 bg-[linear-gradient(0deg,#0F172A_0%,rgba(15,23,42,0)_50%,rgba(15,23,42,0)_100%)]"
-              aria-hidden="true"
-            />
-
-            <span
-              class="lp-display absolute right-3 top-3 rounded border bg-[#0B1326]/85 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.01em] shadow-[0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-sm"
-              :class="
-                facility.tone === 'red'
-                  ? 'border-red-400/40 text-[#F87171]'
-                  : 'border-blue-400/40 text-[#93C5FD]'
-              "
-            >
-              {{ facility.badge }}
-            </span>
-          </div>
-
-          <!-- Body -->
-          <div class="flex flex-1 flex-col gap-4 p-6">
-            <div class="flex flex-1 flex-col gap-2">
-              <h3
-                class="lp-display text-[22px] font-bold leading-[1.3] tracking-[-0.01em]"
-                :class="facility.tone === 'red' ? 'text-[#F87171]' : 'text-[#60A5FA]'"
+            <div class="relative flex flex-1 flex-col gap-3 px-5 pb-6 pt-9">
+              <!-- Ícono que monta sobre la foto -->
+              <div
+                class="absolute -top-6 left-5 flex h-12 w-12 items-center justify-center rounded-2xl text-white ring-4 ring-lp-paper"
+                :class="
+                  facility.tone === 'sky'
+                    ? 'bg-gradient-to-br from-sky-400 to-sky-600'
+                    : 'bg-gradient-to-br from-primary-500 to-primary-700'
+                "
               >
+                <component :is="facility.icon" class="h-6 w-6" aria-hidden="true" />
+              </div>
+
+              <h3 class="lp-display text-xl font-bold tracking-tight text-lp-ink">
                 {{ facility.name }}
               </h3>
-              <p class="lp-body text-sm leading-[1.625] text-[#CBD5E1]">
+              <p class="flex-1 text-sm leading-relaxed text-lp-body">
                 {{ facility.description }}
               </p>
-            </div>
-
-            <a
-              href="#contacto"
-              class="lp-body inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.05em] transition-opacity hover:opacity-80"
-              :class="facility.tone === 'red' ? 'text-[#F87171]' : 'text-[#60A5FA]'"
-              @click="onFacilitySelect(facility)"
-            >
-              {{ facility.cta }}
-              <svg
-                width="15"
-                height="11"
-                viewBox="0 0 15 11"
-                fill="currentColor"
-                aria-hidden="true"
-                class="ml-1"
+              <a
+                href="#contacto"
+                class="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 transition-colors hover:text-primary-500"
+                @click="onFacilitySelect(facility)"
               >
-                <path d="M12.1167 6H4V4.66667H12.1167L8.38333 0.933333L9.33333 0L14.6667 5.33333L9.33333 10.6667L8.38333 9.73333L12.1167 6Z" />
-              </svg>
-            </a>
-          </div>
-        </article>
+                {{ facility.cta }}
+                <IconChevronRight class="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              </a>
+            </div>
+          </article>
+        </div>
+
+        <!-- Indicador de posición (solo móvil) -->
+        <div v-if="filteredFacilities.length > 1" class="mt-5 flex justify-center gap-1.5 sm:hidden" aria-hidden="true">
+          <span
+            v-for="(facility, index) in filteredFacilities"
+            :key="'dot-' + facility.id"
+            class="h-1.5 rounded-full transition-all duration-300"
+            :class="index === activeCard ? 'w-6 bg-primary-600' : 'w-1.5 bg-primary-200'"
+          />
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
+import { IconChevronRight } from '@/components/icons'
 import { IconTenis, IconSwimming, IconGym, IconDefault } from '@/components/icons/disciplines'
+import LandingSectionHeading from './ui/LandingSectionHeading.vue'
 
 interface Category {
   id: string
@@ -147,7 +142,7 @@ interface Facility {
   badge: string
   description: string
   cta: string
-  tone: 'blue' | 'red'
+  tone: 'primary' | 'sky'
   category: string
   icon: unknown
   fallback: string
@@ -186,11 +181,11 @@ const facilitiesData = [
     description:
       'Canchas profesionales de arcilla y dura reglamentarias con iluminación LED de alta competencia y torneos para todas las categorías.',
     cta: 'Ver horarios & clínicas',
-    tone: 'blue' as const,
+    tone: 'primary' as const,
     category: 'raqueta',
     icon: IconTenis,
     fallback:
-      'https://images.unsplash.com/photo-1510925758641-869d353cecc7?w=552&q=80&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=552&q=80&auto=format&fit=crop',
     alt: 'Canchas de tenis'
   },
   {
@@ -200,7 +195,7 @@ const facilitiesData = [
     description:
       'Alberca techada climatizada de 50 metros diseñada para entrenamiento olímpico, triatlón y escuela formativa infantil.',
     cta: 'Ver niveles de escuela',
-    tone: 'red' as const,
+    tone: 'sky' as const,
     category: 'acuaticos',
     icon: IconSwimming,
     fallback:
@@ -214,7 +209,7 @@ const facilitiesData = [
     description:
       'Área de pesas y cardiovascular de alta gama, zona funcional para Crossfit y más de 30 clases dirigidas semanales por coaches certificados.',
     cta: 'Programa de clases',
-    tone: 'blue' as const,
+    tone: 'primary' as const,
     category: 'fitness',
     icon: IconGym,
     fallback:
@@ -228,7 +223,7 @@ const facilitiesData = [
     description:
       'Eventos sociales, terrazas gastronómicas, asadores privados y recreaciones exclusivas diseñadas para todos los miembros de la familia.',
     cta: 'Conoce el calendario',
-    tone: 'red' as const,
+    tone: 'sky' as const,
     category: 'social',
     icon: IconDefault,
     fallback:
@@ -245,6 +240,8 @@ const facilities = computed<Facility[]>(() =>
 )
 
 const activeCategory = ref('todos')
+const activeCard = ref(0)
+const track = ref<HTMLElement | null>(null)
 const imageErrorMap = reactive<Record<string, boolean>>({})
 
 const filteredFacilities = computed(() =>
@@ -253,8 +250,19 @@ const filteredFacilities = computed(() =>
     : facilities.value.filter((facility) => facility.category === activeCategory.value)
 )
 
-const selectCategory = (id: string) => {
+const selectCategory = async (id: string) => {
   activeCategory.value = id
+  activeCard.value = 0
+  await nextTick()
+  track.value?.scrollTo({ left: 0 })
+}
+
+const onTrackScroll = () => {
+  const el = track.value
+  const firstCard = el?.firstElementChild as HTMLElement | null
+  if (!el || !firstCard) return
+  const step = firstCard.offsetWidth + 16
+  activeCard.value = Math.min(Math.round(el.scrollLeft / step), filteredFacilities.value.length - 1)
 }
 
 const emit = defineEmits<{

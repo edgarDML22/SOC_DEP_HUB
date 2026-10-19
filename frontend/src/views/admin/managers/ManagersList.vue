@@ -1,22 +1,28 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   AdminPageHeader,
   BadgeStatus,
   ActionMenu,
   SearchInput,
-  LoadingSpinner,
-  CancelButton,
-  ConfirmButton,
   FilterContainer,
   FilterSelect
 } from '@/components/gerente/ui'
-import { IconFilter, IconChevronDown, IconUser, IconMail, IconBriefcase, IconLock, IconShield, IconAlertCircle } from '@/components/icons'
+import { IconUser, IconMail, IconBriefcase, IconLock, IconShield, IconAlertCircle, IconEdit } from '@/components/icons'
+import IconUserPlus from '@/components/icons/IconUserPlus.vue'
+import AppModal from '@/components/ui/modal/AppModal.vue'
+import AppConfirmModal from '@/components/ui/modal/AppConfirmModal.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppField from '@/components/ui/form/AppField.vue'
+import AppInput from '@/components/ui/form/AppInput.vue'
+import AppSelect from '@/components/ui/form/AppSelect.vue'
+import { useAlerts } from '@/composables/useAlerts'
 import { useAdminStore } from '@/stores/profiles/adminStore'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 
 const adminStore = useAdminStore()
+const { toastSuccess } = useAlerts()
 const { managers, isLoading, listFilters } = storeToRefs(adminStore)
 
 // Inicializar si por alguna razón está null (fallback de seguridad)
@@ -54,13 +60,13 @@ const editForm = ref({
 })
 
 const OPT_ROL = [
-  { label: 'Todos los roles', value: null },
+  { label: 'Todos', value: null },
   { label: 'Gerente', value: 'gerente' },
   { label: 'Subgerente', value: 'subgerente' },
 ]
 
 const OPT_ESTATUS = [
-  { label: 'Todos los estatus', value: null },
+  { label: 'Todos', value: null },
   { label: 'Activo', value: '1' },
   { label: 'Inactivo', value: '0' },
 ]
@@ -121,6 +127,49 @@ const initials = (name = '') => {
 }
 
 // Actions
+const OPT_ROL_FORM = [
+  { label: 'Gerente', value: 'gerente' },
+  { label: 'Subgerente', value: 'subgerente' },
+]
+const createErrors = ref({})
+const editErrors = ref({})
+const EMAIL_RE = /^\S+@\S+\.\S+$/
+
+const validateCreate = () => {
+  const f = createForm.value
+  const e = {}
+  if (!f.nombre_completo.trim()) e.nombre_completo = 'Escribe el nombre completo.'
+  if (!f.correo_electronico.trim()) e.correo_electronico = 'Escribe el correo.'
+  else if (!EMAIL_RE.test(f.correo_electronico)) e.correo_electronico = 'Ingresa un correo válido.'
+  if (!f.cargo.trim()) e.cargo = 'Escribe el cargo.'
+  if (!f.password) e.password = 'Escribe una contraseña.'
+  else if (f.password.length < 8) e.password = 'Debe tener al menos 8 caracteres.'
+  createErrors.value = e
+  return Object.keys(e).length === 0
+}
+
+const validateEdit = () => {
+  const f = editForm.value
+  const e = {}
+  if (!f.nombre_empleado?.trim()) e.nombre_empleado = 'Escribe el nombre completo.'
+  if (!f.email?.trim()) e.email = 'Escribe el correo.'
+  else if (!EMAIL_RE.test(f.email)) e.email = 'Ingresa un correo válido.'
+  if (!f.cargo?.trim()) e.cargo = 'Escribe el cargo.'
+  if (f.password && f.password.length < 8) e.password = 'Debe tener al menos 8 caracteres.'
+  editErrors.value = e
+  return Object.keys(e).length === 0
+}
+
+// Al corregir un campo marcado, su error desaparece
+const revalidate = (errorsRef, validate) => () => {
+  const prev = errorsRef.value
+  if (!Object.keys(prev).length) return
+  validate()
+  errorsRef.value = Object.fromEntries(Object.entries(errorsRef.value).filter(([key]) => key in prev))
+}
+watch(createForm, revalidate(createErrors, validateCreate), { deep: true })
+watch(editForm, revalidate(editErrors, validateEdit), { deep: true })
+
 const openCreateModal = () => {
   createForm.value = {
     nombre_completo: '',
@@ -129,6 +178,7 @@ const openCreateModal = () => {
     password: '',
     rol: 'subgerente'
   }
+  createErrors.value = {}
   isCreateModalOpen.value = true
 }
 
@@ -137,23 +187,45 @@ const openEditModal = (manager) => {
     id: manager.id,
     nombre_empleado: manager.name,
     email: manager.email,
-    cargo: manager.cargo
+    cargo: manager.cargo,
+    password: ''
   }
+  editErrors.value = {}
   isEditModalOpen.value = true
 }
 
 const handleCreate = async () => {
+  if (!validateCreate()) return
   const success = await adminStore.crearManager(createForm.value)
   if (success) isCreateModalOpen.value = false
 }
 
 const handleUpdate = async () => {
-  const success = await adminStore.actualizarManager(editForm.value.id, editForm.value)
+  if (!validateEdit()) return
+  const payload = { ...editForm.value }
+  if (!payload.password) delete payload.password
+  const success = await adminStore.actualizarManager(editForm.value.id, payload)
   if (success) isEditModalOpen.value = false
 }
 
-const handleToggleStatus = async (manager) => {
-  await adminStore.toggleActivo(manager.id, !manager.activo)
+// ── Habilitar / deshabilitar: siempre con confirmación y alerta de resultado ──
+const showToggleModal = ref(false)
+const managerToToggle = ref(null)
+
+const handleToggleStatus = (manager) => {
+  managerToToggle.value = manager
+  showToggleModal.value = true
+}
+
+const confirmToggleStatus = async () => {
+  const manager = managerToToggle.value
+  if (!manager) return
+  const enabling = !manager.activo
+  const ok = await adminStore.toggleActivo(manager.id, enabling)
+  if (ok) {
+    showToggleModal.value = false
+    toastSuccess(`${manager.name} fue ${enabling ? 'habilitado' : 'deshabilitado'}`)
+  }
 }
 
 const buildMenuItems = (manager) => {
@@ -185,31 +257,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans animate-fade-in">
-    <div class="max-w-7xl mx-auto space-y-8">
+  <main class="min-h-screen bg-surface-50 px-4 py-5 pb-16 font-sans animate-fade-in sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
 
       <!-- CABECERA -->
-      <AdminPageHeader title="Gestión de Gerentes" subtitle="Administra los accesos de nivel gerencial y subgerencial.">
-        <div class="flex items-center gap-3 w-full sm:w-auto">
-          <span class="text-sm font-bold text-surface-500 hidden sm:inline-block">
-            {{ filteredManagers.length }}
-            <span class="font-medium text-surface-400">de {{ managers.length }} gerentes</span>
-          </span>
+      <AdminPageHeader title="Gestión de Gerentes" subtitle="Administra los accesos de nivel gerencial y subgerencial." />
 
-          <button @click="openCreateModal"
-            class="bg-surface-900 hover:bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold
-           flex items-center justify-center flex-1 sm:flex-none gap-2 transition-all active:scale-95 shadow-sm border-none cursor-pointer text-sm">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
-            </svg>
-            <span class="hidden sm:inline">Nuevo Gerente</span>
-            <span class="sm:hidden">Nuevo</span>
-          </button>
-        </div>
-      </AdminPageHeader>
+      <!-- Acción principal a la izquierda y el conteo justo a su derecha -->
+      <div class="flex items-center gap-3 sm:gap-4">
+        <AppButton class="shrink-0" @click="openCreateModal">
+          <template #icon><IconUserPlus class="h-4 w-4" /></template>
+          Nuevo Gerente
+        </AppButton>
+        <span class="min-w-0 whitespace-nowrap text-sm font-semibold text-surface-600">
+          <span class="font-bold tabular-nums text-surface-900">{{ filteredManagers.length }}</span>
+          de <span class="tabular-nums">{{ managers.length }}</span><span class="hidden sm:inline"> gerentes</span>
+        </span>
+      </div>
 
       <!-- BARRA DE FILTROS -->
-      <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+      <FilterContainer :has-active-filters="hasActiveFilters" :active-count="[listFilters?.rol, listFilters?.status].filter(Boolean).length" @clear="clearFilters">
         <template #search>
           <SearchInput v-if="listFilters" v-model="listFilters.search"
             placeholder="Buscar por nombre, correo o cargo..." />
@@ -293,12 +360,13 @@ onMounted(() => {
                   </td>
                   <td class="px-6 py-4">
                     <div class="flex justify-center">
-                      <button v-if="isGerente" @click="handleToggleStatus(manager)"
+                      <button v-if="isGerente" @click="handleToggleStatus(manager)" role="switch" :aria-checked="manager.activo"
+                        :aria-label="`${manager.activo ? 'Deshabilitar' : 'Habilitar'} a ${manager.name}`"
                         class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
-                        :class="manager.activo ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-slate-200'"
+                        :class="manager.activo ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-surface-300'"
                         :disabled="isLoading.toggle">
                         <span
-                          class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-350 ease-out"
+                          class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white keep-white shadow ring-0 transition duration-350 ease-out"
                           :class="manager.activo ? 'translate-x-5' : 'translate-x-0'" />
                       </button>
                       <div v-else>
@@ -357,11 +425,12 @@ onMounted(() => {
                     <span class="font-bold" :class="manager.activo ? 'text-emerald-600' : 'text-surface-400'">
                       {{ manager.activo ? 'Activo' : 'Inactivo' }}
                     </span>
-                    <button v-if="isGerente" @click="handleToggleStatus(manager)" :disabled="isLoading.toggle"
+                    <button v-if="isGerente" @click="handleToggleStatus(manager)" :disabled="isLoading.toggle" role="switch" :aria-checked="manager.activo"
+                      :aria-label="`${manager.activo ? 'Deshabilitar' : 'Habilitar'} a ${manager.name}`"
                       class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
-                      :class="manager.activo ? 'bg-emerald-500' : 'bg-slate-200'">
+                      :class="manager.activo ? 'bg-emerald-500' : 'bg-surface-300'">
                       <span
-                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-out"
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white keep-white shadow ring-0 transition duration-300 ease-out"
                         :class="manager.activo ? 'translate-x-5' : 'translate-x-0'" />
                     </button>
                   </div>
@@ -374,226 +443,74 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Modals -->
-    <Teleport to="body">
-      <!-- Create Modal -->
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="isCreateModalOpen"
-          class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="isCreateModalOpen = false">
-          <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
-            <div v-if="isCreateModalOpen" class="bg-white w-full max-w-lg rounded-[2.2rem] border border-surface-200/80 shadow-2xl shadow-surface-900/20
-                     flex flex-col max-h-[92vh] overflow-hidden">
-              <!-- Cabecera -->
-              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-                <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nuevo Gerente</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                    Registra un nuevo usuario administrativo.
-                  </p>
-                </div>
-                <button @click="isCreateModalOpen = false"
-                  class="w-10 h-10 rounded-xl bg-surface-50 hover:bg-surface-100
-                         flex items-center justify-center text-surface-500 transition-colors border border-surface-200/60">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+    <!-- MODAL: NUEVO GERENTE -->
+    <AppModal v-model="isCreateModalOpen" title="Nuevo gerente" subtitle="Registra un nuevo usuario administrativo"
+      :icon="IconUserPlus" :persistent="isLoading.create">
+      <form id="manager-create-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" novalidate @submit.prevent="handleCreate">
+        <AppField label="Nombre completo" for="mgr-nombre" required :error="createErrors.nombre_completo" class="sm:col-span-2">
+          <AppInput id="mgr-nombre" v-model="createForm.nombre_completo" :icon="IconUser" placeholder="Ej. Juan Pérez García" autocomplete="off" :invalid="!!createErrors.nombre_completo" />
+        </AppField>
+        <AppField label="Correo electrónico" for="mgr-correo" required :error="createErrors.correo_electronico">
+          <AppInput id="mgr-correo" v-model="createForm.correo_electronico" type="email" :icon="IconMail" placeholder="juan@ejemplo.com" autocomplete="off" :invalid="!!createErrors.correo_electronico" />
+        </AppField>
+        <AppField label="Cargo" for="mgr-cargo" required :error="createErrors.cargo">
+          <AppInput id="mgr-cargo" v-model="createForm.cargo" :icon="IconBriefcase" placeholder="Ej. Dir. Comercial" autocomplete="off" :invalid="!!createErrors.cargo" />
+        </AppField>
+        <AppField label="Contraseña" for="mgr-password" required hint="Mínimo 8 caracteres." :error="createErrors.password">
+          <AppInput id="mgr-password" v-model="createForm.password" type="password" :icon="IconLock" placeholder="••••••••" autocomplete="new-password" :invalid="!!createErrors.password" />
+        </AppField>
+        <AppField label="Rol de acceso" required>
+          <AppSelect v-model="createForm.rol" :options="OPT_ROL_FORM" />
+        </AppField>
+      </form>
+      <template #footer>
+        <AppButton variant="secondary" :disabled="isLoading.create" @click="isCreateModalOpen = false">Cancelar</AppButton>
+        <AppButton type="submit" form="manager-create-form" :loading="isLoading.create">Crear gerente</AppButton>
+      </template>
+    </AppModal>
 
-              <form @submit.prevent="handleCreate" class="flex flex-col flex-1 overflow-hidden">
-                <!-- Cuerpo -->
-                <div class="flex-1 overflow-y-auto p-8 space-y-6 bg-surface-50/30">
-                  <!-- Nombre -->
-                  <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                      Nombre Completo <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                      <input v-model="createForm.nombre_completo" type="text" required
-                        placeholder="Ej. Juan Pérez García"
-                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                               text-surface-900 placeholder:text-surface-400 shadow-xs
-                               focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                    </div>
-                  </div>
+    <!-- MODAL: EDITAR GERENTE -->
+    <AppModal v-model="isEditModalOpen" title="Editar gerente" :subtitle="editForm.nombre_empleado"
+      :icon="IconEdit" :persistent="isLoading.update">
+      <form id="manager-edit-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" novalidate @submit.prevent="handleUpdate">
+        <AppField label="Nombre completo" for="mgr-edit-nombre" required :error="editErrors.nombre_empleado" class="sm:col-span-2">
+          <AppInput id="mgr-edit-nombre" v-model="editForm.nombre_empleado" :icon="IconUser" autocomplete="off" :invalid="!!editErrors.nombre_empleado" />
+        </AppField>
+        <AppField label="Correo electrónico" for="mgr-edit-correo" required :error="editErrors.email">
+          <AppInput id="mgr-edit-correo" v-model="editForm.email" type="email" :icon="IconMail" autocomplete="off" :invalid="!!editErrors.email" />
+        </AppField>
+        <AppField label="Cargo" for="mgr-edit-cargo" required :error="editErrors.cargo">
+          <AppInput id="mgr-edit-cargo" v-model="editForm.cargo" :icon="IconBriefcase" autocomplete="off" :invalid="!!editErrors.cargo" />
+        </AppField>
+        <AppField label="Nueva contraseña" for="mgr-edit-password" optional hint="Déjala en blanco para no cambiarla." :error="editErrors.password" class="sm:col-span-2">
+          <AppInput id="mgr-edit-password" v-model="editForm.password" type="password" :icon="IconLock" placeholder="••••••••" autocomplete="new-password" :invalid="!!editErrors.password" />
+        </AppField>
+      </form>
+      <template #footer>
+        <AppButton variant="secondary" :disabled="isLoading.update" @click="isEditModalOpen = false">Cancelar</AppButton>
+        <AppButton type="submit" form="manager-edit-form" :loading="isLoading.update">Guardar cambios</AppButton>
+      </template>
+    </AppModal>
 
-                  <!-- Correo + Cargo -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                        Correo Electrónico <span class="text-red-400">*</span>
-                      </label>
-                      <div class="relative">
-                        <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                        <input v-model="createForm.correo_electronico" type="email" required
-                          placeholder="juan@ejemplo.com"
-                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                                 text-surface-900 placeholder:text-surface-400 shadow-xs
-                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                      </div>
-                    </div>
-                    <div class="space-y-1.5">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                        Cargo <span class="text-red-400">*</span>
-                      </label>
-                      <div class="relative">
-                        <IconBriefcase class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                        <input v-model="createForm.cargo" type="text" required placeholder="Ej. Dir. Comercial"
-                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                                 text-surface-900 placeholder:text-surface-400 shadow-xs
-                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Contraseña + Rol -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                        Contraseña <span class="text-red-400">*</span>
-                      </label>
-                      <div class="relative">
-                        <IconLock class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                        <input v-model="createForm.password" type="password" required minlength="8"
-                          placeholder="••••••••"
-                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                                 text-surface-900 placeholder:text-surface-400 shadow-xs
-                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                      </div>
-                    </div>
-                    <div class="space-y-1.5">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                        Rol de Acceso <span class="text-red-400">*</span>
-                      </label>
-                      <div class="relative">
-                        <select v-model="createForm.rol"
-                          class="w-full pl-4 pr-8 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                                 text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
-                          <option value="gerente">Gerente</option>
-                          <option value="subgerente">Subgerente</option>
-                        </select>
-                        <IconChevronDown
-                          class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Pie -->
-                <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
-                  <CancelButton label="Cancelar" @click="isCreateModalOpen = false" />
-                  <ConfirmButton label="Crear Gerente" :loading="isLoading.create" type="submit" />
-                </div>
-              </form>
-            </div>
-          </Transition>
-        </div>
-      </Transition>
-
-      <!-- MODAL: EDITAR GERENTE -->
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="isEditModalOpen"
-          class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="isEditModalOpen = false">
-          <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
-            <div v-if="isEditModalOpen" class="bg-white w-full max-w-lg rounded-[2.2rem] border border-surface-200/80 shadow-2xl shadow-surface-900/20
-                     flex flex-col max-h-[92vh] overflow-hidden">
-              <!-- Cabecera -->
-              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-                <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Editar Gerente</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                    Modifica los datos del usuario.
-                  </p>
-                </div>
-                <button @click="isEditModalOpen = false"
-                  class="w-10 h-10 rounded-xl bg-surface-50 hover:bg-surface-100
-                         flex items-center justify-center text-surface-500 transition-colors border border-surface-200/60">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <form @submit.prevent="handleUpdate" class="flex flex-col flex-1 overflow-hidden">
-                <!-- Cuerpo -->
-                <div class="flex-1 overflow-y-auto p-8 space-y-6 bg-surface-50/30">
-                  <!-- Nombre -->
-                  <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                      Nombre Completo <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                      <input v-model="editForm.nombre_empleado" type="text" required placeholder="Ej. Juan Pérez García"
-                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                               text-surface-900 placeholder:text-surface-400 shadow-xs
-                               focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                    </div>
-                  </div>
-
-                  <!-- Correo + Cargo -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                        Correo Electrónico <span class="text-red-400">*</span>
-                      </label>
-                      <div class="relative">
-                        <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                        <input v-model="editForm.email" type="email" required placeholder="juan@ejemplo.com"
-                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                                 text-surface-900 placeholder:text-surface-400 shadow-xs
-                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                      </div>
-                    </div>
-                    <div class="space-y-1.5">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                        Cargo <span class="text-red-400">*</span>
-                      </label>
-                      <div class="relative">
-                        <IconBriefcase class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                        <input v-model="editForm.cargo" type="text" required placeholder="Ej. Dir. Comercial"
-                          class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                                 text-surface-900 placeholder:text-surface-400 shadow-xs
-                                 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Contraseña (opcional) -->
-                  <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                      Contraseña (opcional)
-                    </label>
-                    <div class="relative">
-                      <IconLock class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                      <input v-model="editForm.password" type="password" minlength="8"
-                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                               text-surface-900 placeholder:text-surface-400 shadow-xs
-                               focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" placeholder="Dejar en blanco para no cambiar" />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Pie -->
-                <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
-                  <CancelButton label="Cancelar" @click="isEditModalOpen = false" />
-                  <ConfirmButton label="Guardar Cambios" :loading="isLoading.update" type="submit" />
-                </div>
-              </form>
-            </div>
-          </Transition>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- MODAL: HABILITAR / DESHABILITAR GERENTE -->
+    <AppConfirmModal
+      v-model="showToggleModal"
+      :title="managerToToggle?.activo ? '¿Deshabilitar gerente?' : '¿Habilitar gerente?'"
+      :icon="IconShield"
+      :tone="managerToToggle?.activo ? 'rose' : 'emerald'"
+      :confirm-label="managerToToggle?.activo ? 'Sí, deshabilitar' : 'Sí, habilitar'"
+      :loading="isLoading.toggle"
+      @confirm="confirmToggleStatus"
+    >
+      <template v-if="managerToToggle?.activo">
+        <strong class="text-surface-900">{{ managerToToggle?.name }}</strong> perderá el acceso al panel de
+        administración hasta que vuelvas a habilitarlo.
+      </template>
+      <template v-else>
+        <strong class="text-surface-900">{{ managerToToggle?.name }}</strong> recuperará el acceso al panel de
+        administración con su rol de <strong class="text-surface-900">{{ managerToToggle?.rol }}</strong>.
+      </template>
+    </AppConfirmModal>
   </main>
 </template>
 

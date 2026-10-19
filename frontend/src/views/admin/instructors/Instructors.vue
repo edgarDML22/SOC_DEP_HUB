@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import api from '@/services/api'
@@ -7,26 +7,33 @@ import { useInstructorStore } from '@/stores/admin/instructorStore'
 import { useAlerts } from '@/composables/useAlerts'
 
 
-import DatePicker from 'primevue/datepicker'
-
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import AppModal from '@/components/ui/modal/AppModal.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppField from '@/components/ui/form/AppField.vue'
+import AppInput from '@/components/ui/form/AppInput.vue'
+import AppSelect from '@/components/ui/form/AppSelect.vue'
+import AppDatePicker from '@/components/ui/form/AppDatePicker.vue'
+import AppTimePicker from '@/components/ui/form/AppTimePicker.vue'
+import AppMultiSelect from '@/components/ui/form/AppMultiSelect.vue'
 import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
 import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
-import { IconAlertCircle, IconTarget, IconChevronDown, IconUser, IconPhone, IconMail, IconClock, IconCalendar } from '@/components/icons'
+import { IconAlertCircle, IconTarget, IconUser, IconPhone, IconClock, IconCalendar } from '@/components/icons'
+import IconUserPlus from '@/components/icons/IconUserPlus.vue'
 import InstructorStatusModal from './InstructorStatusModal.vue'
 import ManageDisciplinesModal from '@/views/admin/Disciplines/ManageDisciplinesModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
+import { useformat } from '@/utils/formatters'
 
 const router = useRouter()
 const instructorStore = useInstructorStore()
-const { toastInfo } = useAlerts()
+const { toastSuccess } = useAlerts()
+const { dateFormat } = useformat()
 
 const { instructors, isLoading, error: errorMsg, listFilters } = storeToRefs(instructorStore)
 const { fetchInstructors, updateInstructor } = instructorStore
@@ -50,14 +57,14 @@ const fetchDisciplinas = async () => {
 // ── FILTROS ────────────────────────────────────────────────────
 // OPT_ESTATUS
 const OPT_ESTATUS = [
-  { label: 'Todos los estatus', value: null },
+  { label: 'Todos', value: null },
   { label: 'Activo', value: 'ACTIVO' },
   { label: 'Inactivo', value: 'INACTIVO' },
   { label: 'Baja Temporal', value: 'BAJA_TEMPORAL' },
 ]
 
 const disciplinasOpts = computed(() => [
-  { label: 'Todas las disciplinas', value: null },
+  { label: 'Todas', value: null },
   ...disciplinasList.value.map(d => ({ label: d.nombre_disciplina, value: d.id_disciplina })),
 ])
 
@@ -86,7 +93,6 @@ const clearFilters = () => {
   listFilters.value.estatus = listFilters.value.disciplina = null
 }
 // ── FILTROS COLAPSABLES (móvil) ───────────────────────────────
-const showFilters = ref(false)
 const activeFiltersCount = computed(() =>
   [listFilters.value.estatus, listFilters.value.disciplina].filter(Boolean).length
 )
@@ -185,18 +191,18 @@ const onStatusUpdated = async () => {
 
 // ── MODAL: NUEVO INSTRUCTOR ────────────────────────────────────
 const showNewModal = ref(false)
-const showSuccessOverlay = ref(false)
 const isSaving = ref(false)
 const formError = ref('')
+const formErrors = ref({})
 
 const EMPTY_FORM = () => ({
   nombre_completo: '',
   telefono: '',
   correo_electronico: '',
-  fecha_nacimiento: null,
-  fecha_afiliacion: null,
-  hora_entrada: null,
-  hora_salida: null,
+  fecha_nacimiento: '',
+  fecha_afiliacion: '',
+  hora_entrada: '',
+  hora_salida: '',
   estatus: 'ACTIVO',
   disciplinas: [],
 })
@@ -208,56 +214,50 @@ const OPT_ESTATUS_FORM = [
   { label: 'Baja Temporal', value: 'BAJA_TEMPORAL' },
 ]
 
-const toggleDisciplina = (id) => {
-  const idx = newInstructor.value.disciplinas.indexOf(id)
-  idx > -1
-    ? newInstructor.value.disciplinas.splice(idx, 1)
-    : newInstructor.value.disciplinas.push(id)
+const disciplinaOptions = computed(() =>
+  disciplinasList.value.map(d => ({ label: d.nombre_disciplina, value: d.id_disciplina }))
+)
+
+const hoyIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date())
+
+const validateNewInstructor = () => {
+  const f = newInstructor.value
+  const errors = {}
+  if (!f.nombre_completo.trim()) errors.nombre_completo = 'Escribe el nombre completo.'
+  if (!f.telefono?.trim()) errors.telefono = 'Escribe el teléfono.'
+  else if (!/^\d{10}$/.test(f.telefono.trim())) errors.telefono = 'El teléfono debe tener 10 dígitos.'
+  if (!f.estatus) errors.estatus = 'Selecciona el estatus.'
+  if (f.hora_entrada && f.hora_salida && f.hora_salida <= f.hora_entrada) errors.hora_salida = 'Debe ser posterior a la hora de entrada.'
+  formErrors.value = errors
+  return Object.keys(errors).length === 0
 }
 
-const toDateStr = (d) => {
-  if (!d) return null
-  return new Intl.DateTimeFormat('en-CA').format(d)
-}
-const toTimeStr = (d) => {
-  if (!d) return null
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${hh}:${mm}:00`
-}
+// Al corregir un campo marcado, su error desaparece
+watch(newInstructor, () => {
+  const prev = formErrors.value
+  if (!Object.keys(prev).length) return
+  validateNewInstructor()
+  formErrors.value = Object.fromEntries(Object.entries(formErrors.value).filter(([key]) => key in prev))
+}, { deep: true })
 
 const saveNewInstructor = async () => {
   formError.value = ''
-  if (!newInstructor.value.nombre_completo.trim()) {
-    formError.value = 'El nombre completo es requerido.'
-    return
-  }
-  if (!newInstructor.value.telefono?.trim()) {
-    formError.value = 'El teléfono es requerido.'
-    return
-  }
-  if (!newInstructor.value.estatus) {
-    formError.value = 'El estatus es requerido.'
-    return
-  }
+  if (!validateNewInstructor()) return
   isSaving.value = true
   try {
     const payload = {
       ...newInstructor.value,
-      fecha_nacimiento: toDateStr(newInstructor.value.fecha_nacimiento),
-      fecha_afiliacion: toDateStr(newInstructor.value.fecha_afiliacion),
-      hora_entrada: toTimeStr(newInstructor.value.hora_entrada),
-      hora_salida: toTimeStr(newInstructor.value.hora_salida),
+      fecha_nacimiento: newInstructor.value.fecha_nacimiento || null,
+      fecha_afiliacion: newInstructor.value.fecha_afiliacion || null,
+      hora_entrada: newInstructor.value.hora_entrada || null,
+      hora_salida: newInstructor.value.hora_salida || null,
     }
     const res = await api.post('/instructors/create', payload)
     if (res.data?.success) {
-      showSuccessOverlay.value = true
+      toastSuccess(`${newInstructor.value.nombre_completo.trim()} se registró como instructor`)
+      showNewModal.value = false
+      newInstructor.value = EMPTY_FORM()
       await fetchInstructors(true)
-      setTimeout(() => {
-        showSuccessOverlay.value = false
-        showNewModal.value = false
-        newInstructor.value = EMPTY_FORM()
-      }, 1500)
     } else {
       formError.value = res.data?.message ?? 'Ocurrió un error al crear.'
     }
@@ -271,6 +271,7 @@ const saveNewInstructor = async () => {
 const openNewModal = () => {
   newInstructor.value = EMPTY_FORM()
   formError.value = ''
+  formErrors.value = {}
   showNewModal.value = true
 }
 
@@ -281,97 +282,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
-    <div class="max-w-7xl mx-auto space-y-8">
+  <main class="min-h-screen bg-surface-50 px-4 py-5 pb-16 font-sans sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
 
       <!-- CABECERA -->
-      <AdminPageHeader title="Instructores" subtitle="Gestión de instructores, disciplinas y estatus de cuenta.">
-        <span class="text-sm font-bold text-surface-500">
-          {{ filteredInstructors.length }}
-          <span class="font-medium text-surface-400">de {{ instructors.length }}</span>
-        </span>
-        <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="16" />
-            <line x1="8" y1="12" x2="16" y2="12" />
-          </svg>
+      <AdminPageHeader title="Instructores" subtitle="Gestión de instructores, disciplinas y estatus de cuenta." />
+
+      <!-- Acción principal a la izquierda y el conteo justo a su derecha -->
+      <div class="flex items-center gap-3 sm:gap-4">
+        <AppButton class="shrink-0" @click="openNewModal">
+          <template #icon><IconUserPlus class="h-4 w-4" /></template>
           Nuevo Instructor
-        </button>
-      </AdminPageHeader>
+        </AppButton>
+        <span class="min-w-0 whitespace-nowrap text-sm font-semibold text-surface-600">
+          <span class="font-bold tabular-nums text-surface-900">{{ filteredInstructors.length }}</span>
+          de <span class="tabular-nums">{{ instructors.length }}</span><span class="hidden sm:inline"> instructores</span>
+        </span>
+      </div>
 
       <!-- BARRA DE FILTROS -->
-      <div>
+      <FilterContainer :has-active-filters="hasActiveFilters" :active-count="activeFiltersCount" @clear="clearFilters">
+        <template #search>
+          <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
+        </template>
 
-        <!-- Desktop: igual que antes -->
-        <div class="hidden lg:block">
-          <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
-            <template #search>
-              <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
-            </template>
+        <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_ESTATUS">
+          <template #icon>
+            <IconAlertCircle />
+          </template>
+        </FilterSelect>
 
-            <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_ESTATUS">
-              <template #icon>
-                <IconAlertCircle />
-              </template>
-            </FilterSelect>
-
-            <FilterSelect label="Disciplina" v-model="listFilters.disciplina" :options="disciplinasOpts">
-              <template #icon>
-                <IconTarget />
-              </template>
-            </FilterSelect>
-          </FilterContainer>
-        </div>
-
-        <!-- Móvil / tablet: búsqueda + botón que despliega filtros -->
-        <div class="lg:hidden space-y-3">
-          <div class="flex items-center gap-2">
-            <div class="flex-1 min-w-0">
-              <SearchInput v-model="listFilters.search" placeholder="Buscar instructor por nombre…" />
-            </div>
-
-            <button type="button" @click="showFilters = !showFilters"
-              class="relative w-11 h-11 shrink-0 flex items-center justify-center rounded-xl border shadow-sm transition-colors cursor-pointer"
-              :class="showFilters
-                ? 'bg-surface-900 text-white border-surface-900'
-                : 'bg-white text-surface-600 border-surface-200 hover:bg-surface-50'" :aria-expanded="showFilters"
-              aria-label="Mostrar u ocultar filtros">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              <span v-if="activeFiltersCount"
-                class="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-primary-600 text-white text-[10px] font-black flex items-center justify-center">
-                {{ activeFiltersCount }}
-              </span>
-            </button>
-          </div>
-
-          <!-- Panel desplegable -->
-          <div v-if="showFilters"
-            class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white border border-surface-200 rounded-2xl shadow-sm p-4">
-            <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_ESTATUS">
-              <template #icon>
-                <IconAlertCircle />
-              </template>
-            </FilterSelect>
-
-            <FilterSelect label="Disciplina" v-model="listFilters.disciplina" :options="disciplinasOpts">
-              <template #icon>
-                <IconTarget />
-              </template>
-            </FilterSelect>
-
-            <button v-if="hasActiveFilters" type="button" @click="clearFilters"
-              class="sm:col-span-2 text-sm font-bold text-primary-600 hover:underline cursor-pointer">
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
-
-      </div>
+        <FilterSelect label="Disciplina" v-model="listFilters.disciplina" :options="disciplinasOpts">
+          <template #icon>
+            <IconTarget />
+          </template>
+        </FilterSelect>
+      </FilterContainer>
 
       <!-- TABLA -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">
@@ -458,7 +404,7 @@ onMounted(async () => {
                   <!-- Horario -->
                   <td class="px-6 py-4 hidden lg:table-cell">
                     <span v-if="instructor.hora_entrada || instructor.hora_salida"
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
+                      class="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
                       <IconClock class="w-3.5 h-3.5 text-surface-400 shrink-0" />
                       <span>
                         {{ instructor.hora_entrada?.substring(0, 5) ?? '--' }} – {{ instructor.hora_salida?.substring(0,
@@ -473,10 +419,10 @@ onMounted(async () => {
                   <!-- Fecha afiliación -->
                   <td class="px-6 py-4 hidden lg:table-cell">
                     <span v-if="instructor.fecha_afiliacion"
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
+                      class="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-50 text-surface-700 border border-surface-200/50 font-sans tracking-wide">
                       <IconCalendar class="w-3.5 h-3.5 text-surface-400 shrink-0" />
                       <span>
-                        {{ instructor.fecha_afiliacion }}
+                        {{ dateFormat(instructor.fecha_afiliacion) }}
                       </span>
                     </span>
                     <span v-else
@@ -565,203 +511,76 @@ onMounted(async () => {
       </div>
     </div><!-- /max-w -->
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL: NUEVO INSTRUCTOR
-    ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showNewModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showNewModal = false">
-          <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
-            <div v-if="showNewModal" class="bg-white w-full max-w-2xl rounded-4xl shadow-2xl shadow-surface-900/20
-                     flex flex-col max-h-[92vh] overflow-hidden relative">
-              <!-- Overlay de éxito (animate-scale-in) -->
-              <Transition enter-active-class="transition-opacity duration-150 ease-out" enter-from-class="opacity-0"
-                enter-to-class="opacity-100" leave-active-class="transition-opacity duration-200 ease-in"
-                leave-from-class="opacity-100" leave-to-class="opacity-0">
-                <div v-if="showSuccessOverlay"
-                  class="absolute inset-0 z-50 bg-white/95 backdrop-blur-[2px] rounded-4xl flex flex-col items-center justify-center gap-4">
-                  <div
-                    class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
-                    <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <p class="text-base font-black text-slate-800">Instructor registrado correctamente</p>
-                </div>
-              </Transition>
-
-              <!-- Cabecera -->
-              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-                <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nuevo Instructor</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                    Completa la información para registrar al instructor.
-                  </p>
-                </div>
-                <button @click="showNewModal = false" class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200
-                         flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Cuerpo -->
-              <div class="overflow-y-auto p-7 space-y-6 bg-surface-50/30">
-
-                <!-- Error banner -->
-                <Transition enter-active-class="transition-all duration-200 ease-out"
-                  enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
-                  <div v-if="formError" class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl
-                           text-red-700 text-sm font-semibold">
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    {{ formError }}
-                  </div>
-                </Transition>
-
-                <!-- Nombre -->
-                <div class="space-y-1.5">
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                    Nombre Completo <span class="text-red-400">*</span>
-                  </label>
-                  <div class="relative">
-                    <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="newInstructor.nombre_completo" placeholder="Ej. Juan Pérez García"
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                             text-surface-900 placeholder:text-surface-400 shadow-sm
-                             focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                  </div>
-                </div>
-
-                <!-- Teléfono + Estatus -->
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                      Teléfono <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <IconPhone class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                      <input v-model="newInstructor.telefono" placeholder="Ej. 5512345678"
-                        class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                               text-surface-900 placeholder:text-surface-400 shadow-sm
-                               focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                    </div>
-                  </div>
-                  <div class="space-y-1.5">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">
-                      Estatus <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <select v-model="newInstructor.estatus"
-                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
-                        <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}
-                        </option>
-                      </select>
-                      <IconChevronDown
-                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Correo -->
-
-
-                <!-- Fechas -->
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="space-y-1.5">
-                    <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha
-                      de
-                      Nacimiento</label>
-                    <DatePicker v-model="newInstructor.fecha_nacimiento" dateFormat="yy-mm-dd" showIcon
-                      iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
-                  </div>
-                  <div class="space-y-1.5">
-                    <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Fecha
-                      de
-                      Afiliación</label>
-                    <DatePicker v-model="newInstructor.fecha_afiliacion" dateFormat="yy-mm-dd" showIcon
-                      iconDisplay="input" placeholder="yyyy-mm-dd" class="w-full" :manualInput="false" />
-                  </div>
-                </div>
-
-                <!-- Horario -->
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="space-y-1.5">
-                    <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Hora
-                      Entrada</label>
-                    <DatePicker v-model="newInstructor.hora_entrada" timeOnly hourFormat="24" placeholder="00:00"
-                      class="w-full" :manualInput="false" showOnFocus fluid />
-                  </div>
-                  <div class="space-y-1.5">
-                    <label
-                      class="block text-[10px] font-black uppercase tracking-widest text-surface-400 px-1 mb-1">Hora
-                      Salida</label>
-                    <DatePicker v-model="newInstructor.hora_salida" timeOnly hourFormat="24" placeholder="00:00"
-                      class="w-full" :manualInput="false" showOnFocus fluid />
-                  </div>
-                </div>
-
-                <!-- Selector de disciplinas — estilo premium -->
-                <div class="space-y-2 mt-4">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                    Disciplinas que Imparte
-                  </label>
-                  <div v-if="disciplinasList.length === 0"
-                    class="text-xs font-bold text-surface-400 italic p-4 text-center bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
-                    Cargando disciplinas…
-                  </div>
-                  <div v-else
-                    class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-1 pr-2 custom-scrollbar">
-                    <button v-for="d in disciplinasList" :key="d.id_disciplina" type="button"
-                      @click="toggleDisciplina(d.id_disciplina)"
-                      class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all text-left shadow-sm group relative overflow-hidden"
-                      :class="newInstructor.disciplinas.includes(d.id_disciplina)
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-surface-50 text-surface-600 border-surface-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md'">
-                      <div class="w-8 h-8 flex items-center justify-center shrink-0 transition-colors">
-                        <DisciplineIcon :name="d.nombre_disciplina" class="w-6 h-6 shrink-0" />
-                      </div>
-                      <span class="truncate flex-1">{{ d.nombre_disciplina }}</span>
-
-                      <!-- Icono de Check Dinámico -->
-                      <div
-                        class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border-2"
-                        :class="newInstructor.disciplinas.includes(d.id_disciplina) ? 'border-white text-white' : 'border-surface-300 bg-surface-50 text-transparent group-hover:border-blue-400 group-hover:text-blue-300'">
-                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
-                          stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-              </div><!-- /cuerpo -->
-
-              <!-- Pie del modal -->
-              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100">
-                <CancelButton @click="showNewModal = false" />
-                <ConfirmButton label="Guardar Instructor" :loading="isSaving" @click="saveNewInstructor" />
-              </div>
-            </div>
-          </Transition>
+    <!-- MODAL: NUEVO INSTRUCTOR -->
+    <AppModal
+      v-model="showNewModal"
+      title="Nuevo instructor"
+      subtitle="Completa la información para registrarlo en el club"
+      :icon="IconUserPlus"
+      size="lg"
+      :persistent="isSaving"
+    >
+      <form id="instructor-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" novalidate @submit.prevent="saveNewInstructor">
+        <div v-if="formError" role="alert"
+          class="flex items-start gap-2.5 rounded-2xl bg-rose-50 p-3.5 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 sm:col-span-2 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/30">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+          {{ formError }}
         </div>
-      </Transition>
-    </Teleport>
+
+        <AppField label="Nombre completo" for="ins-nombre" required :error="formErrors.nombre_completo" class="sm:col-span-2">
+          <AppInput id="ins-nombre" v-model="newInstructor.nombre_completo" :icon="IconUser" placeholder="Ej. Juan Pérez García" autocomplete="off" :invalid="!!formErrors.nombre_completo" />
+        </AppField>
+
+        <AppField label="Teléfono" for="ins-telefono" required :error="formErrors.telefono">
+          <AppInput id="ins-telefono" v-model="newInstructor.telefono" type="tel" inputmode="numeric" maxlength="10" :icon="IconPhone" placeholder="10 dígitos" autocomplete="off" :invalid="!!formErrors.telefono" />
+        </AppField>
+
+        <AppField label="Estatus" required :error="formErrors.estatus">
+          <AppSelect v-model="newInstructor.estatus" :options="OPT_ESTATUS_FORM" :invalid="!!formErrors.estatus" />
+        </AppField>
+
+        <AppField label="Fecha de nacimiento" optional>
+          <AppDatePicker v-model="newInstructor.fecha_nacimiento" :max-date="hoyIso" />
+        </AppField>
+
+        <AppField label="Fecha de afiliación" optional>
+          <AppDatePicker v-model="newInstructor.fecha_afiliacion" />
+        </AppField>
+
+        <AppField label="Hora de entrada" optional>
+          <AppTimePicker v-model="newInstructor.hora_entrada" />
+        </AppField>
+
+        <AppField label="Hora de salida" optional :error="formErrors.hora_salida">
+          <AppTimePicker v-model="newInstructor.hora_salida" :invalid="!!formErrors.hora_salida" />
+        </AppField>
+
+        <AppField label="Disciplinas que imparte" hint="Puedes elegir varias; búscalas por nombre." class="sm:col-span-2">
+          <AppMultiSelect
+            v-model="newInstructor.disciplinas"
+            :options="disciplinaOptions"
+            :loading="disciplinasList.length === 0"
+            placeholder="Seleccionar disciplinas"
+            items-label="disciplinas seleccionadas"
+          >
+            <template #option="{ option }">
+              <span class="flex items-center gap-2.5">
+                <DisciplineIcon :name="option.label" class="h-5 w-5 shrink-0 text-primary-600" />
+                {{ option.label }}
+              </span>
+            </template>
+            <template #chip-icon="{ option }">
+              <DisciplineIcon :name="option.label" class="h-3.5 w-3.5 shrink-0" />
+            </template>
+          </AppMultiSelect>
+        </AppField>
+      </form>
+
+      <template #footer>
+        <AppButton variant="secondary" :disabled="isSaving" @click="showNewModal = false">Cancelar</AppButton>
+        <AppButton type="submit" form="instructor-form" :loading="isSaving">Guardar instructor</AppButton>
+      </template>
+    </AppModal>
 
     <!-- MODAL: CAMBIAR ESTATUS -->
     <InstructorStatusModal :show="showStatusModal" :instructor-id="statusModalInstructorId"

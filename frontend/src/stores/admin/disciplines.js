@@ -167,7 +167,11 @@ export const useDisciplinesStore = defineStore("disciplinesAdmin", () => {
             return res.data; // Retorna { puede_eliminar, disciplinas_activas, nombres_disciplinas }
         } catch (err) {
             console.error("Error verifying category deletion:", err);
-            return { success: false, error: "Error al verificar eliminación." };
+            // Sin puede_eliminar: el modal lo muestra como error de verificación (no como "bloqueada")
+            // Los errores 5xx traen detalles técnicos (SQL, rutas): no se muestran al usuario
+            const status = err.response?.status;
+            const friendly = status && status < 500 ? err.response?.data?.message : null;
+            return { success: false, error: friendly || "El servidor no pudo verificarlo. Intenta de nuevo o avisa al equipo técnico." };
         } finally {
             isLoading.value = false;
         }

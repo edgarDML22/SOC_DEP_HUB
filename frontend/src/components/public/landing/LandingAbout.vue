@@ -1,31 +1,26 @@
 <template>
   <section
     id="nosotros"
-    class="relative w-full overflow-hidden border-y border-[#BFDBFE]/60 bg-gradient-to-b from-[#E8EDF5] to-[#F0F4F8] py-16 md:py-24 scroll-mt-20"
-    role="region"
+    class="relative scroll-mt-20 overflow-hidden bg-lp-paper py-16 md:py-24"
     aria-label="Sobre el club"
   >
-    <!-- Ambient blurred blobs -->
-    <div
-      class="pointer-events-none absolute -left-24 top-10 h-96 w-96 rounded-full bg-[#BFDBFE]/40 blur-[50px]"
-      aria-hidden="true"
-    />
-    <div
-      class="pointer-events-none absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-[#BAE6FD]/50 blur-[50px]"
-      aria-hidden="true"
-    />
-
-    <div class="relative mx-auto max-w-7xl px-6 md:px-12">
-      <div class="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
-        <!-- Visual column -->
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
+      <div class="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
+        <!-- Imagen -->
         <div class="lg:col-span-6">
-          <div class="relative">
-            <div class="relative overflow-hidden rounded-2xl border border-[#BFDBFE]/80 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+          <div class="relative mx-auto max-w-xl lg:max-w-none">
+            <!-- Bloque azul desplazado para dar profundidad -->
+            <div
+              class="absolute -bottom-4 -right-4 h-full w-full rounded-[2rem] bg-gradient-to-br from-primary-200 to-sky-200 sm:-bottom-6 sm:-right-6"
+              aria-hidden="true"
+            />
+
+            <div class="relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-lp-lift">
               <img
                 v-if="!imageError"
                 :src="aboutImage"
                 alt="Instalaciones y academia formativa del Britania Club"
-                class="h-[320px] w-full object-cover object-center sm:h-[440px]"
+                class="h-[300px] w-full object-cover object-center sm:h-[440px]"
                 loading="lazy"
                 decoding="async"
                 width="1132"
@@ -34,89 +29,67 @@
               />
               <div
                 v-else
-                class="h-[320px] w-full bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#0F172A] sm:h-[440px]"
-                aria-hidden="true"
-              />
-              <div
-                class="pointer-events-none absolute inset-0 bg-[linear-gradient(0deg,rgba(15,23,42,0.80)_0%,rgba(15,23,42,0)_50%,rgba(15,23,42,0)_100%)]"
+                class="h-[300px] w-full bg-gradient-to-br from-primary-600 via-primary-500 to-sky-400 sm:h-[440px]"
                 aria-hidden="true"
               />
 
-              <!-- Floating academy card -->
+              <!-- Tarjeta flotante de la academia -->
               <div
-                class="absolute inset-x-4 bottom-4 flex items-center justify-between gap-4 rounded-xl border border-[#DBEAFE] bg-white/95 p-4 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.10),0_8px_10px_-6px_rgba(0,0,0,0.10)] backdrop-blur-md sm:inset-x-6"
+                class="absolute inset-x-3 bottom-3 flex items-center justify-between gap-3 rounded-2xl bg-lp-paper/95 p-4 shadow-lp-soft ring-1 ring-primary-100 backdrop-blur-md sm:inset-x-5 sm:bottom-5"
               >
                 <div class="min-w-0">
-                  <span class="lp-display block text-xs font-bold uppercase tracking-[0.05em] text-[#2563EB]">
+                  <span class="lp-display block text-[11px] font-bold uppercase tracking-[0.14em] text-primary-600">
                     Academia Formativa
                   </span>
-                  <span class="lp-display mt-0.5 block truncate text-lg font-bold leading-tight tracking-[-0.01em] text-[#0F172A]">
+                  <span class="lp-display mt-0.5 block truncate text-base font-bold tracking-tight text-lp-ink sm:text-lg">
                     Britania Junior Champions
                   </span>
                 </div>
-                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#E61C24] text-white shadow-[0_4px_14px_rgba(230,28,36,0.35)]">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.8 5.7 21l2.3-7.2-6-4.4h7.6L12 2z" />
-                  </svg>
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-600 to-sky-500 text-white shadow-[0_8px_18px_-8px_rgba(29,78,216,0.8)]"
+                >
+                  <IconStar class="h-4 w-4" aria-hidden="true" />
                 </div>
               </div>
             </div>
-
-            <div
-              class="pointer-events-none absolute -bottom-8 -left-8 h-64 w-64 rounded-full bg-[#60A5FA]/15 blur-3xl"
-              aria-hidden="true"
-            />
           </div>
         </div>
 
-        <!-- Text column -->
+        <!-- Texto -->
         <div class="lg:col-span-6">
-          <span class="lp-display text-xs font-bold uppercase tracking-[0.18em] text-[#2563EB]">
-            Sobre el Club
-          </span>
-          <h2
-            class="lp-display mt-3 text-3xl font-bold leading-[1.15] tracking-[-0.025em] text-[#0F172A] sm:text-4xl lg:text-[48px]"
-          >
-            Un espacio diseñado para tu bienestar y
-            <span class="text-[#2563EB]"> familia</span>
-          </h2>
+          <LandingSectionHeading eyebrow="Sobre el Club" align="left">
+            <template #title>
+              Un espacio diseñado para tu bienestar y
+              <span class="text-primary-600">familia</span>
+            </template>
+          </LandingSectionHeading>
 
-          <p class="lp-body mt-6 text-base leading-relaxed text-[#334155]">
+          <p class="mt-6 text-base leading-relaxed text-lp-body sm:text-lg">
             Britania Club combina instalaciones deportivas premium con elegantes
             áreas sociales, creando un entorno único donde nuestros miembros pueden
             entrenar con tecnología de punta, competir en torneos oficiales,
             relajarse y conectar con una gran comunidad apasionada por la excelencia.
           </p>
-          <p class="lp-body mt-4 text-sm leading-relaxed text-[#475569]">
+          <p class="mt-4 text-sm leading-relaxed text-lp-muted sm:text-base">
             Desde canchas profesionales de tenis y piscinas semiolímpicas, hasta
             eventos sociales exclusivos y campamentos de verano para niños, cada
             detalle está pensado para ofrecer el máximo confort, seguridad y distinción.
           </p>
 
-          <div class="mt-8 flex flex-col gap-4 sm:flex-row">
+          <dl class="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
             <div
-              class="flex-1 rounded-xl border border-[#DBEAFE] bg-white p-5 shadow-[0_6px_20px_rgba(37,99,235,0.06)]"
+              v-for="stat in stats"
+              :key="stat.label"
+              class="flex flex-col-reverse justify-end gap-2 rounded-2xl bg-lp-mist p-4 ring-1 ring-primary-100 sm:p-5"
             >
-              <div class="lp-display flex items-baseline leading-none tracking-[-0.015em]">
-                <span class="text-[32px] font-bold text-[#2563EB]">20</span>
-                <span class="text-[32px] font-bold text-[#60A5FA]">+</span>
-              </div>
-              <p class="lp-body mt-2 text-xs font-semibold uppercase tracking-[0.05em] text-[#475569]">
-                Disciplinas Federadas
-              </p>
+              <dt class="text-[11px] font-semibold uppercase leading-snug tracking-[0.06em] text-lp-muted sm:text-xs">
+                {{ stat.label }}
+              </dt>
+              <dd class="lp-display text-3xl font-bold leading-none tracking-tight text-primary-700 sm:text-4xl">
+                {{ stat.value }}<span class="text-sky-500">+</span>
+              </dd>
             </div>
-            <div
-              class="flex-1 rounded-xl border border-[#DBEAFE] bg-white p-5 shadow-[0_6px_20px_rgba(230,28,36,0.06)]"
-            >
-              <div class="lp-display flex items-baseline leading-none tracking-[-0.015em]">
-                <span class="text-[32px] font-bold text-[#E61C24]">5,000</span>
-                <span class="text-[32px] font-bold text-[#F87171]">+</span>
-              </div>
-              <p class="lp-body mt-2 text-xs font-semibold uppercase tracking-[0.05em] text-[#475569]">
-                Socios y Familias
-              </p>
-            </div>
-          </div>
+          </dl>
         </div>
       </div>
     </div>
@@ -125,6 +98,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { IconStar } from '@/components/icons'
+import LandingSectionHeading from './ui/LandingSectionHeading.vue'
 
 /**
  * FOTOGRAFÍAS — Sobre el Club
@@ -143,4 +118,9 @@ const entries = Object.entries(localModules).sort(([a], [b]) => a.localeCompare(
 const aboutImage = entries.length > 0 ? entries[0][1] : fallbackImage
 
 const imageError = ref(false)
+
+const stats = [
+  { value: '20', label: 'Disciplinas Federadas' },
+  { value: '5,000', label: 'Socios y Familias' }
+]
 </script>

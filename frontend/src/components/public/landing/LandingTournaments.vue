@@ -1,193 +1,154 @@
 <template>
   <section
     id="torneos"
-    class="relative w-full overflow-hidden border-y border-blue-500/20 bg-gradient-to-b from-[#162238] via-[#131F38] to-[#0F172A] py-16 md:py-24 scroll-mt-20"
-    role="region"
+    class="relative scroll-mt-20 bg-lp-mist py-16 md:py-24"
     aria-label="Torneo destacado y pre-registro"
   >
-    <div class="mx-auto max-w-7xl px-6 md:px-12">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
       <div
-        class="relative overflow-hidden rounded-3xl border border-blue-400/30 bg-gradient-to-r from-[#131F38] via-[#1A2849] to-[#131F38] p-8 shadow-[0_20px_60px_rgba(11,19,38,0.70),0_0_35px_rgba(59,130,246,0.18)] md:p-14"
+        class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary-700 via-primary-600 to-sky-500 p-6 shadow-lp-lift sm:p-10 lg:p-14"
       >
-        <div
-          class="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.35),transparent_65%)]"
-          aria-hidden="true"
-        />
+        <!-- Decoración: círculos y líneas de cancha -->
+        <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10" />
+          <div class="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-sky-300/20 blur-2xl" />
+          <svg class="absolute right-0 top-0 hidden h-full w-1/2 text-white/[0.07] lg:block" viewBox="0 0 400 400" fill="none" preserveAspectRatio="xMaxYMid slice">
+            <rect x="40" y="40" width="320" height="320" stroke="currentColor" stroke-width="3" />
+            <line x1="200" y1="40" x2="200" y2="360" stroke="currentColor" stroke-width="3" />
+            <line x1="40" y1="200" x2="360" y2="200" stroke="currentColor" stroke-width="3" />
+            <circle cx="200" cy="200" r="60" stroke="currentColor" stroke-width="3" />
+          </svg>
+        </div>
 
-        <div class="relative grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-10">
-          <!-- Left: copy -->
+        <div class="relative grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
+          <!-- Texto -->
           <div class="flex flex-col gap-6 lg:col-span-7">
             <span
-              class="inline-flex w-fit items-center gap-2 rounded-full border border-blue-400/40 bg-[#1E3A8A]/60 px-3.5 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              class="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 ring-1 ring-white/30 backdrop-blur-sm"
             >
-              <span class="relative flex h-2 w-2">
-                <span
-                  class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#60A5FA] opacity-75"
-                />
-                <span class="relative inline-flex h-2 w-2 rounded-full bg-[#60A5FA]" />
+              <span class="relative flex h-2 w-2" aria-hidden="true">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-lp-paper opacity-75 motion-reduce:animate-none" />
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-lp-paper" />
               </span>
-              <span class="lp-display text-xs font-semibold uppercase tracking-[0.05em] text-[#BFDBFE]">
-                Inscripciones Abiertas 2025
+              <span class="lp-display text-xs font-bold uppercase tracking-[0.12em] text-white">
+                Inscripciones Abiertas 2026
               </span>
             </span>
 
-            <div class="flex flex-col gap-1">
-              <h2
-                class="lp-display text-3xl font-bold leading-[1.12] tracking-[-0.025em] text-white sm:text-4xl lg:text-[44px]"
-              >
-                Gran Torneo Anual Britania
-              </h2>
-              <span
-                class="lp-display bg-gradient-to-r from-[#60A5FA] to-[#7DD3FC] bg-clip-text text-3xl font-bold leading-[1.12] tracking-[-0.025em] text-transparent sm:text-4xl lg:text-[44px]"
-              >
-                Circuito Tenis &amp; Pádel
-              </span>
-            </div>
+            <h2 class="lp-display text-[1.875rem] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-4xl lg:text-[2.875rem]">
+              Gran Torneo Anual Britania
+              <span class="block text-sky-100">Circuito Tenis &amp; Pádel</span>
+            </h2>
 
-            <p class="lp-body max-w-xl text-base leading-relaxed text-[#CBD5E1]">
+            <p class="max-w-xl text-base leading-relaxed text-white/85">
               El evento deportivo más prestigioso de la temporada. Más de 400 raqueteros
               compitiendo por puntos del ranking nacional y una bolsa acumulada
               garantizada.
             </p>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div
                 v-for="stat in stats"
                 :key="stat.label"
-                class="flex flex-col gap-1 rounded-xl border border-blue-400/20 bg-[#0B1326]/80 px-4 py-3"
+                class="flex flex-col-reverse justify-end gap-1 rounded-2xl bg-white/12 px-4 py-3 ring-1 ring-white/20 backdrop-blur-sm"
+                :class="stat.wide ? 'col-span-2 sm:col-span-1' : ''"
               >
-                <span class="lp-body text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
+                <dt class="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/75">
                   {{ stat.label }}
-                </span>
-                <span class="lp-display text-lg font-bold" :class="stat.valueClass">
+                </dt>
+                <dd class="lp-display text-lg font-bold leading-tight text-white">
                   {{ stat.value }}
-                </span>
-                <span
-                  v-if="stat.sub"
-                  class="lp-display text-sm font-bold"
-                  :class="stat.valueClass"
-                >
-                  {{ stat.sub }}
-                </span>
+                </dd>
               </div>
-            </div>
+            </dl>
 
-            <div class="mt-2 flex flex-col gap-4 sm:flex-row">
-              <RouterLink
-                :to="preRegisterLink"
-                class="lp-body inline-flex items-center justify-center gap-2 rounded-xl bg-[#E61C24] px-6 py-3.5 text-sm font-bold uppercase tracking-[0.03em] text-white shadow-[0_10px_15px_-3px_rgba(0,0,0,0.10),0_4px_6px_-4px_rgba(0,0,0,0.10)] transition-colors hover:bg-[#c4161d] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true">
-                  <path
-                    d="M6.75 9C5.925 9 5.21875 8.70625 4.63125 8.11875C4.04375 7.53125 3.75 6.825 3.75 6C3.75 5.175 4.04375 4.46875 4.63125 3.88125C5.21875 3.29375 5.925 3 6.75 3C7.575 3 8.28125 3.29375 8.86875 3.88125C9.45625 4.46875 9.75 5.175 9.75 6C9.75 6.825 9.45625 7.53125 8.86875 8.11875C8.28125 8.70625 7.575 9 6.75 9ZM0 15.75V13.65C0 13.225 0.10625 12.8438 0.31875 12.5063C0.53125 12.1688 0.8125 11.9 1.1625 11.7C1.9125 11.275 2.725 10.9375 3.6 10.6875C4.475 10.4375 5.4 10.3125 6.375 10.3125C7.35 10.3125 8.275 10.4375 9.15 10.6875C10.025 10.9375 10.8375 11.275 11.5875 11.7C11.9375 11.9 12.2188 12.1688 12.4313 12.5063C12.6438 12.8438 12.75 13.225 12.75 13.65V15.75H0ZM14.25 9C13.6 9 13.0375 8.7625 12.5625 8.2875C12.0875 7.8125 11.85 7.25 11.85 6.6C11.85 5.925 12.0875 5.35 12.5625 4.875C13.0375 4.4 13.6 4.1625 14.25 4.1625C14.9 4.1625 15.4625 4.4 15.9375 4.875C16.4125 5.35 16.65 5.925 16.65 6.6C16.65 7.25 16.4125 7.8125 15.9375 8.2875C15.4625 8.7625 14.9 9 14.25 9ZM13.5 15.75V13.65C13.5 13.025 13.3938 12.4188 13.1813 11.8313C12.9688 11.2438 12.675 10.7 12.3 10.2C12.75 10.325 13.175 10.475 13.575 10.65C13.975 10.825 14.35 11.025 14.7 11.25C15.1 11.5 15.4063 11.7813 15.6188 12.0938C15.8313 12.4063 15.9375 12.75 15.9375 13.125V15.75H13.5Z"
-                  />
-                </svg>
+            <div class="mt-1 flex flex-col gap-3 sm:flex-row">
+              <LandingButton :to="preRegisterLink" variant="white" size="lg" block class="sm:w-auto">
+                <IconUserPlus class="h-4 w-4" aria-hidden="true" />
                 Pre-Registrarme al Torneo
-              </RouterLink>
-
-              <button
-                type="button"
-                class="lp-body inline-flex items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-[#1E3A8A]/40 px-6 py-3.5 text-sm font-bold uppercase tracking-[0.03em] text-white transition-colors hover:bg-[#1E3A8A]/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
-                @click="onDownload"
-              >
+              </LandingButton>
+              <LandingButton variant="glass" size="lg" block class="sm:w-auto" @click="onDownload">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path
                     d="M8 12L3 7L4.4 5.6L7 8.2V0H9V8.2L11.6 5.6L13 7L8 12ZM2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V11H2V14H14V11H16V14C16 14.55 15.8042 15.0208 15.4125 15.4125C15.0208 15.8042 14.55 16 14 16H2Z"
                   />
                 </svg>
                 Descargar Convocatoria
-              </button>
+              </LandingButton>
             </div>
           </div>
 
-          <!-- Right: quick pre-registration form -->
+          <!-- Formulario de pre-registro rápido -->
           <div class="lg:col-span-5">
-            <div
-              class="rounded-2xl border border-blue-400/30 bg-gradient-to-b from-[#0F172A] to-[#0B1326] p-7 shadow-[0_20px_50px_-20px_rgba(11,19,38,0.9)] backdrop-blur md:p-8"
-            >
-              <div
-                class="flex items-start justify-between gap-4 border-b border-blue-500/20 pb-4"
-              >
+            <div class="rounded-3xl bg-lp-paper p-5 shadow-lp-lift sm:p-8">
+              <div class="flex items-start justify-between gap-4 border-b border-lp-line pb-4">
                 <div class="flex flex-col gap-0.5">
-                  <h3 class="lp-display text-xl font-bold text-white">Pre-Registro Rápido</h3>
-                  <p class="lp-body text-xs text-[#94A3B8]">Asegura tu cuadro eliminatorio</p>
+                  <h3 class="lp-display text-xl font-bold tracking-tight text-lp-ink">Pre-Registro Rápido</h3>
+                  <p class="text-sm text-lp-muted">Asegura tu cuadro eliminatorio</p>
                 </div>
-                <span
-                  class="lp-body shrink-0 rounded-full border border-blue-400/40 bg-[#2563EB]/30 px-3 py-1 text-xs font-semibold text-[#BFDBFE]"
-                >
+                <span class="shrink-0 rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-700 ring-1 ring-primary-100">
                   Fase 1
                 </span>
               </div>
 
               <form class="mt-5 flex flex-col gap-4" @submit.prevent="onQuickRegister">
                 <div class="flex flex-col gap-1.5">
-                  <label for="qr-name" class="lp-body text-xs font-semibold uppercase tracking-wide text-[#CBD5E1]">
-                    Nombre Completo
-                  </label>
+                  <label for="qr-name" :class="labelClass">Nombre Completo</label>
                   <input
                     id="qr-name"
                     v-model="quickForm.name"
                     type="text"
                     required
+                    autocomplete="name"
                     placeholder="Ej. Carlos Mendoza"
-                    class="lp-body w-full rounded-lg border border-blue-400/25 bg-[#131F38] px-4 py-3 text-sm text-white placeholder:text-[#64748B] focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    :class="fieldClass"
                   />
                 </div>
 
                 <div class="flex flex-col gap-1.5">
-                  <label for="qr-email" class="lp-body text-xs font-semibold uppercase tracking-wide text-[#CBD5E1]">
-                    Correo Electrónico
-                  </label>
+                  <label for="qr-email" :class="labelClass">Correo Electrónico</label>
                   <input
                     id="qr-email"
                     v-model="quickForm.email"
                     type="email"
                     required
+                    autocomplete="email"
                     placeholder="socio@britaniaclub.mx"
-                    class="lp-body w-full rounded-lg border border-blue-400/25 bg-[#131F38] px-4 py-3 text-sm text-white placeholder:text-[#64748B] focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    :class="fieldClass"
                   />
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div class="flex flex-col gap-1.5">
-                    <label for="qr-discipline" class="lp-body text-xs font-semibold uppercase tracking-wide text-[#CBD5E1]">
-                      Disciplina
-                    </label>
-                    <select
-                      id="qr-discipline"
-                      v-model="quickForm.discipline"
-                      class="lp-body w-full rounded-lg border border-blue-400/25 bg-[#131F38] px-4 py-3 text-sm text-white focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    >
-                      <option>Tenis Singles</option>
-                      <option>Tenis Dobles</option>
-                      <option>Pádel</option>
-                      <option>Natación</option>
-                    </select>
+                    <label for="qr-discipline" :class="labelClass">Disciplina</label>
+                    <div class="relative">
+                      <select id="qr-discipline" v-model="quickForm.discipline" :class="[fieldClass, 'appearance-none pr-10']">
+                        <option>Tenis Singles</option>
+                        <option>Tenis Dobles</option>
+                        <option>Pádel</option>
+                        <option>Natación</option>
+                      </select>
+                      <IconChevronDown class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-500" aria-hidden="true" />
+                    </div>
                   </div>
 
                   <div class="flex flex-col gap-1.5">
-                    <label for="qr-category" class="lp-body text-xs font-semibold uppercase tracking-wide text-[#CBD5E1]">
-                      Categoría
-                    </label>
-                    <select
-                      id="qr-category"
-                      v-model="quickForm.category"
-                      class="lp-body w-full rounded-lg border border-blue-400/25 bg-[#131F38] px-4 py-3 text-sm text-white focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    >
-                      <option>1ra Fuerza</option>
-                      <option>2da Fuerza</option>
-                      <option>3ra Fuerza</option>
-                      <option>Juvenil</option>
-                    </select>
+                    <label for="qr-category" :class="labelClass">Categoría</label>
+                    <div class="relative">
+                      <select id="qr-category" v-model="quickForm.category" :class="[fieldClass, 'appearance-none pr-10']">
+                        <option>1ra Fuerza</option>
+                        <option>2da Fuerza</option>
+                        <option>3ra Fuerza</option>
+                        <option>Juvenil</option>
+                      </select>
+                      <IconChevronDown class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-500" aria-hidden="true" />
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  class="lp-body mt-1 inline-flex items-center justify-center rounded-xl bg-[#E61C24] px-6 py-3.5 text-sm font-bold uppercase tracking-[0.03em] text-white shadow-[0_10px_15px_-3px_rgba(0,0,0,0.10),0_4px_6px_-4px_rgba(0,0,0,0.10)] transition-colors hover:bg-[#c4161d] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
-                >
+                <LandingButton type="submit" size="lg" block class="mt-1">
                   Confirmar Pre-Registro
-                </button>
+                </LandingButton>
               </form>
             </div>
           </div>
@@ -200,6 +161,9 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
 import { useAlerts } from '@/composables/useAlerts'
+import { IconChevronDown } from '@/components/icons'
+import IconUserPlus from '@/components/icons/IconUserPlus.vue'
+import LandingButton from './ui/LandingButton.vue'
 
 const { toastInfo, successModal } = useAlerts()
 
@@ -209,15 +173,18 @@ const preRegisterLink = computed(() => `/torneos/${featuredTournamentId}/pre-reg
 interface Stat {
   label: string
   value: string
-  sub?: string
-  valueClass: string
+  wide?: boolean
 }
 
 const stats: Stat[] = [
-  { label: 'Bolsa a Repartir', value: '$150,000 MXN', valueClass: 'text-white' },
-  { label: 'Fechas Oficiales', value: '15 - 24 Nov', valueClass: 'text-[#60A5FA]' },
-  { label: 'Categorías', value: '1ra a 5ta', sub: 'Fuerza', valueClass: 'text-[#93C5FD]' }
+  { label: 'Bolsa a Repartir', value: '$150,000 MXN', wide: true },
+  { label: 'Fechas Oficiales', value: '15 - 24 Nov' },
+  { label: 'Categorías', value: '1ra a 5ta Fuerza' }
 ]
+
+const labelClass = 'text-xs font-semibold uppercase tracking-[0.06em] text-lp-body'
+const fieldClass =
+  'w-full rounded-xl border border-lp-line bg-lp-mist px-4 py-3 text-[15px] text-lp-ink placeholder:text-lp-muted/70 transition focus:border-primary-400 focus:bg-lp-paper focus:outline-none focus:ring-4 focus:ring-primary-100'
 
 const quickForm = reactive({
   name: '',

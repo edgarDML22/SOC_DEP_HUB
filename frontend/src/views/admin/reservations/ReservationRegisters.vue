@@ -4,6 +4,9 @@ import { useReservacionAdminStore } from '@/stores/admin/reservationAdminStore'
 import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
+import AppDatePicker from '@/components/ui/form/AppDatePicker.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
@@ -27,6 +30,23 @@ onMounted(() => {
     store.fetchFiltersMeta()
     store.fetchReservaciones(filters.value)
 })
+
+const OPT_MODALIDAD = [
+    { label: 'Todas', value: '' },
+    { label: 'Individual', value: 'INDIVIDUAL' },
+    { label: 'Acompañantes', value: 'ACOMPANANTES' }
+]
+const espacioOpts = computed(() => [
+    { label: 'Todos', value: '' },
+    ...(store.filtersMeta.espacios || []).map(e => ({ label: e.nombre, value: e.id }))
+])
+const disciplinaOpts = computed(() => [
+    { label: 'Todas', value: '' },
+    ...(store.filtersMeta.disciplinas || []).map(d => ({ label: d.nombre, value: d.id }))
+])
+const activeFiltersCount = computed(() =>
+    ['espacio_id', 'disciplina_id', 'modalidad', 'fecha_inicio', 'fecha_fin'].filter(k => filters.value[k]).length
+)
 
 const hasActiveFilters = computed(() => 
     filters.value.search || 
@@ -256,106 +276,39 @@ const exportColumns = [
     <div class="flex flex-col gap-6">
         <!-- CABECERA -->
         <AdminPageHeader 
+            :eyebrow="false"
             title="Historial de Registros"
             subtitle="Consulta el registro histórico de reservaciones de espacios, horarios y asistencias."
         />
 
         <!-- Top Bar: Filters & Actions -->
-        <div class="bg-white p-6 rounded-3xl border border-surface-200 shadow-sm space-y-6">
-            <div class="flex flex-col gap-2">
+        <FilterContainer :has-active-filters="!!hasActiveFilters" :active-count="activeFiltersCount" @clear="clearFilters">
+            <template #search>
                 <SearchInput v-model="filters.search" placeholder="Buscar por nombre o número de acción..." />
+            </template>
+
+            <FilterSelect label="Espacio" v-model="filters.espacio_id" :options="espacioOpts"><template #icon><IconFilter /></template></FilterSelect>
+            <FilterSelect label="Disciplina" v-model="filters.disciplina_id" :options="disciplinaOpts"><template #icon><IconFilter /></template></FilterSelect>
+            <FilterSelect label="Modalidad" v-model="filters.modalidad" :options="OPT_MODALIDAD"><template #icon><IconFilter /></template></FilterSelect>
+
+            <div class="flex flex-col gap-1.5">
+                <span class="px-1 text-[10px] font-black uppercase tracking-widest text-surface-400">Desde</span>
+                <AppDatePicker v-model="filters.fecha_inicio" :max-date="filters.fecha_fin || null" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <span class="px-1 text-[10px] font-black uppercase tracking-widest text-surface-400">Hasta</span>
+                <AppDatePicker v-model="filters.fecha_fin" :min-date="filters.fecha_inicio || null" />
             </div>
 
-            <div class="flex flex-col lg:flex-row gap-4 items-end">
-                <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Espacio</label>
-                        <div class="relative">
-                            <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <select v-model="filters.espacio_id" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                                <option value="">Todos</option>
-                                <option v-for="espacio in store.filtersMeta.espacios" :key="espacio.id" :value="espacio.id">
-                                    {{ espacio.nombre }}
-                                </option>
-                            </select>
-                            <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
-                        <div class="relative">
-                            <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <select v-model="filters.disciplina_id" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                                <option value="">Todos</option>
-                                <option v-for="disciplina in store.filtersMeta.disciplinas" :key="disciplina.id" :value="disciplina.id">
-                                    {{ disciplina.nombre }}
-                                </option>
-                            </select>
-                            <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Modalidad</label>
-                        <div class="relative">
-                            <IconFilter class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <select v-model="filters.modalidad" class="w-full pl-10 pr-8 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer">
-                                <option value="">Todos</option>
-                                <option value="INDIVIDUAL">Individual</option>
-                                <option value="ACOMPANANTES">Acompañantes</option>
-                            </select>
-                            <IconChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Desde</label>
-                        <div class="relative">
-                            <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <input type="date" v-model="filters.fecha_inicio" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hasta</label>
-                        <div class="relative">
-                            <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                            <input type="date" v-model="filters.fecha_fin" class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="shrink-0 w-full lg:w-auto flex items-center gap-4 justify-end">
-                    <Transition 
-                        enter-active-class="transition-all duration-200 ease-out"
-                        enter-from-class="opacity-0 translate-x-4"
-                        enter-to-class="opacity-100 translate-x-0"
-                        leave-active-class="transition-all duration-150 ease-in"
-                        leave-from-class="opacity-100 translate-x-0"
-                        leave-to-class="opacity-0 translate-x-4"
-                    >
-                        <button 
-                            v-if="hasActiveFilters"
-                            @click="clearFilters"
-                            class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors px-2 py-1"
-                        >
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                            Limpiar filtros
-                        </button>
-                    </Transition>
-
-                    <ExportCsvButton 
-                        :data="dataToExport" 
-                        :columns="exportColumns" 
-                        filename="reservaciones_export" 
-                        class="w-full md:w-auto"
-                    />
-                </div>
-            </div>
-        </div>
+            <template #actions>
+                <ExportCsvButton
+                    :data="dataToExport"
+                    :columns="exportColumns"
+                    filename="reservaciones_export"
+                    class="w-full sm:w-auto"
+                />
+            </template>
+        </FilterContainer>
 
         <!-- Data Table -->
         <div class="rounded-2xl border border-surface-200 shadow-sm bg-white overflow-hidden min-h-96 flex flex-col">

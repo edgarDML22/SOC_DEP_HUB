@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useCategoryStore } from '@/stores/admin/categoryStore';
@@ -10,25 +10,25 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue';
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue';
 import SearchInput from '@/components/gerente/ui/SearchInput.vue';
-import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue';
-import CancelButton from '@/components/gerente/ui/CancelButton.vue';
+import AppModal from '@/components/ui/modal/AppModal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppField from '@/components/ui/form/AppField.vue';
+import AppInput from '@/components/ui/form/AppInput.vue';
+import AppSelect from '@/components/ui/form/AppSelect.vue';
+import AppTextarea from '@/components/ui/form/AppTextarea.vue';
+import IconPlus from '@/components/icons/IconPlus.vue';
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue';
 import FilterContainer from '@/components/gerente/ui/FilterContainer.vue';
 import FilterSelect from '@/components/gerente/ui/FilterSelect.vue';
 import EliminarCategoriaModal from '@/components/admin/categories/EliminarCategoriaModal.vue';
 import {
     IconAlertCircle,
-    IconChevronDown,
     IconLayers,
-    IconEdit,
-    IconTrash,
-    IconSearch,
-    IconFilter
+    IconEdit
 } from '@/components/icons';
 
 const { formatText } = useformat();
-const { toastInfo } = useAlerts();
+const { toastSuccess, toastError } = useAlerts();
 const router = useRouter();
 const categoryStore = useCategoryStore();
 const { categories, isLoading } = storeToRefs(categoryStore);
@@ -47,8 +47,27 @@ const form = ref({
     estatus: 'ACTIVO'
 });
 
+const OPT_ESTATUS_FORM = [
+    { label: 'Activo', value: 'ACTIVO' },
+    { label: 'Inactivo', value: 'INACTIVO' },
+];
+const formErrors = ref({});
+
+const validateForm = () => {
+    const errors = {};
+    if (!form.value.nombre?.trim()) errors.nombre = 'Escribe el nombre de la categoría.';
+    else if (form.value.nombre.trim().length > 100) errors.nombre = 'Máximo 100 caracteres.';
+    formErrors.value = errors;
+    return Object.keys(errors).length === 0;
+};
+
+// Al corregir un campo marcado, su error desaparece
+watch(form, () => {
+    if (Object.keys(formErrors.value).length) validateForm();
+}, { deep: true });
+
 const OPT_ESTATUS = [
-    { label: 'Todos los estatus', value: null },
+    { label: 'Todos', value: null },
     { label: 'Activo', value: 'ACTIVO' },
     { label: 'Inactivo', value: 'INACTIVO' },
 ];
@@ -82,6 +101,7 @@ onMounted(() => {
 const openCreate = () => {
     editingCategory.value = null;
     form.value = { nombre: '', descripcion: '', estatus: 'ACTIVO' };
+    formErrors.value = {};
     showModal.value = true;
 };
 
@@ -89,30 +109,26 @@ const openEdit = (cat) => {
     editingCategory.value = cat;
     form.value = {
         nombre: cat.nombre,
-        descripcion: cat.descripcion,
+        descripcion: cat.descripcion || '',
         estatus: cat.estatus
     };
+    formErrors.value = {};
     showModal.value = true;
 };
 
 const save = async () => {
-    if (!form.value.nombre.trim()) {
-        toastInfo('Error', 'El nombre es obligatorio.', 'error');
-        return;
-    }
+    if (!validateForm()) return;
     isSaving.value = true;
-    let res;
-    if (editingCategory.value) {
-        res = await categoryStore.updateCategory(editingCategory.value.id_categoria, form.value);
-    } else {
-        res = await categoryStore.createCategory(form.value);
-    }
+    const isEdit = !!editingCategory.value;
+    const res = isEdit
+        ? await categoryStore.updateCategory(editingCategory.value.id_categoria, form.value)
+        : await categoryStore.createCategory(form.value);
     isSaving.value = false;
-    if (res.success) {
+    if (res?.success) {
         showModal.value = false;
-        toastInfo('Éxito', editingCategory.value ? 'Categoría actualizada.' : 'Categoría creada.', 'success');
+        toastSuccess(isEdit ? 'Categoría actualizada' : `Categoría ${form.value.nombre.trim()} creada`);
     } else {
-        toastInfo('Error', res.error, 'error');
+        toastError(res?.error || 'No se pudo guardar la categoría');
     }
 };
 
@@ -130,43 +146,38 @@ const buildMenuItems = (cat) => [
                </svg>`,
         action: () => openEdit(cat),
     },
-    { separator: true },
-    {
+    ...(cat.estatus === 'ACTIVO' ? [{ separator: true }, {
         label: 'Eliminar',
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
                </svg>`,
         action: () => remove(cat),
         destructive: true,
-    }
+    }] : [])
 ];
 </script>
 
 <template>
-    <main class="min-h-screen bg-slate-50 p-6 lg:p-8 pb-16 font-sans">
-        <div class="max-w-7xl mx-auto space-y-8">
+    <main class="min-h-screen bg-surface-50 px-4 py-5 pb-16 font-sans sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
 
             <AdminPageHeader title="Categorías de Disciplinas"
-                subtitle="Administra las categorías disponibles para clasificar deportes" back-route="disciplines-list">
-                <div class="flex items-center justify-end w-full sm:w-auto gap-3 ml-auto shrink-0">
-                    <span class="text-sm font-bold text-slate-500 whitespace-nowrap">
-                        {{ filteredCategories.length }}
-                        <span class="font-medium text-slate-400">de {{ categories.length }}</span>
-                    </span>
-                    <button @click="openCreate" class="justify-center flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                    text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer border-none shrink-0">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="16" />
-                            <line x1="8" y1="12" x2="16" y2="12" />
-                        </svg>
-                        Nueva Categoría
-                    </button>
-                </div>
-            </AdminPageHeader>
+                subtitle="Administra las categorías disponibles para clasificar deportes" back-route="disciplines-list" />
+
+            <!-- Acción principal a la izquierda y el conteo justo a su derecha -->
+            <div class="flex items-center gap-3 sm:gap-4">
+                <AppButton class="shrink-0" @click="openCreate">
+                    <template #icon><IconPlus class="h-4 w-4" /></template>
+                    Nueva Categoría
+                </AppButton>
+                <span class="min-w-0 whitespace-nowrap text-sm font-semibold text-surface-600">
+                    <span class="font-bold tabular-nums text-surface-900">{{ filteredCategories.length }}</span>
+                    de <span class="tabular-nums">{{ categories.length }}</span><span class="hidden sm:inline"> categorías</span>
+                </span>
+            </div>
 
             <!-- FILTROS -->
-            <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+            <FilterContainer :has-active-filters="hasActiveFilters" :active-count="filterEstatus ? 1 : 0" @clear="clearFilters">
                 <template #search>
                     <SearchInput v-model="search" placeholder="Buscar categoría por nombre o descripción…" />
                 </template>
@@ -272,92 +283,30 @@ const buildMenuItems = (cat) => [
                 </div>
             </template>
 
-            <!-- MODAL -->
-            <Teleport to="body">
-                <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-                    enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-                    leave-from-class="opacity-100" leave-to-class="opacity-0">
-                    <div v-if="showModal"
-                        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-                        @click.self="showModal = false">
-                        <Transition enter-active-class="transition-all duration-300 ease-out"
-                            enter-from-class="opacity-0 scale-95 translate-y-4"
-                            enter-to-class="opacity-100 scale-100 translate-y-0">
-                            <div v-if="showModal"
-                                class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col overflow-hidden">
-
-                                <div class="flex items-center justify-between px-7 py-5 border-b border-slate-100">
-                                    <div>
-                                        <h2 class="text-lg font-black text-slate-900 leading-tight">
-                                            {{ editingCategory ? 'Editar Categoría' : 'Nueva Categoría' }}
-                                        </h2>
-                                        <p class="text-xs text-slate-500 font-medium mt-0.5">
-                                            {{ editingCategory ? 'Modifica los datos de la categoría.' : 'Crea una nueva clasificación para disciplinas.' }}
-                                        </p>
-                                    </div>
-                                    <button @click="showModal = false"
-                                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
-                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            stroke-width="2.5">
-                                            <path d="M18 6L6 18M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                <div class="p-7 space-y-6 bg-slate-50/30">
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
-                                            Nombre <span class="text-red-400">*</span>
-                                        </label>
-                                        <div class="relative">
-                                            <IconLayers
-                                                class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                            <input v-model="form.nombre" placeholder="Ej. Acuático, Combate..."
-                                                class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                                                       text-slate-900 placeholder:text-slate-400
-                                                       focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm" />
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-                                        <div class="relative">
-                                            <IconAlertCircle
-                                                class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                            <select v-model="form.estatus"
-                                                class="w-full pl-11 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                                                       text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm">
-                                                <option value="ACTIVO">Activo</option>
-                                                <option value="INACTIVO">Inactivo</option>
-                                            </select>
-                                            <IconChevronDown
-                                                class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Descripción</label>
-                                        <textarea v-model="form.descripcion" rows="4"
-                                            placeholder="Breve descripción de la categoría..."
-                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold
-                                                   text-slate-900 placeholder:text-slate-400 resize-none shadow-sm
-                                                   focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-slate-100">
-                                    <CancelButton @click="showModal = false" />
-                                    <ConfirmButton :label="editingCategory ? 'Actualizar' : 'Crear'" :loading="isSaving"
-                                        @click="save" />
-                                </div>
-                            </div>
-                        </Transition>
-                    </div>
-                </Transition>
-            </Teleport>
+            <!-- MODAL: NUEVA / EDITAR CATEGORÍA -->
+            <AppModal v-model="showModal" :title="editingCategory ? 'Editar categoría' : 'Nueva categoría'"
+                :subtitle="editingCategory ? formatText(editingCategory.nombre) : 'Crea una nueva clasificación para disciplinas'"
+                :icon="editingCategory ? IconEdit : IconLayers" :persistent="isSaving">
+                <form id="category-form" class="flex flex-col gap-4" novalidate @submit.prevent="save">
+                    <AppField label="Nombre" for="cat-nombre" required :error="formErrors.nombre">
+                        <AppInput id="cat-nombre" v-model="form.nombre" :icon="IconLayers" maxlength="100"
+                            placeholder="Ej. Acuático, Combate…" autocomplete="off" :invalid="!!formErrors.nombre" />
+                    </AppField>
+                    <AppField label="Estatus" required>
+                        <AppSelect v-model="form.estatus" :options="OPT_ESTATUS_FORM" />
+                    </AppField>
+                    <AppField label="Descripción" for="cat-descripcion" optional>
+                        <AppTextarea id="cat-descripcion" v-model="form.descripcion" rows="4"
+                            placeholder="Breve descripción de la categoría…" />
+                    </AppField>
+                </form>
+                <template #footer>
+                    <AppButton variant="secondary" :disabled="isSaving" @click="showModal = false">Cancelar</AppButton>
+                    <AppButton type="submit" form="category-form" :loading="isSaving">
+                        {{ editingCategory ? 'Guardar cambios' : 'Crear categoría' }}
+                    </AppButton>
+                </template>
+            </AppModal>
 
             <!-- MODAL ELIMINAR -->
             <EliminarCategoriaModal :show="showDeleteModal" :category="categoryToDelete"
