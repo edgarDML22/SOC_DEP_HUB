@@ -15,6 +15,10 @@ import {
 import CambiarEstatusModal from '@/components/admin/disciplines/CambiarEstatusModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppModal from '@/components/ui/modal/AppModal.vue'
+import AppField from '@/components/ui/form/AppField.vue'
+import AppInput from '@/components/ui/form/AppInput.vue'
+import AppSelect from '@/components/ui/form/AppSelect.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import { IconLayers, IconChevronDown, IconGrid, IconAlertCircle } from '@/components/icons'
@@ -203,13 +207,23 @@ const OPT_ESTATUS_FORM = [
   { label: 'En Pausa', value: 'PAUSA' },
 ]
 
+const submitted = ref(false)
+const categoryOptsForm = computed(() => categories.value.map(c => ({ label: formatText(c.nombre), value: c.id_categoria })))
+
+const pickIcon = (icon) => {
+  newDiscipline.value.icono = icon
+  showIconSelectorModal.value = false
+}
+
 const openNewModal = () => {
   newDiscipline.value = EMPTY_DISCIPLINE()
   formError.value = ''
+  submitted.value = false
   showNewModal.value = true
 }
 
 const saveNewDiscipline = async () => {
+  submitted.value = true
   formError.value = ''
   if (!newDiscipline.value.nombre_disciplina.trim()) {
     formError.value = 'El nombre de la disciplina es requerido.'
@@ -420,221 +434,80 @@ onMounted(() => {
 
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL: NUEVA DISCIPLINA
-    ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showNewModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-          @click.self="showNewModal = false">
-          <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
-            <div v-if="showNewModal"
-              class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden font-sans">
-
-              <!-- Cabecera -->
-              <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-                <div>
-                  <h2 class="text-xl font-black text-surface-900 leading-tight">Nueva Disciplina</h2>
-                  <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                    Registra un deporte o actividad del club.
-                  </p>
-                </div>
-                <button @click="showNewModal = false"
-                  class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Cuerpo -->
-              <div class="overflow-y-auto p-7 space-y-5 bg-surface-50/30">
-
-                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1"
-                  enter-to-class="opacity-100 translate-y-0">
-                  <div v-if="formError"
-                    class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-semibold">
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    {{ formError }}
-                  </div>
-                </Transition>
-
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                    Nombre <span class="text-red-400">*</span>
-                  </label>
-                  <div class="relative">
-                    <IconLayers class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input v-model="newDiscipline.nombre_disciplina" placeholder="Ej. Tenis, Natación…"
-                      class="w-full pl-11 pr-4 py-3 bg-white border border-surface-200 rounded-xl text-sm font-semibold
-                             text-surface-900 placeholder:text-surface-400 shadow-sm
-                             focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all" />
-                  </div>
-                </div>
-
-                <!-- Selector de Icono (Toggle Row) -->
-                <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Icono de la
-                    Disciplina</label>
-                  <div @click="showIconSelectorModal = true"
-                    class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all select-none shadow-xs">
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-600 shadow-xs shrink-0">
-                        <DisciplineIcon :name="newDiscipline.icono || 'default'" class="w-6 h-6" />
-                      </div>
-                      <div class="min-w-0">
-                        <p class="text-sm font-bold text-slate-800 leading-tight">{{ newDiscipline.icono ?
-                          iconLabel(newDiscipline.icono) : 'Ninguno (Automático)' }}</p>
-                        <p class="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">Haz clic para
-                          cambiar o seleccionar</p>
-                      </div>
-                    </div>
-                    <svg class="w-5 h-5 text-slate-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd"
-                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                        clip-rule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">
-                      Categoría <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <select v-model="newDiscipline.categorias_ids[0]"
-                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
-                        <option :value="null">Seleccionar…</option>
-                        <option v-for="c in categories" :key="c.id_categoria" :value="c.id_categoria">{{
-                          formatText(c.nombre) }}</option>
-                      </select>
-                      <IconChevronDown
-                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    </div>
-                  </div>
-                  <div class="space-y-1.5">
-                    <label
-                      class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-                    <div class="relative">
-                      <select v-model="newDiscipline.estatus"
-                        class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 appearance-none focus:focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all cursor-pointer shadow-xs">
-                        <option v-for="opt in OPT_ESTATUS_FORM" :key="opt.value" :value="opt.value">{{ opt.label }}
-                        </option>
-                      </select>
-                      <IconChevronDown
-                        class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-
-
-              </div>
-
-              <!-- Pie -->
-              <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100">
-                <CancelButton @click="showNewModal = false" />
-                <ConfirmButton label="Crear Disciplina" :loading="isSaving" @click="saveNewDiscipline" />
-              </div>
-            </div>
-          </Transition>
+    <!-- MODAL: NUEVA DISCIPLINA -->
+    <AppModal
+      v-model="showNewModal"
+      title="Nueva disciplina"
+      subtitle="Registra un deporte o actividad del club"
+      :icon="IconLayers"
+      :persistent="isSaving"
+    >
+      <form id="new-discipline-form" class="flex flex-col gap-4" novalidate @submit.prevent="saveNewDiscipline">
+        <div v-if="formError" role="alert"
+          class="flex items-start gap-2.5 rounded-2xl bg-rose-50 p-3.5 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/30">
+          <IconAlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
+          {{ formError }}
         </div>
-      </Transition>
-    </Teleport>
 
+        <AppField label="Nombre" for="disc-nombre" required>
+          <AppInput id="disc-nombre" v-model="newDiscipline.nombre_disciplina" :icon="IconLayers" placeholder="Ej. Tenis, Natación…"
+            :invalid="submitted && !newDiscipline.nombre_disciplina.trim()" />
+        </AppField>
 
+        <AppField label="Icono de la disciplina">
+          <button type="button"
+            class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-surface-200 bg-white p-3 text-left transition-colors hover:border-surface-300 hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+            @click="showIconSelectorModal = true">
+            <span class="flex min-w-0 items-center gap-3">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                <DisciplineIcon :name="newDiscipline.icono || 'default'" class="h-6 w-6" />
+              </span>
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-bold text-surface-900">{{ newDiscipline.icono ? iconLabel(newDiscipline.icono) : 'Automático' }}</span>
+                <span class="block text-xs font-medium text-surface-500">Toca para elegir otro icono</span>
+              </span>
+            </span>
+            <IconChevronDown class="h-4 w-4 shrink-0 -rotate-90 text-surface-400" />
+          </button>
+        </AppField>
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL SECUNDARIO: SELECTOR DE ICONO
-    ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showIconSelectorModal"
-          class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-xs"
-          @click.self="showIconSelectorModal = false">
-          <Transition enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0">
-            <div v-if="showIconSelectorModal"
-              class="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden font-sans border border-surface-200">
-
-              <!-- Cabecera -->
-              <div class="flex items-center justify-between px-8 py-5 bg-white border-b border-surface-100 shrink-0">
-                <div>
-                  <h3 class="text-lg font-black text-surface-900 leading-tight">Seleccionar Icono</h3>
-                  <p class="text-xs font-bold text-surface-500 mt-0.5 uppercase tracking-wider">
-                    Iconos ya utilizados en el sistema
-                  </p>
-                </div>
-                <button @click="showIconSelectorModal = false"
-                  class="w-8 h-8 rounded-lg bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                  <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Cuerpo de Rejilla -->
-              <div class="overflow-y-auto p-6 bg-surface-50/30 flex-1">
-                <div class="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                  <!-- Tarjeta "Ninguno" para deseleccionar -->
-                  <div @click="newDiscipline.icono = ''; showIconSelectorModal = false" title="Automático"
-                    class="cursor-pointer group relative transform transition-all duration-300 rounded-2xl p-3 flex items-center justify-center border shadow-xs aspect-square"
-                    :class="newDiscipline.icono === ''
-                      ? 'bg-primary-600 border-primary-600 text-white shadow-md'
-                      : 'bg-white border-surface-200 hover:-translate-y-1 hover:bg-primary-600 hover:border-primary-600 hover:text-white hover:shadow-xs'">
-                    <DisciplineIcon name="default" class="w-8 h-8" />
-                  </div>
-
-                  <!-- Demás Iconos -->
-                  <div v-for="icon in usedIcons" :key="icon"
-                    @click="newDiscipline.icono = icon; showIconSelectorModal = false" :title="iconLabel(icon)"
-                    class="cursor-pointer group relative transform transition-all duration-300 rounded-2xl p-3 flex items-center justify-center border shadow-xs aspect-square"
-                    :class="newDiscipline.icono === icon
-                      ? 'bg-primary-600 border-primary-600 text-white shadow-md'
-                      : 'bg-white border-surface-200 hover:-translate-y-1 hover:bg-primary-600 hover:border-primary-600 hover:text-white hover:shadow-xs'">
-                    <!-- Ícono -->
-                    <DisciplineIcon :name="icon" class="w-8 h-8 transition-all duration-300"
-                      :class="newDiscipline.icono === icon ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'" />
-
-                    <!-- Check flotante -->
-                    <div v-if="newDiscipline.icono === icon"
-                      class="absolute -top-1 -right-1 bg-white text-primary-600 w-5 h-5 rounded-full flex items-center justify-center border-[2px] border-primary-600 shadow-xs animate-scale-in">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pie -->
-              <div class="flex items-center justify-end px-8 py-4 border-t border-surface-100 bg-white shrink-0">
-                <button type="button" @click="showIconSelectorModal = false"
-                  class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black transition-all active:scale-95 shadow-sm">
-                  Cerrar
-                </button>
-              </div>
-
-            </div>
-          </Transition>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <AppField label="Categoría" required>
+            <AppSelect v-model="newDiscipline.categorias_ids[0]" :options="categoryOptsForm" placeholder="Seleccionar…"
+              :invalid="submitted && !newDiscipline.categorias_ids[0]" />
+          </AppField>
+          <AppField label="Estatus">
+            <AppSelect v-model="newDiscipline.estatus" :options="OPT_ESTATUS_FORM" />
+          </AppField>
         </div>
-      </Transition>
-    </Teleport>
+      </form>
 
+      <template #footer>
+        <AppButton variant="secondary" :disabled="isSaving" @click="showNewModal = false">Cancelar</AppButton>
+        <AppButton type="submit" form="new-discipline-form" :loading="isSaving">Crear disciplina</AppButton>
+      </template>
+    </AppModal>
 
+    <!-- MODAL SECUNDARIO: SELECTOR DE ICONO -->
+    <AppModal v-model="showIconSelectorModal" title="Seleccionar icono" subtitle="Iconos ya utilizados en el sistema" :icon="IconGrid">
+      <div class="grid grid-cols-4 gap-2.5 sm:grid-cols-5">
+        <button type="button" title="Automático" :aria-pressed="newDiscipline.icono === ''"
+          class="group relative flex aspect-square cursor-pointer items-center justify-center rounded-2xl border-2 p-2 transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+          :class="newDiscipline.icono === '' ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-200 bg-white text-surface-700 hover:border-primary-300 hover:bg-primary-50'"
+          @click="pickIcon('')">
+          <DisciplineIcon name="default" class="h-7 w-7" />
+        </button>
+        <button v-for="icon in usedIcons" :key="icon" type="button" :title="iconLabel(icon)" :aria-pressed="newDiscipline.icono === icon"
+          class="group relative flex aspect-square cursor-pointer items-center justify-center rounded-2xl border-2 p-2 transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+          :class="newDiscipline.icono === icon ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-200 bg-white text-surface-700 hover:border-primary-300 hover:bg-primary-50'"
+          @click="pickIcon(icon)">
+          <DisciplineIcon :name="icon" class="h-7 w-7" />
+        </button>
+      </div>
+      <template #footer>
+        <AppButton variant="secondary" @click="showIconSelectorModal = false">Cerrar</AppButton>
+      </template>
+    </AppModal>
 
     <!-- ══════════════════════════════════════════════════════════
          MODAL: CAMBIAR ESTATUS

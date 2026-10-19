@@ -6,8 +6,12 @@ import { useDisciplinesStore } from '@/stores/admin/disciplines';
 import { useCategoryStore } from '@/stores/admin/categoryStore';
 import { useformat } from '@/utils/formatters';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
+import AppModal from '@/components/ui/modal/AppModal.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppField from '@/components/ui/form/AppField.vue'
+import AppInput from '@/components/ui/form/AppInput.vue'
+import AppSelect from '@/components/ui/form/AppSelect.vue'
+import { useAlerts } from '@/composables/useAlerts'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import * as Icons from '@/components/icons'
 
@@ -48,6 +52,7 @@ const router = useRouter();
 const disciplinesStore = useDisciplinesStore();
 const categoryStore = useCategoryStore();
 const { formatText, formatCategoryEnum } = useformat();
+const { toastSuccess } = useAlerts();
 
 const { categories, isLoading: categoriesLoading } = storeToRefs(categoryStore);
 const { isLoading: disciplinesLoading } = storeToRefs(disciplinesStore);
@@ -56,6 +61,8 @@ const discipline = ref(null);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const isEditing = ref(false);
+const formError = ref('');
+const submitted = ref(false);
 const editForm = ref({
     nombre_disciplina: '',
     categorias_ids: []
@@ -75,8 +82,8 @@ onMounted(async () => {
     if (cached) {
         discipline.value = cached;
         isLoading.value = false;
-        if (route.query.edit === 'true') isEditing.value = true;
         resetForm();
+        if (route.query.edit === 'true') isEditing.value = true;
     } else {
         isLoading.value = true;
     }
@@ -110,20 +117,35 @@ const resetForm = () => {
     };
 };
 
-const toggleEdit = () => {
-    if (isEditing.value) resetForm();
-    isEditing.value = !isEditing.value;
+const categoryOpts = computed(() => categories.value.map(c => ({ label: formatCategoryEnum(c.nombre), value: c.id_categoria })));
+
+const openEdit = () => {
+    resetForm();
+    formError.value = '';
+    submitted.value = false;
+    isEditing.value = true;
+};
+
+const closeEdit = () => {
+    isEditing.value = false;
 };
 
 const handleUpdate = async () => {
+    submitted.value = true;
+    formError.value = '';
+    if (!editForm.value.nombre_disciplina.trim()) {
+        formError.value = 'El nombre de la disciplina es requerido.';
+        return;
+    }
     isSaving.value = true;
     const res = await disciplinesStore.updateDiscipline(discipline.value.id_disciplina, editForm.value);
     isSaving.value = false;
     if (res.success) {
         discipline.value = res.data;
         isEditing.value = false;
+        toastSuccess(`Disciplina ${res.data?.nombre_disciplina ?? ''} actualizada`.trim());
     } else {
-        alert(res.error);
+        formError.value = res.error || 'No se pudo actualizar la disciplina.';
     }
 };
 
@@ -184,18 +206,14 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <button v-if="!isEditing" @click="toggleEdit"
-                                        class="px-5 py-2.5 bg-primary-50 text-primary-700 rounded-xl font-bold hover:bg-primary-600 hover:text-white transition-colors text-sm flex items-center gap-2 border border-primary-200 hover:border-primary-600 shadow-sm w-full md:w-auto justify-center">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                        Editar Información
-                                    </button>
+                                    <AppButton variant="soft" class="w-full md:w-auto" @click="openEdit">
+                                        <template #icon><Icons.IconEdit class="h-4 w-4" /></template>
+                                        Editar información
+                                    </AppButton>
                                 </div>
                             </div>
 
-                            <div v-if="!isEditing"
+                            <div
                                 class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-surface-100 pt-8 mt-8">
                                 <div class="space-y-6">
 
@@ -210,50 +228,47 @@ const goBack = () => router.push({ name: 'disciplines-list' });
                                 </div>
                             </div>
 
-                            <!-- Edit Form -->
-                            <div v-else
-                                class="space-y-6 animate-in slide-in-from-top duration-300 border-t border-surface-100 pt-8 mt-8">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Nombre</label>
-                                        <input v-model="editForm.nombre_disciplina" type="text"
-                                            class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all">
-                                    </div>
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-500 px-1">Categoría</label>
-                                        <select v-model="editForm.categorias_ids[0]"
-                                            :disabled="discipline.estatus === 'ACTIVO'"
-                                            class="w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
-                                            :class="discipline.estatus === 'ACTIVO' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'">
-                                            <option :value="undefined" disabled>Selecciona una categoría</option>
-                                            <option v-for="cat in categories" :key="cat.id_categoria" :value="cat.id_categoria">{{
-                                                formatCategoryEnum(cat.nombre) }}</option>
-                                        </select>
-                                        <p v-if="discipline.estatus === 'ACTIVO'" class="text-[11px] font-bold text-amber-600 px-1 mt-1 flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                            No se puede cambiar la categoría porque está activa.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div class="flex justify-end gap-3 pt-4">
-                                    <CancelButton label="Cancelar" @click="toggleEdit" :disabled="isSaving" />
-                                    <ConfirmButton
-                                        label="Guardar Cambios"
-                                        :loading="isSaving"
-                                        @click="handleUpdate"
-                                    />
-                                </div>
-                            </div>
                         </div>
                     </article>
 
                 </div>
             </Transition>
         </div>
+        <!-- MODAL: EDITAR INFORMACIÓN -->
+        <AppModal
+            v-model="isEditing"
+            title="Editar disciplina"
+            :subtitle="discipline?.nombre_disciplina"
+            :icon="Icons.IconEdit"
+            :persistent="isSaving"
+        >
+            <form id="edit-discipline-form" class="flex flex-col gap-4" novalidate @submit.prevent="handleUpdate">
+                <div v-if="formError" role="alert"
+                    class="flex items-start gap-2.5 rounded-2xl bg-rose-50 p-3.5 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/30">
+                    <Icons.IconAlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
+                    {{ formError }}
+                </div>
+
+                <AppField label="Nombre" for="disc-edit-nombre" required>
+                    <AppInput id="disc-edit-nombre" v-model="editForm.nombre_disciplina"
+                        :invalid="submitted && !editForm.nombre_disciplina.trim()" />
+                </AppField>
+
+                <AppField label="Categoría" :hint="discipline?.estatus === 'ACTIVO' ? '' : undefined">
+                    <AppSelect v-model="editForm.categorias_ids[0]" :options="categoryOpts" placeholder="Selecciona una categoría"
+                        :disabled="discipline?.estatus === 'ACTIVO'" />
+                    <p v-if="discipline?.estatus === 'ACTIVO'"
+                        class="m-0 flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        <Icons.IconWarning class="h-3.5 w-3.5 shrink-0" />
+                        No se puede cambiar la categoría mientras la disciplina esté activa.
+                    </p>
+                </AppField>
+            </form>
+
+            <template #footer>
+                <AppButton variant="secondary" :disabled="isSaving" @click="closeEdit">Cancelar</AppButton>
+                <AppButton type="submit" form="edit-discipline-form" :loading="isSaving">Guardar cambios</AppButton>
+            </template>
+        </AppModal>
     </main>
 </template>
