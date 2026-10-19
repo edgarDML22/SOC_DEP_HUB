@@ -363,10 +363,10 @@ onMounted(() => {
                       <button v-if="isGerente" @click="handleToggleStatus(manager)" role="switch" :aria-checked="manager.activo"
                         :aria-label="`${manager.activo ? 'Deshabilitar' : 'Habilitar'} a ${manager.name}`"
                         class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
-                        :class="manager.activo ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-slate-200'"
+                        :class="manager.activo ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-surface-300'"
                         :disabled="isLoading.toggle">
                         <span
-                          class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-350 ease-out"
+                          class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white keep-white shadow ring-0 transition duration-350 ease-out"
                           :class="manager.activo ? 'translate-x-5' : 'translate-x-0'" />
                       </button>
                       <div v-else>
@@ -428,9 +428,9 @@ onMounted(() => {
                     <button v-if="isGerente" @click="handleToggleStatus(manager)" :disabled="isLoading.toggle" role="switch" :aria-checked="manager.activo"
                       :aria-label="`${manager.activo ? 'Deshabilitar' : 'Habilitar'} a ${manager.name}`"
                       class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
-                      :class="manager.activo ? 'bg-emerald-500' : 'bg-slate-200'">
+                      :class="manager.activo ? 'bg-emerald-500' : 'bg-surface-300'">
                       <span
-                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-out"
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white keep-white shadow ring-0 transition duration-300 ease-out"
                         :class="manager.activo ? 'translate-x-5' : 'translate-x-0'" />
                     </button>
                   </div>

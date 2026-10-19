@@ -6,6 +6,12 @@ import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import { IconEdit, IconTrash, IconWarning, IconTrophy, IconCalendar, IconLock, IconShield } from '@/components/icons'
 import api from '@/services/api'
+import AppModal from '@/components/ui/modal/AppModal.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppField from '@/components/ui/form/AppField.vue'
+import AppInput from '@/components/ui/form/AppInput.vue'
+import StatusOptionGroup from '@/components/ui/status/StatusOptionGroup.vue'
+import AppDatePicker from '@/components/ui/form/AppDatePicker.vue'
 
 const store = usePlantillasStore()
 const { toastSuccess, toastError } = useAlerts()
@@ -13,7 +19,6 @@ const { toastSuccess, toastError } = useAlerts()
 // ─── Modal: Publicar ─────────────────────────────────────────────────────────
 const showPublishModal   = ref(false)
 const publishTarget      = ref(null)
-const publishSuccess     = ref(false)
 const publishError       = ref('')
 const publishConfirmInput = ref('')
 
@@ -159,7 +164,6 @@ async function openPublish(p) {
   semanasSeleccionadas.value = []
   omitirDias.value          = []
   omitirSesionesPasadas.value = true
-  publishSuccess.value      = false
   publishError.value        = ''
   publishConfirmInput.value = ''
   showPublishModal.value    = true
@@ -247,7 +251,6 @@ async function submitPublish() {
   } // fin for
 
   if (errores.length === 0) {
-    publishSuccess.value = true
     closePublish()
     toastSuccess(`${totalCreadas} sesiones publicadas correctamente.`)
   } else if (totalCreadas > 0) {
@@ -274,18 +277,15 @@ function formatDate(d) {
 const showCreateModal  = ref(false)
 const createForm       = ref({ nombre_plantilla: '', fecha_inicio: '', fecha_fin: '' })
 const createErrors     = ref({})
-const createSuccess    = ref(false)
 
 function openCreate() {
   createForm.value   = { nombre_plantilla: '', fecha_inicio: '', fecha_fin: '' }
   createErrors.value = {}
-  createSuccess.value = false
   showCreateModal.value = true
 }
 
 function closeCreate() {
   showCreateModal.value = false
-  createSuccess.value   = false
 }
 
 function validateCreateForm() {
@@ -305,11 +305,8 @@ async function submitCreate() {
   if (Object.keys(createErrors.value).length) return
   try {
     await store.createPlantilla(createForm.value)
-    createSuccess.value = true
-    setTimeout(() => {
-      closeCreate()
-      toastSuccess('Plantilla creada correctamente.')
-    }, 900)
+    closeCreate()
+    toastSuccess('Plantilla creada correctamente.')
   } catch (e) {
     const serverErrors = e?.response?.data?.errors
     if (serverErrors) {
@@ -329,7 +326,6 @@ const showEditModal  = ref(false)
 const editTarget     = ref(null)
 const editForm       = ref({ nombre_plantilla: '', fecha_inicio: '', fecha_fin: '', estatus_plantilla: false })
 const editErrors     = ref({})
-const saveSuccess    = ref(false)
 
 function openEdit(p) {
   editTarget.value = p
@@ -340,15 +336,22 @@ function openEdit(p) {
     estatus_plantilla: p.estatus_plantilla,
   }
   editErrors.value  = {}
-  saveSuccess.value = false
   showEditModal.value = true
 }
 
 function closeEdit() {
   showEditModal.value = false
   editTarget.value    = null
-  saveSuccess.value   = false
 }
+
+const PLANTILLA_STATUS_OPTIONS = [
+  { value: 'ACTIVO', label: 'Activo', description: 'Es la programación vigente del club. Solo puede haber una.', icon: IconShield, tone: 'emerald' },
+  { value: 'INACTIVO', label: 'Inactivo', description: 'Queda guardada pero no está en uso.', icon: IconLock, tone: 'blue' },
+]
+const editStatus = computed({
+  get: () => (editForm.value.estatus_plantilla ? 'ACTIVO' : 'INACTIVO'),
+  set: (v) => { editForm.value.estatus_plantilla = v === 'ACTIVO' },
+})
 
 // plantilla activa distinta a la que se está editando
 const otherActivePlantilla = computed(() =>
@@ -374,8 +377,8 @@ async function submitEdit() {
   try {
     const { fecha_inicio, fecha_fin, ...payload } = editForm.value
     await store.updatePlantilla(editTarget.value.id_plantilla, payload)
-    saveSuccess.value = true
-    setTimeout(closeEdit, 900)
+    closeEdit()
+    toastSuccess('Plantilla actualizada correctamente.')
   } catch (e) {
     toastError(e?.response?.data?.message ?? 'Error al actualizar la plantilla.')
   }
@@ -385,13 +388,11 @@ async function submitEdit() {
 const showUnpublishModal    = ref(false)
 const unpublishTarget       = ref(null)
 const unpublishConfirmInput = ref('')
-const unpublishSuccess      = ref(false)
 const unpublishError        = ref('')
 
 function openUnpublish(p) {
   unpublishTarget.value       = p
   unpublishConfirmInput.value = ''
-  unpublishSuccess.value      = false
   unpublishError.value        = ''
   showUnpublishModal.value    = true
 }
@@ -410,12 +411,9 @@ async function submitUnpublish() {
   unpublishError.value = ''
   try {
     const result = await store.despublicarPlantilla(unpublishTarget.value.id_plantilla)
-    unpublishSuccess.value = true
     const eliminadas = result?.data?.sesiones_eliminadas ?? 0
-    setTimeout(() => {
-      closeUnpublish()
-      toastSuccess(`Programación retirada. ${eliminadas} sesión(es) eliminada(s).`)
-    }, 1000)
+    closeUnpublish()
+    toastSuccess(`Programación retirada. ${eliminadas} sesión(es) eliminada(s).`)
   } catch (e) {
     const meta = e?.response?.data?.meta
     if (e?.response?.status === 422 && meta) {
@@ -605,941 +603,353 @@ defineExpose({ openCreate })
       </table>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- MODAL: CREACIÓN                                                       -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showCreateModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="closeCreate"
-        >
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col relative">
+    <!-- MODAL: CREACIÓN -->
+    <AppModal
+      v-model="showCreateModal"
+      title="Nueva plantilla"
+      subtitle="Programación de actividades"
+      :icon="IconCalendar"
+      :persistent="store.isSaving"
+      @close="closeCreate"
+    >
+      <form id="create-plantilla-form" class="flex flex-col gap-4" novalidate @submit.prevent="submitCreate">
+        <AppField label="Nombre de plantilla" for="plantilla-nombre" required :error="createErrors.nombre_plantilla">
+          <AppInput id="plantilla-nombre" v-model="createForm.nombre_plantilla" placeholder="Ej. Programación Base 2026-II"
+            :invalid="!!createErrors.nombre_plantilla" />
+        </AppField>
 
-            <!-- Overlay de éxito -->
-            <Transition
-              enter-active-class="transition-opacity duration-150 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-200 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <div v-if="createSuccess" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
-                  <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <p class="text-base font-black text-slate-800">Plantilla creada</p>
-              </div>
-            </Transition>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <AppField label="Fecha de inicio" optional :error="createErrors.fecha_inicio">
+            <AppDatePicker v-model="createForm.fecha_inicio" :invalid="!!createErrors.fecha_inicio" />
+          </AppField>
+          <AppField label="Fecha de fin" optional :error="createErrors.fecha_fin">
+            <AppDatePicker v-model="createForm.fecha_fin" :min-date="createForm.fecha_inicio || null" :invalid="!!createErrors.fecha_fin" />
+          </AppField>
+        </div>
 
-            <!-- Header -->
-            <div class="flex items-center justify-between p-6 border-b border-slate-100">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-blue-50 rounded-xl">
-                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase font-black tracking-widest text-slate-400">Programación</p>
-                  <h3 class="text-lg font-black text-slate-800 leading-tight">Nueva Plantilla</h3>
-                </div>
-              </div>
-              <button
-                @click="closeCreate"
-                class="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-xl transition-colors"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+        <div class="flex items-start gap-2.5 rounded-2xl bg-primary-50 p-3.5 text-sm font-medium text-primary-800 ring-1 ring-primary-100 dark:bg-primary-500/10 dark:text-primary-200 dark:ring-primary-500/30">
+          <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+          <p class="m-0">
+            La plantilla se creará en estado <strong>INACTIVO</strong>. Podrás activarla desde el panel de edición una vez configurados sus bloques.
+          </p>
+        </div>
+      </form>
 
-            <!-- Body -->
-            <div class="p-6 space-y-4 bg-slate-50/50">
-              <!-- Nombre -->
-              <div>
-                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Nombre de plantilla</label>
-                <input
-                  v-model="createForm.nombre_plantilla"
-                  type="text"
-                  placeholder="Ej. Programación Base 2026-II"
-                  class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
-                  :class="createErrors.nombre_plantilla ? 'border-red-400' : ''"
-                />
-                <p v-if="createErrors.nombre_plantilla" class="text-red-500 text-xs mt-1 font-medium">{{ createErrors.nombre_plantilla }}</p>
-              </div>
+      <template #footer>
+        <AppButton variant="secondary" :disabled="store.isSaving" @click="closeCreate">Cancelar</AppButton>
+        <AppButton type="submit" form="create-plantilla-form" :loading="store.isSaving" :disabled="createNameEmpty">
+          Crear plantilla
+        </AppButton>
+      </template>
+    </AppModal>
 
-              <!-- Fechas -->
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Fecha inicio</label>
-                  <input
-                    v-model="createForm.fecha_inicio"
-                    type="date"
-                    class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
-                    :class="createErrors.fecha_inicio ? 'border-red-400' : ''"
-                  />
-                  <p v-if="createErrors.fecha_inicio" class="text-red-500 text-xs mt-1 font-medium">{{ createErrors.fecha_inicio }}</p>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Fecha fin</label>
-                  <input
-                    v-model="createForm.fecha_fin"
-                    type="date"
-                    :min="createForm.fecha_inicio || undefined"
-                    class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
-                    :class="createErrors.fecha_fin ? 'border-red-400' : ''"
-                  />
-                  <p v-if="createErrors.fecha_fin" class="text-red-500 text-xs mt-1 font-medium">{{ createErrors.fecha_fin }}</p>
-                </div>
-              </div>
+    <!-- MODAL: EDICIÓN -->
+    <AppModal
+      :model-value="showEditModal"
+      title="Editar plantilla"
+      :subtitle="editTarget?.nombre_plantilla"
+      :icon="IconEdit"
+      :persistent="store.isSaving"
+      @update:model-value="(v) => !v && closeEdit()"
+    >
+      <form id="edit-plantilla-form" class="flex flex-col gap-4" novalidate @submit.prevent="submitEdit">
+        <AppField label="Nombre de plantilla" for="plantilla-edit-nombre" required :error="editErrors.nombre_plantilla">
+          <AppInput id="plantilla-edit-nombre" v-model="editForm.nombre_plantilla" placeholder="Ej. Programación Base 2026"
+            :invalid="!!editErrors.nombre_plantilla" />
+        </AppField>
 
-              <!-- Info estado inicial -->
-              <div class="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
-                <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p class="text-xs font-semibold text-blue-700">
-                  La plantilla se creará en estado <strong>INACTIVO</strong>. Podrás activarla desde el panel de edición una vez hayas configurado sus bloques.
-                </p>
-              </div>
-            </div>
+        <!-- Fechas de solo lectura: se asignan automáticamente al publicar -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <AppField label="Fecha de inicio" hint="Se asigna al publicar.">
+            <AppInput :model-value="formatDate(editForm.fecha_inicio)" :icon="IconCalendar" readonly />
+          </AppField>
+          <AppField label="Fecha de fin" hint="Se asigna al publicar.">
+            <AppInput :model-value="formatDate(editForm.fecha_fin)" :icon="IconCalendar" readonly />
+          </AppField>
+        </div>
 
-            <!-- Footer -->
-            <div class="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
-              <button
-                @click="closeCreate"
-                class="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="submitCreate"
-                :disabled="createNameEmpty || store.isSaving"
-                :class="createNameEmpty || store.isSaving
-                  ? 'px-6 py-2.5 text-sm font-extrabold text-slate-400 bg-slate-100 rounded-xl border border-slate-200 cursor-not-allowed transition-all'
-                  : 'px-6 py-2.5 text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all'"
-              >
-                {{ store.isSaving ? 'Creando...' : 'Crear plantilla' }}
-              </button>
-            </div>
+        <div class="flex flex-col gap-3">
+          <StatusOptionGroup v-model="editStatus" :options="PLANTILLA_STATUS_OPTIONS"
+            :current="editTarget?.estatus_plantilla ? 'ACTIVO' : 'INACTIVO'" label="Estatus de la plantilla" />
+
+          <div v-if="blockActivation" role="alert"
+            class="flex items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+            <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+            <p class="m-0">
+              Solo puede haber una programación activa. Desactiva
+              <strong>"{{ otherActivePlantilla?.nombre_plantilla }}"</strong> antes de activar esta plantilla.
+            </p>
           </div>
         </div>
-      </Transition>
-    </Teleport>
+      </form>
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- MODAL: EDICIÓN                                                        -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showEditModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="closeEdit"
-        >
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col relative">
+      <template #footer>
+        <AppButton variant="secondary" :disabled="store.isSaving" @click="closeEdit">Cancelar</AppButton>
+        <AppButton type="submit" form="edit-plantilla-form" :loading="store.isSaving" :disabled="blockActivation">
+          Guardar cambios
+        </AppButton>
+      </template>
+    </AppModal>
 
-            <!-- Overlay de éxito (animate-scale-in idéntico a ManageDisciplinesModal) -->
-            <Transition
-              enter-active-class="transition-opacity duration-150 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-200 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <div v-if="saveSuccess" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg animate-scale-in">
-                  <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <p class="text-base font-black text-slate-800">Plantilla actualizada</p>
-              </div>
-            </Transition>
+    <!-- MODAL: PUBLICAR PROGRAMACIÓN -->
+    <AppModal
+      :model-value="showPublishModal"
+      title="Publicar programación"
+      :subtitle="publishTarget?.nombre_plantilla"
+      :icon="IconCalendar"
+      tone="emerald"
+      size="lg"
+      :persistent="store.isSaving"
+      @update:model-value="(v) => !v && closePublish()"
+    >
+      <form id="publish-form" class="flex flex-col gap-5" novalidate @submit.prevent="submitPublish">
+        <p class="m-0 text-sm font-medium text-surface-600">
+          Genera las sesiones de actividades según los horarios de la plantilla.
+          <span class="font-bold text-surface-900 tabular-nums">{{ actividadesEfectivasSemana }}</span> actividades base por semana<span v-if="omitirDias.length > 0 && publishTarget?.total_actividades"> (de {{ publishTarget?.total_actividades }})</span>.
+        </p>
 
-            <!-- Header -->
-            <div class="flex items-center justify-between p-6 border-b border-slate-100">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-blue-50 rounded-xl">
-                  <IconEdit class="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase font-black tracking-widest text-slate-400">Plantilla</p>
-                  <h3 class="text-lg font-black text-slate-800 leading-tight">Editar plantilla</h3>
-                </div>
-              </div>
-              <button
-                @click="closeEdit"
-                class="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-xl transition-colors"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Body -->
-            <div class="p-6 space-y-4 bg-slate-50/50">
-              <!-- Nombre -->
-              <div>
-                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Nombre de plantilla</label>
-                <input
-                  v-model="editForm.nombre_plantilla"
-                  type="text"
-                  placeholder="Ej. Programación Base 2026"
-                  class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all"
-                />
-                <p v-if="editErrors.nombre_plantilla" class="text-red-500 text-xs mt-1 font-medium">{{ editErrors.nombre_plantilla }}</p>
-              </div>
-
-              <!-- Fechas (solo lectura — se asignan automáticamente al publicar) -->
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Fecha inicio</label>
-                  <div class="w-full border border-slate-100 rounded-xl px-4 py-2.5 bg-slate-50 flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span class="text-sm font-semibold text-slate-400">{{ formatDate(editForm.fecha_inicio) }}</span>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Fecha fin</label>
-                  <div class="w-full border border-slate-100 rounded-xl px-4 py-2.5 bg-slate-50 flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span class="text-sm font-semibold text-slate-400">{{ formatDate(editForm.fecha_fin) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Estatus -->
-              <div>
-                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Estatus</label>
-                <div class="flex p-1 bg-slate-100 rounded-xl border border-slate-200 gap-1">
-                  <!-- Botón ACTIVO — deshabilitado si hay otra plantilla activa -->
-                  <button
-                    type="button"
-                    @click="!blockActivation && (editForm.estatus_plantilla = true)"
-                    :class="[
-                      'flex-1 py-2 px-3 text-xs font-extrabold rounded-lg transition-all',
-                      editForm.estatus_plantilla === true
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : blockActivation
-                          ? 'text-slate-300 cursor-not-allowed'
-                          : 'text-slate-500 hover:bg-white/60'
-                    ]"
-                  >
-                    Activo
-                  </button>
-                  <!-- Botón INACTIVO -->
-                  <button
-                    type="button"
-                    @click="editForm.estatus_plantilla = false"
-                    :class="[
-                      'flex-1 py-2 px-3 text-xs font-extrabold rounded-lg transition-all',
-                      editForm.estatus_plantilla === false
-                        ? 'bg-slate-600 text-white shadow-sm'
-                        : 'text-slate-500 hover:bg-white/60'
-                    ]"
-                  >
-                    Inactivo
-                  </button>
-                </div>
-
-                <!-- Bloqueo: ya existe otra plantilla activa -->
-                <Transition name="fade-down">
-                  <div v-if="blockActivation" class="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
-                    <IconWarning class="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                    <p class="text-xs font-semibold text-red-700">
-                      Solo puede haber una programación activa. Debes desactivar
-                      <strong>"{{ otherActivePlantilla?.nombre_plantilla }}"</strong>
-                      antes de activar esta plantilla.
-                    </p>
-                  </div>
-                </Transition>
-              </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
-              <button
-                @click="closeEdit"
-                class="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="submitEdit"
-                :disabled="store.isSaving || blockActivation"
-                :class="store.isSaving || blockActivation
-                  ? 'px-6 py-2.5 text-sm font-extrabold text-slate-400 bg-slate-100 rounded-xl border border-slate-200 cursor-not-allowed transition-all'
-                  : 'px-6 py-2.5 text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all'"
-              >
-                {{ store.isSaving ? 'Guardando...' : 'Guardar cambios' }}
-              </button>
-            </div>
+        <!-- Semanas -->
+        <section class="flex flex-col gap-2.5" aria-label="Semanas a programar">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="m-0 text-[13px] font-semibold text-surface-800">Semanas a programar</h3>
+            <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold tabular-nums text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+              {{ semanasSeleccionadas.length }} elegida(s)
+            </span>
           </div>
-        </div>
-      </Transition>
-    </Teleport>
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- MODAL: PUBLICAR PROGRAMACIÓN (estilo GitHub)                          -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showPublishModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="closePublish"
-        >
-          <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col relative max-h-[92vh]">
-
-            <!-- Overlay de éxito -->
-            <Transition
-              enter-active-class="transition-opacity duration-150 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-150 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <div v-if="publishSuccess" class="absolute inset-0 z-30 bg-white/95 backdrop-blur-xs rounded-3xl flex flex-col items-center justify-center gap-4">
-                <div class="w-20 h-20 rounded-full bg-emerald-600 flex items-center justify-center shadow-xl animate-scale-in">
-                  <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <div class="text-center">
-                  <p class="text-xl font-black text-slate-900 tracking-tight">¡Programación publicada con éxito!</p>
-                  <p class="text-xs font-semibold text-slate-500 mt-1">Las sesiones ya se encuentran activas en el calendario del club.</p>
-                </div>
-              </div>
-            </Transition>
-
-            <!-- Header con banner degradado sutil -->
-            <div class="flex items-center justify-between px-6 py-4.5 border-b border-emerald-100 bg-linear-to-r from-emerald-50/80 via-emerald-50/40 to-teal-50/60 shrink-0">
-              <div class="flex items-center gap-3.5">
-                <div class="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-sm shadow-emerald-600/20 shrink-0">
-                  <IconCalendar class="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 class="text-base font-black text-slate-900 leading-tight">Publicar Programación Oficial</h3>
-                  <p class="text-xs font-medium text-slate-500 mt-0.5">
-                    Genera las sesiones de actividades en vivo según los horarios de la plantilla seleccionada.
-                  </p>
-                </div>
-              </div>
-              <button
-                @click="closePublish"
-                class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-xl transition-all active:scale-95"
-                title="Cerrar modal"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Body en layout de 2 columnas -->
-            <div class="flex-1 overflow-y-auto p-6 min-h-0 space-y-6">
-
-              <!-- Badge banner de plantilla seleccionada -->
-              <div class="bg-linear-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                    <IconTrophy class="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div class="min-w-0">
-                    <span class="text-[10px] font-bold tracking-wider text-slate-400">Plantilla seleccionada</span>
-                    <h4 class="text-base font-black truncate leading-tight">{{ publishTarget?.nombre_plantilla }}</h4>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span class="text-xs font-black text-emerald-300 tabular-nums">
-                    {{ actividadesEfectivasSemana }}
-                  </span>
-                  <span class="text-xs font-semibold text-slate-300">
-                    actividades base / semana
-                  </span>
-                  <span v-if="omitirDias.length > 0 && publishTarget?.total_actividades" class="text-[10px] text-slate-400 font-normal">
-                    (de {{ publishTarget?.total_actividades }})
-                  </span>
-                </div>
-              </div>
-
-              <!-- Grid Horizontal: Columna Izquierda (Semanas) | Columna Derecha (Días Especiales y Opciones) -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-
-                <!-- ── COLUMNA IZQUIERDA: SELECTOR DE SEMANAS ── -->
-                <div class="space-y-3 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4.5">
-                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
-                    <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                        <IconCalendar class="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <h4 class="text-xs font-black text-slate-800">Semanas a programar</h4>
-                        <p class="text-[11px] font-medium text-slate-500">Elige el periodo en el que se crearán las sesiones</p>
-                      </div>
-                    </div>
-                    <span class="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 tabular-nums">
-                      {{ semanasSeleccionadas.length }} elegida(s)
-                    </span>
-                  </div>
-
-                  <div class="space-y-2 pt-1">
-                    <div
-                      v-for="opcion in opcionesSemanas"
-                      :key="opcion.fecha"
-                    >
-                      <!-- Opción BLOQUEADA (Ocupada por otra plantilla) -->
-                      <div
-                        v-if="esSemanaBloqueada(opcion.fecha)"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 bg-slate-100/70 text-slate-400 select-none cursor-not-allowed relative mt-2.5"
-                      >
-                        <!-- Pestañita flotante en la parte superior derecha pegada al recuadro -->
-                        <div class="absolute -top-2.5 right-3 pointer-events-none z-10">
-                          <span class="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 border border-slate-300 shadow-2xs tracking-tight">
-                            <IconLock class="w-2.5 h-2.5 shrink-0 text-slate-500" />
-                            Ocupada por programación {{ getOcupacionSemana(opcion.fecha)?.nombre_plantilla || '' }}
-                          </span>
-                        </div>
-
-                        <div class="w-5 h-5 rounded-md border-2 border-slate-300 bg-slate-200/80 flex items-center justify-center shrink-0 text-slate-400">
-                          <IconLock class="w-3 h-3 text-slate-400" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <span class="inline-block text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-500">
-                            {{ opcion.label }}
-                          </span>
-                          <p class="text-xs font-bold text-slate-400 leading-tight mt-1 tabular-nums whitespace-nowrap">
-                            {{ formatDate(opcion.fecha) }}
-                            <span class="text-slate-300 mx-1">→</span>
-                            {{ formatDate(toLocalDateString(new Date(new Date(opcion.fecha + 'T12:00:00').getTime() + 6 * 86400000))) }}
-                          </p>
-                        </div>
-                      </div>
-
-                      <!-- Opción DISPONIBLE (Seleccionable) -->
-                      <button
-                        v-else
-                        type="button"
-                        @click="toggleSemana(opcion.fecha)"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left focus:outline-none group relative cursor-pointer"
-                        :class="semanasSeleccionadas.includes(opcion.fecha)
-                          ? 'border-emerald-500 bg-white shadow-xs ring-2 ring-emerald-500/10'
-                          : 'border-slate-200 bg-white/60 hover:border-slate-300 hover:bg-white'"
-                      >
-                        <div
-                          class="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all"
-                          :class="semanasSeleccionadas.includes(opcion.fecha)
-                            ? 'border-emerald-500 bg-emerald-500'
-                            : 'border-slate-300 bg-white group-hover:border-slate-400'"
-                        >
-                          <svg v-if="semanasSeleccionadas.includes(opcion.fecha)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <span class="inline-block text-[10px] font-bold px-1.5 py-0.2 rounded"
-                            :class="semanasSeleccionadas.includes(opcion.fecha) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'"
-                          >
-                            {{ opcion.label }}
-                          </span>
-                          <p class="text-xs font-bold text-slate-800 leading-tight mt-1 tabular-nums">
-                            {{ formatDate(opcion.fecha) }}
-                            <span class="text-slate-400 mx-1">→</span>
-                            {{ formatDate(toLocalDateString(new Date(new Date(opcion.fecha + 'T12:00:00').getTime() + 6 * 86400000))) }}
-                          </p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- ── COLUMNA DERECHA: DÍAS ESPECIALES Y REGLAS DE PUBLICACIÓN ── -->
-                <div class="space-y-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4.5">
-                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
-                    <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="flex items-center gap-1.5">
-                          <h4 class="text-xs font-black text-slate-800">Días especiales o feriados</h4>
-                          <span class="text-[10px] font-semibold text-slate-400">(Opcional)</span>
-                        </div>
-                        <p class="text-[11px] font-medium text-slate-500">Omite días festivos específicos de la programación</p>
-                      </div>
-                    </div>
-                    <span v-if="omitirDias.length > 0" class="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-100 text-rose-700">
-                      {{ omitirDias.length }} excluido(s)
-                    </span>
-                  </div>
-
-                  <!-- Chips de días de la semana con estilo consistente -->
-                  <div>
-                    <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
-                      <button
-                        v-for="dia in diasSemanaOpciones"
-                        :key="dia"
-                        type="button"
-                        @click="toggleDiaOmitido(dia)"
-                        class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all border font-sans group relative"
-                        :class="omitirDias.includes(dia)
-                          ? 'bg-rose-50 border-rose-300 text-rose-700 shadow-xs ring-1 ring-rose-400/20'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'"
-                        :title="omitirDias.includes(dia) ? `Excluido: ${DIA_META[dia].full}` : `Clic para excluir ${DIA_META[dia].full}`"
-                      >
-                        <!-- Indicador o icono -->
-                        <span class="text-[10px] font-bold tracking-wide"
-                          :class="omitirDias.includes(dia) ? 'text-rose-700 font-extrabold' : 'text-slate-800'"
-                        >
-                          {{ DIA_META[dia].short }}
-                        </span>
-                        <span class="text-[8px] font-medium mt-0.5"
-                          :class="omitirDias.includes(dia) ? 'text-rose-600 font-bold' : 'text-slate-400'"
-                        >
-                          {{ omitirDias.includes(dia) ? 'Excluido' : (actividadesPorDia[dia] ? `${actividadesPorDia[dia]} act.` : 'Activo') }}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Reglas automáticas -->
-                  <div class="pt-2 border-t border-slate-200/60 space-y-2">
-                    <label class="flex items-start gap-3 p-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer select-none">
-                      <input
-                        v-model="omitirSesionesPasadas"
-                        type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
-                      />
-                      <div class="text-xs">
-                        <span class="font-bold text-slate-800">Filtrar horas ya transcurridas</span>
-                        <p class="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">
-                          Si estás publicando durante la semana en curso (ej. lunes en la madrugada), se omitirán automáticamente las clases que ya concluyeron hoy.
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-              </div>
-
-              <!-- Alerta si todas las semanas próximas están ocupadas -->
-              <div v-if="todasLasSemanasOcupadas" class="flex items-center gap-2.5 bg-slate-100 border border-slate-300 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
-                <IconLock class="w-4 h-4 text-slate-500 shrink-0" />
-                <span>
-                  Todas las semanas próximas disponibles ya tienen una programación publicada. Retira alguna programación existente para poder publicar esta.
+          <template v-for="opcion in opcionesSemanas" :key="opcion.fecha">
+            <!-- Ocupada por otra plantilla -->
+            <div v-if="esSemanaBloqueada(opcion.fecha)"
+              class="flex cursor-not-allowed items-center gap-3 rounded-xl border-2 border-surface-200 bg-surface-100 px-3.5 py-3 opacity-80">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-surface-300 text-surface-400" aria-hidden="true">
+                <IconLock class="h-3 w-3" />
+              </span>
+              <span class="min-w-0">
+                <span class="block text-sm font-bold text-surface-600">{{ opcion.label }}</span>
+                <span class="block text-xs font-medium tabular-nums text-surface-500">
+                  {{ formatDate(opcion.fecha) }} → {{ formatDate(toLocalDateString(new Date(new Date(opcion.fecha + 'T12:00:00').getTime() + 6 * 86400000))) }}
                 </span>
-              </div>
-
-              <!-- Alerta si se excluyeron todas las actividades (0 efectivas) -->
-              <div v-if="actividadesEfectivasSemana === 0" class="flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl px-4 py-2.5 text-xs font-semibold">
-                <IconWarning class="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  No puedes publicar la programación porque se han excluido todas las actividades base (0 actividades resultantes). Desmarca al menos un día para continuar.
+                <span class="mt-0.5 block text-xs font-semibold text-surface-500">
+                  Ocupada por {{ getOcupacionSemana(opcion.fecha)?.nombre_plantilla || 'otra programación' }}
                 </span>
-              </div>
+              </span>
+            </div>
 
-              <!-- Alerta de advertencia / resumen de exclusión -->
-              <div v-if="omitirDias.length > 0" class="flex items-center gap-2.5 bg-rose-50/80 border border-rose-200 text-rose-800 rounded-xl px-4 py-2.5 text-xs font-semibold">
-                <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>
-                  No se generará ninguna sesión para los siguientes días: <strong class="font-extrabold text-rose-900">{{ omitirDias.map(d => DIA_META[d].full).join(', ') }}</strong>.
+            <!-- Disponible -->
+            <button v-else type="button" role="checkbox" :aria-checked="semanasSeleccionadas.includes(opcion.fecha)"
+              class="flex w-full cursor-pointer items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+              :class="semanasSeleccionadas.includes(opcion.fecha)
+                ? 'border-emerald-500 bg-emerald-50/70 ring-4 ring-emerald-100 dark:bg-emerald-500/10 dark:ring-emerald-500/15'
+                : 'border-surface-200 hover:border-surface-300 hover:bg-surface-50'"
+              @click="toggleSemana(opcion.fecha)">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors"
+                :class="semanasSeleccionadas.includes(opcion.fecha) ? 'border-transparent bg-emerald-600 text-white' : 'border-surface-300'"
+                aria-hidden="true">
+                <svg v-if="semanasSeleccionadas.includes(opcion.fecha)" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+              </span>
+              <span class="min-w-0">
+                <span class="block text-sm font-bold text-surface-900">{{ opcion.label }}</span>
+                <span class="block text-xs font-medium tabular-nums text-surface-600">
+                  {{ formatDate(opcion.fecha) }} → {{ formatDate(toLocalDateString(new Date(new Date(opcion.fecha + 'T12:00:00').getTime() + 6 * 86400000))) }}
                 </span>
-              </div>
+              </span>
+            </button>
+          </template>
+        </section>
 
-              <!-- Error 409 u otro error de servidor -->
-              <Transition name="fade-down">
-                <div v-if="publishError" class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
-                  <IconWarning class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                  <p class="text-xs font-bold text-red-800 leading-relaxed">{{ publishError }}</p>
-                </div>
-              </Transition>
-
-            </div>
-
-            <!-- Footer: Confirmación estilo GitHub en línea + Botones de Acción -->
-            <div class="p-5 border-t border-slate-200/80 bg-slate-50/80 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <!-- Caja de confirmación de seguridad estilo GitHub -->
-              <div class="flex-1 max-w-sm bg-white border border-slate-200/90 rounded-2xl p-2.5 shadow-2xs">
-                <div class="flex items-center justify-between gap-2 mb-1.5 px-0.5">
-                  <div class="flex items-center gap-1.5 text-slate-600">
-                    <IconShield class="w-3.5 h-3.5 text-slate-400" />
-                    <span class="text-[11px] font-bold text-slate-700">Confirmación requerida</span>
-                  </div>
-                  <span class="text-[10px] font-medium text-slate-400">
-                    Escribe <strong class="font-black text-slate-700 font-mono tracking-wider">CONFIRMAR</strong>
-                  </span>
-                </div>
-                <div class="relative">
-                  <input
-                    v-model="publishConfirmInput"
-                    type="text"
-                    placeholder="CONFIRMAR"
-                    autocomplete="off"
-                    spellcheck="false"
-                    class="w-full h-9 rounded-xl px-3 pr-8 text-xs font-mono font-bold tracking-widest uppercase transition-all focus:outline-none"
-                    :class="publishConfirmed
-                      ? 'border-2 border-emerald-500 bg-emerald-50/40 text-emerald-900 ring-2 ring-emerald-500/15'
-                      : 'border border-slate-200 bg-slate-50/50 text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10'"
-                  />
-                  <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg v-if="publishConfirmed" class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <IconLock v-else class="w-3.5 h-3.5 text-slate-400" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Botones de Acción -->
-              <div class="flex items-center justify-end gap-2.5">
-                <button
-                  @click="closePublish"
-                  class="px-4 py-2.5 text-xs font-extrabold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  @click="submitPublish"
-                  :disabled="!publishReady || store.isSaving"
-                  class="px-6 py-2.5 text-xs font-extrabold text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  :class="publishReady && !store.isSaving ? 'bg-emerald-600 hover:bg-emerald-700 active:scale-95' : 'bg-emerald-600'"
-                >
-                  <svg v-if="store.isSaving" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                  </svg>
-                  <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>{{ store.isSaving ? 'Publicando...' : 'Confirmar publicación' }}</span>
-                </button>
-              </div>
-            </div>
+        <!-- Días especiales -->
+        <section class="flex flex-col gap-2.5" aria-label="Días especiales o feriados">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="m-0 text-[13px] font-semibold text-surface-800">
+              Días especiales o feriados <span class="font-medium text-surface-500">(opcional)</span>
+            </h3>
+            <span v-if="omitirDias.length > 0" class="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+              {{ omitirDias.length }} excluido(s)
+            </span>
           </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- MODAL: RETIRAR PROGRAMACIÓN                                            -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showUnpublishModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="closeUnpublish"
-        >
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col relative">
-
-            <!-- Overlay de éxito -->
-            <Transition
-              enter-active-class="transition-opacity duration-150 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-150 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <div v-if="unpublishSuccess" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center shadow-lg animate-scale-in">
-                  <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <p class="text-base font-black text-slate-800">Programación retirada</p>
-              </div>
-            </Transition>
-
-            <!-- Header naranja -->
-            <div class="flex items-center justify-between p-6 border-b border-orange-100 bg-orange-50">
-              <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-orange-100 rounded-xl">
-                  <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase font-black tracking-widest text-orange-400">Programación activa</p>
-                  <h3 class="text-lg font-black text-orange-900 leading-tight">Retirar sesiones publicadas</h3>
-                </div>
-              </div>
-              <button @click="closeUnpublish" class="text-slate-400 hover:text-slate-600 bg-white/70 hover:bg-white p-2 rounded-xl transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Body -->
-            <div class="p-6 space-y-5">
-
-              <!-- Info de la plantilla -->
-              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center gap-3">
-                <div class="p-2.5 bg-orange-100 rounded-lg shrink-0">
-                  <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 012 10z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-xs text-slate-500 font-semibold">Plantilla seleccionada</p>
-                  <p class="text-base font-extrabold text-slate-800 truncate">{{ unpublishTarget?.nombre_plantilla }}</p>
-                  <p class="text-xs text-slate-400 mt-0.5">
-                    Semana publicada: <span class="font-bold text-slate-600">{{ formatDate(unpublishTarget?.fecha_inicio) }} — {{ formatDate(unpublishTarget?.fecha_fin) }}</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Reglas del retiro -->
-              <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3">
-                <p class="text-xs font-extrabold text-slate-400 uppercase tracking-widest">¿Qué ocurre al retirar?</p>
-                <div class="space-y-3">
-                  <div class="flex items-start gap-3">
-                    <div class="mt-0.5 w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
-                      <svg class="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd" />
-                      </svg>
-                    </div>
-                    <p class="text-sm font-semibold text-slate-600 leading-snug">Las sesiones programadas se eliminan permanentemente de la agenda.</p>
-                  </div>
-                  <div class="flex items-start gap-3">
-                    <div class="mt-0.5 w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                      <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-                      </svg>
-                    </div>
-                    <p class="text-sm font-semibold text-slate-600 leading-snug">Los bloques de horario permanecen intactos — puedes volver a publicar cuando quieras.</p>
-                  </div>
-                  <div class="flex items-start gap-3">
-                    <div class="mt-0.5 w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                      <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                      </svg>
-                    </div>
-                    <p class="text-sm font-semibold text-slate-600 leading-snug">Si hay inscripciones activas o sesiones completadas, el retiro será bloqueado.</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Confirmación estilo GitHub -->
-              <div class="space-y-3">
-                <div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-                  <p class="text-sm font-semibold text-orange-800">
-                    Para confirmar, escribe <span class="font-black tracking-widest text-orange-900">RETIRAR</span> en el campo de abajo:
-                  </p>
-                </div>
-                <input
-                  v-model="unpublishConfirmInput"
-                  type="text"
-                  placeholder="RETIRAR"
-                  autocomplete="off"
-                  class="w-full border-2 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 tracking-wider placeholder:tracking-normal placeholder:font-normal focus:outline-none focus:ring-2 transition-colors"
-                  :class="unpublishConfirmed
-                    ? 'border-orange-400 bg-orange-50 focus:ring-orange-500/40'
-                    : 'border-slate-200 focus:ring-orange-500/40 focus:border-orange-500'"
-                />
-              </div>
-
-              <!-- Error del servidor -->
-              <Transition name="fade-down">
-                <div v-if="unpublishError" class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
-                  <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                  </svg>
-                  <div>
-                    <p class="text-sm font-extrabold text-red-800">Retiro bloqueado</p>
-                    <p class="text-sm font-medium text-red-700 mt-0.5 leading-relaxed">{{ unpublishError }}</p>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
-              <button
-                @click="closeUnpublish"
-                class="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="submitUnpublish"
-                :disabled="!unpublishConfirmed || store.isSaving"
-                class="px-6 py-2.5 text-sm font-extrabold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {{ store.isSaving ? 'Retirando...' : 'Retirar sesiones' }}
-              </button>
-            </div>
+          <p class="m-0 text-xs font-medium text-surface-500">Toca un día para omitirlo de la programación.</p>
+          <div class="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            <button v-for="dia in diasSemanaOpciones" :key="dia" type="button"
+              :aria-pressed="omitirDias.includes(dia)"
+              class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 px-1 py-2 text-center transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-100"
+              :class="omitirDias.includes(dia)
+                ? 'border-rose-400 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+                : 'border-surface-200 bg-white text-surface-800 hover:border-surface-300 hover:bg-surface-50'"
+              @click="toggleDiaOmitido(dia)">
+              <span class="text-xs font-bold">{{ DIA_META[dia].short }}</span>
+              <span class="mt-0.5 text-[10px] font-semibold" :class="omitirDias.includes(dia) ? '' : 'text-surface-500'">
+                {{ omitirDias.includes(dia) ? 'Excluido' : (actividadesPorDia[dia] ? `${actividadesPorDia[dia]} act.` : 'Activo') }}
+              </span>
+            </button>
           </div>
+        </section>
+
+        <!-- Filtrar horas transcurridas -->
+        <label class="flex cursor-pointer select-none items-start gap-3 rounded-2xl bg-surface-50 p-3.5 ring-1 ring-surface-200">
+          <input v-model="omitirSesionesPasadas" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded accent-emerald-600" />
+          <span class="text-sm">
+            <span class="block font-bold text-surface-900">Filtrar horas ya transcurridas</span>
+            <span class="mt-0.5 block text-xs font-medium text-surface-600">
+              Si publicas durante la semana en curso, se omiten las clases que ya concluyeron hoy.
+            </span>
+          </span>
+        </label>
+
+        <!-- Avisos -->
+        <div v-if="todasLasSemanasOcupadas" role="alert"
+          class="flex items-start gap-2.5 rounded-2xl bg-surface-100 p-3.5 text-sm font-semibold text-surface-700 ring-1 ring-surface-200">
+          <IconLock class="mt-0.5 h-4 w-4 shrink-0" />
+          Todas las semanas próximas ya tienen una programación publicada. Retira alguna para poder publicar esta.
         </div>
-      </Transition>
-    </Teleport>
-
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- MODAL: ERROR DE ELIMINACIÓN BLOQUEADA                                 -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showDeleteErrorModal"
-          class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
-          @click.self="closeDeleteError"
-        >
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-
-            <!-- Header rojo -->
-            <div class="flex items-center gap-3 p-6 border-b border-red-100 bg-red-50">
-              <div class="p-2.5 bg-red-100 rounded-xl shrink-0">
-                <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <p class="text-[10px] uppercase font-black tracking-widest text-red-400">Acción bloqueada</p>
-                <h3 class="text-base font-black text-red-800 leading-tight">{{ deleteErrorTitle }}</h3>
-              </div>
-            </div>
-
-            <!-- Body -->
-            <div class="p-6 space-y-4">
-              <p class="text-sm font-semibold text-slate-700 leading-relaxed">{{ deleteErrorMessage }}</p>
-
-              <div class="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <svg class="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-                </svg>
-                <p class="text-xs font-semibold text-red-700 leading-relaxed">
-                  Usa la acción <strong>"Retirar"</strong> para eliminar las sesiones activas vinculadas y después intenta eliminar nuevamente.
-                </p>
-              </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-slate-100 bg-white flex justify-end">
-              <button
-                @click="closeDeleteError"
-                class="px-6 py-2.5 text-sm font-extrabold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-all active:scale-95"
-              >
-                Aceptar
-              </button>
-            </div>
-          </div>
+        <div v-if="actividadesEfectivasSemana === 0" role="alert"
+          class="flex items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+          <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+          No puedes publicar: se excluyeron todas las actividades base. Desmarca al menos un día.
         </div>
-      </Transition>
-    </Teleport>
-
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- MODAL: ELIMINACIÓN PELIGROSA (estilo GitHub)                          -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showDeleteModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          @click.self="closeDelete"
-        >
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-
-            <!-- Header rojo -->
-            <div class="flex items-center justify-between p-6 border-b border-red-100 bg-red-50">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-red-100 rounded-xl">
-                  <IconTrash class="w-5 h-5 text-red-600" />
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase font-black tracking-widest text-red-400">Zona de peligro</p>
-                  <h3 class="text-lg font-black text-red-800 leading-tight">Eliminar plantilla</h3>
-                </div>
-              </div>
-              <button
-                @click="closeDelete"
-                class="text-slate-400 hover:text-slate-600 bg-white/70 hover:bg-white p-2 rounded-xl transition-colors"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Body -->
-            <div class="p-6 space-y-4">
-
-              <!-- Banner de bloqueo: plantilla ACTIVO -->
-              <Transition name="fade-down">
-                <div v-if="isActiveTarget" class="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl p-4">
-                  <IconWarning class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p class="text-sm font-extrabold text-amber-800">Acción denegada: La plantilla está en producción</p>
-                    <p class="text-xs text-amber-700 mt-1">
-                      No es posible eliminar una programación que se encuentra actualmente <strong>ACTIVA</strong>. Primero desactívala desde el panel de edición y luego podrás eliminarla.
-                    </p>
-                  </div>
-                </div>
-              </Transition>
-
-              <template v-if="!isActiveTarget">
-                <p class="text-sm text-slate-700">
-                  Estás a punto de eliminar la plantilla
-                  <strong class="text-slate-900">"{{ deleteTarget?.nombre_plantilla }}"</strong>
-                  y todas sus actividades asociadas.
-                </p>
-
-                <div class="bg-red-50 border border-red-200 rounded-xl p-3">
-                  <p class="text-xs font-bold text-red-700">
-                    Para confirmar, escribe <span class="font-black tracking-widest">ELIMINAR</span> en el campo de abajo:
-                  </p>
-                </div>
-
-                <input
-                  v-model="deleteConfirmInput"
-                  type="text"
-                  placeholder="ELIMINAR"
-                  class="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 tracking-wider placeholder:tracking-normal placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500 transition-colors"
-                  :class="deleteConfirmed ? 'border-red-400 bg-red-50' : ''"
-                />
-              </template>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
-              <button
-                @click="closeDelete"
-                class="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                {{ isActiveTarget ? 'Cerrar' : 'Cancelar' }}
-              </button>
-              <button
-                v-if="!isActiveTarget"
-                @click="submitDelete"
-                :disabled="!deleteConfirmed || store.isDeleting"
-                class="px-6 py-2.5 text-sm font-extrabold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {{ store.isDeleting ? 'Eliminando...' : 'Confirmar destrucción' }}
-              </button>
-            </div>
-          </div>
+        <div v-else-if="omitirDias.length > 0"
+          class="flex items-start gap-2.5 rounded-2xl bg-rose-50 p-3.5 text-sm font-semibold text-rose-800 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/30">
+          <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+          <span>No se generarán sesiones para: <strong>{{ omitirDias.map(d => DIA_META[d].full).join(', ') }}</strong>.</span>
         </div>
-      </Transition>
-    </Teleport>
+
+        <!-- Confirmación -->
+        <AppField for="publish-confirm" :error="publishError">
+          <p class="m-0 mb-1.5 text-[13px] font-semibold text-surface-800">
+            Para confirmar, escribe <span class="font-black tracking-widest text-emerald-700 dark:text-emerald-300">CONFIRMAR</span>
+          </p>
+          <AppInput id="publish-confirm" v-model="publishConfirmInput" placeholder="CONFIRMAR" autocomplete="off" spellcheck="false"
+            :invalid="!!publishError" />
+        </AppField>
+      </form>
+
+      <template #footer>
+        <AppButton variant="secondary" :disabled="store.isSaving" @click="closePublish">Cancelar</AppButton>
+        <AppButton type="submit" form="publish-form" tone="emerald" :loading="store.isSaving" :disabled="!publishReady">
+          Confirmar publicación
+        </AppButton>
+      </template>
+    </AppModal>
+
+    <!-- MODAL: RETIRAR PROGRAMACIÓN -->
+    <AppModal
+      :model-value="showUnpublishModal"
+      title="Retirar sesiones publicadas"
+      :subtitle="unpublishTarget?.nombre_plantilla"
+      :icon="IconWarning"
+      tone="amber"
+      :persistent="store.isSaving"
+      @update:model-value="(v) => !v && closeUnpublish()"
+    >
+      <form id="unpublish-form" class="flex flex-col gap-4" novalidate @submit.prevent="submitUnpublish">
+        <p class="m-0 rounded-2xl bg-surface-50 px-4 py-3 text-sm font-medium text-surface-600 ring-1 ring-surface-200">
+          Semana publicada:
+          <strong class="text-surface-900">{{ formatDate(unpublishTarget?.fecha_inicio) }} — {{ formatDate(unpublishTarget?.fecha_fin) }}</strong>
+        </p>
+
+        <div class="flex flex-col gap-2.5 rounded-2xl bg-surface-50 p-4 ring-1 ring-surface-200">
+          <p class="m-0 text-xs font-bold uppercase tracking-widest text-surface-500">¿Qué ocurre al retirar?</p>
+          <ul class="m-0 flex list-none flex-col gap-2.5 p-0 text-sm font-medium text-surface-700">
+            <li class="flex items-start gap-2.5">
+              <IconTrash class="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+              Las sesiones programadas se eliminan permanentemente de la agenda.
+            </li>
+            <li class="flex items-start gap-2.5">
+              <IconShield class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+              Los bloques de horario permanecen intactos: puedes volver a publicar cuando quieras.
+            </li>
+            <li class="flex items-start gap-2.5">
+              <IconWarning class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              Si hay inscripciones activas o sesiones completadas, el retiro será bloqueado.
+            </li>
+          </ul>
+        </div>
+
+        <AppField for="unpublish-confirm" :error="unpublishError">
+          <template #default>
+            <p class="m-0 mb-1.5 text-[13px] font-semibold text-surface-800">
+              Para confirmar, escribe <span class="font-black tracking-widest text-amber-700 dark:text-amber-300">RETIRAR</span>
+            </p>
+            <AppInput id="unpublish-confirm" v-model="unpublishConfirmInput" placeholder="RETIRAR" autocomplete="off"
+              :invalid="!!unpublishError" />
+          </template>
+        </AppField>
+      </form>
+
+      <template #footer>
+        <AppButton variant="secondary" :disabled="store.isSaving" @click="closeUnpublish">Cancelar</AppButton>
+        <AppButton type="submit" form="unpublish-form" tone="amber" :loading="store.isSaving" :disabled="!unpublishConfirmed">
+          Retirar sesiones
+        </AppButton>
+      </template>
+    </AppModal>
+
+    <!-- MODAL: ELIMINACIÓN BLOQUEADA -->
+    <AppModal
+      :model-value="showDeleteErrorModal"
+      :title="deleteErrorTitle"
+      subtitle="Acción bloqueada"
+      :icon="IconWarning"
+      tone="rose"
+      size="sm"
+      @update:model-value="(v) => !v && closeDeleteError()"
+    >
+      <div class="flex flex-col gap-3">
+        <p class="m-0 text-[15px] leading-relaxed text-surface-700">{{ deleteErrorMessage }}</p>
+        <p class="m-0 flex items-start gap-2 rounded-2xl bg-amber-50 p-3.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+          <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Usa la acción <strong>"Retirar"</strong> para eliminar las sesiones activas vinculadas y después intenta eliminar nuevamente.</span>
+        </p>
+      </div>
+      <template #footer>
+        <AppButton variant="secondary" @click="closeDeleteError">Entendido</AppButton>
+      </template>
+    </AppModal>
+
+    <!-- MODAL: ELIMINAR PLANTILLA -->
+    <AppModal
+      :model-value="showDeleteModal"
+      title="Eliminar plantilla"
+      :subtitle="deleteTarget?.nombre_plantilla"
+      :icon="IconTrash"
+      tone="rose"
+      size="sm"
+      :persistent="store.isDeleting"
+      @update:model-value="(v) => !v && closeDelete()"
+    >
+      <!-- Plantilla activa: no se puede eliminar -->
+      <div v-if="isActiveTarget" role="alert"
+        class="flex items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+        <IconWarning class="mt-0.5 h-4 w-4 shrink-0" />
+        <p class="m-0">
+          La plantilla está en producción. No puedes eliminar una programación <strong>ACTIVA</strong>:
+          desactívala desde el panel de edición y luego podrás eliminarla.
+        </p>
+      </div>
+
+      <form v-else id="delete-plantilla-form" class="flex flex-col gap-4" novalidate @submit.prevent="submitDelete">
+        <p class="m-0 text-[15px] leading-relaxed text-surface-700">
+          Vas a eliminar <strong class="text-surface-900">"{{ deleteTarget?.nombre_plantilla }}"</strong>
+          y todas sus actividades asociadas. Esta acción no se puede deshacer.
+        </p>
+        <AppField for="delete-confirm">
+          <p class="m-0 mb-1.5 text-[13px] font-semibold text-surface-800">
+            Para confirmar, escribe <span class="font-black tracking-widest text-rose-600 dark:text-rose-400">ELIMINAR</span>
+          </p>
+          <AppInput id="delete-confirm" v-model="deleteConfirmInput" placeholder="ELIMINAR" autocomplete="off" />
+        </AppField>
+      </form>
+
+      <template #footer>
+        <AppButton variant="secondary" :disabled="store.isDeleting" @click="closeDelete">
+          {{ isActiveTarget ? 'Cerrar' : 'Cancelar' }}
+        </AppButton>
+        <AppButton v-if="!isActiveTarget" type="submit" form="delete-plantilla-form" tone="rose"
+          :loading="store.isDeleting" :disabled="!deleteConfirmed">
+          Eliminar plantilla
+        </AppButton>
+      </template>
+    </AppModal>
+
   </div>
 </template>
 

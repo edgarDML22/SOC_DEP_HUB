@@ -13,7 +13,7 @@ const route = useRoute()
 const SECTION_TITLES = {
   dashboard: 'Dashboard',
   reports: 'Reportes',
-  reservations: 'Reservas On-Demand',
+  reservations: 'Reservas',
   ludoteca: 'Ludoteca',
   tournaments: 'Torneos',
   activities: 'Actividades',

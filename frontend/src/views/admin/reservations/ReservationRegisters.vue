@@ -276,6 +276,7 @@ const exportColumns = [
     <div class="flex flex-col gap-6">
         <!-- CABECERA -->
         <AdminPageHeader 
+            :eyebrow="false"
             title="Historial de Registros"
             subtitle="Consulta el registro histórico de reservaciones de espacios, horarios y asistencias."
         />

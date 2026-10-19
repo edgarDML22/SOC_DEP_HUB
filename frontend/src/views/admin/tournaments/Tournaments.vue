@@ -21,6 +21,8 @@ import CreateTournamentModal from '@/components/tournaments/CreateTournamentModa
 import EditTournamentModal from '@/components/tournaments/EditTournamentModal.vue'
 import TournamentStatusModal from '@/components/tournaments/TournamentStatusModal.vue'
 import Select from 'primevue/select'
+import AppButton from '@/components/ui/AppButton.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -222,9 +224,21 @@ onMounted(() => {
     <div class="max-w-7xl mx-auto space-y-8">
 
       <!-- CABECERA -->
-      <AdminPageHeader title="Gestión de Torneos" subtitle="Monitorea y administra el ciclo de vida de los torneos.">
+      <AdminPageHeader title="Gestión de Torneos" subtitle="Monitorea y administra el ciclo de vida de los torneos." />
+
+      <!-- Acción principal a la izquierda -->
+      <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+        <AppButton class="shrink-0" @click="showCreateModal = true">
+          <template #icon><IconPlus class="h-4 w-4" /></template>
+          Crear Torneo
+        </AppButton>
+        <AppButton variant="secondary" class="shrink-0" @click="router.push('/admin/tournaments/pre-registros')">
+          Ver Pre-registros
+        </AppButton>
+      </div>
+
         <!-- Switcher Tabla / Tarjetas / Calendario -->
-        <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200 mr-4">
+        <div class="flex w-full max-w-full overflow-x-auto p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200 sm:w-auto sm:self-start">
           <button @click="router.push('/admin/tournaments')" 
                   class="py-1.5 px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all duration-200 ease-out active:scale-[0.97] border-none cursor-pointer"
                   :class="route.name === 'tournaments-list' 
@@ -256,24 +270,7 @@ onMounted(() => {
             Calendario
           </button>
         </div>
-        
-        <button @click="router.push('/admin/tournaments/pre-registros')" 
-                class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-surface-200 bg-white text-surface-700
-                 text-sm font-bold hover:bg-surface-50 transition-colors shadow-sm mr-3 cursor-pointer">
-          <i class="fas fa-inbox text-surface-500"></i>
-          Ver Pre-registros
-        </button>
-        
-        <button @click="showCreateModal = true" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                 text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="16" />
-            <line x1="8" y1="12" x2="16" y2="12" />
-          </svg>
-          Crear Torneo
-        </button>
-      </AdminPageHeader>
+
 
       <!-- BARRA DE FILTROS -->
       <FilterContainer :has-active-filters="!!hasActiveFilters" :active-count="[filtros.estatus, filtros.disciplina, filtros.tipo_acceso].filter(Boolean).length" @clear="clearFilters">

@@ -14,6 +14,8 @@ import {
 
 import CambiarEstatusModal from '@/components/admin/disciplines/CambiarEstatusModal.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
 import { IconLayers, IconChevronDown, IconGrid, IconAlertCircle } from '@/components/icons'
 
@@ -253,33 +255,23 @@ onMounted(() => {
     <div class="max-w-7xl mx-auto space-y-8">
 
       <!-- CABECERA -->
-      <AdminPageHeader title="Disciplinas" subtitle="Gestiona los deportes y actividades del club.">
-        <div class="flex items-center justify-end w-full sm:w-auto gap-3 ml-auto flex-wrap">
-          <span class="text-sm font-bold text-surface-500 whitespace-nowrap">
-            {{ filteredDisciplines.length }}
-            <span class="font-medium text-surface-400">de {{ disciplines.length }}</span>
-          </span>
-          <button @click="router.push({ name: 'disciplines-categories' })" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-surface-200 shadow-sm
-                   text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors shrink-0">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-            </svg>
-            Categorías
-          </button>
-          <button @click="openNewModal" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface-900 text-white
-                   text-sm font-bold hover:bg-primary-600 transition-colors shadow-sm cursor-pointer shrink-0">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-            Nueva Disciplina
-          </button>
-        </div>
-      </AdminPageHeader>
+      <AdminPageHeader title="Disciplinas" subtitle="Gestiona los deportes y actividades del club." />
+
+      <!-- Acción principal a la izquierda y el conteo justo a su derecha -->
+      <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+        <AppButton class="shrink-0" @click="openNewModal">
+          <template #icon><IconPlus class="h-4 w-4" /></template>
+          Nueva Disciplina
+        </AppButton>
+        <AppButton variant="secondary" class="shrink-0" @click="router.push({ name: 'disciplines-categories' })">
+          <template #icon><IconGrid class="h-4 w-4" /></template>
+          Categorías
+        </AppButton>
+        <span class="min-w-0 whitespace-nowrap text-sm font-semibold text-surface-600">
+          <span class="font-bold tabular-nums text-surface-900">{{ filteredDisciplines.length }}</span>
+          de <span class="tabular-nums">{{ disciplines.length }}</span><span class="hidden sm:inline"> disciplinas</span>
+        </span>
+      </div>
 
       <!-- FILTROS -->
       <FilterContainer :has-active-filters="hasActiveFilters" :active-count="activeFiltersCount" @clear="clearFilters">

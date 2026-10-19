@@ -6,6 +6,9 @@ import { useWizardStore } from '@/stores/programacion/wizardStore'
 import PlantillasGestion from './PlantillasGestion.vue'
 import WizardProgramacionView from './WizardProgramacionView.vue'
 import SesionesPublicadas from './SesionesPublicadas.vue'
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
 
 const activeTab      = ref('plantillas')
 const wizardReady    = ref(false)
@@ -87,35 +90,26 @@ onMounted(() => plantillasStore.fetchPlantillas())
 </script>
 
 <template>
-  <div class="p-6 font-sans bg-surface-50 min-h-full animate-fade-in">
-    <div class="max-w-[1550px] mx-auto space-y-8">
+  <div class="p-4 font-sans bg-surface-50 min-h-full animate-fade-in sm:p-6">
+    <div class="max-w-[1550px] mx-auto space-y-5 sm:space-y-8">
       
       <!-- CABECERA: TÍTULO + BOTÓN ACCIÓN -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-200/60 pb-6">
-        <div>
-          <h1 class="text-3xl md:text-4xl font-black text-surface-900 tracking-tight m-0">Programación de Actividades</h1>
-          <p class="text-sm font-medium text-surface-500 mt-2 m-0 max-w-xl">
-            Administra las plantillas de horarios semanales y publica la programación oficial de clases y actividades del club.
-          </p>
+      <AdminPageHeader
+        title="Programación de Actividades"
+        subtitle="Administra las plantillas de horarios semanales y publica la programación oficial de clases y actividades del club."
+      />
+
+      <Transition name="fade-down">
+        <div v-if="activeTab === 'plantillas'" class="flex items-center">
+          <AppButton @click="plantillasRef?.openCreate()">
+            <template #icon><IconPlus class="h-4 w-4" /></template>
+            Nueva Plantilla
+          </AppButton>
         </div>
-        <div class="shrink-0">
-          <Transition name="fade-down">
-            <button
-              v-if="activeTab === 'plantillas'"
-              @click="plantillasRef?.openCreate()"
-              class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-extrabold text-white bg-surface-900 hover:bg-primary-600 active:scale-95 rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap border-none cursor-pointer"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-              </svg>
-              Nueva Plantilla
-            </button>
-          </Transition>
-        </div>
-      </div>
+      </Transition>
 
       <!-- Segmented Control (Pills) -->
-      <div class="flex p-1.5 bg-surface-100/50 rounded-2xl w-full mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200 mb-8">
+      <div class="flex p-1.5 bg-surface-100/50 rounded-2xl w-full mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200">
         <button
           v-for="tab in tabs"
           :key="tab.name"
@@ -147,7 +141,7 @@ onMounted(() => plantillasStore.fetchPlantillas())
         </Transition>
 
         <!-- Plantillas tab -->
-        <div v-show="activeTab === 'plantillas'" class="p-6 md:p-8">
+        <div v-show="activeTab === 'plantillas'" class="p-3 sm:p-6 md:p-8">
           <PlantillasGestion ref="plantillasRef" />
         </div>
 

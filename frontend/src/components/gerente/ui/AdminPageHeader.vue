@@ -10,11 +10,13 @@
  *   title    : string (requerido)
  *   subtitle : string (opcional)
  *   backRoute: string — nombre de ruta Vue Router para mostrar botón "Volver"
+ *   eyebrow  : boolean — muestra la etiqueta "Administración" (true por defecto)
  */
 defineProps({
   title:     { type: String, required: true },
   subtitle:  { type: String, default: '' },
   backRoute: { type: String, default: '' },
+  eyebrow:   { type: Boolean, default: true },
 })
 </script>
 
@@ -36,7 +38,7 @@ defineProps({
       </router-link>
 
       <div>
-        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 m-0 leading-none mb-1">
+        <p v-if="eyebrow" class="text-xs font-bold uppercase tracking-widest text-slate-400 m-0 leading-none mb-1">
           Administración
         </p>
         <h1 class="text-2xl lg:text-3xl font-black text-slate-900 m-0 tracking-tight leading-tight">

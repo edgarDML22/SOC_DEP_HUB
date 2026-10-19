@@ -7,6 +7,7 @@ import {
 import { useReservacionAdminStore } from '@/stores/admin/reservationAdminStore'
 
 // Sub-componentes
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import ReservationRegisters from '@/views/admin/reservations/ReservationRegisters.vue'
 import ReservationStats from '@/views/admin/reservations/ReservationStats.vue'
 
@@ -45,13 +46,13 @@ const activeComponent = computed(() => components[activeTab.value])
 </script>
 
 <template>
-    <div class="p-6 font-sans">
+    <div class="p-4 font-sans sm:p-6">
         <div class="max-w-7xl mx-auto">
-            <h1 class="text-3xl font-black text-surface-900 tracking-tight mb-8">Reservas On-Demand</h1>
+            <AdminPageHeader class="mb-5 sm:mb-8" title="Reservas On-Demand" subtitle="Consulta el historial y las estadísticas de reservaciones del club." />
 
             <!-- Segmented Control (Pills) -->
             <div
-                class="flex p-1.5 bg-surface-100/50 rounded-2xl w-full mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200 mb-8">
+                class="flex p-1.5 bg-surface-100/50 rounded-2xl w-full mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200 mb-5 sm:mb-8">
                 <button v-for="tab in tabs" :key="tab.name" @click="selectTab(tab.name)"
                     class="flex-1 py-3 px-4 text-sm md:text-base text-center transition-all duration-200 ease-out whitespace-nowrap flex items-center justify-center gap-2 focus:outline-none active:scale-[0.99] border-none cursor-pointer"
                     :class="activeTab === tab.name
@@ -63,7 +64,7 @@ const activeComponent = computed(() => components[activeTab.value])
             </div>
 
             <!-- Área de Contenido -->
-            <div class="bg-white rounded-[2.2rem] border border-surface-200/80 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 md:p-8 min-h-[400px] relative overflow-hidden">
+            <div class="bg-white rounded-[2.2rem] border border-surface-200/80 shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-4 sm:p-6 md:p-8 min-h-[400px] relative overflow-hidden">
                 <!-- Local loading overlay -->
                 <Transition
                     enter-active-class="transition-opacity duration-150"

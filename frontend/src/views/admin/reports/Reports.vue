@@ -1,5 +1,7 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import Swal from 'sweetalert2';
 import api from '@/services/api';
 import { useReportsBIStore } from '@/stores/admin/reportsBIStore';
@@ -139,23 +141,21 @@ const exportExecutivePDF = async () => {
 </script>
 
 <template>
-  <div class="p-6 font-sans">
+  <div class="p-4 font-sans sm:p-6">
     <div class="max-w-7xl mx-auto">
-      <div class="flex items-center justify-between flex-wrap gap-4 mb-8">
-        <h1 class="text-3xl font-black text-surface-900 tracking-tight m-0">Reportes y Analíticas</h1>
-        <button
-          @click="exportExecutivePDF"
-          class="flex items-center gap-2 px-5 py-3 bg-red-600 text-white rounded-xl text-xs font-black tracking-wider uppercase hover:bg-red-700 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer shadow-sm shadow-red-900/10 hover:shadow-md"
-        >
-          <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          PDF
-        </button>
-      </div>
+      <AdminPageHeader class="mb-5 sm:mb-8" title="Reportes y Analíticas" subtitle="Auditoría, ocupación de espacios, torneos y actividades del club.">
+        <AppButton class="w-full sm:w-auto" @click="exportExecutivePDF">
+          <template #icon>
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+          </template>
+          Descargar PDF
+        </AppButton>
+      </AdminPageHeader>
 
       <!-- Segmented Control (Pills) -->
-      <div class="flex p-1.5 bg-surface-100/50 rounded-2xl w-full mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200 mb-8">
+      <div class="flex p-1.5 bg-surface-100/50 rounded-2xl w-full mx-auto overflow-x-auto scrollbar-thin shadow-inner border border-surface-200 mb-5 sm:mb-8">
         <button
           v-for="tab in tabs"
           :key="tab.name"
@@ -171,7 +171,7 @@ const exportExecutivePDF = async () => {
       </div>
 
       <!-- Área de Contenido -->
-      <div class="bg-white rounded-[2.5rem] border border-surface-200 shadow-sm p-6 lg:p-10 min-h-[400px]">
+      <div class="bg-white rounded-[2.5rem] border border-surface-200 shadow-sm p-4 sm:p-6 lg:p-10 min-h-[400px]">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
