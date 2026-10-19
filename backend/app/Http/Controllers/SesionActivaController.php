@@ -93,11 +93,11 @@ class SesionActivaController extends Controller
             });
         }
 
-        // Orden: Priorizar sesiones pendientes (distintas a FINALIZADA, COMPLETADA y CANCELADA)
+        // Orden: Priorizar sesiones pendientes (distintas a FINALIZADA y CANCELADA)
         // ordenadas de la más próxima a la más lejana. Al final, las concluidas o canceladas.
         $query->orderByRaw("
             CASE 
-                WHEN sesiones_activas.estatus_sesion NOT IN ('FINALIZADA', 'COMPLETADA', 'CANCELADA') THEN 0 
+                WHEN sesiones_activas.estatus_sesion::text NOT IN ('FINALIZADA', 'CANCELADA', 'CANCELADA_POR_TORNEO') THEN 0 
                 ELSE 1 
             END ASC
         ")
