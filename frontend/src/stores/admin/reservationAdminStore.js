@@ -3,8 +3,19 @@ import { ref } from 'vue'
 import api from '@/services/api'
 
 export const useReservacionAdminStore = defineStore('reservacionAdmin', () => {
+    const STORAGE_KEY = 'reservaciones_admin_data'
+
+    const loadFromStorage = () => {
+        try {
+            const cached = localStorage.getItem(STORAGE_KEY)
+            return cached ? JSON.parse(cached) : []
+        } catch {
+            return []
+        }
+    }
+
     // State
-    const reservaciones = ref([])
+    const reservaciones = ref(loadFromStorage())
     const filtersMeta = ref({
         espacios: [],
         socios: [],
@@ -33,6 +44,11 @@ export const useReservacionAdminStore = defineStore('reservacionAdmin', () => {
             const response = await api.get('/reservations/admin/list', { params: cleanParams })
             if (response.data && response.data.success) {
                 reservaciones.value = response.data.data || []
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(reservaciones.value))
+                } catch (e) {
+                    console.warn('Error saving to localStorage:', e)
+                }
             }
         } catch (error) {
             console.error('Error fetching reservaciones:', error)
@@ -58,33 +74,41 @@ export const useReservacionAdminStore = defineStore('reservacionAdmin', () => {
 
     const activeRequests = {}
 
-    const fetchStats = async (rango, silent = false, force = false) => {
-        if (!force && statsCache.value[rango]) {
-            return statsCache.value[rango]
+    const fetchStats = async (rango = 'hoy', silent = false, force = false, customParams = null) => {
+        const cacheKey = customParams?.fecha_inicio && customParams?.fecha_fin
+            ? `custom_${customParams.fecha_inicio}_${customParams.fecha_fin}`
+            : rango
+
+        if (!force && statsCache.value[cacheKey]) {
+            return statsCache.value[cacheKey]
         }
 
-        if (!force && activeRequests[rango]) {
+        if (!force && activeRequests[cacheKey]) {
             if (!silent) loading.value.stats = true
-            await activeRequests[rango]
+            await activeRequests[cacheKey]
             if (!silent) loading.value.stats = false
-            return statsCache.value[rango]
+            return statsCache.value[cacheKey]
         }
 
         if (!silent) loading.value.stats = true
         
-        activeRequests[rango] = api.get('/reservations/admin/stats', { params: { rango } })
+        const queryParams = customParams?.fecha_inicio && customParams?.fecha_fin
+            ? { fecha_inicio: customParams.fecha_inicio, fecha_fin: customParams.fecha_fin }
+            : { rango }
+
+        activeRequests[cacheKey] = api.get('/reservations/admin/stats', { params: queryParams })
         
         try {
-            const response = await activeRequests[rango]
+            const response = await activeRequests[cacheKey]
             if (response.data && response.data.success) {
-                statsCache.value[rango] = response.data.data
-                return statsCache.value[rango]
+                statsCache.value[cacheKey] = response.data.data
+                return statsCache.value[cacheKey]
             }
         } catch (error) {
             console.error('Error fetching stats:', error)
             return null
         } finally {
-            delete activeRequests[rango]
+            delete activeRequests[cacheKey]
             if (!silent) loading.value.stats = false
         }
     }

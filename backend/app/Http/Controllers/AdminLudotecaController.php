@@ -139,6 +139,7 @@ class AdminLudotecaController extends Controller
             ->select(
                 'historial_ludoteca.id_historial',
                 'historial_ludoteca.id_registro_operativo',
+                'l.id_menor',
                 'm.nombre_completo as nombre_menor',
                 's.nombre_completo as nombre_titular',
                 's.id_socio',
@@ -244,7 +245,9 @@ class AdminLudotecaController extends Controller
             }
         }
 
-        $resultado = $historial->get();
+        $resultado = $historial
+            ->orderBy('historial_ludoteca.hora_ingreso', 'desc')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -281,18 +284,22 @@ class AdminLudotecaController extends Controller
 
         /*
         -------------------------
-        KPI 1: Número niños
+        KPI 1: Número niños únicos
         -------------------------
         */
-        $numeroNinos = (clone $historialQuery)->count();
+        $menoresHistorial = (clone $historialQuery)
+            ->whereNotNull('id_menor')
+            ->pluck('id_menor');
 
         if ($rango === 'hoy') {
-            $activos = RegistrosLudoteca::where(
-                'estatus_ludoteca',
-                'ACTIVA'
-            )->count();
+            $menoresActivos = RegistrosLudoteca::where('estatus_ludoteca', 'ACTIVA')
+                ->whereBetween('hora_ingreso', [$inicio, $fin])
+                ->whereNotNull('id_menor')
+                ->pluck('id_menor');
 
-            $numeroNinos += $activos;
+            $numeroNinos = $menoresHistorial->concat($menoresActivos)->unique()->count();
+        } else {
+            $numeroNinos = $menoresHistorial->unique()->count();
         }
 
         /*
@@ -375,9 +382,9 @@ class AdminLudotecaController extends Controller
             'data' => [
                 'kpis' => [
                     'numero_ninos' => $numeroNinos,
-                    'calificacion_promedio' => round($calificacionPromedio, 1),
+                    'calificacion_promedio' => round($calificacionPromedio ?? 0, 1),
                     'total_incidencias' => $incidencias,
-                    'tiempo_promedio_min' => round($tiempoPromedio)
+                    'tiempo_promedio_min' => round($tiempoPromedio ?? 0)
                 ],
                 'graficas' => [
                     'afluencia_temporal' => [

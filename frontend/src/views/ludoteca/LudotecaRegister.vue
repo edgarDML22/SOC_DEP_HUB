@@ -110,8 +110,43 @@ const filteredRecord = computed(() => {
         })
     }
 
+    // Ordenar por fecha más cercana a hoy (descendente)
+    r.sort((a, b) => {
+        const timeA = a.hora_ingreso ? new Date(a.hora_ingreso.replace(' ', 'T')).getTime() : 0
+        const timeB = b.hora_ingreso ? new Date(b.hora_ingreso.replace(' ', 'T')).getTime() : 0
+        return timeB - timeA
+    })
+
     return r
 })
+
+const extractDate = (dateTimeStr) => {
+    if (!dateTimeStr) return ''
+    return dateTimeStr.includes('T') ? dateTimeStr.split('T')[0] : (dateTimeStr.includes(' ') ? dateTimeStr.split(' ')[0] : dateTimeStr)
+}
+
+const formatNiceDate = (dateString) => {
+    if (!dateString) return '—'
+    const parts = dateString.split('-')
+    if (parts.length !== 3) return dateString
+    const year = parts[0]
+    const monthIndex = parseInt(parts[1], 10) - 1
+    const day = parseInt(parts[2], 10)
+    const months = [
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+    ]
+    const monthName = months[monthIndex] || parts[1]
+    return `${day} ${monthName}, ${year}`
+}
+
+const formatTimeHM = (timeString) => {
+    if (!timeString) return '—'
+    const timePart = timeString.includes('T') ? timeString.split('T')[1] : (timeString.includes(' ') ? timeString.split(' ')[1] : timeString)
+    const parts = timePart.split(':')
+    if (parts.length < 2) return timePart
+    return `${parts[0]}:${parts[1]}`
+}
 
 const currentPage = ref(1)
 const itemsPerPage = ref(15)
@@ -181,10 +216,6 @@ const buildMenuItems = (item) => [
         <!-- CABECERA -->
         <AdminPageHeader title="Historial de Registros"
             subtitle="Consulta el registro histórico de ingresos, egresos y calificaciones de la ludoteca.">
-            <span class="text-sm font-bold text-surface-500">
-                {{ filteredRecord.length }}
-                <span class="font-medium text-surface-400">registros encontrados</span>
-            </span>
             <ExportCsvButton :data="filteredRecord" filename="ludoteca-registros" :columns="[
                 { label: 'ID', field: 'id_historial' },
                 { label: 'Número Acción', field: 'numero_accion' },
@@ -324,7 +355,7 @@ const buildMenuItems = (item) => [
                             <th scope="col" class="px-6 py-4 text-left font-extrabold">Menor</th>
                             <th scope="col" class="px-6 py-4 text-left font-extrabold">Titular / Acción</th>
                             <th scope="col" class="px-6 py-4 text-left font-extrabold">Ingreso / Egreso</th>
-                            <th scope="col" class="px-6 py-4 text-center font-extrabold">Tiempo</th>
+                            <th scope="col" class="px-6 py-4 text-left font-extrabold">Fecha / Tiempo</th>
                             <th scope="col" class="px-6 py-4 text-center font-extrabold">Calif.</th>
                             <th scope="col" class="px-6 py-4 text-center font-extrabold">Estatus Final</th>
                             <th scope="col" class="px-6 py-4 text-right font-extrabold">Acciones</th>
@@ -346,33 +377,46 @@ const buildMenuItems = (item) => [
                                 </div>
                             </td>
 
-                            <!-- Titular -->
+                            <!-- Titular / Acción -->
                             <td class="px-6 py-4">
-                                <div class="font-bold text-slate-800">{{ item.nombre_titular }}</div>
-                                <div class="text-slate-500 text-xs mt-0.5">{{ item.numero_accion }}</div>
+                                <div class="font-bold text-slate-800 text-sm leading-snug">{{ item.nombre_titular }}</div>
+                                <div class="mt-1 flex items-center">
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold tracking-tight">
+                                        Acción #{{ item.numero_accion ?? '—' }}
+                                    </span>
+                                </div>
                             </td>
 
                             <!-- Ingreso / Egreso -->
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex flex-col gap-0.5">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        <span class="text-xs font-medium text-surface-600">{{ item.hora_ingreso
-                                        }}</span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                        <span class="text-xs font-bold text-black">{{ formatTimeHM(item.hora_ingreso) }} hrs</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                        <span class="text-xs font-medium text-surface-600">{{ item.hora_egreso }}</span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                                        <span class="text-xs font-bold text-black">{{ formatTimeHM(item.hora_egreso) }} hrs</span>
                                     </div>
                                 </div>
                             </td>
 
-                            <!-- Tiempo -->
-                            <td class="px-6 py-4 text-center">
-                                <span
-                                    class="px-2.5 py-1 rounded-lg bg-surface-100 text-surface-700 font-medium text-[10px]">
-                                    {{ item.tiempo_total_minutos }} min
-                                </span>
+                            <!-- Fecha / Tiempo -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                    <svg class="w-3.5 h-3.5 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>{{ formatNiceDate(extractDate(item.hora_ingreso)) }}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 mt-1">
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-100 text-[11px] font-semibold tabular-nums tracking-tight">
+                                        <svg class="w-3 h-3 text-primary-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ item.tiempo_total_minutos }} min
+                                    </span>
+                                </div>
                             </td>
 
                             <!-- Calificación -->

@@ -61,10 +61,10 @@ const instructoresUnicos = computed(() => [...new Set(sesiones.value.map(s => s.
 const espaciosUnicos     = computed(() => [...new Set(sesiones.value.map(s => s.espacio).filter(Boolean))].sort())
 const categoriasUnicas   = computed(() => [...new Set(sesiones.value.map(s => s.categoria).filter(Boolean))].sort())
 
-// ─── Filtrado client-side ─────────────────────────────────────────────────────
+// ─── Filtrado y ordenamiento client-side ──────────────────────────────────────
 const sesionesFiltradas = computed(() => {
   const buscar  = searchFilter.value.trim().toLowerCase()
-  return sesiones.value.filter(s => {
+  const result = sesiones.value.filter(s => {
     if (selectedEstatus.value !== 'TODOS'    && s.estatus_sesion !== selectedEstatus.value)    return false
     if (selectedDisciplina.value !== 'TODAS' && s.disciplina !== selectedDisciplina.value)     return false
     if (selectedCategoria.value !== 'TODAS'  && s.categoria !== selectedCategoria.value)       return false
@@ -78,6 +78,32 @@ const sesionesFiltradas = computed(() => {
     if (buscar && ![s.disciplina, s.instructor, s.espacio, String(s.id_sesion ?? '')]
         .some(v => (v ?? '').toLowerCase().includes(buscar)))                                  return false
     return true
+  })
+
+  const esConcluidaOCancelada = (st) => {
+    const sUpper = (st ?? '').toUpperCase()
+    return sUpper === 'FINALIZADA' || sUpper === 'COMPLETADA' || sUpper === 'CANCELADA'
+  }
+
+  return result.sort((a, b) => {
+    const aConcluida = esConcluidaOCancelada(a.estatus_sesion) ? 1 : 0
+    const bConcluida = esConcluidaOCancelada(b.estatus_sesion) ? 1 : 0
+
+    // 1. Actividades pendientes primero
+    if (aConcluida !== bConcluida) {
+      return aConcluida - bConcluida
+    }
+
+    // 2. Ordenadas de la más próxima a la más lejana (fecha y horario)
+    const fechaA = a.fecha_sesion ?? ''
+    const fechaB = b.fecha_sesion ?? ''
+    if (fechaA !== fechaB) {
+      return fechaA.localeCompare(fechaB)
+    }
+
+    const horaA = a.hora_inicio ?? ''
+    const horaB = b.hora_inicio ?? ''
+    return horaA.localeCompare(horaB)
   })
 })
 
@@ -404,26 +430,19 @@ defineExpose({ fetchSesiones })
       </div>
 
       <!-- Empty global — no existe plantilla activa publicada (independiente de filtros) -->
-      <div v-else-if="plantillaEncontrada === false" class="h-full flex items-center justify-center">
-        <div class="w-full max-w-lg">
-          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-purple-400" />
-            <div class="p-8 text-center">
-              <div class="relative mx-auto mb-6 w-20 h-20">
-                <div class="absolute inset-0 rounded-2xl bg-slate-50 border border-slate-200 rotate-6" />
-                <div class="absolute inset-0 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center">
-                  <svg class="w-10 h-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-                </div>
-              </div>
-              <h3 class="text-xl font-black text-slate-800 mb-2 tracking-tight">Sin programación publicada</h3>
-              <p class="text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
-                Aún no se han generado sesiones para esta semana. Publica una plantilla desde
-                <span class="font-bold text-slate-700">Gestión de Plantillas</span> para verlas aquí.
-              </p>
-            </div>
+      <div v-else-if="plantillaEncontrada === false" class="flex-1 h-full min-h-[420px] flex items-center justify-center p-8">
+        <div class="max-w-sm w-full text-center">
+          <div class="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center mx-auto mb-5 shadow-xs">
+            <svg class="w-8 h-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
           </div>
+          <p class="text-[10px] uppercase font-black tracking-widest text-purple-600 mb-2">Acción requerida</p>
+          <h2 class="text-xl font-black text-slate-800 tracking-tight mb-2">Sin programación publicada</h2>
+          <p class="text-sm font-medium text-slate-500 leading-relaxed">
+            Aún no se han generado sesiones para esta semana. Publica una plantilla desde
+            <strong class="text-slate-700">Gestión de Plantillas</strong> para verlas aquí.
+          </p>
         </div>
       </div>
 
@@ -635,25 +654,31 @@ defineExpose({ fetchSesiones })
 
                     <!-- COMBINED: DISCIPLINA + CATEGORÍA -->
                     <td class="py-3.5 px-4">
-                      <span class="text-slate-800 font-extrabold block leading-tight">{{ s.disciplina ?? '—' }}</span>
-                      <span
-                        v-if="s.categoria"
-                        class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border tracking-wide uppercase mt-1"
-                        :class="categoriaColor(s.categoria)"
-                      >
-                        {{ formatCategoria(s.categoria) }}
+                      <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                        <DisciplineIcon :name="s.disciplina" class="w-3.5 h-3.5 shrink-0" />
+                        {{ s.disciplina ?? '—' }}
                       </span>
-                      <span v-else class="text-slate-300 text-[10px] font-bold">—</span>
+                      <div v-if="s.categoria" class="mt-1">
+                        <span
+                          class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border tracking-wide uppercase"
+                          :class="categoriaColor(s.categoria)"
+                        >
+                          {{ formatCategoria(s.categoria) }}
+                        </span>
+                      </div>
+                      <div v-else class="mt-1">
+                        <span class="text-slate-300 text-[10px] font-bold">—</span>
+                      </div>
                     </td>
 
-                    <td class="py-3.5 px-4 text-slate-600 font-bold leading-tight">{{ s.instructor ?? '—' }}</td>
+                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700 leading-tight">{{ s.instructor ?? '—' }}</td>
 
-                    <td class="py-3.5 px-4 text-slate-500 font-semibold leading-tight max-w-[200px] truncate" :title="s.espacio">
+                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700 leading-tight max-w-[200px] truncate" :title="s.espacio">
                       {{ s.espacio ?? '—' }}
                     </td>
 
                     <!-- COMBINED: HORA INICIO + HORA FIN -->
-                    <td class="py-3.5 px-4 text-center tabular-nums text-slate-700 font-black whitespace-nowrap">
+                    <td class="py-3.5 px-4 text-center tabular-nums text-xs font-medium text-slate-700 whitespace-nowrap leading-tight">
                       {{ (s.hora_inicio ?? '').slice(0,5) }} - {{ (s.hora_fin ?? '').slice(0,5) }}
                     </td>
 
@@ -666,12 +691,12 @@ defineExpose({ fetchSesiones })
                     <td class="py-3.5 px-4 text-right">
                       <button
                         @click="abrirDetalle(s)"
-                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-black text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-95 cursor-pointer"
+                        title="Gestionar sesión"
+                        class="inline-flex items-center justify-center p-2 text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-95 cursor-pointer"
                       >
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
                         </svg>
-                        Gestionar
                       </button>
                     </td>
                   </tr>

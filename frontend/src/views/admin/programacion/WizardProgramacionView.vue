@@ -661,11 +661,11 @@ function descartarCelda() {
   <div class="h-full flex flex-col bg-slate-50 font-sans">
 
     <!-- ══════════ HEADER ══════════ -->
-    <header class="px-6 py-3 border-b border-slate-200 bg-white shrink-0 shadow-sm">
+    <header v-if="plantillasStore.plantillaActiva" class="px-6 py-3 border-b border-slate-200 bg-white shrink-0 shadow-sm">
       <div class="flex items-center gap-4">
 
         <!-- Identidad -->
-        <div class="flex items-center gap-3 shrink-0">
+        <div v-if="plantillasStore.plantillaActiva" class="flex items-center gap-3 shrink-0">
           <button
             type="button"
             @click="store.togglePanel"

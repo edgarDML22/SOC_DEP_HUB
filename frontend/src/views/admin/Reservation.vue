@@ -47,7 +47,7 @@ const activeComponent = computed(() => components[activeTab.value])
 <template>
     <div class="p-6 font-sans">
         <div class="max-w-7xl mx-auto">
-            <h1 class="text-3xl font-black text-surface-900 tracking-tight mb-8">Administración de Reservas</h1>
+            <h1 class="text-3xl font-black text-surface-900 tracking-tight mb-8">Reservas On-Demand</h1>
 
             <!-- Segmented Control (Pills) -->
             <div

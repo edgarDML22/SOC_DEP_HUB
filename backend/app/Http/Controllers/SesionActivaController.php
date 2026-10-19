@@ -93,9 +93,16 @@ class SesionActivaController extends Controller
             });
         }
 
-        // Orden estable: disciplina alfabética vía snapshot JOIN directo, luego fecha.
-        $query->orderByRaw('(SELECT d.nombre_disciplina FROM disciplinas d WHERE d.id_disciplina = sesiones_activas.id_disciplina LIMIT 1)')
-              ->orderBy('sesiones_activas.fecha_sesion');
+        // Orden: Priorizar sesiones pendientes (distintas a FINALIZADA, COMPLETADA y CANCELADA)
+        // ordenadas de la más próxima a la más lejana. Al final, las concluidas o canceladas.
+        $query->orderByRaw("
+            CASE 
+                WHEN sesiones_activas.estatus_sesion NOT IN ('FINALIZADA', 'COMPLETADA', 'CANCELADA') THEN 0 
+                ELSE 1 
+            END ASC
+        ")
+        ->orderBy('sesiones_activas.fecha_sesion', 'asc')
+        ->orderBy('sesiones_activas.hora_inicio', 'asc');
 
         $perPage = min((int) $request->query('per_page', 30), 1000);
         $paginado = $query->paginate($perPage);
