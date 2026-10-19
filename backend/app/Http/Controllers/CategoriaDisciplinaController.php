@@ -76,8 +76,10 @@ class CategoriaDisciplinaController extends Controller
             return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 404);
         }
 
-        $disciplinasActivas = Disciplina::where('id_categoria', $id)
-            ->where('estatus', 'ACTIVO')
+        // La relación categoría-disciplina es muchos a muchos (pivote categoria_disciplina);
+        // la tabla disciplinas no tiene columna id_categoria.
+        $disciplinasActivas = $categoria->disciplinas()
+            ->where('disciplinas.estatus', 'ACTIVO')
             ->pluck('nombre_disciplina');
 
         return response()->json([
@@ -94,17 +96,20 @@ class CategoriaDisciplinaController extends Controller
             return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 404);
         }
 
-        $disciplinasActivas = Disciplina::where('id_categoria', $id)
-            ->where('estatus', 'ACTIVO')
+        // La relación categoría-disciplina es muchos a muchos (pivote categoria_disciplina);
+        // la tabla disciplinas no tiene columna id_categoria.
+        $disciplinasActivas = $categoria->disciplinas()
+            ->where('disciplinas.estatus', 'ACTIVO')
             ->pluck('nombre_disciplina');
 
         if ($disciplinasActivas->isNotEmpty()) {
             return response()->json([
+                'success' => false,
                 'puede_eliminar' => $disciplinasActivas->isEmpty(),
                 'disciplinas_activas' => $disciplinasActivas->count(),
                 'nombres_disciplinas' => $disciplinasActivas,
                 'message' => 'No se puede eliminar la categoría porque está siendo utilizada por una o más disciplinas activas.'
-            ]);
+            ], 409);
         } else {
             $categoria->update([
                 'estatus' => 'INACTIVO'

@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import CalendarioPublicadas from './CalendarioPublicadas.vue'
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
+import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import { useAlerts } from '@/composables/useAlerts'
 import { usePlantillasStore } from '@/stores/programacion/plantillasStore'
 import api from '@/services/api'
@@ -98,6 +101,37 @@ const sesionesEnPagina = computed(() => {
   const start = (currentPage.value - 1) * PAGE_SIZE
   return sesionesFiltradas.value.slice(start, start + PAGE_SIZE)
 })
+
+const OPT_TIPO_CLASE = [
+  { label: 'Todas', value: 'TODOS' },
+  { label: 'Abierta', value: 'ABIERTA' },
+  { label: 'Cerrada', value: 'CERRADA' },
+]
+const OPT_ESTATUS_SESION = [
+  { label: 'Todos', value: 'TODOS' },
+  { label: 'Disponible', value: 'DISPONIBLE' },
+  { label: 'En Curso', value: 'EN_CURSO' },
+  { label: 'Finalizada', value: 'FINALIZADA' },
+  { label: 'Cancelada', value: 'CANCELADA' },
+]
+const optDisciplina = computed(() => [{ label: 'Todas', value: 'TODAS' }, ...disciplinasUnicas.value.map(d => ({ label: d, value: d }))])
+const optCategoria = computed(() => [{ label: 'Todas', value: 'TODAS' }, ...categoriasUnicas.value.map(c => ({ label: formatCategoria(c), value: c }))])
+const optInstructor = computed(() => [{ label: 'Todos', value: 'TODOS' }, ...instructoresUnicos.value.map(i => ({ label: i, value: i }))])
+const optEspacio = computed(() => [{ label: 'Todos', value: 'TODOS' }, ...espaciosUnicos.value.map(e => ({ label: e, value: e }))])
+const optDia = computed(() => [{ label: 'Todos', value: 'TODOS' }, ...Object.entries(DIAS_LABEL).map(([value, label]) => ({ label, value }))])
+const optHoraDesde = computed(() => [{ label: 'Cualquiera', value: '' }, ...HORAS_OPCIONES.map(h => ({ label: h, value: h }))])
+const optHoraHasta = computed(() => [{ label: 'Cualquiera', value: '' }, ...HORAS_OPCIONES.map(h => ({ label: h, value: h }))])
+const filtrosActivosCount = computed(() => [
+  selectedEstatus.value !== 'TODOS',
+  selectedCategoria.value !== 'TODAS',
+  selectedDisciplina.value !== 'TODAS',
+  selectedInstructor.value !== 'TODOS',
+  selectedEspacio.value !== 'TODOS',
+  selectedDia.value !== 'TODOS',
+  selectedTipoClase.value !== 'TODOS',
+  horaDesde.value !== '',
+  horaHasta.value !== '',
+].filter(Boolean).length)
 
 const hayFiltrosActivos = computed(() =>
   searchFilter.value.trim() !== '' ||
@@ -437,130 +471,21 @@ defineExpose({ fetchSesiones })
         >
 
           <!-- ── BARRA DE FILTROS ── -->
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-2.5 shrink-0">
+          <FilterContainer class="shrink-0" :has-active-filters="hayFiltrosActivos" :active-count="filtrosActivosCount" @clear="limpiarFiltros">
+            <template #search>
+              <SearchInput v-model="searchFilter" placeholder="Buscar por instructor, espacio o ID…" />
+            </template>
 
-            <!-- Fila 1: Buscador + Disciplina (alineados al fondo del label) -->
-            <div class="flex items-end gap-2.5">
-              <!-- Buscador (más ancho) -->
-              <div class="relative flex-1">
-                <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 mb-0.5">Buscar</label>
-                <span class="absolute bottom-0 left-0 flex items-center pb-[9px] pl-3.5 pointer-events-none">
-                  <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  v-model="searchFilter"
-                  type="text"
-                  placeholder="Instructor, espacio, ID…"
-                  class="w-full pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all"
-                />
-              </div>
-              <!-- Disciplina (compacto) -->
-              <div class="flex flex-col gap-0.5 w-52 shrink-0">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Disciplina</label>
-                <select v-model="selectedDisciplina"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODAS">Todas las disciplinas</option>
-                  <option v-for="d in disciplinasUnicas" :key="d" :value="d">{{ d }}</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Fila 2: Categoría + Instructor + Espacio + Día + Tipo + Estatus + Hora -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2.5">
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoría</label>
-                <select v-model="selectedCategoria"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODAS">Todas</option>
-                  <option v-for="c in categoriasUnicas" :key="c" :value="c">{{ formatCategoria(c) }}</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Instructor</label>
-                <select v-model="selectedInstructor"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODOS">Todos</option>
-                  <option v-for="i in instructoresUnicos" :key="i" :value="i">{{ i }}</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Espacio</label>
-                <select v-model="selectedEspacio"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODOS">Todos</option>
-                  <option v-for="e in espaciosUnicos" :key="e" :value="e">{{ e }}</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Día</label>
-                <select v-model="selectedDia"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODOS">Todos</option>
-                  <option v-for="(label, key) in DIAS_LABEL" :key="key" :value="key">{{ label }}</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipo Clase</label>
-                <select v-model="selectedTipoClase"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODOS">Todas</option>
-                  <option value="ABIERTA">Abierta</option>
-                  <option value="CERRADA">Cerrada</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Estatus</label>
-                <select v-model="selectedEstatus"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all">
-                  <option value="TODOS">Todos</option>
-                  <option value="DISPONIBLE">Disponible</option>
-                  <option value="EN_CURSO">En Curso</option>
-                  <option value="FINALIZADA">Finalizada</option>
-                  <option value="CANCELADA">Cancelada</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-0.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Rango Hora</label>
-                <div class="flex items-center gap-1">
-                  <select v-model="horaDesde"
-                    class="w-full min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all tabular-nums">
-                    <option value="">Desde</option>
-                    <option v-for="h in HORAS_OPCIONES" :key="h" :value="h">{{ h }}</option>
-                  </select>
-                  <span class="text-slate-400 text-[10px] font-black shrink-0">–</span>
-                  <select v-model="horaHasta"
-                    class="w-full min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 cursor-pointer transition-all tabular-nums">
-                    <option value="">Hasta</option>
-                    <option v-for="h in HORAS_OPCIONES" :key="h" :value="h">{{ h }}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <Transition enter-active-class="transition-all duration-200 ease-out"
-              enter-from-class="opacity-0" enter-to-class="opacity-100"
-              leave-active-class="transition-all duration-150 ease-in"
-              leave-from-class="opacity-100" leave-to-class="opacity-0">
-              <div v-if="hayFiltrosActivos" class="flex justify-end pt-0.5">
-                <button @click="limpiarFiltros"
-                  class="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors">
-                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                  Limpiar filtros
-                </button>
-              </div>
-            </Transition>
-          </div>
+            <FilterSelect label="Disciplina" v-model="selectedDisciplina" :options="optDisciplina" />
+            <FilterSelect label="Categoría" v-model="selectedCategoria" :options="optCategoria" />
+            <FilterSelect label="Instructor" v-model="selectedInstructor" :options="optInstructor" />
+            <FilterSelect label="Espacio" v-model="selectedEspacio" :options="optEspacio" />
+            <FilterSelect label="Día" v-model="selectedDia" :options="optDia" />
+            <FilterSelect label="Tipo de clase" v-model="selectedTipoClase" :options="OPT_TIPO_CLASE" />
+            <FilterSelect label="Estatus" v-model="selectedEstatus" :options="OPT_ESTATUS_SESION" />
+            <FilterSelect label="Hora desde" v-model="horaDesde" :options="optHoraDesde" />
+            <FilterSelect label="Hora hasta" v-model="horaHasta" :options="optHoraHasta" />
+          </FilterContainer>
 
           <!-- ── TABLA ── -->
           <div v-if="sesionesFiltradas.length === 0" class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200 shadow-sm py-16 gap-3">

@@ -4,6 +4,15 @@
  * @returns {string} - The formatted string
  */
 
+// 'YYYY-MM-DD' (sin hora) se interpreta como fecha local. new Date('YYYY-MM-DD') la toma
+// como medianoche UTC y en México mostraba el día anterior.
+const parseFecha = (value) => {
+    if (value instanceof Date) return value;
+    const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value).trim());
+    if (soloFecha) return new Date(Number(soloFecha[1]), Number(soloFecha[2]) - 1, Number(soloFecha[3]));
+    return new Date(value);
+};
+
 export function useformat() {
     const formatText = (text) => {
         if (text === null || text === undefined) return "N/A";
@@ -44,7 +53,7 @@ export function useformat() {
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleDateString();
+        return parseFecha(dateString).toLocaleDateString();
     };
 
     const formatTime = (dateString) => {
@@ -62,7 +71,7 @@ export function useformat() {
 
     const dateFormat = (fecha) => {
         if (!fecha) return "N/A";
-        const fechaObj = new Date(fecha);
+        const fechaObj = parseFecha(fecha);
         let dia = fechaObj.getDate();
         let mes = fechaObj.getMonth() + 1;
         const anio = fechaObj.getFullYear();

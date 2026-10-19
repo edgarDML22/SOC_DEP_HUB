@@ -2,7 +2,10 @@ import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { useProfileLogic } from "./profileStore";
 import api from "@/services/api";
-import Swal from "sweetalert2";
+import { useAlerts, extractApiErrorMessage } from "@/composables/useAlerts";
+
+// Alertas homogéneas (abajo a la derecha) en lugar de ventanas Swal centrales
+const { toastSuccess, toastError } = useAlerts();
 
 export const useAdminStore = defineStore("adminProfile", () => {
 
@@ -48,7 +51,7 @@ export const useAdminStore = defineStore("adminProfile", () => {
             }
         } catch (error) {
             console.error('Error fetching managers:', error);
-            Swal.fire('Error', 'No se pudieron cargar los gerentes', 'error');
+            toastError('No se pudieron cargar los gerentes');
         } finally {
             isLoading.value.fetch = false;
         }
@@ -60,13 +63,12 @@ export const useAdminStore = defineStore("adminProfile", () => {
             const { data } = await api.post('/admin/users', payload);
             if (data.success) {
                 await fetchManagers();
-                Swal.fire('Éxito', 'Gerente creado correctamente', 'success');
+                toastSuccess('Gerente creado correctamente');
                 return true;
             }
         } catch (error) {
             console.error('Error creating manager:', error);
-            const msg = error.response?.data?.message || 'Error al crear el gerente';
-            Swal.fire('Error', msg, 'error');
+            toastError(extractApiErrorMessage(error) || 'Error al crear el gerente');
             return false;
         } finally {
             isLoading.value.create = false;
@@ -79,13 +81,12 @@ export const useAdminStore = defineStore("adminProfile", () => {
             const { data } = await api.put(`/admin/users/${id}`, payload);
             if (data.success) {
                 await fetchManagers();
-                Swal.fire('Éxito', 'Gerente actualizado correctamente', 'success');
+                toastSuccess('Gerente actualizado correctamente');
                 return true;
             }
         } catch (error) {
             console.error('Error updating manager:', error);
-            const msg = error.response?.data?.message || 'Error al actualizar el gerente';
-            Swal.fire('Error', msg, 'error');
+            toastError(extractApiErrorMessage(error) || 'Error al actualizar el gerente');
             return false;
         } finally {
             isLoading.value.update = false;
@@ -105,7 +106,7 @@ export const useAdminStore = defineStore("adminProfile", () => {
             }
         } catch (error) {
             console.error('Error toggling manager status:', error);
-            Swal.fire('Error', 'No se pudo cambiar el estatus', 'error');
+            toastError('No se pudo cambiar el estatus del gerente');
             return false;
         } finally {
             isLoading.value.toggle = false;

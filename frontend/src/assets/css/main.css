@@ -48,6 +48,18 @@
 
   /* Bordes */
   --radius-medium: 8px;
+
+  /* Landing pública: neutros y sombras propios. Las reglas de .app-dark no los
+     sobreescriben, así la landing siempre se ve clara aunque el panel esté en modo oscuro. */
+  --color-lp-ink: #0f172a;
+  --color-lp-body: #475569;
+  --color-lp-muted: #64748b;
+  --color-lp-line: #e2e8f0;
+  --color-lp-paper: #ffffff;
+  --color-lp-mist: #f4f8ff;
+
+  --shadow-lp-soft: 0 10px 30px -14px rgba(30, 64, 175, 0.22);
+  --shadow-lp-lift: 0 30px 60px -24px rgba(30, 64, 175, 0.38);
 }
 
 /* =========================================================================
@@ -178,6 +190,101 @@
 
 .lp-body {
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Roboto', 'Helvetica Neue', Helvetica, sans-serif;
+}
+
+.lp-root {
+  color-scheme: light;
+}
+
+/* Anillo de foco de los campos de PrimeVue (ver formField en main.js) */
+:root {
+  --app-focus-ring: #dbeafe;
+}
+.app-dark {
+  --app-focus-ring: rgba(59, 130, 246, 0.25);
+}
+
+/* =========================================================================
+   ALERTAS (toasts abajo a la derecha) — ver showToast en useAlerts.js
+   Sin capa: así ganan sobre los estilos que SweetAlert inyecta.
+   ========================================================================= */
+.swal2-popup.app-toast {
+  --toast-accent: #2563eb;
+  width: min(380px, calc(100vw - 1.5rem)) !important;
+  padding: 0.75rem 0.875rem 0.875rem !important;
+  border-radius: 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left: 4px solid var(--toast-accent) !important;
+  background: #ffffff !important;
+  box-shadow: 0 20px 40px -18px rgba(15, 23, 42, 0.45) !important;
+  column-gap: 0.625rem !important;
+  align-items: center !important;
+}
+.swal2-popup.app-toast--success { --toast-accent: #10b981; }
+.swal2-popup.app-toast--error { --toast-accent: #f43f5e; }
+.swal2-popup.app-toast--info { --toast-accent: #3b82f6; }
+.swal2-popup.app-toast--warning { --toast-accent: #f59e0b; }
+
+/* Ícono y contenido en una sola fila, centrados */
+.swal2-popup.app-toast .swal2-icon {
+  grid-row: 1 / 2 !important;
+  align-self: center !important;
+}
+.swal2-popup.app-toast .app-toast__title {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0.125rem;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+.swal2-popup.app-toast .app-toast__title-main {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+}
+.swal2-popup.app-toast .app-toast__text {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #475569;
+}
+.swal2-popup.app-toast .app-toast__bar {
+  background: var(--toast-accent) !important;
+  opacity: 0.55;
+}
+.app-dark .swal2-popup.app-toast {
+  background: #131c2e !important;
+  border-color: #1e293b !important;
+  border-left-color: var(--toast-accent) !important;
+}
+.app-dark .swal2-popup.app-toast .app-toast__title-main { color: #f8fafc; }
+.app-dark .swal2-popup.app-toast .app-toast__text { color: #cbd5e1; }
+
+/* Campos PrimeVue envueltos por AppSelect / AppDatePicker: misma tipografía que AppInput
+   (16px en móvil para evitar el zoom de iOS al enfocar) */
+.app-field.p-select .p-select-label,
+.app-field.p-multiselect .p-multiselect-label,
+.app-field .p-datepicker-input {
+  font-size: 1rem;
+  font-weight: 500;
+}
+@media (min-width: 640px) {
+  .app-field.p-select .p-select-label,
+  .app-field.p-multiselect .p-multiselect-label,
+  .app-field .p-datepicker-input {
+    font-size: 0.875rem;
+  }
+}
+
+/* Oculta la barra de scroll en carruseles horizontales sin perder el desplazamiento */
+.lp-no-scrollbar {
+  scrollbar-width: none;
+}
+.lp-no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Transición suave y fluida para todos los cambios de tema */

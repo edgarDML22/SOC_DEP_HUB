@@ -10,6 +10,8 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
+import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
+import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue'
 import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
 import CancelButton from '@/components/gerente/ui/CancelButton.vue'
@@ -32,7 +34,7 @@ const esSubgerente = computed(() => userData.rol === 'subgerente')
 
 // ── FILTROS ────────────────────────────────────────────────────
 const STATUS_OPTS = [
-  { label: 'Todos los estados', value: null },
+  { label: 'Todos', value: null },
   { label: 'En Planificación', value: 'EN_PLANIFICACION' },
   { label: 'En Inscripción', value: 'EN_INSCRIPCION' },
   { label: 'Programado', value: 'PROGRAMADO' },
@@ -50,7 +52,7 @@ const ACCESS_OPTS = [
 // Disciplinas dinámicas desde los torneos cargados
 const disciplineOpts = computed(() => {
   const unique = [...new Set(torneos.value.map(t => t.disciplina).filter(Boolean))]
-  return [{ label: 'Todas las disciplinas', value: null }, ...unique.map(d => ({ label: d, value: d }))]
+  return [{ label: 'Todas', value: null }, ...unique.map(d => ({ label: d, value: d }))]
 })
 
 // Debounce para búsqueda
@@ -274,53 +276,15 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- BARRA DE FILTROS -->
-      <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
-        <SearchInput v-model="searchQuery" placeholder="Buscar por nombre..." />
-        
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <!-- Estatus -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Estatus</label>
-            <div class="relative flex items-center">
-              <IconFilter class="absolute left-3.5 w-4 h-4 text-surface-400 pointer-events-none z-10" />
-              <Select v-model="filtros.estatus" :options="STATUS_OPTS" option-label="label" option-value="value" placeholder="Todos los estados" :pt="customSelectPt" />
-            </div>
-          </div>
+      <FilterContainer :has-active-filters="!!hasActiveFilters" :active-count="[filtros.estatus, filtros.disciplina, filtros.tipo_acceso].filter(Boolean).length" @clear="clearFilters">
+        <template #search>
+          <SearchInput v-model="searchQuery" placeholder="Buscar por nombre..." />
+        </template>
 
-          <!-- Disciplina -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Disciplina</label>
-            <div class="relative flex items-center">
-              <IconFilter class="absolute left-3.5 w-4 h-4 text-surface-400 pointer-events-none z-10" />
-              <Select v-model="filtros.disciplina" :options="disciplineOpts" option-label="label" option-value="value" placeholder="Todas las disciplinas" :pt="customSelectPt" />
-            </div>
-          </div>
-
-          <!-- Tipo Acceso -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Acceso</label>
-            <div class="relative flex items-center">
-              <IconFilter class="absolute left-3.5 w-4 h-4 text-surface-400 pointer-events-none z-10" />
-              <Select v-model="filtros.tipo_acceso" :options="ACCESS_OPTS" option-label="label" option-value="value" placeholder="Todos" :pt="customSelectPt" />
-            </div>
-          </div>
-        </div>
-
-        <Transition enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-1">
-          <div v-if="hasActiveFilters" class="flex justify-end">
-            <button @click="clearFilters"
-              class="text-xs font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-              Limpiar filtros
-            </button>
-          </div>
-        </Transition>
-      </div>
+        <FilterSelect label="Estatus" v-model="filtros.estatus" :options="STATUS_OPTS"><template #icon><IconFilter /></template></FilterSelect>
+        <FilterSelect label="Disciplina" v-model="filtros.disciplina" :options="disciplineOpts"><template #icon><IconFilter /></template></FilterSelect>
+        <FilterSelect label="Acceso" v-model="filtros.tipo_acceso" :options="ACCESS_OPTS"><template #icon><IconFilter /></template></FilterSelect>
+      </FilterContainer>
 
       <!-- TABLA -->
       <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-visible min-h-96">

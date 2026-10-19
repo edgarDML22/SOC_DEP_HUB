@@ -1,9 +1,13 @@
 <template>
-  <div class="min-h-screen bg-[#0b1326] overflow-x-hidden">
+  <!-- overflow-x-clip (no hidden) para no romper el sticky de la navbar -->
+  <div class="lp-root lp-body min-h-screen overflow-x-clip bg-lp-paper text-lp-ink">
     <LandingNavbar @navigate="handleNavigate" />
     <main id="main-content">
       <!-- Hero Slider (primera sección visible) -->
       <LandingHero />
+
+      <!-- Marquesina de disciplinas -->
+      <LandingSportsMarquee v-if="sportSlides.length" :sports="sportSlides" />
 
       <!-- Sobre el Club -->
       <LandingAbout />
@@ -32,6 +36,8 @@ import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import LandingNavbar from '@/components/public/LandingNavbar.vue'
 import LandingHero from '@/components/public/LandingHero.vue'
+import LandingSportsMarquee from '@/components/public/landing/LandingSportsMarquee.vue'
+import { sportSlides } from '@/components/public/landing/sportsMedia'
 import LandingAbout from '@/components/public/landing/LandingAbout.vue'
 import LandingCarousel from '@/components/public/landing/LandingCarousel.vue'
 import LandingBenefits from '@/components/public/landing/LandingBenefits.vue'

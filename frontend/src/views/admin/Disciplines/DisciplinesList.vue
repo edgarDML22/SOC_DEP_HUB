@@ -30,11 +30,11 @@ const categories = computed(() =>
   (storeCategories.value || []).filter(c => c.nombre !== 'INFANTIL')
 )
 const categoryOpts = computed(() => [
-  { label: 'Todas las categorías', value: null },
+  { label: 'Todas', value: null },
   ...categories.value.map(c => ({ label: formatCategoryEnum(c.nombre), value: c.id_categoria })),
 ])
 const OPT_STATUS = [
-  { label: 'Todos los estados', value: null },
+  { label: 'Todos', value: null },
   { label: 'Activo', value: 'ACTIVO' },
   { label: 'En Pausa', value: 'PAUSA' },
   { label: 'Cancelado', value: 'CANCELADO' },
@@ -68,8 +68,7 @@ const clearFilters = () => {
   listFilters.value.search = ''
   listFilters.value.estatus = listFilters.value.categoria = null
 }
-const showFiltersMobile = ref(false)
-const hasSelectFilters = computed(() => !!(listFilters.value.categoria || listFilters.value.estatus))
+const activeFiltersCount = computed(() => [listFilters.value.categoria, listFilters.value.estatus].filter(Boolean).length)
 
 // ── PALETA POR CATEGORÍA ───────────────────────────────────────
 const CATEGORY_COLORS = [
@@ -283,44 +282,22 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- FILTROS -->
-      <FilterContainer :hasActiveFilters="hasActiveFilters" @clear="clearFilters">
+      <FilterContainer :has-active-filters="hasActiveFilters" :active-count="activeFiltersCount" @clear="clearFilters">
         <template #search>
-          <div class="flex items-center gap-2 w-full">
-            <div class="flex-1 min-w-0 w-full">
-              <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o categoría…" />
-            </div>
-
-            <!-- Botón filtros (solo móvil) -->
-            <button type="button" @click="showFiltersMobile = !showFiltersMobile" aria-label="Mostrar filtros"
-              class="md:hidden relative w-11 h-11 shrink-0 flex items-center justify-center rounded-xl border transition-colors cursor-pointer"
-              :class="showFiltersMobile || hasSelectFilters
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                : 'bg-white text-surface-500 border-surface-200'">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              <span v-if="hasSelectFilters"
-                class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white"></span>
-            </button>
-          </div>
+          <SearchInput v-model="listFilters.search" placeholder="Buscar por nombre o categoría…" />
         </template>
 
-        <!-- Selects: colapsables en móvil, normales desde md -->
-        <div :class="showFiltersMobile ? 'grid grid-cols-2 gap-3 w-full col-span-full' : 'hidden'"
-          class="md:contents [&>*]:w-full [&>*]:min-w-0">
-          <FilterSelect label="Categoría" v-model="listFilters.categoria" :options="categoryOpts">
-            <template #icon>
-              <IconGrid />
-            </template>
-          </FilterSelect>
+        <FilterSelect label="Categoría" v-model="listFilters.categoria" :options="categoryOpts">
+          <template #icon>
+            <IconGrid />
+          </template>
+        </FilterSelect>
 
-          <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_STATUS">
-            <template #icon>
-              <IconAlertCircle />
-            </template>
-          </FilterSelect>
-        </div>
+        <FilterSelect label="Estatus" v-model="listFilters.estatus" :options="OPT_STATUS">
+          <template #icon>
+            <IconAlertCircle />
+          </template>
+        </FilterSelect>
       </FilterContainer>
 
       <!-- SKELETON -->

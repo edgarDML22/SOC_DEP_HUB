@@ -1,35 +1,18 @@
 <template>
   <footer
-    class="relative w-full bg-[#0e1c3d] border-t border-blue-400/20"
+    class="relative w-full border-t border-lp-line bg-lp-mist"
     role="contentinfo"
     aria-label="Pie de página"
   >
-    <div class="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-10">
+    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-12">
+      <div class="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-5 md:gap-10">
         <!-- Brand Column -->
-        <div class="lg:col-span-2 flex flex-col gap-5">
-          <div class="flex items-center gap-2.5">
-            <div class="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[#131f38] border border-blue-400/40 shadow-[0_0_10px_rgba(59,130,246,0.25)] overflow-hidden">
-              <span class="absolute inset-0 bg-gradient-to-tr from-blue-600/25 to-transparent" aria-hidden="true" />
-              <img
-                :src="logoSrc"
-                alt="Logo Britania Club Deportivo"
-                class="relative w-full h-full object-contain p-1"
-                loading="lazy"
-                decoding="async"
-                width="36"
-                height="36"
-              />
-            </div>
-            <span class="flex items-baseline text-lg md:text-xl font-bold tracking-tight leading-none">
-              <span class="text-white">Britania</span>
-              <span class="ml-1 text-[#e61c24]">Club</span>
-            </span>
-          </div>
-          <p class="text-sm sm:text-base text-white/80 max-w-md leading-relaxed">
+        <div class="col-span-2 flex flex-col gap-5 md:col-span-3 lg:col-span-2">
+          <LandingLogo class="self-start" />
+          <p class="max-w-md text-sm leading-relaxed text-lp-body sm:text-base">
             Un espacio para el deporte, la salud, la familia y la comunidad. Formamos una experiencia integral con instalaciones de primer nivel.
           </p>
-          <div class="flex flex-col gap-2 text-sm text-white/80">
+          <div class="flex flex-col gap-2.5 text-sm text-lp-body">
             <div class="flex items-start gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +24,7 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="mt-0.5 flex-shrink-0 text-blue-400"
+                class="mt-0.5 flex-shrink-0 text-primary-600"
                 aria-hidden="true"
               >
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -60,7 +43,7 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="mt-0.5 flex-shrink-0 text-blue-400"
+                class="mt-0.5 flex-shrink-0 text-primary-600"
                 aria-hidden="true"
               >
                 <circle cx="12" cy="12" r="10" />
@@ -79,7 +62,7 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="mt-0.5 flex-shrink-0 text-blue-400"
+                class="mt-0.5 flex-shrink-0 text-primary-600"
                 aria-hidden="true"
               >
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
@@ -92,7 +75,7 @@
               href="https://facebook.com"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white/5 border border-white/10 text-white/80 transition-colors hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-lp-paper text-primary-700 shadow-lp-soft ring-1 ring-primary-100 transition-all hover:-translate-y-0.5 hover:bg-primary-700 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-200"
               aria-label="Facebook"
             >
               <svg
@@ -110,7 +93,7 @@
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white/5 border border-white/10 text-white/80 transition-colors hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-lp-paper text-primary-700 shadow-lp-soft ring-1 ring-primary-100 transition-all hover:-translate-y-0.5 hover:bg-primary-700 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-200"
               aria-label="Instagram"
             >
               <svg
@@ -128,7 +111,7 @@
               href="https://youtube.com"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white/5 border border-white/10 text-white/80 transition-colors hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-lp-paper text-primary-700 shadow-lp-soft ring-1 ring-primary-100 transition-all hover:-translate-y-0.5 hover:bg-primary-700 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-200"
               aria-label="YouTube"
             >
               <svg
@@ -147,35 +130,35 @@
 
         <!-- Deportes Column -->
         <div class="flex flex-col gap-4">
-          <h3 class="text-sm font-black text-white uppercase tracking-wide">Deportes</h3>
+          <h3 class="lp-display text-sm font-bold uppercase tracking-[0.12em] text-lp-ink">Deportes</h3>
           <ul class="flex flex-col gap-2">
             <li v-for="sport in sports" :key="sport">
-              <span class="text-sm text-white/70 hover:text-white transition-colors cursor-default">{{ sport }}</span>
+              <span class="cursor-default text-sm text-lp-body">{{ sport }}</span>
             </li>
           </ul>
         </div>
 
         <!-- Comunidad Column -->
         <div class="flex flex-col gap-4">
-          <h3 class="text-sm font-black text-white uppercase tracking-wide">Comunidad</h3>
+          <h3 class="lp-display text-sm font-bold uppercase tracking-[0.12em] text-lp-ink">Comunidad</h3>
           <ul class="flex flex-col gap-2">
             <li>
-              <RouterLink to="/torneos" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <RouterLink to="/torneos" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Torneos
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/login" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <RouterLink to="/login" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Portal de Socios
               </RouterLink>
             </li>
             <li>
-              <a href="#nosotros" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <a href="#nosotros" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Nosotros
               </a>
             </li>
             <li>
-              <a href="#contacto" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <a href="#contacto" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Contacto
               </a>
             </li>
@@ -184,20 +167,20 @@
 
         <!-- Legal Column -->
         <div class="flex flex-col gap-4">
-          <h3 class="text-sm font-black text-white uppercase tracking-wide">Marco legal</h3>
+          <h3 class="lp-display text-sm font-bold uppercase tracking-[0.12em] text-lp-ink">Marco legal</h3>
           <ul class="flex flex-col gap-2">
             <li>
-              <a href="#" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <a href="#" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Aviso de privacidad
               </a>
             </li>
             <li>
-              <a href="#" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <a href="#" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Términos y condiciones
               </a>
             </li>
             <li>
-              <a href="#" class="text-sm text-white/70 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded">
+              <a href="#" class="rounded text-sm text-lp-body transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-100">
                 Reglamento interno
               </a>
             </li>
@@ -205,11 +188,11 @@
         </div>
       </div>
 
-      <div class="mt-10 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p class="text-sm text-white/60 text-center md:text-left">
+      <div class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-lp-line pt-6 md:flex-row">
+        <p class="text-center text-sm text-lp-muted md:text-left">
           © {{ currentYear }} Britania Club Deportivo &amp; Social. Todos los derechos reservados.
         </p>
-        <p class="text-sm text-white/60 text-center md:text-right">
+        <p class="text-center text-sm text-lp-muted md:text-right">
           Hecho con pasión por la comunidad deportiva
         </p>
       </div>
@@ -219,7 +202,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import logoSrc from '@/assets/LogoSocDep.png'
+import LandingLogo from '@/components/public/landing/ui/LandingLogo.vue'
 
 const sports = ['Tenis', 'Pádel', 'Natación', 'Gimnasio', 'Squash', 'Actividad Física']
 

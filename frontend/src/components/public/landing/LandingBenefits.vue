@@ -1,58 +1,61 @@
 <template>
   <section
     id="beneficios"
-    class="relative w-full overflow-hidden border-y border-[#BFDBFE]/50 bg-gradient-to-b from-[#F1F5F9] to-[#E2E8F0] py-16 md:py-24 scroll-mt-20"
-    role="region"
+    class="relative scroll-mt-20 overflow-hidden bg-lp-paper py-16 md:py-24"
     aria-label="Beneficios exclusivos"
   >
-    <!-- Ambient blurred blobs -->
     <div
-      class="pointer-events-none absolute left-10 top-0 h-96 w-96 rounded-full bg-[#BFDBFE]/50 blur-[55px]"
-      aria-hidden="true"
-    />
-    <div
-      class="pointer-events-none absolute right-10 bottom-0 h-96 w-96 rounded-full bg-[#FECACA]/40 blur-[55px]"
+      class="pointer-events-none absolute left-1/2 top-24 h-80 w-[40rem] max-w-full -translate-x-1/2 rounded-full bg-primary-100/70 blur-3xl"
       aria-hidden="true"
     />
 
-    <div class="relative mx-auto flex max-w-7xl flex-col items-center gap-12 px-6 md:px-12 md:gap-16">
-      <!-- Header -->
-      <div class="flex w-full max-w-3xl flex-col items-center gap-2 text-center">
-        <span class="lp-display text-xs font-bold uppercase tracking-[0.18em] text-[#2563EB]">
-          Beneficios Exclusivos
-        </span>
-        <h2
-          class="lp-display text-3xl font-bold leading-[1.15] tracking-[-0.025em] text-[#0F172A] sm:text-4xl lg:text-[48px]"
-        >
-          ¿Por qué elegir Britania Club?
-        </h2>
-        <p class="lp-body mt-2 text-base leading-relaxed text-[#475569]">
-          Pertenecer a Britania es acceder a un ecosistema de privilegios deportivos,
-          médicos y sociales pensado para cada etapa de tu vida.
-        </p>
-      </div>
+    <div class="relative mx-auto flex max-w-7xl flex-col gap-12 px-4 sm:px-6 md:gap-16 lg:px-12">
+      <LandingSectionHeading
+        eyebrow="Beneficios Exclusivos"
+        title="¿Por qué elegir Britania Club?"
+        description="Pertenecer a Britania es acceder a un ecosistema de privilegios deportivos, médicos y sociales pensado para cada etapa de tu vida."
+      />
 
-      <!-- Cards -->
-      <div class="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
         <article
-          v-for="benefit in benefits"
+          v-for="(benefit, index) in benefits"
           :key="benefit.title"
-          class="flex flex-col gap-3 rounded-2xl border border-[#DBEAFE]/90 bg-white p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-transform duration-300 hover:-translate-y-1"
+          class="group relative flex flex-col gap-4 overflow-hidden rounded-3xl p-7 transition-transform duration-300 hover:-translate-y-1 sm:p-8"
+          :class="
+            benefit.featured
+              ? 'bg-gradient-to-br from-primary-700 via-primary-600 to-sky-500 text-white shadow-lp-lift'
+              : 'bg-lp-paper shadow-lp-soft ring-1 ring-primary-100'
+          "
         >
+          <!-- Número decorativo -->
+          <span
+            class="lp-display pointer-events-none absolute right-6 top-5 text-5xl font-bold leading-none tracking-tight sm:text-6xl"
+            :class="benefit.featured ? 'text-white/20' : 'text-primary-100'"
+            aria-hidden="true"
+          >
+            0{{ index + 1 }}
+          </span>
+
           <div
-            class="flex h-14 w-14 items-center justify-center rounded-2xl text-white"
+            class="relative flex h-14 w-14 items-center justify-center rounded-2xl"
             :class="
-              benefit.tone === 'red'
-                ? 'bg-[#E61C24] shadow-[0_8px_20px_rgba(230,28,36,0.35)]'
-                : 'bg-[#2563EB] shadow-[0_8px_20px_rgba(37,99,235,0.35)]'
+              benefit.featured
+                ? 'bg-white/15 text-white ring-1 ring-white/30'
+                : 'bg-gradient-to-br from-primary-50 to-sky-50 text-primary-700 ring-1 ring-primary-100'
             "
           >
             <component :is="benefit.icon" />
           </div>
-          <h3 class="lp-display pt-3 text-[22px] font-bold leading-[1.3] tracking-[-0.01em] text-[#0F172A]">
+          <h3
+            class="lp-display relative pt-2 text-[22px] font-bold leading-tight tracking-tight"
+            :class="benefit.featured ? 'text-white' : 'text-lp-ink'"
+          >
             {{ benefit.title }}
           </h3>
-          <p class="lp-body text-base leading-[1.625] text-[#475569]">
+          <p
+            class="relative text-[15px] leading-relaxed"
+            :class="benefit.featured ? 'text-white/85' : 'text-lp-body'"
+          >
             {{ benefit.description }}
           </p>
         </article>
@@ -63,6 +66,7 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
+import LandingSectionHeading from './ui/LandingSectionHeading.vue'
 
 const IconBuilding = {
   render: () =>
@@ -106,7 +110,7 @@ const IconTrophy = {
 interface Benefit {
   title: string
   description: string
-  tone: 'blue' | 'red'
+  featured?: boolean
   icon: unknown
 }
 
@@ -115,21 +119,19 @@ const benefits: Benefit[] = [
     title: 'Instalaciones Premium',
     description:
       'Acceso total a canchas de tenis y pádel, albercas climatizadas, gimnasio equipado de última generación y extensas áreas verdes privadas con máxima seguridad 24/7.',
-    tone: 'blue',
     icon: IconBuilding
   },
   {
     title: 'Comunidad Exclusiva',
     description:
       'Un entorno seguro, honorable y familiar ideal para conectar con otros deportistas, empresarios y líderes de la región a través de dinámicas sociales y de networking.',
-    tone: 'red',
+    featured: true,
     icon: IconPeople
   },
   {
     title: 'Eventos y Torneos',
     description:
       'Participación preferencial en ligas internas, circuitos federados abiertos de tenis y pádel, exhibiciones de maestros y celebraciones de temporada todo el año.',
-    tone: 'blue',
     icon: IconTrophy
   }
 ]

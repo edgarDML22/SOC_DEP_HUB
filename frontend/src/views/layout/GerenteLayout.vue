@@ -3,10 +3,18 @@ import GerenteSideBar from '@/components/gerente/GerenteSideBar.vue'
 import GerenteTopBar from '@/components/gerente/GerenteTopBar.vue'
 import { useAdminStore } from '@/stores/profiles/adminStore'
 import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { isRouteLoading } from '@/router'
+import { useHideOnScroll } from '@/composables/useHideOnScroll'
 
 const profileStore = useAdminStore()
+const route = useRoute()
 const isMobileSidebarOpen = ref(false)
+
+// Topbar que se esconde al bajar y reaparece al subir (solo móvil/tablet, < lg)
+const scrollContainer = ref(null)
+const { hidden: isTopbarHidden, reset: showTopbar } = useHideOnScroll(scrollContainer)
+watch(() => route.fullPath, showTopbar)
 
 const toggleMobileSidebar = () => {
   isMobileSidebarOpen.value = !isMobileSidebarOpen.value
@@ -63,13 +71,20 @@ onUnmounted(() => {
       @close="closeMobileSidebar"
     />
 
-    <main class="flex-1 flex flex-col min-h-0 relative h-full">
-      <GerenteTopBar
-        class="shrink-0"
-        @toggle-sidebar="toggleMobileSidebar"
-      />
+    <!-- min-w-0: sin él, contenido ancho (gráficas, tablas) estira el main más allá del viewport en móvil -->
+    <main class="flex-1 flex flex-col min-h-0 min-w-0 relative h-full">
+      <!-- Al ocultarse se desliza hacia arriba con margen negativo (sigue en el flujo,
+           así no tapa los encabezados sticky de tablas y calendarios).
+           La animación va en este div: la regla global de main.css sobre <header>
+           pisaría el transition si se pusiera directo en la topbar. -->
+      <div
+        class="shrink-0 transition-[margin] duration-300 ease-out lg:mt-0"
+        :class="isTopbarHidden ? '-mt-16 sm:-mt-[70px]' : 'mt-0'"
+      >
+        <GerenteTopBar @toggle-sidebar="toggleMobileSidebar" />
+      </div>
       
-      <div class="flex-1 overflow-y-auto min-h-0 relative bg-surface-50">
+      <div ref="scrollContainer" class="flex-1 overflow-y-auto min-h-0 relative bg-surface-50">
         
         <router-view />
         

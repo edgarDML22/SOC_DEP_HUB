@@ -127,8 +127,8 @@ export const useSpacesStore = defineStore("spacesAdmin", () => {
                 // El backend devuelve un objeto con conteos: { reservaciones_activas: N, ... }
                 // Lo convertimos a mensajes legibles filtrando los que sean > 0
                 const labels = {
-                    reservaciones_activas: (n) => `${n} reservación${n !== 1 ? 'es' : ''} activa${n !== 1 ? 's' : ''}`,
-                    sesiones_activas:      (n) => `${n} sesión${n !== 1 ? 'es' : ''} activa${n !== 1 ? 's' : ''}`,
+                    reservaciones_activas: (n) => `${n} ${n !== 1 ? 'reservaciones activas' : 'reservación activa'}`,
+                    sesiones_activas:      (n) => `${n} ${n !== 1 ? 'sesiones activas' : 'sesión activa'}`,
                     actividades_programadas:(n) => `${n} actividad${n !== 1 ? 'es' : ''} programada${n !== 1 ? 's' : ''}`,
                     torneos_programados:   (n) => `${n} torneo${n !== 1 ? 's' : ''} programado${n !== 1 ? 's' : ''}`,
                 };

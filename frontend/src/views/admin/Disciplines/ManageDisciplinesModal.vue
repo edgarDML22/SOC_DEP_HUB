@@ -5,9 +5,11 @@ import { useSpacesStore } from '@/stores/admin/spaces';
 import { useInstructorStore } from '@/stores/admin/instructorStore';
 import { useDisciplinesStore } from '@/stores/admin/disciplines';
 import { useAlerts } from '@/composables/useAlerts';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue';
-import CancelButton from '@/components/gerente/ui/CancelButton.vue';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
+import AppModal from '@/components/ui/modal/AppModal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import SearchInput from '@/components/gerente/ui/SearchInput.vue';
+import { IconGrid } from '@/components/icons';
 import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue';
 
 const props = defineProps({
@@ -18,7 +20,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved']);
 
-const { toastInfo } = useAlerts();
+const { toastInfo, toastSuccess, toastError } = useAlerts();
+const search = ref('');
 const spacesStore = useSpacesStore();
 const instructorStore = useInstructorStore();
 const disciplinesStore = useDisciplinesStore();
@@ -35,11 +38,13 @@ const sortedDisciplines = computed(() => {
 const initialDisciplines = ref([]);
 const processingDisciplines = ref([]); // Almacena IDs de disciplinas en proceso
 
-const headerTitle = computed(() => {
-    if (props.type === 'instructor') {
-        return `Gestionar Disciplinas de: ${props.item?.nombre_completo || ''}`;
-    }
-    return `Gestionar Disciplinas de: ${props.item?.nombre_espacio || ''}`;
+const headerSubtitle = computed(() =>
+    props.type === 'instructor' ? props.item?.nombre_completo || '' : props.item?.nombre_espacio || ''
+);
+
+const visibleDisciplines = computed(() => {
+    const q = search.value.trim().toLowerCase();
+    return q ? sortedDisciplines.value.filter(d => (d.nombre_disciplina || '').toLowerCase().includes(q)) : sortedDisciplines.value;
 });
 
 const isSpaceActive = computed(() => props.type === 'space' && props.item?.estatus === 'ACTIVO');
@@ -59,6 +64,7 @@ const loadDisciplines = async () => {
 
 watch(() => props.show, async (newVal) => {
     if (newVal) {
+        search.value = '';
         // Inicializar
         const ids = props.item?.disciplinas ? props.item.disciplinas.map(d => d.id_disciplina) : [];
         selectedDisciplines.value = [...ids];
@@ -90,7 +96,7 @@ const toggleSelection = async (id) => {
                 if (res.data.success) {
                     selectedDisciplines.value = selectedDisciplines.value.filter(dId => dId !== id);
                     initialDisciplines.value = initialDisciplines.value.filter(dId => dId !== id);
-                    toastInfo('Disciplina Eliminada', 'Se ha quitado la disciplina correctamente.', 'success');
+                    toastSuccess('Disciplina quitada del instructor');
                 } else {
                     toastInfo('Bloqueado', res.data.message || 'La disciplina está bloqueada y no se puede remover.', 'error');
                 }
@@ -106,12 +112,10 @@ const toggleSelection = async (id) => {
         } else {
             // Space (o instructor si es una selección nueva de esta sesión)
             selectedDisciplines.value = selectedDisciplines.value.filter(dId => dId !== id);
-            toastInfo('Disciplina Removida', 'Se quitó la disciplina de la selección.', 'info');
         }
     } else {
         // Agregar
         selectedDisciplines.value.push(id);
-        toastInfo('Disciplina Agregada', 'Se añadió la disciplina a la selección.', 'success');
     }
 };
 
@@ -126,15 +130,15 @@ const saveChanges = async () => {
         }
 
         if (res.success) {
-            toastInfo('Éxito', 'Disciplinas guardadas correctamente', 'success');
+            toastSuccess('Disciplinas guardadas correctamente');
             emit('saved');
             emit('close');
         } else {
-            toastInfo('Error', res.error || 'No se pudo guardar', 'error');
+            toastError(res.error || 'No se pudieron guardar las disciplinas');
         }
     } catch (error) {
         console.error("Error saving disciplines:", error);
-        toastInfo('Error Crítico', 'Error de conexión', 'error');
+        toastError('Error de conexión al guardar las disciplinas');
     } finally {
         isSaving.value = false;
     }
@@ -142,123 +146,70 @@ const saveChanges = async () => {
 </script>
 
 <template>
-    <Teleport to="body">
-        <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-            enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-            leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="show" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-                @click.self="emit('close')">
-                <Transition enter-active-class="transition-all duration-300 ease-out"
-                    enter-from-class="opacity-0 scale-95 translate-y-4"
-                    enter-to-class="opacity-100 scale-100 translate-y-0">
-                    <div v-if="show" class="bg-white w-full max-w-4xl rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
-                        
-                        <!-- Cabecera -->
-                        <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-                            <div>
-                                <h2 class="text-xl font-black text-surface-900 leading-tight">{{ headerTitle }}</h2>
-                                <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                                    Selecciona las disciplinas asociadas
-                                </p>
-                            </div>
-                            <button @click="emit('close')"
-                                class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
+    <AppModal
+        :model-value="show"
+        title="Gestionar disciplinas"
+        :subtitle="headerSubtitle"
+        :icon="IconGrid"
+        size="lg"
+        :persistent="isSaving"
+        @update:model-value="(v) => !v && emit('close')"
+    >
+        <div v-if="isLoading" class="flex flex-col items-center justify-center gap-3 py-10">
+            <LoadingSpinner />
+            <p class="m-0 text-sm font-semibold text-surface-600">Cargando disciplinas…</p>
+        </div>
 
-                        <!-- Cuerpo -->
-                        <div class="overflow-y-auto p-8 space-y-8 bg-surface-50/30">
-                            <div v-if="isLoading" class="flex flex-col items-center justify-center py-10 gap-4">
-                                <LoadingSpinner />
-                                <p class="text-surface-500 font-medium">Cargando disciplinas...</p>
-                            </div>
-                            <div v-else>
-                                <div v-if="isSpaceActive" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-bold flex items-center gap-2">
-                                    <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    El espacio está ACTIVO. No se permite eliminar disciplinas ya asignadas, pero puedes agregar nuevas y corregir tu selección actual.
-                                </div>
-
-                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    <div v-for="d in sortedDisciplines" :key="d.id_disciplina"
-                                        @click="!processingDisciplines.includes(d.id_disciplina) && toggleSelection(d.id_disciplina)"
-                                        class="cursor-pointer group relative transform transition-all"
-                                        :class="[processingDisciplines.includes(d.id_disciplina) ? 'opacity-50 pointer-events-none' : 'hover:-translate-y-1']">
-                                        <div
-                                            class="border rounded-3xl p-6 flex flex-col items-center justify-center gap-4 h-full transition-all duration-300 shadow-sm relative"
-                                            :class="selectedDisciplines.includes(d.id_disciplina) 
-                                                ? 'bg-primary-600 border-primary-600 shadow-md' 
-                                                : 'bg-white border-surface-200 hover:bg-primary-600 hover:border-primary-600 hover:shadow-lg'">
-                                            
-                                            <!-- Ícono -->
-                                            <div
-                                                class="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner"
-                                                :class="selectedDisciplines.includes(d.id_disciplina) 
-                                                    ? 'bg-white/20 text-white' 
-                                                    : 'bg-surface-100 text-surface-400 group-hover:bg-white/20 group-hover:text-white'">
-                                                <DisciplineIcon :name="d.nombre_disciplina" :icon="d.icono"
-                                                    class="w-10 h-10 transition-all duration-300"
-                                                    :class="selectedDisciplines.includes(d.id_disciplina) ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'" />
-                                            </div>
-
-                                            <!-- Nombre -->
-                                            <span
-                                                class="text-sm font-bold text-center leading-tight transition-colors duration-300"
-                                                :class="selectedDisciplines.includes(d.id_disciplina) 
-                                                    ? 'text-white' 
-                                                    : 'text-surface-600 group-hover:text-white'">
-                                                {{ d.nombre_disciplina }}
-                                            </span>
-
-                                            <!-- Check flotante cuando está seleccionado -->
-                                            <div v-if="selectedDisciplines.includes(d.id_disciplina) && !processingDisciplines.includes(d.id_disciplina)"
-                                                class="absolute -top-3 -right-3 bg-white text-primary-600 w-8 h-8 rounded-full flex items-center justify-center border-[3px] border-primary-600 shadow-md animate-scale-in">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" stroke-width="4" stroke-linecap="round"
-                                                    stroke-linejoin="round">
-                                                    <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                            </div>
-
-                                            <!-- Spinner flotante cuando está cargando -->
-                                            <div v-if="processingDisciplines.includes(d.id_disciplina)"
-                                                class="absolute inset-0 bg-white/40 backdrop-blur-[1px] flex items-center justify-center rounded-3xl z-10">
-                                                <div class="w-8 h-8 border-4 border-surface-200 border-t-primary-600 rounded-full animate-spin shadow-sm"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Pie del modal -->
-                        <div class="flex items-center justify-end gap-3 px-8 py-5 border-t border-surface-100 bg-white">
-                            <CancelButton @click="emit('close')" />
-                            <ConfirmButton label="Guardar Cambios" :loading="isSaving" @click="saveChanges" />
-                        </div>
-
-                    </div>
-                </Transition>
+        <div v-else class="flex flex-col gap-4">
+            <div v-if="isSpaceActive" role="note"
+                class="flex items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                El espacio está activo: puedes agregar disciplinas, pero no quitar las que ya tenía asignadas.
             </div>
-        </Transition>
-    </Teleport>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0 flex-1">
+                    <SearchInput v-model="search" placeholder="Buscar disciplina…" />
+                </div>
+                <span class="shrink-0 text-sm font-semibold text-surface-600">
+                    <span class="font-bold tabular-nums text-primary-700 dark:text-primary-300">{{ selectedDisciplines.length }}</span> seleccionadas
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                <button v-for="d in visibleDisciplines" :key="d.id_disciplina" type="button" role="checkbox"
+                    :aria-checked="selectedDisciplines.includes(d.id_disciplina)"
+                    :disabled="processingDisciplines.includes(d.id_disciplina)"
+                    class="relative flex cursor-pointer items-center gap-2 rounded-2xl border-2 p-2.5 text-left sm:gap-2.5 sm:p-3 transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-100 disabled:cursor-wait"
+                    :class="selectedDisciplines.includes(d.id_disciplina)
+                        ? 'border-primary-500 bg-primary-50/70 ring-4 ring-primary-100 dark:bg-primary-500/10 dark:ring-primary-500/15'
+                        : 'border-surface-200 bg-white hover:border-surface-300 hover:bg-surface-50'"
+                    @click="toggleSelection(d.id_disciplina)">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors"
+                        :class="selectedDisciplines.includes(d.id_disciplina)
+                            ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white'
+                            : 'bg-surface-100 text-surface-600'">
+                        <LoadingSpinner v-if="processingDisciplines.includes(d.id_disciplina)" size="sm" class="!mx-0" />
+                        <DisciplineIcon v-else :name="d.nombre_disciplina" :icon="d.icono" class="h-5 w-5" />
+                    </span>
+                    <span class="min-w-0 flex-1 truncate text-sm font-bold text-surface-900">{{ d.nombre_disciplina }}</span>
+                    <!-- En móvil se oculta para dejar espacio al nombre (la selección ya se nota por el borde) -->
+                    <span class="hidden h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors sm:flex"
+                        :class="selectedDisciplines.includes(d.id_disciplina) ? 'border-transparent bg-primary-600 text-white' : 'border-surface-300'"
+                        aria-hidden="true">
+                        <svg v-if="selectedDisciplines.includes(d.id_disciplina)" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    </span>
+                </button>
+            </div>
+
+            <p v-if="!visibleDisciplines.length" class="m-0 py-6 text-center text-sm font-semibold text-surface-500">
+                No hay disciplinas que coincidan con “{{ search }}”.
+            </p>
+        </div>
+
+        <template #footer>
+            <AppButton variant="secondary" :disabled="isSaving" @click="emit('close')">Cancelar</AppButton>
+            <AppButton :loading="isSaving" :disabled="isLoading" @click="saveChanges">Guardar cambios</AppButton>
+        </template>
+    </AppModal>
 </template>
-
-<style scoped>
-.animate-scale-in {
-    animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-@keyframes scaleIn {
-    from {
-        transform: scale(0);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-</style>

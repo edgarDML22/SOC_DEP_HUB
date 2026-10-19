@@ -1,14 +1,18 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import api from '@/services/api';
 import { useInstructorStore } from '@/stores/admin/instructorStore';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue'
-import CancelButton from '@/components/gerente/ui/CancelButton.vue'
-import { IconPhone, IconClock } from '@/components/icons'
+import AppModal from '@/components/ui/modal/AppModal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppField from '@/components/ui/form/AppField.vue';
+import AppInput from '@/components/ui/form/AppInput.vue';
+import AppDatePicker from '@/components/ui/form/AppDatePicker.vue';
+import AppTimePicker from '@/components/ui/form/AppTimePicker.vue';
+import { IconPhone, IconClock, IconUser, IconMail, IconEdit } from '@/components/icons'
 import { useformat } from '@/utils/formatters';
 import { useAlerts } from '@/composables/useAlerts';
 
@@ -16,7 +20,7 @@ const route = useRoute();
 const router = useRouter();
 const instructorStore = useInstructorStore();
 const { formatText, dateFormat } = useformat();
-const { toastInfo } = useAlerts();
+const { toastSuccess, toastError } = useAlerts();
 
 const { isLoading, error: storeError } = storeToRefs(instructorStore);
 
@@ -28,7 +32,6 @@ const errorMsg = ref('');
 // Modales
 const showEditModal = ref(false);
 const isSaving = ref(false);
-
 const editForm = ref({
     nombre_completo: '',
     telefono: '',
@@ -37,6 +40,42 @@ const editForm = ref({
     hora_entrada: '',
     hora_salida: ''
 });
+
+const editErrors = ref({});
+const hoyIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+
+const validateEdit = () => {
+    const f = editForm.value;
+    const errors = {};
+    if (!f.nombre_completo?.trim()) errors.nombre_completo = 'Escribe el nombre completo.';
+    if (f.telefono && !/^\d{10}$/.test(String(f.telefono).trim())) errors.telefono = 'El teléfono debe tener 10 dígitos.';
+    if (f.hora_entrada && f.hora_salida && f.hora_salida.slice(0, 5) <= f.hora_entrada.slice(0, 5)) errors.hora_salida = 'Debe ser posterior a la hora de entrada.';
+    editErrors.value = errors;
+    return Object.keys(errors).length === 0;
+};
+
+// Al corregir un campo marcado, su error desaparece
+watch(editForm, () => {
+    const prev = editErrors.value;
+    if (!Object.keys(prev).length) return;
+    validateEdit();
+    editErrors.value = Object.fromEntries(Object.entries(editErrors.value).filter(([key]) => key in prev));
+}, { deep: true });
+
+const openEditModal = () => {
+    if (instructor.value) {
+        editForm.value = {
+            nombre_completo: instructor.value.nombre_completo,
+            telefono: instructor.value.telefono || '',
+            correo_electronico: instructor.value.correo_electronico || '',
+            fecha_nacimiento: instructor.value.fecha_nacimiento || '',
+            hora_entrada: instructor.value.hora_entrada || '',
+            hora_salida: instructor.value.hora_salida || ''
+        };
+    }
+    editErrors.value = {};
+    showEditModal.value = true;
+};
 
 onMounted(async () => {
     if (instructorStore.currentInstructor && String(instructorStore.currentInstructor.id_instructor) === String(instructorId)) {
@@ -79,25 +118,23 @@ const fetchInstructorDetails = async () => {
 
 
 const saveEditInstructor = async () => {
-    if (!editForm.value.nombre_completo) {
-        toastInfo("Campo requerido", "El nombre es requerido.", "error");
-        return;
-    }
+    if (!validateEdit()) return;
 
     isSaving.value = true;
     try {
         const res = await instructorStore.updateInstructor(instructorId, editForm.value);
         if (res.success) {
-            toastInfo("¡Éxito!", "Información del instructor actualizada correctamente.", "success");
+            toastSuccess("Información del instructor actualizada");
             showEditModal.value = false;
             // Al ser reactivo el store y nosotros usar instructor.value = data en fetch,
             // y el store actualizar la lista, deberíamos refrescar la referencia local.
             instructor.value = instructorStore.getInstructorById(instructorId);
         } else {
-            toastInfo("Error", res.error || "Ocurrió un error al actualizar.", "error");
+            toastError(res.error || "No se pudo actualizar la información");
         }
     } catch (error) {
         console.error("Error al actualizar instructor:", error);
+        toastError("No se pudo actualizar la información");
     } finally {
         isSaving.value = false;
     }
@@ -225,7 +262,7 @@ const goBack = () => {
                                         <span
                                             class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">Hora
                                             Entrada</span>
-                                        <span class="text-base font-bold text-surface-900">{{ instructor.hora_entrada ||
+                                        <span class="text-base font-bold text-surface-900">{{ instructor.hora_entrada?.substring(0, 5) ||
                                             'N/A' }}</span>
                                     </div>
                                     <div
@@ -233,14 +270,16 @@ const goBack = () => {
                                         <span
                                             class="text-[10px] font-extrabold uppercase tracking-widest text-surface-500">Hora
                                             Salida</span>
-                                        <span class="text-base font-bold text-surface-900">{{ instructor.hora_salida ||
+                                        <span class="text-base font-bold text-surface-900">{{ instructor.hora_salida?.substring(0, 5) ||
                                             'N/A' }}</span>
                                     </div>
                                 </div>
 
                                 <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end">
-                                    <ConfirmButton label="Gestionar Información Personal" @click="showEditModal = true"
-                                        class="w-full sm:w-auto" />
+                                    <AppButton class="w-full sm:w-auto" @click="openEditModal">
+                                        <template #icon><IconEdit class="h-4 w-4" /></template>
+                                        Gestionar información personal
+                                    </AppButton>
                                 </div>
                             </div>
                         </article>
@@ -331,8 +370,10 @@ const goBack = () => {
 
                         <!-- Pie -->
                         <div class="px-4 py-4 border-t border-surface-100">
-                            <ConfirmButton label="Gestionar Información Personal" @click="showEditModal = true"
-                                class="w-full" />
+                            <AppButton class="w-full" @click="openEditModal">
+                                <template #icon><IconEdit class="h-4 w-4" /></template>
+                                Gestionar información personal
+                            </AppButton>
                         </div>
                     </article>
 
@@ -341,97 +382,43 @@ const goBack = () => {
         </div>
 
         <!-- MODAL EDITAR INSTRUCTOR -->
-        <Teleport to="body">
-            <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-                enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-                leave-from-class="opacity-100" leave-to-class="opacity-0">
-                <div v-if="showEditModal"
-                    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-                    @click.self="showEditModal = false">
-                    <Transition enter-active-class="transition-all duration-300 ease-out"
-                        enter-from-class="opacity-0 scale-95 translate-y-4"
-                        enter-to-class="opacity-100 scale-100 translate-y-0">
-                        <div v-if="showEditModal"
-                            class="bg-white w-full max-w-lg mx-2 max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-4xl p-4 sm:p-6 shadow-2xl">
-                            <!-- Cabecera -->
-                            <div class="flex justify-between items-center pb-4 border-b border-surface-100">
-                                <div>
-                                    <h2 class="text-lg font-black text-surface-900">Editar Instructor</h2>
-                                    <p class="text-xs font-medium text-surface-500 mt-1 uppercase tracking-wider">
-                                        Modifica la información personal</p>
-                                </div>
-                                <button @click="showEditModal = false"
-                                    class="w-9 h-9 shrink-0 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                        stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
+        <AppModal
+            v-model="showEditModal"
+            title="Información personal"
+            :subtitle="instructor?.nombre_completo"
+            :icon="IconEdit"
+            :persistent="isSaving"
+        >
+            <form id="instructor-edit-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" novalidate @submit.prevent="saveEditInstructor">
+                <AppField label="Nombre completo" for="edit-nombre" required :error="editErrors.nombre_completo" class="sm:col-span-2">
+                    <AppInput id="edit-nombre" v-model="editForm.nombre_completo" :icon="IconUser" autocomplete="off" :invalid="!!editErrors.nombre_completo" />
+                </AppField>
 
-                            <!-- Cuerpo -->
-                            <div class="py-5 space-y-4">
-                                <div class="space-y-1.5">
-                                    <label
-                                        class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
-                                        Completo <span class="text-red-400">*</span></label>
-                                    <input type="text" v-model="editForm.nombre_completo"
-                                        class="w-full px-4 py-3.5 sm:py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
-                                </div>
+                <AppField label="Teléfono" for="edit-telefono" :error="editErrors.telefono">
+                    <AppInput id="edit-telefono" v-model="editForm.telefono" type="tel" inputmode="numeric" maxlength="10" :icon="IconPhone" placeholder="10 dígitos" autocomplete="off" :invalid="!!editErrors.telefono" />
+                </AppField>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono</label>
-                                        <input type="text" v-model="editForm.telefono"
-                                            class="w-full px-4 py-3.5 sm:py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
-                                    </div>
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha
-                                            de Nacimiento</label>
-                                        <input type="date" v-model="editForm.fecha_nacimiento"
-                                            class="w-full px-4 py-3.5 sm:py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
-                                    </div>
-                                </div>
+                <AppField label="Fecha de nacimiento">
+                    <AppDatePicker v-model="editForm.fecha_nacimiento" :max-date="hoyIso" />
+                </AppField>
 
-                                <div class="space-y-1.5">
-                                    <label
-                                        class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Correo
-                                        Electrónico</label>
-                                    <input type="email" v-model="editForm.correo_electronico" readonly
-                                        class="w-full px-4 py-3.5 sm:py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-surface-400 cursor-not-allowed outline-none" />
-                                </div>
+                <AppField label="Correo electrónico" for="edit-correo" hint="Lo genera el sistema; no se puede modificar." class="sm:col-span-2">
+                    <AppInput id="edit-correo" :model-value="editForm.correo_electronico" :icon="IconMail" readonly tabindex="-1" />
+                </AppField>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora
-                                            Entrada</label>
-                                        <input type="time" v-model="editForm.hora_entrada"
-                                            class="w-full px-4 py-3.5 sm:py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
-                                    </div>
-                                    <div class="space-y-1.5">
-                                        <label
-                                            class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hora
-                                            Salida</label>
-                                        <input type="time" v-model="editForm.hora_salida"
-                                            class="w-full px-4 py-3.5 sm:py-3 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-900 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all outline-none" />
-                                    </div>
-                                </div>
-                            </div>
+                <AppField label="Hora de entrada">
+                    <AppTimePicker v-model="editForm.hora_entrada" />
+                </AppField>
 
-                            <!-- Pie: botones apilados en móvil -->
-                            <div
-                                class="pt-4 border-t border-surface-100 w-full flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                                <CancelButton @click="showEditModal = false" class="w-full sm:w-auto" />
-                                <ConfirmButton label="Guardar Cambios" :loading="isSaving" @click="saveEditInstructor"
-                                    class="w-full sm:w-auto" />
-                            </div>
-                        </div>
-                    </Transition>
-                </div>
-            </Transition>
-        </Teleport>
+                <AppField label="Hora de salida" :error="editErrors.hora_salida">
+                    <AppTimePicker v-model="editForm.hora_salida" :invalid="!!editErrors.hora_salida" />
+                </AppField>
+            </form>
+
+            <template #footer>
+                <AppButton variant="secondary" :disabled="isSaving" @click="showEditModal = false">Cancelar</AppButton>
+                <AppButton type="submit" form="instructor-edit-form" :loading="isSaving">Guardar cambios</AppButton>
+            </template>
+        </AppModal>
     </main>
 </template>

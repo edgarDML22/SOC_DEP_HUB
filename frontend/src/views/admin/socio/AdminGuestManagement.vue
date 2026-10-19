@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, computed, ref } from 'vue';
+import { onMounted, computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAdminGuestStore } from '@/stores/admin/adminGuestStore';
 import { useSocioStore } from '@/stores/admin/socioStore';
@@ -8,13 +8,21 @@ import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue';
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue';
 import BadgeStatus from '@/components/gerente/ui/BadgeStatus.vue';
 import LoadingSpinner from '@/components/gerente/ui/LoadingSpinner.vue';
-import { IconUser, IconMail, IconPhone, IconQr, IconSearch } from '@/components/icons';
-import ConfirmButton from '@/components/gerente/ui/ConfirmButton.vue';
-import CancelButton from '@/components/gerente/ui/CancelButton.vue';
+import { IconUser, IconMail, IconPhone, IconQr, IconTrash } from '@/components/icons';
+import IconUserPlus from '@/components/icons/IconUserPlus.vue';
 import SearchInput from '@/components/gerente/ui/SearchInput.vue';
+import AppModal from '@/components/ui/modal/AppModal.vue';
+import AppConfirmModal from '@/components/ui/modal/AppConfirmModal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppField from '@/components/ui/form/AppField.vue';
+import AppInput from '@/components/ui/form/AppInput.vue';
+import QrCodeDisplay from '@/components/ui/qr/QrCodeDisplay.vue';
+import QrCodeModal from '@/components/ui/qr/QrCodeModal.vue';
+import { useAlerts } from '@/composables/useAlerts';
 import { useformat } from '@/utils/formatters';
 
 const { dateFormat } = useformat();
+const { toastSuccess, toastError } = useAlerts();
 
 const route = useRoute();
 const router = useRouter();
@@ -25,6 +33,10 @@ const { guests, activePasses, isLoading, loading, error } = storeToRefs(guestSto
 const { currentSocio } = storeToRefs(socioStore);
 
 const socioId = route.params.id;
+
+// El store reutiliza `error` también al crear/editar: la lista solo se reemplaza por
+// el estado de error cuando de verdad no hay datos que mostrar.
+const loadError = computed(() => (!guests.value.length ? error.value : null));
 
 // AVATAR HELPERS
 const AVATAR_GRADIENTS = [
@@ -128,8 +140,11 @@ const openRestoreModal = (guest) => {
 const handleRestoreGuest = async () => {
   if (!selectedGuestForRestore.value) return;
   const res = await guestStore.restoreGuest(socioId, selectedGuestForRestore.value.id_invitado);
-  if (res.success) {
+  if (res?.success) {
     showRestoreModal.value = false;
+    toastSuccess('Invitado reactivado');
+  } else {
+    toastError(res?.error || 'No se pudo reactivar al invitado');
   }
 };
 
@@ -214,6 +229,16 @@ const validateForm = () => {
   return valid;
 };
 
+// Al corregir un campo marcado, su error desaparece (no se marcan campos nuevos mientras escribe)
+watch(guestForm, () => {
+  const marked = Object.keys(formErrors.value).filter((key) => formErrors.value[key]);
+  if (!marked.length) return;
+  validateForm();
+  for (const key of Object.keys(formErrors.value)) {
+    if (!marked.includes(key)) formErrors.value[key] = '';
+  }
+}, { deep: true });
+
 const handleGuestSubmit = async () => {
   if (!validateForm()) return;
 
@@ -221,14 +246,20 @@ const handleGuestSubmit = async () => {
 
   if (modalMode.value === 'create') {
     const res = await guestStore.createGuest(socioId, payload);
-    if (res.success) {
-      guestQrData.value = res.data.qr_code_image || res.data.qr_code || null;
+    if (res?.success) {
+      guestQrData.value = res.data.codigo_qr || null;
       modalStep.value = 2;
+      toastSuccess('Invitado registrado correctamente');
+    } else {
+      toastError(res?.error || 'No se pudo registrar al invitado');
     }
   } else {
     const res = await guestStore.updateGuest(socioId, selectedGuestId.value, payload);
-    if (res.success) {
+    if (res?.success) {
       showGuestModal.value = false;
+      toastSuccess('Información del invitado actualizada');
+    } else {
+      toastError(res?.error || 'No se pudo actualizar al invitado');
     }
   }
 };
@@ -241,11 +272,6 @@ const openQrModal = (guest) => {
   selectedGuestForQr.value = guest;
   showQrModal.value = true;
 };
-
-const qrUrl = computed(() => {
-  if (!selectedGuestForQr.value?.codigo_qr) return null;
-  return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${selectedGuestForQr.value.codigo_qr}`;
-});
 
 // TOGGLE DAILY PASS MODAL
 const showToggleModal = ref(false);
@@ -269,10 +295,11 @@ const handleTogglePass = async () => {
 
   const newStatus = isActivating ? 'ACTIVO' : 'INACTIVO';
   const res = await guestStore.togglePass(socioId, guest.id_invitado, newStatus);
-  if (res.success) {
+  if (res?.success) {
     showToggleModal.value = false;
+    toastSuccess(isActivating ? 'Daily Pass activado' : 'Daily Pass desactivado');
   } else {
-    toggleError.value = res.error || 'Error al cambiar el estatus del pase.';
+    toggleError.value = res?.error || 'Error al cambiar el estatus del pase.';
   }
 };
 
@@ -288,16 +315,19 @@ const openDeleteModal = (guest) => {
 const handleDeleteGuest = async () => {
   if (!selectedGuestForDelete.value) return;
   const res = await guestStore.deleteGuest(socioId, selectedGuestForDelete.value.id_invitado);
-  if (res.success) {
+  if (res?.success) {
     showDeleteModal.value = false;
+    toastSuccess('Invitado eliminado');
+  } else {
+    toastError(res?.error || 'No se pudo eliminar al invitado');
   }
 };
 
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-50 p-6 lg:p-8 pb-16 font-sans">
-    <div class="max-w-7xl mx-auto space-y-8">
+  <main class="min-h-screen bg-surface-50 px-4 py-5 pb-16 font-sans sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
       <!-- CABECERA -->
       <AdminPageHeader title="Gestión de Invitados" backRoute="socios-list">
@@ -325,7 +355,7 @@ const handleDeleteGuest = async () => {
           <!-- Pases Activos -->
           <div class="flex items-center justify-between sm:justify-start gap-2 px-3 py-2.5 sm:px-4 bg-white border border-surface-200 rounded-2xl shadow-xs">
             <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-surface-400">Pases Activos</span>
-            <div class="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl text-xs sm:text-sm font-black transition-colors"
+            <div class="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap tabular-nums transition-colors"
               :class="activePasses >= 5 ? 'bg-red-100 text-red-700' : 'bg-primary-100 text-primary-700'">
               {{ activePasses }} / 5
             </div>
@@ -367,14 +397,10 @@ const handleDeleteGuest = async () => {
             enter-from-class="opacity-0 sm:translate-x-4" enter-to-class="opacity-100 sm:translate-x-0"
             leave-active-class="transition-all duration-200 ease-in" leave-from-class="opacity-100 sm:translate-x-0"
             leave-to-class="opacity-0 sm:translate-x-4">
-            <button v-if="activePasses < 5"
-              class="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md shadow-primary-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0 w-full sm:w-auto"
-              @click="openCreateModal">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span>Nuevo Invitado</span>
-            </button>
+            <AppButton v-if="activePasses < 5" class="w-full sm:w-auto" @click="openCreateModal">
+              <template #icon><IconUserPlus class="h-4 w-4" /></template>
+              Nuevo Invitado
+            </AppButton>
           </Transition>
         </div>
       </div>
@@ -389,7 +415,7 @@ const handleDeleteGuest = async () => {
         </div>
 
         <!-- Estado: Error -->
-        <div v-else-if="error" class="p-12 text-center">
+        <div v-else-if="loadError" class="p-12 text-center">
           <div class="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path
@@ -397,7 +423,7 @@ const handleDeleteGuest = async () => {
             </svg>
           </div>
           <h3 class="text-lg font-black text-surface-900">Error al cargar</h3>
-          <p class="text-surface-500 mt-1">{{ error }}</p>
+          <p class="text-surface-500 mt-1">{{ loadError }}</p>
           <button @click="guestStore.fetchGuests(socioId)"
             class="mt-4 text-primary-600 font-bold hover:underline">Reintentar</button>
         </div>
@@ -493,346 +519,146 @@ const handleDeleteGuest = async () => {
               No se encontraron invitados que coincidan con la búsqueda.
             </div>
 
-            <div v-for="guest in filteredGuests" :key="'card-' + guest.id_invitado"
-              tabindex="0"
-              class="group bg-white rounded-2xl border border-surface-200/90 shadow-xs hover:shadow-md hover:border-surface-300 transition-all duration-200 p-4 focus:outline-hidden animate-row-in">
+            <!-- Datos siempre visibles: así el menú ⋮ no compite con un panel que se expande -->
+            <article v-for="guest in filteredGuests" :key="'card-' + guest.id_invitado"
+              class="rounded-2xl border border-surface-200/90 bg-white p-4 shadow-xs animate-row-in"
+              :class="{ 'opacity-70': guest.deleted_at }">
 
-              <!-- Encabezado: Avatar + Nombre + Fecha + ActionMenu (Siempre visible) -->
               <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex min-w-0 items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-black text-xs shrink-0 shadow-xs"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-xs font-black text-white shadow-xs"
                     :class="avatarGradient(guest.nombre_invitado)">
                     {{ initials(guest.nombre_invitado) }}
                   </div>
-                  <div class="flex flex-col min-w-0">
-                    <span class="font-bold text-surface-900 text-sm truncate">
-                      {{ guest.nombre_invitado }}
-                    </span>
-                    <span class="text-surface-400 text-[11px] font-medium tracking-wide">
+                  <div class="flex min-w-0 flex-col">
+                    <span class="truncate text-sm font-bold text-surface-900">{{ guest.nombre_invitado }}</span>
+                    <span class="text-xs font-medium text-surface-600">
                       Invitado desde {{ dateFormat(guest.fecha_registro) || 'N/A' }}
                     </span>
                   </div>
                 </div>
-                <div class="shrink-0" @click.stop>
-                  <ActionMenu :items="buildMenuItems(guest)" align="right" />
+                <ActionMenu :items="buildMenuItems(guest)" align="right" class="shrink-0" />
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 gap-1.5 border-t border-surface-100 pt-3 text-xs text-surface-700 sm:grid-cols-2">
+                <div class="flex min-w-0 items-center gap-2">
+                  <IconMail class="h-3.5 w-3.5 shrink-0 text-surface-500" />
+                  <span class="truncate">{{ guest.correo || 'Sin correo' }}</span>
+                </div>
+                <div class="flex min-w-0 items-center gap-2">
+                  <IconPhone class="h-3.5 w-3.5 shrink-0 text-surface-500" />
+                  <span class="truncate">{{ guest.telefono || 'Sin teléfono' }}</span>
                 </div>
               </div>
 
-              <!-- Contenido desplegable en hover / focus -->
-              <div class="max-h-0 opacity-0 overflow-hidden group-hover:max-h-60 group-hover:opacity-100 group-focus-within:max-h-60 group-focus-within:opacity-100 transition-all duration-300 ease-in-out">
-                <!-- Información de Contacto -->
-                <div class="border-t border-surface-100 mt-3 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-surface-600 text-xs">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <IconMail class="w-3.5 h-3.5 text-surface-400 shrink-0" />
-                    <span class="truncate">{{ guest.correo || '—' }}</span>
-                  </div>
-                  <div class="flex items-center gap-2 min-w-0">
-                    <IconPhone class="w-3.5 h-3.5 text-surface-400 shrink-0" />
-                    <span class="truncate">{{ guest.telefono || '—' }}</span>
-                  </div>
+              <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-surface-100 pt-3 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-surface-600">Estatus</span>
+                  <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
                 </div>
-
-                <!-- Estatus y Daily Pass alineados -->
-                <div class="border-t border-surface-100 mt-2.5 pt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <!-- Estatus Invitado -->
-                  <div class="flex items-center gap-2">
-                    <span class="text-surface-400 font-semibold text-[11px]">Estatus:</span>
-                    <BadgeStatus :status="guest.deleted_at ? 'ELIMINADO' : 'ACTIVO'" />
-                  </div>
-
-                  <!-- Daily Pass -->
-                  <div class="flex items-center gap-2">
-                    <span class="text-surface-400 font-semibold text-[11px]">Daily Pass:</span>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
-                      <span v-if="guest.fecha_expiracion" class="text-[10px] font-bold text-surface-400">
-                        (Exp: {{ dateFormat(guest.fecha_expiracion) }})
-                      </span>
-                    </div>
-                  </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-semibold text-surface-600">Daily Pass</span>
+                  <BadgeStatus :status="guest.estatus_acceso || 'INACTIVO'" />
+                  <span v-if="guest.fecha_expiracion" class="text-[11px] font-semibold text-surface-500">
+                    Exp. {{ dateFormat(guest.fecha_expiracion) }}
+                  </span>
                 </div>
               </div>
-
-            </div>
+            </article>
           </div>
         </template>
       </div>
     </div>
 
 
-  <!-- MODAL: CREAR/EDITAR INVITADO -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="showGuestModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-        @click.self="showGuestModal = false">
-        <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
+  <!-- MODAL: CREAR / EDITAR INVITADO (paso 2: pase generado + QR) -->
+  <AppModal
+    v-model="showGuestModal"
+    :title="modalStep === 2 ? 'Invitado registrado' : (modalMode === 'create' ? 'Registrar invitado' : 'Editar invitado')"
+    :subtitle="modalStep === 2 ? 'Su pase de acceso ya está listo' : 'Completa la información del invitado'"
+    :icon="modalStep === 2 ? IconQr : IconUserPlus"
+    :tone="modalStep === 2 ? 'emerald' : 'blue'"
+    :persistent="loading.create || loading.update"
+  >
+    <form v-if="modalStep === 1" id="guest-form" class="flex flex-col gap-4 pt-1" novalidate @submit.prevent="handleGuestSubmit">
+      <AppField label="Nombre completo" for="guest-nombre" required :error="formErrors.nombre_invitado">
+        <AppInput id="guest-nombre" v-model="guestForm.nombre_invitado" :icon="IconUser" maxlength="255" placeholder="Ej. Juan Pérez" autocomplete="off" :invalid="!!formErrors.nombre_invitado" />
+      </AppField>
+      <AppField label="Correo" for="guest-correo" optional :error="formErrors.correo">
+        <AppInput id="guest-correo" v-model="guestForm.correo" type="email" :icon="IconMail" placeholder="ejemplo@correo.com" autocomplete="off" :invalid="!!formErrors.correo" />
+      </AppField>
+      <AppField label="Teléfono" for="guest-telefono" optional :error="formErrors.telefono">
+        <AppInput id="guest-telefono" v-model="guestForm.telefono" type="tel" inputmode="numeric" :icon="IconPhone" placeholder="10 dígitos" autocomplete="off" :invalid="!!formErrors.telefono" />
+      </AppField>
+    </form>
 
-          <!-- Cabecera -->
-          <div class="flex items-center justify-between px-8 py-6 bg-white border-b border-surface-100">
-            <div>
-              <h2 class="text-xl font-black text-surface-900 leading-tight">
-                {{ modalStep === 2 ? 'Pase de Invitado' :
-                  (modalMode === 'create' ? 'Registrar Invitado' : 'Editar Invitado') }}
-              </h2>
-              <p class="text-xs font-bold text-surface-500 mt-1 uppercase tracking-wider">
-                {{ modalStep === 2 ? 'Registro exitoso' : 'Completa la información del invitado' }}
-              </p>
-            </div>
-            <button @click="showGuestModal = false"
-              class="w-10 h-10 rounded-xl bg-surface-100 hover:bg-surface-200 flex items-center justify-center text-surface-500 transition-colors">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+    <div v-else class="pt-2">
+      <QrCodeDisplay :value="guestQrData" :name="guestForm.nombre_invitado" caption="Invitado" />
+    </div>
 
-          <!-- Cuerpo -->
-          <div class="overflow-y-auto p-7 bg-surface-50/30">
-            <!-- STEP 1: FORM -->
-            <div v-if="modalStep === 1" class="space-y-5">
-              <!-- Nombre -->
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Nombre
-                  Completo</label>
-                <div class="relative">
-                  <IconUser class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input v-model="guestForm.nombre_invitado" type="text" maxlength="255" placeholder="Ej. Juan Pérez"
-                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
-                    :class="formErrors.nombre_invitado ? 'border-red-300' : 'border-surface-200'" />
-                </div>
-                <p v-if="formErrors.nombre_invitado" class="text-[10px] font-bold text-red-500 px-1">{{
-                  formErrors.nombre_invitado }}</p>
-              </div>
+    <template #footer>
+      <template v-if="modalStep === 1">
+        <AppButton variant="secondary" :disabled="loading.create || loading.update" @click="showGuestModal = false">Cancelar</AppButton>
+        <AppButton type="submit" form="guest-form" :loading="loading.create || loading.update">
+          {{ modalMode === 'create' ? 'Registrar invitado' : 'Guardar cambios' }}
+        </AppButton>
+      </template>
+      <AppButton v-else tone="emerald" @click="showGuestModal = false">Finalizar</AppButton>
+    </template>
+  </AppModal>
 
-              <!-- Correo -->
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Correo
-                  (Opcional)</label>
-                <div class="relative">
-                  <IconMail class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input v-model="guestForm.correo" type="email" placeholder="ejemplo@correo.com"
-                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
-                    :class="formErrors.correo ? 'border-red-300' : 'border-surface-200'" />
-                </div>
-                <p v-if="formErrors.correo" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.correo }}</p>
-              </div>
+  <!-- MODAL: CÓDIGO QR -->
+  <QrCodeModal
+    v-model="showQrModal"
+    :value="selectedGuestForQr?.codigo_qr"
+    :name="selectedGuestForQr?.nombre_invitado"
+    caption="Invitado"
+  />
 
-              <!-- Teléfono -->
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Teléfono
-                  (Opcional)</label>
-                <div class="relative">
-                  <IconPhone class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input v-model="guestForm.telefono" type="tel" placeholder="10 dígitos"
-                    class="w-full pl-11 pr-4 py-3 bg-white border rounded-2xl text-sm font-semibold text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-600 transition-all shadow-sm"
-                    :class="formErrors.telefono ? 'border-red-300' : 'border-surface-200'" />
-                </div>
-                <p v-if="formErrors.telefono" class="text-[10px] font-bold text-red-500 px-1">{{ formErrors.telefono }}
-                </p>
-              </div>
-            </div>
+  <!-- MODAL: GESTIONAR DAILY PASS -->
+  <AppConfirmModal
+    v-model="showToggleModal"
+    title="Gestionar Daily Pass"
+    :icon="IconQr"
+    :tone="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'amber' : 'blue'"
+    :confirm-label="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'Desactivar pase' : 'Activar pase'"
+    :loading="loading.toggle"
+    :error="toggleError"
+    @confirm="handleTogglePass"
+  >
+    El pase de <strong class="text-surface-900">{{ selectedGuestForToggle?.nombre_invitado }}</strong> está
+    <BadgeStatus :status="selectedGuestForToggle?.estatus_acceso || 'INACTIVO'" class="align-middle" />.
+    ¿Deseas {{ selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'desactivar' : 'activar' }} su acceso para hoy?
+  </AppConfirmModal>
 
-            <!-- STEP 2: QR -->
-            <div v-else class="flex flex-col items-center py-4">
-              <div
-                class="w-56 h-56 bg-surface-50 rounded-[2.5rem] p-6 border border-surface-100 shadow-inner flex items-center justify-center relative overflow-hidden">
-                <div class="absolute inset-0 bg-linear-to-br from-primary-500/5 to-transparent"></div>
-                <img v-if="guestQrData" :src="guestQrData" alt="QR Code" class="w-full h-full relative z-10" />
-                <div v-else class="flex flex-col items-center gap-2 text-surface-300 relative z-10">
-                  <IconQr class="w-12 h-12" />
-                  <span class="text-[10px] font-black uppercase tracking-widest">Generando QR...</span>
-                </div>
-              </div>
-              <div class="mt-8 text-center space-y-2">
-                <p class="text-base font-black text-surface-900">{{ guestForm.nombre_invitado }}</p>
-                <p class="text-sm text-surface-500 font-medium">El pase ha sido generado y está listo para ser
-                  utilizado.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Pie del modal -->
-          <div class="flex items-center justify-end gap-3 px-7 py-4 border-t border-surface-100 bg-white">
-            <template v-if="modalStep === 1">
-              <CancelButton label="Cancelar" @click="showGuestModal = false" />
-              <ConfirmButton :label="modalMode === 'create' ? 'Registrar' : 'Guardar Cambios'"
-                :loading="loading.create || loading.update" @click="handleGuestSubmit" />
-            </template>
-            <template v-else>
-              <ConfirmButton label="Finalizar" @click="showGuestModal = false" />
-            </template>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
-
-  <!-- MODAL: MOSTRAR QR -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="showQrModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-        @click.self="showQrModal = false">
-        <div class="bg-white w-full max-w-xs rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
-          <div class="px-6 py-5 border-b border-surface-100 flex items-center justify-between">
-            <h3 class="text-lg font-black text-surface-900">Pase QR</h3>
-            <button @click="showQrModal = false" class="text-surface-400 hover:text-surface-600 transition-colors">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="p-8 flex flex-col items-center gap-6">
-            <div
-              class="w-full aspect-square bg-surface-50 rounded-3xl p-4 border border-surface-100 shadow-inner flex items-center justify-center">
-              <img v-if="qrUrl" :src="qrUrl" alt="QR Code" class="w-full h-full" />
-              <div v-else class="text-surface-300 flex flex-col items-center gap-2">
-                <IconQr class="w-10 h-10" />
-                <span class="text-[10px] font-black uppercase tracking-widest">Sin código</span>
-              </div>
-            </div>
-            <div class="text-center">
-              <p class="font-black text-surface-900 leading-tight">{{ selectedGuestForQr?.nombre_invitado }}</p>
-              <p class="text-xs text-surface-400 mt-1 font-medium">Escanea este código en recepción</p>
-            </div>
-          </div>
-          <div class="px-6 py-4 bg-surface-50 border-t border-surface-100 flex justify-center">
-            <ConfirmButton label="Cerrar" @click="showQrModal = false" />
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
-
-  <!-- MODAL: TOGGLE DAILY PASS -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="showToggleModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-        @click.self="showToggleModal = false">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
-          <div class="p-8">
-            <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-3xl flex items-center justify-center mb-6">
-              <IconQr class="w-8 h-8" />
-            </div>
-            <h3 class="text-xl font-black text-surface-900 leading-tight">Gestionar Daily Pass</h3>
-            <p class="text-surface-500 mt-3 leading-relaxed">
-              El pase de <span class="font-bold text-surface-900">{{ selectedGuestForToggle?.nombre_invitado }}</span>
-              está actualmente
-              <span class="font-bold uppercase"
-                :class="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'text-primary-600' : 'text-surface-400'">
-                {{ selectedGuestForToggle?.estatus_acceso || 'INACTIVO' }}
-              </span>.
-            </p>
-            <p class="text-surface-500 mt-2">
-              ¿Deseas {{ selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'desactivar' : 'activar' }} su acceso
-              para
-              hoy?
-            </p>
-
-            <!-- Error Inline -->
-            <Transition enter-active-class="transition-all duration-200 ease-out"
-              enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
-              <div v-if="toggleError"
-                class="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start animate-shake">
-                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 8v4M12 16h.01" />
-                </svg>
-                <p class="text-xs font-bold text-red-700 leading-tight">{{ toggleError }}</p>
-              </div>
-            </Transition>
-          </div>
-
-          <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
-            <CancelButton label="Cerrar" @click="showToggleModal = false" />
-            <ConfirmButton
-              :label="selectedGuestForToggle?.estatus_acceso === 'ACTIVO' ? 'Desactivar Pase' : 'Activar Pase'"
-              :loading="loading.toggle" @click="handleTogglePass" />
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
   <!-- MODAL: REACTIVAR INVITADO -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="showRestoreModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-        @click.self="showRestoreModal = false">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
-          <div class="p-8">
-            <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-3xl flex items-center justify-center mb-6">
-              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-            </div>
-            <h3 class="text-xl font-black text-surface-900 leading-tight">¿Reactivar invitado?</h3>
-            <p class="text-surface-500 mt-3 leading-relaxed">
-              Estás a punto de reactivar a <span class="font-bold text-surface-900">{{ selectedGuestForRestore?.nombre_invitado }}</span>.
-              El invitado volverá a estar disponible en la lista activa de este socio.
-            </p>
-          </div>
-
-          <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
-            <CancelButton label="Cancelar" @click="showRestoreModal = false" />
-            <ConfirmButton label="Sí, reactivar" :loading="loading.update" @click="handleRestoreGuest" />
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <AppConfirmModal
+    v-model="showRestoreModal"
+    title="¿Reactivar invitado?"
+    :icon="IconUserPlus"
+    tone="emerald"
+    confirm-label="Sí, reactivar"
+    :loading="loading.update"
+    @confirm="handleRestoreGuest"
+  >
+    <strong class="text-surface-900">{{ selectedGuestForRestore?.nombre_invitado }}</strong> volverá a estar disponible
+    en la lista activa de invitados de este socio.
+  </AppConfirmModal>
 
   <!-- MODAL: ELIMINAR INVITADO -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="showDeleteModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-sm"
-        @click.self="showDeleteModal = false">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
-          <div class="p-8">
-            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-6">
-              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-black text-surface-900 leading-tight">¿Eliminar invitado?</h3>
-            <p class="text-surface-500 mt-3 leading-relaxed">
-              Estás a punto de eliminar a <span class="font-bold text-surface-900">{{ selectedGuestForDelete?.nombre_invitado }}</span>.
-              Esta acción desactivará su pase actual y lo dará de baja de la lista de invitados de este socio.
-            </p>
-            <p class="text-surface-400 text-xs mt-4 font-medium italic">
-              * El registro podrá ser visualizado posteriormente por administración.
-            </p>
-          </div>
-
-          <div class="px-8 py-6 bg-surface-50 border-t border-surface-100 flex items-center justify-end gap-3">
-            <CancelButton label="Cancelar" @click="showDeleteModal = false" />
-            <button
-              class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-600/20 flex items-center gap-2"
-              :disabled="loading.delete"
-              @click="handleDeleteGuest">
-              <LoadingSpinner v-if="loading.delete" size="xs" color="white" />
-              {{ loading.delete ? 'Eliminando...' : 'Sí, eliminar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <AppConfirmModal
+    v-model="showDeleteModal"
+    title="¿Eliminar invitado?"
+    :icon="IconTrash"
+    tone="rose"
+    confirm-label="Sí, eliminar"
+    :loading="loading.delete"
+    @confirm="handleDeleteGuest"
+  >
+    Se desactivará el pase de <strong class="text-surface-900">{{ selectedGuestForDelete?.nombre_invitado }}</strong>
+    y se dará de baja de la lista de invitados de este socio.
+    <span class="mt-3 block text-xs font-medium text-surface-500">El registro seguirá visible para la administración.</span>
+  </AppConfirmModal>
   </main>
 </template>

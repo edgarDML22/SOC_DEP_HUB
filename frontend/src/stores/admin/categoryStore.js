@@ -62,8 +62,11 @@ export const useCategoryStore = defineStore("categoriesAdmin", () => {
                 await fetchCategories(true);
                 return { success: true };
             }
+            return { success: false, error: res.data?.message || "No se pudo eliminar la categoría." };
         } catch (err) {
-            return { success: false, error: err.response?.data?.message || "Error al eliminar categoría." };
+            const status = err.response?.status;
+            const friendly = status && status < 500 ? err.response?.data?.message : null;
+            return { success: false, error: friendly || "El servidor no pudo eliminar la categoría. Intenta de nuevo o avisa al equipo técnico." };
         } finally {
             isLoading.value = false;
         }
