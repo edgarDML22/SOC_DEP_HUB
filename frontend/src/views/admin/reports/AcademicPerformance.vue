@@ -16,40 +16,15 @@ const disciplines = ref([]);
 const instructors = ref([]);
 
 // Rango dinámico y filtros
-const filtroRango = ref(reportsStore.academicFilters.rango || 'semana');
-const filterDateStart = ref(reportsStore.academicFilters.fecha_inicio);
-const filterDateEnd = ref(reportsStore.academicFilters.fecha_fin);
-const selectedDisciplina = ref(reportsStore.academicFilters.id_disciplina);
-const selectedInstructor = ref(reportsStore.academicFilters.id_instructor);
+const filtroRango = ref('mes');
+const filterDateStart = ref('');
+const filterDateEnd = ref('');
+const selectedDisciplina = ref('');
+const selectedInstructor = ref('');
 
-const updateDatesFromRango = (rango) => {
-  const now = new Date();
-  
-  if (rango === 'hoy') {
-    const todayStr = now.toISOString().split('T')[0];
-    filterDateStart.value = todayStr;
-    filterDateEnd.value = todayStr;
-  } else if (rango === 'semana') {
-    // Calcular lunes de esta semana
-    const currentDay = now.getDay();
-    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + distanceToMonday);
-    
-    // Calcular domingo de esta semana
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    
-    filterDateStart.value = monday.toISOString().split('T')[0];
-    filterDateEnd.value = sunday.toISOString().split('T')[0];
-  } else if (rango === 'mes') {
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    filterDateStart.value = firstDay.toISOString().split('T')[0];
-    filterDateEnd.value = lastDay.toISOString().split('T')[0];
-  }
-};
+const isAnyFilterSelected = computed(() => {
+  return !!(filterDateStart.value || filterDateEnd.value || selectedDisciplina.value || selectedInstructor.value || (filtroRango.value && filtroRango.value !== 'mes'));
+});
 
 const loadMetadata = async () => {
   try {
@@ -65,28 +40,25 @@ const loadMetadata = async () => {
 };
 
 const loadStats = async (forceRefresh = false) => {
-  const isSameFilters =
-    reportsStore.academicStats &&
-    reportsStore.academicFilters.rango === (filtroRango.value || undefined) &&
-    reportsStore.academicFilters.fecha_inicio === filterDateStart.value &&
-    reportsStore.academicFilters.fecha_fin === filterDateEnd.value &&
-    reportsStore.academicFilters.id_disciplina === selectedDisciplina.value &&
-    reportsStore.academicFilters.id_instructor === selectedInstructor.value;
-
-  if (isSameFilters && !forceRefresh) {
-    return;
-  }
-
   try {
     isLoading.value = true;
     errorMsg.value = '';
-    await reportsStore.fetchAcademicStats({
-      fecha_inicio: filterDateStart.value,
-      fecha_fin: filterDateEnd.value,
-      id_disciplina: selectedDisciplina.value,
-      id_instructor: selectedInstructor.value,
-      rango: filtroRango.value || undefined
-    }, forceRefresh);
+
+    const params = {
+      id_disciplina: selectedDisciplina.value || undefined,
+      id_instructor: selectedInstructor.value || undefined
+    };
+
+    if (filterDateStart.value && filterDateEnd.value) {
+      params.fecha_inicio = filterDateStart.value;
+      params.fecha_fin = filterDateEnd.value;
+    } else if (filtroRango.value) {
+      params.rango = filtroRango.value;
+    } else {
+      params.rango = 'mes';
+    }
+
+    await reportsStore.fetchAcademicStats(params, forceRefresh);
   } catch (error) {
     console.error('Error loading academic stats:', error);
     errorMsg.value = 'Conexión interrumpida con el servidor de BI.';
@@ -95,51 +67,68 @@ const loadStats = async (forceRefresh = false) => {
   }
 };
 
-const clearFilters = () => {
-  filtroRango.value = 'semana';
-  selectedDisciplina.value = '';
-  selectedInstructor.value = '';
-  updateDatesFromRango('semana');
+const selectPreset = (rango) => {
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  filtroRango.value = rango;
   loadStats(true);
 };
 
-watch(filtroRango, (newVal) => {
-  if (newVal) {
-    updateDatesFromRango(newVal);
-    loadStats();
+const clearFilters = () => {
+  if (!isAnyFilterSelected.value) return;
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  selectedDisciplina.value = '';
+  selectedInstructor.value = '';
+  filtroRango.value = 'mes';
+  loadStats(true);
+};
+
+watch([filterDateStart, filterDateEnd], ([newStart, newEnd]) => {
+  if (newStart || newEnd) {
+    filtroRango.value = '';
+  }
+  if (newStart && newEnd) {
+    if (newStart > newEnd) {
+      filterDateStart.value = newEnd;
+      filterDateEnd.value = newStart;
+      return;
+    }
+    loadStats(true);
   }
 });
+
+watch([selectedDisciplina, selectedInstructor], () => loadStats(true));
 
 onMounted(async () => {
   await loadMetadata();
-  if (reportsStore.academicStats) {
-    filtroRango.value = reportsStore.academicFilters.rango;
-    filterDateStart.value = reportsStore.academicFilters.fecha_inicio;
-    filterDateEnd.value = reportsStore.academicFilters.fecha_fin;
-    selectedDisciplina.value = reportsStore.academicFilters.id_disciplina;
-    selectedInstructor.value = reportsStore.academicFilters.id_instructor;
-    await loadStats();
-  } else {
-    updateDatesFromRango(filtroRango.value);
-    await loadStats();
-  }
+  filtroRango.value = 'mes';
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  selectedDisciplina.value = '';
+  selectedInstructor.value = '';
+  loadStats(true);
 });
-
-watch([selectedDisciplina, selectedInstructor], () => loadStats());
 
 // --- Configuración de Gráficos ---
 
 // 1. Matriz de Demanda (Bubble Chart/Scatter)
-// Mostramos los puntos calientes: Eje X = Dia Semana, Eje Y = Bloque Horario, Tamaño (r) = Porcentaje de ocupación
+// Mostramos los puntos calientes: Eje X = Dia Semana (1..7), Eje Y = Bloque Horario, Tamaño (r) = Porcentaje de ocupación
 const chartMatrizDemanda = computed(() => {
   if (!stats.value?.matriz_demanda?.length) return null;
 
+  const diaMap = {
+    'LUNES': 1, 'MARTES': 2, 'MIERCOLES': 3, 'MIÉRCOLES': 3,
+    'JUEVES': 4, 'VIERNES': 5, 'SABADO': 6, 'SÁBADO': 6, 'DOMINGO': 7
+  };
+
   const bubbleData = stats.value.matriz_demanda.map(item => {
-    const horaInt = parseInt(item.hora.split(':')[0]);
+    const diaNum = typeof item.dia === 'number' ? item.dia : (diaMap[String(item.dia).toUpperCase().trim()] || 1);
+    const horaInt = typeof item.hora_num === 'number' ? item.hora_num : parseInt(String(item.hora).split(':')[0]);
     return {
-      x: item.dia,
+      x: diaNum,
       y: horaInt,
-      r: Math.max(4, Math.min(25, item.ocupacion_porcentaje / 4)), // escala de burbuja
+      r: Math.max(5, Math.min(22, (item.ocupacion_porcentaje || 10) / 4)),
       ocupacion: item.ocupacion_porcentaje,
       disciplina: item.disciplina,
       inscritos: item.avg_inscritos
@@ -150,22 +139,47 @@ const chartMatrizDemanda = computed(() => {
     datasets: [{
       label: 'Demanda de Clases',
       data: bubbleData,
-      backgroundColor: 'rgba(99, 102, 241, 0.45)', // Indigo-500 traslúcido
-      borderColor: 'rgba(79, 70, 229, 0.9)',       // Indigo-600
+      backgroundColor: (context) => {
+        const raw = context.raw;
+        if (!raw) return 'rgba(14, 165, 233, 0.7)';
+        const occ = raw.ocupacion || 0;
+        if (occ >= 75) return 'rgba(239, 68, 68, 0.75)'; // Alta demanda / saturado (>=75%)
+        if (occ >= 40) return 'rgba(99, 102, 241, 0.75)'; // Demanda moderada (40-74%)
+        return 'rgba(14, 165, 233, 0.7)'; // Demanda baja (<40%)
+      },
+      borderColor: (context) => {
+        const raw = context.raw;
+        if (!raw) return '#0284c7';
+        const occ = raw.ocupacion || 0;
+        if (occ >= 75) return '#b91c1c';
+        if (occ >= 40) return '#4338ca';
+        return '#0284c7';
+      },
       borderWidth: 1.5
     }]
   };
 });
 
 const optionsMatrizDemanda = {
+  responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
     tooltip: {
+      backgroundColor: '#0f172a',
+      titleFont: { size: 12, weight: 'bold' },
+      bodyFont: { size: 12 },
+      padding: 12,
+      cornerRadius: 10,
       callbacks: {
         label: (context) => {
           const raw = context.raw;
-          const diaLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-          return `${raw.disciplina} (${diaLabels[raw.x - 1]} ${raw.y}:00): Llenado ${raw.ocupacion}% (promedio ${raw.inscritos} alumnos)`;
+          const diaLabels = {
+            1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
+            4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+          };
+          const diaText = diaLabels[raw.x] || `Día ${raw.x}`;
+          return ` ${raw.disciplina} (${diaText} ${raw.y}:00): Llenado ${raw.ocupacion}% (promedio ${raw.inscritos} alumnos)`;
         }
       }
     }
@@ -175,12 +189,30 @@ const optionsMatrizDemanda = {
       type: 'linear',
       min: 0.5,
       max: 7.5,
+      afterBuildTicks: (axis) => {
+        axis.ticks = [1, 2, 3, 4, 5, 6, 7].map(v => ({ value: v }));
+      },
       ticks: {
         stepSize: 1,
+        autoSkip: false,
         callback: (value) => {
-          const labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-          return labels[value - 1] || '';
-        }
+          const labels = {
+            1: 'Lunes',
+            2: 'Martes',
+            3: 'Miércoles',
+            4: 'Jueves',
+            5: 'Viernes',
+            6: 'Sábado',
+            7: 'Domingo'
+          };
+          return labels[value] || '';
+        },
+        font: { size: 11, weight: 'bold' },
+        color: '#1e293b'
+      },
+      grid: {
+        color: '#f1f5f9',
+        drawBorder: false
       },
       title: {
         display: true,
@@ -193,9 +225,15 @@ const optionsMatrizDemanda = {
       type: 'linear',
       min: 6,
       max: 22,
+      grid: {
+        color: '#f8fafc',
+        drawBorder: false
+      },
       ticks: {
         stepSize: 2,
-        callback: (value) => `${value}:00`
+        callback: (value) => `${value}:00`,
+        font: { size: 10, weight: 'bold' },
+        color: '#64748b'
       },
       title: {
         display: true,
@@ -207,7 +245,7 @@ const optionsMatrizDemanda = {
   }
 };
 
-// 2. Ranking de Convocatoria (Horizontal Bar)
+// 2. Ranking de Convocatoria (Horizontal Bar - Rework estético con mayor espacio y gradientes)
 const chartRanking = computed(() => {
   if (!stats.value?.ranking_instructores?.labels?.length) return null;
   return {
@@ -217,30 +255,65 @@ const chartRanking = computed(() => {
       data: stats.value.ranking_instructores.data,
       backgroundColor: (context) => {
         const { ctx, chartArea } = context.chart;
-        if (!chartArea) return '#a855f7';
+        if (!chartArea) return '#6366f1';
         const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-        gradient.addColorStop(0, '#7c3aed'); // Violet-600
-        gradient.addColorStop(1, '#c084fc'); // Purple-400
+        gradient.addColorStop(0, '#4f46e5'); // Indigo-600
+        gradient.addColorStop(0.6, '#6366f1'); // Indigo-500
+        gradient.addColorStop(1, '#a855f7'); // Purple-500
         return gradient;
       },
-      borderColor: '#6d28d9',
+      borderColor: '#4338ca',
       borderWidth: 1,
-      borderRadius: 6,
-      barThickness: 16
+      borderRadius: 8,
+      barThickness: 20,
+      maxBarThickness: 24,
+      categoryPercentage: 0.8,
+      barPercentage: 0.85
     }]
   };
 });
 
 const optionsRanking = {
   indexAxis: 'y',
+  responsive: true,
+  maintainAspectRatio: false,
   plugins: {
-    legend: { display: false }
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#0f172a',
+      titleFont: { size: 12, weight: 'bold' },
+      bodyFont: { size: 12 },
+      padding: 12,
+      cornerRadius: 10,
+      callbacks: {
+        label: (ctx) => ` Convocatoria: ${ctx.parsed.x}% de llenado promedio`
+      }
+    }
   },
   scales: {
     x: {
       min: 0,
       max: 100,
-      ticks: { callback: (val) => `${val}%` }
+      grid: {
+        color: '#f1f5f9',
+        drawBorder: false
+      },
+      ticks: {
+        callback: (val) => `${val}%`,
+        font: { size: 11, weight: 'bold' },
+        color: '#64748b'
+      }
+    },
+    y: {
+      grid: {
+        display: false,
+        drawBorder: false
+      },
+      ticks: {
+        font: { size: 12, weight: '600' },
+        color: '#0f172a',
+        padding: 10
+      }
     }
   }
 };
@@ -283,9 +356,40 @@ const chartAsistencia = computed(() => {
 
 const optionsAsistencia = {
   responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    tooltip: {
+      backgroundColor: '#0f172a',
+      titleFont: { size: 12, weight: 'bold' },
+      bodyFont: { size: 12 },
+      padding: 12,
+      cornerRadius: 10
+    }
+  },
   scales: {
-    x: { stacked: true },
-    y: { stacked: true }
+    x: {
+      stacked: true,
+      grid: {
+        display: false,
+        drawBorder: false
+      },
+      ticks: {
+        font: { size: 11, weight: 'bold' },
+        color: '#334155'
+      }
+    },
+    y: {
+      stacked: true,
+      grid: {
+        color: '#f1f5f9',
+        drawBorder: false
+      },
+      ticks: {
+        font: { size: 10, weight: 'bold' },
+        color: '#64748b',
+        precision: 0
+      }
+    }
   }
 };
 
@@ -298,11 +402,16 @@ const totalDemandaOcupacion = computed(() => {
 
 const individualDemanda = computed(() => {
   const diaLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const diaMap = {
+    'LUNES': 1, 'MARTES': 2, 'MIERCOLES': 3, 'MIÉRCOLES': 3,
+    'JUEVES': 4, 'VIERNES': 5, 'SABADO': 6, 'SÁBADO': 6, 'DOMINGO': 7
+  };
   const days = Array.from({ length: 7 }, (_, i) => ({ label: diaLabels[i], sum: 0, count: 0 }));
   stats.value?.matriz_demanda?.forEach(item => {
-    if (item.dia >= 1 && item.dia <= 7) {
-      days[item.dia - 1].sum += (item.ocupacion_porcentaje || 0);
-      days[item.dia - 1].count++;
+    const diaNum = typeof item.dia === 'number' ? item.dia : (diaMap[String(item.dia).toUpperCase().trim()] || 0);
+    if (diaNum >= 1 && diaNum <= 7) {
+      days[diaNum - 1].sum += (item.ocupacion_porcentaje || 0);
+      days[diaNum - 1].count++;
     }
   });
   return days.map(d => ({
@@ -340,9 +449,10 @@ const individualAsistencia = computed(() => {
   const noShows = stats.value?.asistencia_disciplina?.no_shows || [];
   return labels.map((label, idx) => ({
     label,
-    value: `${asistencias[idx] || 0} Check-ins / ${noShows[idx] || 0} No-shows`,
-    color: '#10b981'
-  })).filter(item => asistencias[labels.indexOf(item.label)] > 0 || noShows[labels.indexOf(item.label)] > 0);
+    asistencias: Number(asistencias[idx] || 0),
+    noShows: Number(noShows[idx] || 0),
+    color: '#2563eb' // Color azul principal para el indicador
+  })).filter(item => item.asistencias > 0 || item.noShows > 0);
 });
 </script>
 
@@ -353,12 +463,12 @@ const individualAsistencia = computed(() => {
     <div class="flex items-center justify-between flex-wrap gap-4">
       <div>
         <h2 class="text-xl font-black text-surface-900 m-0 tracking-tight">Periodo de Análisis</h2>
-        <p class="text-xs text-surface-500 m-0 mt-0.5 font-medium">Ajusta el rango de tiempo de consulta para recalcular el rendimiento académico.</p>
+        <p class="text-xs text-surface-500 m-0 mt-0.5 font-medium">Ajusta el rango de tiempo de consulta para recalcular las métricas de actividades e instructores.</p>
       </div>
       <div class="flex items-center gap-3">
         <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
           <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
-            @click="filtroRango = r"
+            @click="selectPreset(r)"
             :disabled="isLoading"
             class="py-1.5 px-4 rounded-xl text-xs font-black transition-all duration-200 ease-out capitalize disabled:opacity-50 cursor-pointer border-none"
             :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
@@ -374,20 +484,21 @@ const individualAsistencia = computed(() => {
         
         <!-- Rango Fecha Inicio -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha Inicio</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">DESDE</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateStart" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateStart"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
         <!-- Rango Fecha Fin -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha Fin</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">HASTA</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateEnd" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateEnd"
+                   :min="filterDateStart || undefined"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
@@ -421,7 +532,9 @@ const individualAsistencia = computed(() => {
         <!-- Botón Limpiar Filtro -->
         <div class="flex flex-col gap-1.5">
           <button @click="clearFilters"
-                  class="w-full py-2.5 bg-surface-50 hover:bg-white text-surface-700 border border-surface-200 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px] shadow-xs active:scale-[0.98]">
+                  :disabled="!isAnyFilterSelected || isLoading"
+                  :class="!isAnyFilterSelected ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-white text-surface-700 cursor-pointer shadow-xs active:scale-[0.98]'"
+                  class="w-full py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 h-[42px]">
             <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -435,7 +548,7 @@ const individualAsistencia = computed(() => {
     <!-- CARGANDO / ERROR -->
     <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 bg-white">
       <LoadingSpinner />
-      <span class="text-sm font-bold text-surface-500 mt-4">Analizando rendimientos académicos…</span>
+      <span class="text-sm font-bold text-surface-500 mt-4">Analizando analíticas de actividades…</span>
     </div>
 
     <div v-else-if="errorMsg" class="p-8 text-center bg-red-50 border border-red-200 rounded-3xl text-red-700 font-semibold">
@@ -447,9 +560,16 @@ const individualAsistencia = computed(() => {
       
       <!-- Gráfico 1: Burbujas de Horarios -->
       <div class="bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col hover:shadow-lg transition-all duration-300">
-        <div class="mb-4">
-          <h3 class="text-base font-black text-surface-900 leading-tight">Matriz de Demanda (Horas y Días)</h3>
-          <p class="text-xs font-medium text-surface-400 mt-0.5">Muestra los puntos con mayor afluencia. El tamaño de la burbuja representa la saturación.</p>
+        <div class="mb-4 flex items-start justify-between flex-wrap gap-2">
+          <div>
+            <h3 class="text-base font-black text-surface-900 leading-tight">Matriz de Demanda (Horas y Días)</h3>
+            <p class="text-xs font-medium text-surface-400 mt-0.5">Muestra los puntos con mayor afluencia. El tamaño de la burbuja representa la saturación.</p>
+          </div>
+          <div class="flex items-center gap-2 text-[10px] font-bold text-surface-500 bg-surface-50 px-3 py-1.5 rounded-xl border border-surface-200">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> &lt;40%</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 40-74%</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> ≥75%</span>
+          </div>
         </div>
         <div class="h-[280px] w-full" v-if="chartMatrizDemanda">
           <BaseChart type="bubble" :data="chartMatrizDemanda" :options="optionsMatrizDemanda" />
@@ -485,8 +605,12 @@ const individualAsistencia = computed(() => {
           <h3 class="text-base font-black text-surface-900 leading-tight">Convocatoria por Instructor</h3>
           <p class="text-xs font-medium text-surface-400 mt-0.5">Porcentaje promedio de llenado de cupo por clase programada.</p>
         </div>
-        <div class="h-[280px] w-full" v-if="chartRanking">
-          <BaseChart type="bar" :data="chartRanking" :options="optionsRanking" />
+        
+        <!-- Contenedor espacioso con altura dinámica según instructores -->
+        <div class="w-full max-h-[380px] overflow-y-auto scrollbar-thin pr-1" v-if="chartRanking">
+          <div :style="{ height: `${Math.max(260, (stats?.ranking_instructores?.labels?.length || 0) * 48)}px`, minHeight: '260px' }" class="w-full">
+            <BaseChart type="bar" :data="chartRanking" :options="optionsRanking" />
+          </div>
         </div>
         <div v-else class="h-[280px] flex items-center justify-center text-slate-400 text-sm font-bold bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
           Sin sesiones activas en este periodo
@@ -531,17 +655,21 @@ const individualAsistencia = computed(() => {
           <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest">Desglose por Disciplina</span>
             <span class="text-xs font-bold text-surface-500 bg-surface-50 px-3 py-1 rounded-full border border-surface-100 shadow-sm">
-              Total Reservas: <span class="text-surface-900 font-black">{{ totalAsistenciaNoShows }}</span>
+              Total Reservas: <span class="text-primary-600 font-black">{{ totalAsistenciaNoShows }}</span>
             </span>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
             <div v-for="(val, idx) in individualAsistencia" :key="idx" 
               class="flex items-center justify-between p-2.5 bg-surface-50/50 hover:bg-surface-50 hover:border-surface-200 rounded-2xl border border-surface-100 transition-all">
               <div class="flex items-center gap-2 truncate min-w-0">
-                <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: val.color || '#94a3b8' }"></span>
-                <span class="text-xs font-bold text-surface-600 truncate">{{ val.label }}</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-primary-600 shrink-0"></span>
+                <span class="text-xs font-semibold text-black truncate">{{ val.label }}</span>
               </div>
-              <span class="text-xs font-black text-surface-900 ml-2 bg-white px-2 py-0.5 rounded-lg border border-surface-100 shadow-2xs">{{ val.value }}</span>
+              <div class="flex items-center gap-1.5 text-xs ml-2 bg-white px-2.5 py-0.5 rounded-lg border border-surface-100 shadow-2xs font-medium shrink-0">
+                <span class="text-emerald-600">{{ val.asistencias }} Check-ins</span>
+                <span class="text-surface-300">/</span>
+                <span class="text-red-600">{{ val.noShows }} No-shows</span>
+              </div>
             </div>
           </div>
         </div>

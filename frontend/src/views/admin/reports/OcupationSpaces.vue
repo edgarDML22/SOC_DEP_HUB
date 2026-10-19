@@ -24,11 +24,15 @@ const activeDisciplinesList = computed(() => {
 });
 
 // Rango dinámico y filtros
-const filtroRango = ref(reportsStore.spacesFilters.rango || 'semana');
-const filterDateStart = ref(reportsStore.spacesFilters.fecha_inicio);
-const filterDateEnd = ref(reportsStore.spacesFilters.fecha_fin);
-const selectedSpace = ref(reportsStore.spacesFilters.id_espacio);
-const selectedDisciplina = ref(reportsStore.spacesFilters.id_disciplina || '');
+const filtroRango = ref('mes');
+const filterDateStart = ref('');
+const filterDateEnd = ref('');
+const selectedSpace = ref('');
+const selectedDisciplina = ref('');
+
+const isAnyFilterSelected = computed(() => {
+  return !!(filterDateStart.value || filterDateEnd.value || selectedSpace.value || selectedDisciplina.value || (filtroRango.value && filtroRango.value !== 'mes'));
+});
 
 // Filtramos la lista de disciplinas activas para mostrar únicamente las que tienen reservaciones (conteo > 0) y las ordenamos alfabéticamente
 const activeDisciplinesWithCounts = computed(() => {
@@ -48,35 +52,6 @@ watch(activeDisciplinesWithCounts, (newList) => {
   }
 });
 
-const updateDatesFromRango = (rango) => {
-  const now = new Date();
-  
-  if (rango === 'hoy') {
-    const todayStr = now.toISOString().split('T')[0];
-    filterDateStart.value = todayStr;
-    filterDateEnd.value = todayStr;
-  } else if (rango === 'semana') {
-    // Calcular lunes de esta semana
-    const currentDay = now.getDay();
-    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + distanceToMonday);
-    
-    // Calcular domingo de esta semana
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    
-    filterDateStart.value = monday.toISOString().split('T')[0];
-    filterDateEnd.value = sunday.toISOString().split('T')[0];
-  } else if (rango === 'mes') {
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    filterDateStart.value = firstDay.toISOString().split('T')[0];
-    filterDateEnd.value = lastDay.toISOString().split('T')[0];
-  }
-};
-
 const loadSpacesList = async () => {
   try {
     const res = await api.get('/spaces/all');
@@ -87,18 +62,6 @@ const loadSpacesList = async () => {
 };
 
 const loadStats = async (forceRefresh = false) => {
-  const isSameFilters =
-    reportsStore.spacesStats &&
-    reportsStore.spacesFilters.rango === (filtroRango.value || undefined) &&
-    reportsStore.spacesFilters.fecha_inicio === filterDateStart.value &&
-    reportsStore.spacesFilters.fecha_fin === filterDateEnd.value &&
-    reportsStore.spacesFilters.id_espacio === selectedSpace.value &&
-    reportsStore.spacesFilters.id_disciplina === selectedDisciplina.value;
-
-  if (isSameFilters && !forceRefresh) {
-    return;
-  }
-
   try {
     if (!stats.value) {
       isInitialLoading.value = true;
@@ -106,13 +69,22 @@ const loadStats = async (forceRefresh = false) => {
       isUpdating.value = true;
     }
     errorMsg.value = '';
-    await reportsStore.fetchSpacesStats({
-      fecha_inicio: filterDateStart.value,
-      fecha_fin: filterDateEnd.value,
-      id_espacio: selectedSpace.value,
-      id_disciplina: selectedDisciplina.value,
-      rango: filtroRango.value || undefined
-    }, forceRefresh);
+
+    const params = {
+      id_espacio: selectedSpace.value || undefined,
+      id_disciplina: selectedDisciplina.value || undefined
+    };
+
+    if (filterDateStart.value && filterDateEnd.value) {
+      params.fecha_inicio = filterDateStart.value;
+      params.fecha_fin = filterDateEnd.value;
+    } else if (filtroRango.value) {
+      params.rango = filtroRango.value;
+    } else {
+      params.rango = 'mes';
+    }
+
+    await reportsStore.fetchSpacesStats(params, forceRefresh);
   } catch (error) {
     console.error('Error loading spaces stats:', error);
     errorMsg.value = 'Imposible conectar con el servicio analítico de infraestructura.';
@@ -122,11 +94,20 @@ const loadStats = async (forceRefresh = false) => {
   }
 };
 
+const selectPreset = (rango) => {
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  filtroRango.value = rango;
+  loadStats(true);
+};
+
 const clearFilters = () => {
-  filtroRango.value = 'semana';
+  if (!isAnyFilterSelected.value) return;
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
   selectedSpace.value = '';
   selectedDisciplina.value = '';
-  updateDatesFromRango('semana');
+  filtroRango.value = 'mes';
   loadStats(true);
 };
 
@@ -134,30 +115,32 @@ const selectDisciplina = (id) => {
   selectedDisciplina.value = id;
 };
 
-watch(filtroRango, (newVal) => {
-  if (newVal) {
-    updateDatesFromRango(newVal);
-    loadStats();
+watch([filterDateStart, filterDateEnd], ([newStart, newEnd]) => {
+  if (newStart || newEnd) {
+    filtroRango.value = '';
+  }
+  if (newStart && newEnd) {
+    if (newStart > newEnd) {
+      filterDateStart.value = newEnd;
+      filterDateEnd.value = newStart;
+      return;
+    }
+    loadStats(true);
   }
 });
+
+watch([selectedSpace, selectedDisciplina], () => loadStats(true));
 
 onMounted(async () => {
   await loadSpacesList();
   await disciplinesStore.fetchDisciplines();
-  if (reportsStore.spacesStats) {
-    filtroRango.value = reportsStore.spacesFilters.rango;
-    filterDateStart.value = reportsStore.spacesFilters.fecha_inicio;
-    filterDateEnd.value = reportsStore.spacesFilters.fecha_fin;
-    selectedSpace.value = reportsStore.spacesFilters.id_espacio;
-    selectedDisciplina.value = reportsStore.spacesFilters.id_disciplina || '';
-    loadStats();
-  } else {
-    updateDatesFromRango(filtroRango.value);
-    await loadStats();
-  }
+  filtroRango.value = 'mes';
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  selectedSpace.value = '';
+  selectedDisciplina.value = '';
+  loadStats(true);
 });
-
-watch([selectedSpace, selectedDisciplina], () => loadStats());
 
 // --- Configuración de Gráficos ---
 
@@ -167,9 +150,9 @@ const chartSaturacion = computed(() => {
 
   const bubbleData = stats.value.saturacion_heatmap.map(item => {
     return {
-      x: item.dia,
+      x: Number(item.dia),
       y: parseInt(item.hora.split(':')[0]),
-      r: Math.max(3, Math.min(22, item.total * 3)), // escala de burbuja
+      r: Math.max(5, Math.min(24, (item.total || 1) * 3.5)), // escala de burbuja
       total: item.total
     };
   });
@@ -178,22 +161,49 @@ const chartSaturacion = computed(() => {
     datasets: [{
       label: 'Saturación de Espacios',
       data: bubbleData,
-      backgroundColor: 'rgba(245, 158, 11, 0.55)', // Amber-500 traslúcido
-      borderColor: 'rgba(217, 119, 6, 0.95)',      // Amber-600
+      backgroundColor: (context) => {
+        const raw = context.raw;
+        if (!raw) return 'rgba(14, 165, 233, 0.7)';
+        const count = raw.total || 0;
+        if (count >= 10) return 'rgba(239, 68, 68, 0.75)'; // Rojo / pico crítico
+        if (count >= 6) return 'rgba(245, 158, 11, 0.75)'; // Ámbar / alta demanda
+        if (count >= 3) return 'rgba(99, 102, 241, 0.75)'; // Índigo / moderada
+        return 'rgba(14, 165, 233, 0.7)'; // Celeste / baja
+      },
+      borderColor: (context) => {
+        const raw = context.raw;
+        if (!raw) return '#0284c7';
+        const count = raw.total || 0;
+        if (count >= 10) return '#b91c1c';
+        if (count >= 6) return '#b45309';
+        if (count >= 3) return '#4338ca';
+        return '#0284c7';
+      },
       borderWidth: 1.5
     }]
   };
 });
 
 const optionsSaturacion = {
+  responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
     tooltip: {
+      backgroundColor: '#0f172a',
+      titleFont: { size: 12, weight: 'bold' },
+      bodyFont: { size: 12 },
+      padding: 12,
+      cornerRadius: 10,
       callbacks: {
         label: (context) => {
           const raw = context.raw;
-          const diaLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-          return `Saturación (${diaLabels[raw.x - 1]} ${raw.y}:00): ${raw.total} reservaciones activas`;
+          const diaLabels = {
+            1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
+            4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+          };
+          const diaText = diaLabels[raw.x] || `Día ${raw.x}`;
+          return ` Saturación (${diaText} ${raw.y}:00): ${raw.total} reservaciones activas`;
         }
       }
     }
@@ -203,12 +213,30 @@ const optionsSaturacion = {
       type: 'linear',
       min: 0.5,
       max: 7.5,
+      afterBuildTicks: (axis) => {
+        axis.ticks = [1, 2, 3, 4, 5, 6, 7].map(v => ({ value: v }));
+      },
       ticks: {
         stepSize: 1,
+        autoSkip: false,
         callback: (value) => {
-          const labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-          return labels[value - 1] || '';
-        }
+          const labels = {
+            1: 'Lunes',
+            2: 'Martes',
+            3: 'Miércoles',
+            4: 'Jueves',
+            5: 'Viernes',
+            6: 'Sábado',
+            7: 'Domingo'
+          };
+          return labels[value] || '';
+        },
+        font: { size: 11, weight: 'bold' },
+        color: '#1e293b'
+      },
+      grid: {
+        color: '#f1f5f9',
+        drawBorder: false
       },
       title: {
         display: true,
@@ -221,9 +249,15 @@ const optionsSaturacion = {
       type: 'linear',
       min: 6,
       max: 22,
+      grid: {
+        color: '#f8fafc',
+        drawBorder: false
+      },
       ticks: {
         stepSize: 2,
-        callback: (value) => `${value}:00`
+        callback: (value) => `${value}:00`,
+        font: { size: 10, weight: 'bold' },
+        color: '#64748b'
       },
       title: {
         display: true,
@@ -413,7 +447,7 @@ const individualOcupacionEspacio = computed(() => {
       <div class="flex items-center gap-3">
         <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
           <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
-            @click="filtroRango = r"
+            @click="selectPreset(r)"
             :disabled="isInitialLoading || isUpdating"
             class="py-1.5 px-4 rounded-xl text-xs font-black transition-all duration-200 ease-out capitalize disabled:opacity-50 cursor-pointer border-none"
             :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
@@ -429,20 +463,21 @@ const individualOcupacionEspacio = computed(() => {
         
         <!-- Rango Fecha Inicio -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha Inicio</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">DESDE</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateStart" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateStart"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
         <!-- Rango Fecha Fin -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha Fin</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">HASTA</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateEnd" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateEnd"
+                   :min="filterDateStart || undefined"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
@@ -450,7 +485,9 @@ const individualOcupacionEspacio = computed(() => {
         <!-- Botón Limpiar Filtro -->
         <div class="flex flex-col gap-1.5">
           <button @click="clearFilters"
-                  class="w-full py-2.5 bg-surface-50 hover:bg-white text-surface-700 border border-surface-200 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px] shadow-xs active:scale-[0.98]">
+                  :disabled="!isAnyFilterSelected || isInitialLoading || isUpdating"
+                  :class="!isAnyFilterSelected ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-white text-surface-700 cursor-pointer shadow-xs active:scale-[0.98]'"
+                  class="w-full py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 h-[42px]">
             <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -488,9 +525,17 @@ const individualOcupacionEspacio = computed(() => {
           
           <!-- Gráfico 1: Mapa de Calor de Saturación Horaria Heatmap (Bubble) -->
           <div class="lg:col-span-3 bg-white border border-surface-200 rounded-[2.2rem] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.03)] p-6 lg:p-8 flex flex-col hover:shadow-lg transition-all duration-300">
-            <div class="mb-4">
-              <h3 class="text-base font-black text-surface-900 leading-tight">Mapa de Saturación Horaria General</h3>
-              <p class="text-xs font-medium text-surface-400 mt-0.5">Cruza horas y días de afluencia para detectar horarios pico y canchas subutilizadas.</p>
+            <div class="mb-4 flex items-start justify-between flex-wrap gap-2">
+              <div>
+                <h3 class="text-base font-black text-surface-900 leading-tight">Mapa de Saturación Horaria General</h3>
+                <p class="text-xs font-medium text-surface-400 mt-0.5">Cruza horas y días de afluencia para detectar horarios pico y canchas subutilizadas.</p>
+              </div>
+              <div class="flex items-center gap-2 text-[10px] font-bold text-surface-500 bg-surface-50 px-3 py-1.5 rounded-xl border border-surface-200">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> 1-2</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 3-5</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 6-9</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 10+</span>
+              </div>
             </div>
             <div class="h-[280px] w-full" v-if="chartSaturacion">
               <BaseChart type="bubble" :data="chartSaturacion" :options="optionsSaturacion" />

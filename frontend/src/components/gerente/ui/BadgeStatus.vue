@@ -17,7 +17,7 @@ const props = defineProps({
 const STATUS_MAP = {
   // Socios — estatus_cuenta
   AL_CORRIENTE:        { label: 'Al Corriente',      classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  MOROSO:              { label: 'Moroso',             classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
+  MOROSO:              { label: 'Moroso',             classes: 'bg-orange-50  text-orange-700  border-orange-200'  },
   SUSPENDIDO:          { label: 'Suspendido',         classes: 'bg-red-50    text-red-700    border-red-200'    },
   PENALIZADO:          { label: 'Penalizado',         classes: 'bg-orange-50 text-orange-700 border-orange-200' },
 
@@ -25,7 +25,7 @@ const STATUS_MAP = {
   SIN_PENALIZACION:    { label: 'Sin Penalización',       classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   PENALIZADO_AMBOS:    { label: 'Penalizado Ambos',        classes: 'bg-purple-50 text-purple-700 border-purple-200' },
   PENALIZADO_RESERVA:  { label: 'Penalizado Reservas',     classes: 'bg-red-50    text-red-700    border-red-200'    },
-  PENALIZADO_LUDOTECA: { label: 'Penalizado Ludoteca',     classes: 'bg-amber-50  text-amber-700  border-amber-200'  },
+  PENALIZADO_LUDOTECA: { label: 'Penalizado Ludoteca',     classes: 'bg-orange-50  text-orange-700  border-orange-200'  },
 
   // Socios — tipo_socio
   ACCIONISTA:          { label: 'Accionista',              classes: 'bg-indigo-50  text-indigo-700  border-indigo-200'  },

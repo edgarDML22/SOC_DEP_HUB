@@ -78,7 +78,16 @@ class AuthController extends Controller
             $hash = hash('sha256', $token);
             cache()->forget('sanctum_token_' . $hash);
 
-            \Laravel\Sanctum\PersonalAccessToken::where('token', $hash)->delete();
+            if (str_contains($token, '|')) {
+                [$id] = explode('|', $token, 2);
+                \Laravel\Sanctum\PersonalAccessToken::where('id', $id)->delete();
+            } else {
+                \Laravel\Sanctum\PersonalAccessToken::where('token', $hash)->delete();
+            }
+        }
+
+        if ($request->user() && $request->user()->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
         }
 
         return response()->noContent();

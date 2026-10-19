@@ -16,41 +16,15 @@ const torneos = ref([]);
 const disciplines = ref([]);
 
 // Rango dinámico y filtros
-const filtroRango = ref(reportsStore.tournamentsFilters.rango || 'mes');
-const filterDateStart = ref(reportsStore.tournamentsFilters.fecha_inicio);
-const filterDateEnd = ref(reportsStore.tournamentsFilters.fecha_fin);
-const selectedTorneo = ref(reportsStore.tournamentsFilters.id_torneo);
-const selectedDisciplina = ref(reportsStore.tournamentsFilters.id_disciplina);
+const filtroRango = ref('mes');
+const filterDateStart = ref('');
+const filterDateEnd = ref('');
+const selectedTorneo = ref('');
+const selectedDisciplina = ref('');
 
-const updateDatesFromRango = (rango) => {
-  const now = new Date();
-  
-  if (rango === 'hoy') {
-    const todayStr = now.toISOString().split('T')[0];
-    filterDateStart.value = todayStr;
-    filterDateEnd.value = todayStr;
-  } else if (rango === 'semana') {
-    // Calcular lunes de esta semana
-    const currentDay = now.getDay();
-    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + distanceToMonday);
-    
-    // Calcular domingo de esta semana
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    
-    filterDateStart.value = monday.toISOString().split('T')[0];
-    filterDateEnd.value = sunday.toISOString().split('T')[0];
-  } else if (rango === 'mes') {
-    // Para tendencias, mostramos desde 6 meses atrás para que tenga sentido el gráfico mensual
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    filterDateStart.value = sixMonthsAgo.toISOString().split('T')[0];
-    filterDateEnd.value = lastDay.toISOString().split('T')[0];
-  }
-};
+const isAnyFilterSelected = computed(() => {
+  return !!(filterDateStart.value || filterDateEnd.value || selectedTorneo.value || selectedDisciplina.value || (filtroRango.value && filtroRango.value !== 'mes'));
+});
 
 const loadMetadata = async () => {
   try {
@@ -77,28 +51,25 @@ const loadMetadata = async () => {
 };
 
 const loadStats = async (forceRefresh = false) => {
-  const isSameFilters =
-    reportsStore.tournamentsStats &&
-    reportsStore.tournamentsFilters.rango === (filtroRango.value || undefined) &&
-    reportsStore.tournamentsFilters.fecha_inicio === filterDateStart.value &&
-    reportsStore.tournamentsFilters.fecha_fin === filterDateEnd.value &&
-    reportsStore.tournamentsFilters.id_torneo === selectedTorneo.value &&
-    reportsStore.tournamentsFilters.id_disciplina === selectedDisciplina.value;
-
-  if (isSameFilters && !forceRefresh) {
-    return;
-  }
-
   try {
     isLoading.value = true;
     errorMsg.value = '';
-    await reportsStore.fetchTournamentsStats({
-      fecha_inicio: filterDateStart.value,
-      fecha_fin: filterDateEnd.value,
-      id_torneo: selectedTorneo.value,
-      id_disciplina: selectedDisciplina.value,
-      rango: filtroRango.value || undefined
-    }, forceRefresh);
+
+    const params = {
+      id_torneo: selectedTorneo.value || undefined,
+      id_disciplina: selectedDisciplina.value || undefined
+    };
+
+    if (filterDateStart.value && filterDateEnd.value) {
+      params.fecha_inicio = filterDateStart.value;
+      params.fecha_fin = filterDateEnd.value;
+    } else if (filtroRango.value) {
+      params.rango = filtroRango.value;
+    } else {
+      params.rango = 'mes';
+    }
+
+    await reportsStore.fetchTournamentsStats(params, forceRefresh);
   } catch (error) {
     console.error('Error loading tournament stats:', error);
     errorMsg.value = 'Fallo de comunicación con la central analítica de torneos.';
@@ -107,37 +78,48 @@ const loadStats = async (forceRefresh = false) => {
   }
 };
 
-const clearFilters = () => {
-  filtroRango.value = 'mes';
-  selectedTorneo.value = '';
-  selectedDisciplina.value = '';
-  updateDatesFromRango('mes');
+const selectPreset = (rango) => {
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  filtroRango.value = rango;
   loadStats(true);
 };
 
-watch(filtroRango, (newVal) => {
-  if (newVal) {
-    updateDatesFromRango(newVal);
-    loadStats();
+const clearFilters = () => {
+  if (!isAnyFilterSelected.value) return;
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  selectedTorneo.value = '';
+  selectedDisciplina.value = '';
+  filtroRango.value = 'mes';
+  loadStats(true);
+};
+
+watch([filterDateStart, filterDateEnd], ([newStart, newEnd]) => {
+  if (newStart || newEnd) {
+    filtroRango.value = '';
+  }
+  if (newStart && newEnd) {
+    if (newStart > newEnd) {
+      filterDateStart.value = newEnd;
+      filterDateEnd.value = newStart;
+      return;
+    }
+    loadStats(true);
   }
 });
+
+watch([selectedTorneo, selectedDisciplina], () => loadStats(true));
 
 onMounted(async () => {
   await loadMetadata();
-  if (reportsStore.tournamentsStats) {
-    filtroRango.value = reportsStore.tournamentsFilters.rango;
-    filterDateStart.value = reportsStore.tournamentsFilters.fecha_inicio;
-    filterDateEnd.value = reportsStore.tournamentsFilters.fecha_fin;
-    selectedTorneo.value = reportsStore.tournamentsFilters.id_torneo;
-    selectedDisciplina.value = reportsStore.tournamentsFilters.id_disciplina;
-    await loadStats();
-  } else {
-    updateDatesFromRango(filtroRango.value);
-    await loadStats();
-  }
+  filtroRango.value = 'mes';
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  selectedTorneo.value = '';
+  selectedDisciplina.value = '';
+  loadStats(true);
 });
-
-watch([selectedTorneo, selectedDisciplina], () => loadStats());
 
 // --- Configuración de Gráficos ---
 
@@ -337,7 +319,7 @@ const individualHistorico = computed(() => {
       <div class="flex items-center gap-3">
         <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
           <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
-            @click="filtroRango = r"
+            @click="selectPreset(r)"
             :disabled="isLoading"
             class="py-1.5 px-4 rounded-xl text-xs font-black transition-all duration-200 ease-out capitalize disabled:opacity-50 cursor-pointer border-none"
             :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
@@ -353,20 +335,21 @@ const individualHistorico = computed(() => {
         
         <!-- Rango Fecha Inicio -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha Inicio</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">DESDE</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateStart" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateStart"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
         <!-- Rango Fecha Fin -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Fecha Fin</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">HASTA</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateEnd" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateEnd"
+                   :min="filterDateStart || undefined"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
@@ -387,7 +370,9 @@ const individualHistorico = computed(() => {
         <!-- Botón Limpiar Filtro -->
         <div class="flex flex-col gap-1.5">
           <button @click="clearFilters"
-                  class="w-full py-2.5 bg-surface-50 hover:bg-white text-surface-700 border border-surface-200 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px] shadow-xs active:scale-[0.98]">
+                  :disabled="!isAnyFilterSelected || isLoading"
+                  :class="!isAnyFilterSelected ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-white text-surface-700 cursor-pointer shadow-xs active:scale-[0.98]'"
+                  class="w-full py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 h-[42px]">
             <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>

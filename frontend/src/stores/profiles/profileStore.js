@@ -78,15 +78,6 @@ export function useProfileLogic(endpointUrl = '/profile') {
         return profilePromise;
     };
 
-    // Auto-revalidación al volver a la pestaña tras suspensión/standby
-    if (typeof window !== 'undefined' && !window._profileVisibilityListenerSet) {
-        window._profileVisibilityListenerSet = true;
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && localStorage.getItem('auth_token')) {
-                fetchProfile(true).catch(() => {});
-            }
-        });
-    }
 
     const updateProfile = async (formData) => {
         isLoading.value = true;

@@ -67,7 +67,7 @@ class CalcularNoShows extends Command
             });
 
         // 2. PROCESAR RESERVACIONES DE ESPACIOS (ON-DEMAND)
-        \App\Models\Reservacion::whereDate('fecha_reserva', $hoy)
+        \App\Models\Reservacion::whereDate('fecha_reserva', '<=', $hoy)
             ->where('estatus_operativo', 'ACTIVA')
             ->chunkById(100, function ($reservaciones) use ($hoy) {
                 foreach ($reservaciones as $reserva) {

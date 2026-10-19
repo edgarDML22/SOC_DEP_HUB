@@ -58,6 +58,8 @@ class ReservationAdminController extends Controller
                 'reservaciones_on_demand.estatus_operativo',
                 'reservaciones_on_demand.acompanantes_draft'
             )
+            ->orderBy('reservaciones_on_demand.fecha_reserva', 'desc')
+            ->orderBy('reservaciones_on_demand.hora_inicio', 'desc')
             ->orderBy('reservaciones_on_demand.estatus_operativo');
 
         if ($request->fecha_inicio) {
@@ -173,32 +175,36 @@ class ReservationAdminController extends Controller
     }
     public function getStats(Request $request)
     {
+        $timezone = 'America/Mexico_City';
         $rango = $request->query('rango', 'hoy');
 
-        $timezone = 'America/Mexico_City';
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $rango = 'custom';
+            $inicio = Carbon::parse($request->fecha_inicio, $timezone)->startOfDay();
+            $fin = Carbon::parse($request->fecha_fin, $timezone)->endOfDay();
+            if ($inicio->gt($fin)) {
+                $temp = $inicio;
+                $inicio = $fin;
+                $fin = $temp;
+            }
+        } else {
+            switch ($rango) {
+                case 'semana':
+                    $inicio = now($timezone)->startOfWeek();
+                    $fin = now($timezone)->endOfWeek();
+                    break;
 
-        switch ($rango) {
+                case 'mes':
+                    $inicio = now($timezone)->startOfMonth();
+                    $fin = now($timezone)->endOfMonth();
+                    break;
 
-            case 'semana':
-
-                $inicio = now($timezone)->startOfWeek();
-                $fin = now($timezone)->endOfWeek();
-
-                break;
-
-            case 'mes':
-
-                $inicio = now($timezone)->startOfMonth();
-                $fin = now($timezone)->endOfMonth();
-
-                break;
-
-            default:
-
-                $inicio = now($timezone)->startOfDay();
-                $fin = now($timezone)->endOfDay();
-
-                break;
+                default:
+                    $rango = 'hoy';
+                    $inicio = now($timezone)->startOfDay();
+                    $fin = now($timezone)->endOfDay();
+                    break;
+            }
         }
 
         $reservacionesQuery = Reservacion::whereBetween(
@@ -209,17 +215,14 @@ class ReservationAdminController extends Controller
             ]
         );
 
-        //KPI 1
-        if ($rango === 'hoy') {
-
+        // KPI 1
+        if ($inicio->toDateString() === $fin->toDateString()) {
             $reservasPorTiempo = (clone $reservacionesQuery)
                 ->selectRaw('EXTRACT(HOUR FROM hora_inicio) as label, COUNT(*) as total')
                 ->groupBy('label')
                 ->orderBy('label')
                 ->get();
-
         } else {
-
             $reservasPorTiempo = (clone $reservacionesQuery)
                 ->selectRaw('DATE(fecha_reserva) as label, COUNT(*) as total')
                 ->groupBy('label')

@@ -14,20 +14,24 @@ class NoShowOnDemand extends Command
 
     public function handle(): int
     {
-        $tz   = 'America/Mexico_City';
-        $now  = Carbon::now($tz);
-        $hoy  = $now->toDateString();
+        $tz             = 'America/Mexico_City';
+        $now            = Carbon::now($tz);
+        $limiteMomento  = $now->copy()->subMinutes(15);
+        $limiteFecha    = $limiteMomento->toDateString();
+        $limiteHora     = $limiteMomento->toTimeString('minute'); // HH:MM
 
-        // hora_fin + 15 min <= now  =>  hora_fin <= now - 15 min
-        $limiteHora = $now->copy()->subMinutes(15)->toTimeString('minute'); // HH:MM
-
-        $this->info("Ejecutando a {$now->toDateTimeString()} | límite hora_fin ≤ {$limiteHora}");
+        $this->info("Ejecutando a {$now->toDateTimeString()} | corte: fecha < {$limiteFecha} O (fecha = {$limiteFecha} Y hora_fin ≤ {$limiteHora})");
 
         // Consulta aprovecha el índice compuesto idx_reservaciones_no_show
         $reservas = DB::table('reservaciones_on_demand')
-            ->where('fecha_reserva', $hoy)
             ->where('estatus_operativo', 'ACTIVA')
-            ->where('hora_fin', '<=', $limiteHora)
+            ->where(function ($query) use ($limiteFecha, $limiteHora) {
+                $query->where('fecha_reserva', '<', $limiteFecha)
+                      ->orWhere(function ($sub) use ($limiteFecha, $limiteHora) {
+                          $sub->where('fecha_reserva', $limiteFecha)
+                              ->where('hora_fin', '<=', $limiteHora);
+                      });
+            })
             ->select('id_reserva', 'id_socio_titular')
             ->get();
 

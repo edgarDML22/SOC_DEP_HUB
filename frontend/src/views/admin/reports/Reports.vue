@@ -19,7 +19,7 @@ const tabs = [
   { name: 'auditoria', label: 'Auditoría', icon: IconHistory },
   { name: 'ocupation-spaces', label: 'Ocupación Espacios', icon: IconLayers },
   { name: 'tournaments-analytics', label: 'Analíticas Torneos', icon: IconTrophy },
-  { name: 'academic-performance', label: 'Rendimiento Acad.', icon: IconTarget },
+  { name: 'academic-performance', label: 'Actividades', icon: IconTarget },
 ]
 
 const exportExecutivePDF = async () => {

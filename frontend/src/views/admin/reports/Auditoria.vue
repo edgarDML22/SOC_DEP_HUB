@@ -14,60 +14,28 @@ const errorMsg = ref('');
 const stats = computed(() => reportsStore.auditoriaStats);
 
 // Rango dinámico y filtros
-const filtroRango = ref(reportsStore.auditoriaFilters.rango || 'mes');
-const filterDateStart = ref(reportsStore.auditoriaFilters.fecha_inicio);
-const filterDateEnd = ref(reportsStore.auditoriaFilters.fecha_fin);
+const filtroRango = ref('mes');
+const filterDateStart = ref('');
+const filterDateEnd = ref('');
 
-const updateDatesFromRango = (rango) => {
-  const now = new Date();
-  
-  if (rango === 'hoy') {
-    const todayStr = now.toISOString().split('T')[0];
-    filterDateStart.value = todayStr;
-    filterDateEnd.value = todayStr;
-  } else if (rango === 'semana') {
-    // Calcular lunes de esta semana
-    const currentDay = now.getDay();
-    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + distanceToMonday);
-    
-    // Calcular domingo de esta semana
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    
-    filterDateStart.value = monday.toISOString().split('T')[0];
-    filterDateEnd.value = sunday.toISOString().split('T')[0];
-  } else if (rango === 'mes') {
-    // Para auditoría, por defecto mostramos 6 meses atrás si es rango mes para que la tendencia se vea fluida, 
-    // pero si es exactamente este mes actual:
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    filterDateStart.value = firstDay.toISOString().split('T')[0];
-    filterDateEnd.value = lastDay.toISOString().split('T')[0];
-  }
-};
+const isAnyDateSelected = computed(() => !!(filterDateStart.value || filterDateEnd.value));
 
 const loadStats = async (forceRefresh = false) => {
-  const isSameFilters =
-    reportsStore.auditoriaStats &&
-    reportsStore.auditoriaFilters.rango === (filtroRango.value || undefined) &&
-    reportsStore.auditoriaFilters.fecha_inicio === filterDateStart.value &&
-    reportsStore.auditoriaFilters.fecha_fin === filterDateEnd.value;
-
-  if (isSameFilters && !forceRefresh) {
-    return;
-  }
-
   try {
     isLoading.value = true;
     errorMsg.value = '';
-    await reportsStore.fetchAuditoriaStats({
-      fecha_inicio: filterDateStart.value,
-      fecha_fin: filterDateEnd.value,
-      rango: filtroRango.value || undefined
-    }, forceRefresh);
+
+    const params = {};
+    if (filterDateStart.value && filterDateEnd.value) {
+      params.fecha_inicio = filterDateStart.value;
+      params.fecha_fin = filterDateEnd.value;
+    } else if (filtroRango.value) {
+      params.rango = filtroRango.value;
+    } else {
+      params.rango = 'mes';
+    }
+
+    await reportsStore.fetchAuditoriaStats(params, forceRefresh);
   } catch (error) {
     console.error('Error loading auditoria stats:', error);
     errorMsg.value = 'Conexión fallida al servidor de BI.';
@@ -76,35 +44,40 @@ const loadStats = async (forceRefresh = false) => {
   }
 };
 
-const clearFilters = () => {
-  filtroRango.value = 'mes';
-  updateDatesFromRango('mes');
-  const now = new Date();
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-  filterDateStart.value = sixMonthsAgo.toISOString().split('T')[0];
+const selectPreset = (rango) => {
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  filtroRango.value = rango;
   loadStats(true);
 };
 
-watch(filtroRango, (newVal) => {
-  if (newVal) {
-    updateDatesFromRango(newVal);
-    loadStats();
+const clearFilters = () => {
+  if (!isAnyDateSelected.value) return;
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  filtroRango.value = 'mes';
+  loadStats(true);
+};
+
+watch([filterDateStart, filterDateEnd], ([newStart, newEnd]) => {
+  if (newStart || newEnd) {
+    filtroRango.value = '';
+  }
+  if (newStart && newEnd) {
+    if (newStart > newEnd) {
+      filterDateStart.value = newEnd;
+      filterDateEnd.value = newStart;
+      return;
+    }
+    loadStats(true);
   }
 });
 
 onMounted(() => {
-  if (reportsStore.auditoriaStats) {
-    filtroRango.value = reportsStore.auditoriaFilters.rango;
-    filterDateStart.value = reportsStore.auditoriaFilters.fecha_inicio;
-    filterDateEnd.value = reportsStore.auditoriaFilters.fecha_fin;
-    loadStats();
-  } else {
-    updateDatesFromRango(filtroRango.value);
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-    filterDateStart.value = sixMonthsAgo.toISOString().split('T')[0];
-    loadStats();
-  }
+  filtroRango.value = 'mes';
+  filterDateStart.value = '';
+  filterDateEnd.value = '';
+  loadStats(true);
 });
 
 // --- Configuración de Gráficos ---
@@ -178,10 +151,10 @@ const individualNoShowsAuditoria = computed(() => {
       <div class="flex items-center gap-3">
         <div class="flex p-1 bg-slate-100 rounded-2xl shadow-inner border border-surface-200">
           <button v-for="r in ['hoy', 'semana', 'mes']" :key="r" 
-            @click="filtroRango = r"
+            @click="selectPreset(r)"
             :disabled="isLoading"
             class="py-1.5 px-4 rounded-xl text-xs font-black transition-all duration-200 ease-out capitalize disabled:opacity-50 cursor-pointer border-none"
-            :class="filtroRango === r ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
+            :class="(!isAnyDateSelected && filtroRango === r) ? 'bg-surface-900 text-white shadow-md transform scale-[1.01]' : 'text-surface-500 hover:bg-white hover:text-surface-700'">
             {{ r }}
           </button>
         </div>
@@ -194,20 +167,21 @@ const individualNoShowsAuditoria = computed(() => {
         
         <!-- Rango Fecha Inicio -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Rango Tendencia: Desde</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">DESDE</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateStart" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateStart"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
 
         <!-- Rango Fecha Fin -->
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">Hasta</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-surface-400 px-1">HASTA</label>
           <div class="relative">
             <IconCalendar class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
-            <input type="date" v-model="filterDateEnd" @change="filtroRango = ''; loadStats()"
+            <input type="date" v-model="filterDateEnd"
+                   :min="filterDateStart || undefined"
                    class="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-bold text-surface-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:bg-white transition-all cursor-pointer" />
           </div>
         </div>
@@ -215,7 +189,9 @@ const individualNoShowsAuditoria = computed(() => {
         <!-- Botón Limpiar Filtro -->
         <div class="flex flex-col gap-1.5">
           <button @click="clearFilters"
-                  class="w-full py-2.5 bg-surface-50 hover:bg-white text-surface-700 border border-surface-200 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px] shadow-xs active:scale-[0.98]">
+                  :disabled="!isAnyDateSelected || isLoading"
+                  :class="!isAnyDateSelected ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-white text-surface-700 cursor-pointer shadow-xs active:scale-[0.98]'"
+                  class="w-full py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 h-[42px]">
             <svg class="w-4 h-4 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -260,14 +236,14 @@ const individualNoShowsAuditoria = computed(() => {
               <tr>
                 <th scope="col" class="px-4 py-2.5">Socio</th>
                 <th scope="col" class="px-4 py-2.5">Acción</th>
-                <th scope="col" class="px-4 py-2.5 text-right">Asistencias</th>
+                <th scope="col" class="px-4 py-2.5 text-center">Asistencias</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">
               <tr v-for="user in stats.heavy_users" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
-                <td class="px-4 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
-                <td class="px-4 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
-                <td class="px-4 py-3 text-right font-black text-emerald-600">{{ user.total_asistencias }}</td>
+                <td class="px-4 py-3 font-semibold text-black">{{ user.nombre_completo }}</td>
+                <td class="px-4 py-3 font-medium text-black">{{ user.numero_accion }}</td>
+                <td class="px-4 py-3 text-center font-black text-primary-600">{{ user.total_asistencias }}</td>
               </tr>
               <tr v-if="!stats.heavy_users.length">
                 <td colspan="3" class="px-4 py-8 text-center text-slate-400 font-bold">Sin usuarios detectados</td>
@@ -302,10 +278,10 @@ const individualNoShowsAuditoria = computed(() => {
             </thead>
             <tbody class="divide-y divide-surface-100">
               <tr v-for="user in stats.fantasmas" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
-                <td class="px-4 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
-                <td class="px-4 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
+                <td class="px-4 py-3 font-semibold text-black">{{ user.nombre_completo }}</td>
+                <td class="px-4 py-3 font-medium text-black">{{ user.numero_accion }}</td>
                 <td class="px-4 py-3 text-center">
-                  <span class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-full text-[9px] uppercase tracking-wider">Inactivo</span>
+                  <span class="px-2 py-0.5 bg-orange-50 border border-orange-200 text-orange-700 font-bold rounded-full text-[9px] uppercase tracking-wider">Inactivo</span>
                 </td>
               </tr>
               <tr v-if="!stats.fantasmas.length">
@@ -341,13 +317,13 @@ const individualNoShowsAuditoria = computed(() => {
                 <th scope="col" class="px-6 py-3">Acción</th>
                 <th scope="col" class="px-6 py-3 text-center">No-Shows (Reservas)</th>
                 <th scope="col" class="px-6 py-3 text-center">Retrasos (Ludoteca)</th>
-                <th scope="col" class="px-6 py-3 text-center">Estatus Penalización</th>
+                <th scope="col" class="px-6 py-3 text-center">Estatus Actual</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-100">
               <tr v-for="user in stats.lista_negra" :key="user.id_socio" class="hover:bg-surface-50/50 transition-colors">
-                <td class="px-6 py-3 font-semibold text-surface-950">{{ user.nombre_completo }}</td>
-                <td class="px-6 py-3 font-mono text-surface-500">{{ user.numero_accion }}</td>
+                <td class="px-6 py-3 font-semibold text-black">{{ user.nombre_completo }}</td>
+                <td class="px-6 py-3 font-medium text-black">{{ user.numero_accion }}</td>
                 <td class="px-6 py-3 text-center font-bold" :class="user.contador_no_shows >= 3 ? 'text-red-600' : 'text-slate-600'">
                   {{ user.contador_no_shows }}
                 </td>

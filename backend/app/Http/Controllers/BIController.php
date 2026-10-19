@@ -127,6 +127,11 @@ class BIController extends Controller
     private function resolveDates(Request $request)
     {
         $timezone = 'America/Mexico_City';
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            return [$request->query('fecha_inicio'), $request->query('fecha_fin')];
+        }
+
         $rango = $request->query('rango');
 
         if ($rango) {
@@ -226,10 +231,18 @@ class BIController extends Controller
             'success' => true,
             'data' => [
                 'matriz_demanda' => $demanda->map(function ($row) {
+                    $diasMap = [
+                        'LUNES' => 1, 'MARTES' => 2, 'MIERCOLES' => 3, 'MIÉRCOLES' => 3,
+                        'JUEVES' => 4, 'VIERNES' => 5, 'SABADO' => 6, 'SÁBADO' => 6, 'DOMINGO' => 7
+                    ];
+                    $diaUpper = strtoupper(trim($row->dia_semana ?? ''));
+                    $diaNum = $diasMap[$diaUpper] ?? (is_numeric($row->dia_semana) ? intval($row->dia_semana) : 1);
                     $ratio = $row->avg_cupo > 0 ? round(($row->avg_inscritos / $row->avg_cupo) * 100, 1) : 0;
                     return [
-                        'dia' => $row->dia_semana,
+                        'dia' => $diaNum,
+                        'dia_nombre' => ucfirst(strtolower($row->dia_semana ?? '')),
                         'hora' => sprintf('%02d:00', $row->hora),
+                        'hora_num' => intval($row->hora),
                         'disciplina' => $row->disciplina,
                         'ocupacion_porcentaje' => $ratio,
                         'avg_inscritos' => round($row->avg_inscritos, 1)

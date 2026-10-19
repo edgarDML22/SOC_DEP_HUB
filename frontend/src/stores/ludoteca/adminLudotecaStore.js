@@ -22,10 +22,21 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
         sociosConMenores: false
     });
 
+    const STORAGE_KEY = 'ludoteca_admin_record';
+
+    const loadFromStorage = () => {
+        try {
+            const cached = localStorage.getItem(STORAGE_KEY);
+            return cached ? JSON.parse(cached) : [];
+        } catch {
+            return [];
+        }
+    };
+
     const instructoresHabilitados = ref([]);
 
     const turnosAsignados = ref([]);
-    const record = ref([]);
+    const record = ref(loadFromStorage());
     const sociosConMenores = ref([]);
 
     const loading = ref({
@@ -191,6 +202,13 @@ export const useAdminLudotecaStore = defineStore("adminLudoteca", () => {
             if (res.data.success) {
                 record.value = res.data.data;
                 isLoaded.value.record = true;
+                if (Object.keys(params).length === 0) {
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(record.value));
+                    } catch (e) {
+                        console.warn('Error saving ludoteca record to localStorage:', e);
+                    }
+                }
             }
         } catch (err) {
             console.error("[adminLudotecaStore] Error al cargar record:", err);

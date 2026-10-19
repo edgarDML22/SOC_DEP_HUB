@@ -1,14 +1,16 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useReservacionAdminStore } from '@/stores/admin/reservationAdminStore'
+import AdminPageHeader from '@/components/gerente/ui/AdminPageHeader.vue'
 import ExportCsvButton from '@/components/gerente/ui/ExportCsvButton.vue'
 import SearchInput from '@/components/gerente/ui/SearchInput.vue'
 import FilterContainer from '@/components/gerente/ui/FilterContainer.vue'
 import FilterSelect from '@/components/gerente/ui/FilterSelect.vue'
 import AppDatePicker from '@/components/ui/form/AppDatePicker.vue'
 import TableSkeleton from '@/components/gerente/ui/TableSkeleton.vue'
-import { IconFilter, IconChevronDown, IconCalendar } from '@/components/icons'
 import ActionMenu from '@/components/gerente/ui/ActionMenu.vue'
+import DisciplineIcon from '@/components/icons/disciplines/DisciplineIcon.vue'
+import { IconFilter, IconChevronDown, IconCalendar } from '@/components/icons'
 
 const store = useReservacionAdminStore()
 
@@ -106,6 +108,21 @@ const sortedReservaciones = computed(() => {
     }
 
     return result.sort((a, b) => {
+        // 1. Mayor prioridad: fecha más reciente primero (descendente)
+        const dateA = a.fecha_reserva || ''
+        const dateB = b.fecha_reserva || ''
+        if (dateA !== dateB) {
+            return dateB.localeCompare(dateA)
+        }
+
+        // 2. Misma fecha: hora de inicio más reciente primero (descendente)
+        const timeA = a.hora_inicio || ''
+        const timeB = b.hora_inicio || ''
+        if (timeA !== timeB) {
+            return timeB.localeCompare(timeA)
+        }
+
+        // 3. Menor prioridad: por orden de estatus
         const orderA = statusOrder[a.estatus_operativo] || 99
         const orderB = statusOrder[b.estatus_operativo] || 99
         return orderA - orderB
@@ -179,7 +196,7 @@ const getStatusColor = (status) => {
         case 'PENDIENTE': return 'bg-amber-50 text-amber-700 border-amber-200'
         case 'COMPLETADA': return 'bg-primary-50 text-primary-700 border-primary-200'
         case 'CANCELADA': return 'bg-red-50 text-red-700 border-red-200'
-        case 'NO_SHOW': return 'bg-slate-100 text-slate-500 border-slate-200'
+        case 'NO_SHOW': return 'bg-purple-50 text-purple-700 border-purple-200'
         default: return 'bg-slate-100 text-slate-500 border-slate-200'
     }
 }
@@ -192,18 +209,18 @@ const formatDate = (dateString) => {
 }
 
 const formatNiceDate = (dateString) => {
-    if (!dateString) return ''
+    if (!dateString) return '—'
     const parts = dateString.split('-')
     if (parts.length !== 3) return dateString
     const year = parts[0]
     const monthIndex = parseInt(parts[1], 10) - 1
     const day = parseInt(parts[2], 10)
     const months = [
-        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
     ]
     const monthName = months[monthIndex] || parts[1]
-    return `${day} ${monthName} ${year}`
+    return `${day} ${monthName}, ${year}`
 }
 
 const formatTimeHM = (timeString) => {
@@ -216,21 +233,21 @@ const formatTimeHM = (timeString) => {
 
 const getModalidadLabel = (modalidad) => {
     const labels = {
-        'ACOMPANANTES': 'Acompañantes',
-        'INDIVIDUAL': 'Individual'
+        'ACOMPANANTES': 'ACOMPAÑANTES',
+        'INDIVIDUAL': 'INDIVIDUAL'
     }
-    return labels[modalidad?.toUpperCase()] || modalidad
+    return labels[modalidad?.toUpperCase()] || String(modalidad || '').toUpperCase()
 }
 
 const getStatusLabel = (status) => {
     const labels = {
-        'ACTIVA': 'Activa',
-        'PENDIENTE': 'Pendiente',
-        'COMPLETADA': 'Completada',
-        'CANCELADA': 'Cancelada',
-        'NO_SHOW': 'No Show',
+        'ACTIVA': 'ACTIVA',
+        'PENDIENTE': 'PENDIENTE',
+        'COMPLETADA': 'COMPLETADA',
+        'CANCELADA': 'CANCELADA',
+        'NO_SHOW': 'NO SHOW',
     }
-    return labels[status?.toUpperCase()] || status
+    return labels[status?.toUpperCase()] || (status ? String(status).replace('_', ' ').toUpperCase() : '')
 }
 
 const dataToExport = computed(() => {
@@ -253,57 +270,16 @@ const exportColumns = [
     { label: 'Horario', field: 'horario' },
     { label: 'Estatus', field: 'estatus_format' },
 ]
-
-const getDisciplineColorClasses = (name) => {
-  const cleanName = String(name || '').toUpperCase().trim();
-  
-  if (cleanName.includes('TENIS')) {
-    return { bg: 'bg-emerald-50 border-emerald-200/60', icon: 'text-emerald-600' };
-  }
-  if (cleanName.includes('MEDITAC') || cleanName.includes('YOGA') || cleanName.includes('PILATES')) {
-    return { bg: 'bg-purple-50 border-purple-200/60', icon: 'text-purple-600' };
-  }
-  if (cleanName.includes('SPINNING') || cleanName.includes('CYCLE') || cleanName.includes('BICI')) {
-    return { bg: 'bg-blue-50 border-blue-200/60', icon: 'text-blue-600' };
-  }
-  if (cleanName.includes('ZUMBA') || cleanName.includes('BAILE') || cleanName.includes('DANCE')) {
-    return { bg: 'bg-rose-50 border-rose-200/60', icon: 'text-rose-600' };
-  }
-  if (cleanName.includes('GYM') || cleanName.includes('FITNESS') || cleanName.includes('INSTRUCTOR') || cleanName.includes('FUNCIONAL') || cleanName.includes('CROSSFIT')) {
-    return { bg: 'bg-amber-50 border-amber-200/60', icon: 'text-amber-600' };
-  }
-  if (cleanName.includes('NATAC') || cleanName.includes('ALBERCA') || cleanName.includes('SWIM')) {
-    return { bg: 'bg-sky-50 border-sky-200/60', icon: 'text-sky-600' };
-  }
-  if (cleanName.includes('PADEL') || cleanName.includes('PÁDEL') || cleanName.includes('SQUASH')) {
-    return { bg: 'bg-teal-50 border-teal-200/60', icon: 'text-teal-600' };
-  }
-  if (cleanName.includes('FUTBOL') || cleanName.includes('FÚTBOL') || cleanName.includes('SOCCER')) {
-    return { bg: 'bg-green-50 border-green-200/60', icon: 'text-green-600' };
-  }
-  if (cleanName.includes('BASKET') || cleanName.includes('BÁSQUET') || cleanName.includes('BALONCESTO')) {
-    return { bg: 'bg-orange-50 border-orange-200/60', icon: 'text-orange-600' };
-  }
-  if (cleanName.includes('BOX') || cleanName.includes('KICKBOX') || cleanName.includes('KARATE') || cleanName.includes('COMBATE')) {
-    return { bg: 'bg-red-50 border-red-200/60', icon: 'text-red-600' };
-  }
-
-  const hashes = [
-    { bg: 'bg-blue-50 border-blue-200/60', icon: 'text-blue-600' },
-    { bg: 'bg-emerald-50 border-emerald-200/60', icon: 'text-emerald-600' },
-    { bg: 'bg-purple-50 border-purple-200/60', icon: 'text-purple-600' },
-    { bg: 'bg-rose-50 border-rose-200/60', icon: 'text-rose-600' },
-    { bg: 'bg-amber-50 border-amber-200/60', icon: 'text-amber-600' },
-    { bg: 'bg-sky-50 border-sky-200/60', icon: 'text-sky-600' },
-    { bg: 'bg-teal-50 border-teal-200/60', icon: 'text-teal-600' }
-  ];
-  const charCodeSum = cleanName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return hashes[charCodeSum % hashes.length];
-};
 </script>
 
 <template>
     <div class="flex flex-col gap-6">
+        <!-- CABECERA -->
+        <AdminPageHeader 
+            title="Historial de Registros"
+            subtitle="Consulta el registro histórico de reservaciones de espacios, horarios y asistencias."
+        />
+
         <!-- Top Bar: Filters & Actions -->
         <FilterContainer :has-active-filters="!!hasActiveFilters" :active-count="activeFiltersCount" @clear="clearFilters">
             <template #search>
@@ -360,30 +336,46 @@ const getDisciplineColorClasses = (name) => {
                     </tr>
                     <tr v-else v-for="reserva in paginatedReservaciones" :key="reserva.id_reserva" class="bg-white border-b border-surface-100 hover:bg-surface-50/50 transition-colors">
                         <td class="px-6 py-4">
-                            <div class="font-bold text-slate-800">{{ reserva.nombre_titular }}</div>
-                            <div class="text-slate-500 text-xs mt-0.5">{{ reserva.numero_accion }}</div>
+                            <div class="font-bold text-slate-800 text-sm leading-snug">{{ reserva.nombre_titular }}</div>
+                            <div class="mt-1 flex items-center">
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold tracking-tight">
+                                    Acción #{{ reserva.numero_accion ?? '—' }}
+                                </span>
+                            </div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-800">{{ reserva.nombre_espacio }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border"
-                                  :class="[getDisciplineColorClasses(reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina).bg, getDisciplineColorClasses(reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina).icon]">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 text-[10px] font-bold">
+                                <DisciplineIcon :name="reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina" class="w-3.5 h-3.5 shrink-0" />
                                 {{ reserva.disciplina?.nombre_disciplina || reserva.nombre_disciplina }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="font-bold text-slate-800">{{ formatNiceDate(reserva.fecha_reserva) }}</div>
-                            <div class="text-slate-500 text-xs mt-0.5">{{ formatTimeHM(reserva.hora_inicio) }} - {{ formatTimeHM(reserva.hora_fin) }}</div>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <svg class="w-3.5 h-3.5 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>{{ formatNiceDate(reserva.fecha_reserva) }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-100 text-[11px] font-semibold tabular-nums tracking-tight">
+                                    <svg class="w-3 h-3 text-primary-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ formatTimeHM(reserva.hora_inicio) }} - {{ formatTimeHM(reserva.hora_fin) }} hrs
+                                </span>
+                            </div>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="px-2.5 py-1 text-[11px] font-bold tracking-wide rounded-md border" 
-                                  :class="reserva.modalidad === 'ACOMPANANTES' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-700 border-slate-200'">
+                            <span class="px-2.5 py-1 text-[11px] font-bold tracking-wide rounded-md border uppercase" 
+                                  :class="reserva.modalidad?.toUpperCase() === 'ACOMPANANTES' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-orange-50 text-orange-700 border-orange-200'">
                                 {{ getModalidadLabel(reserva.modalidad) }}
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="px-2.5 py-1 text-[11px] font-bold tracking-wide rounded-md border" :class="getStatusColor(reserva.estatus_operativo)">
+                            <span class="px-2.5 py-1 text-[11px] font-bold tracking-wide rounded-md border uppercase" :class="getStatusColor(reserva.estatus_operativo)">
                                 {{ getStatusLabel(reserva.estatus_operativo) }}
                             </span>
                         </td>
