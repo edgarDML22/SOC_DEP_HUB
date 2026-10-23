@@ -1,5 +1,5 @@
-# Usamos una versión estable de Node
-FROM node:20-alpine
+# Usamos una versión estable de Node (LTS activo)
+FROM node:22.14.0-alpine3.21
 
 # Directorio de trabajo
 WORKDIR /app

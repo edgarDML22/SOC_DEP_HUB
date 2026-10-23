@@ -100,7 +100,7 @@ services:
 
   # REDIS: Caché y sesiones compartidas entre workers de Octane
   redis:
-    image: redis:alpine
+    image: redis:7.4-alpine
     container_name: socdep-redis
     restart: unless-stopped
     ports:

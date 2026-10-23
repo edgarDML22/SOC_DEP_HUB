@@ -1,5 +1,5 @@
 # PHP 8.4 CLI — base para Laravel Octane con RoadRunner (Fase 2 de rendimiento)
-FROM php:8.4-cli
+FROM php:8.4.4-cli-bookworm
 
 # Definimos el directorio de trabajo dentro del contenedor
 WORKDIR /var/www
@@ -46,10 +46,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install -j$(nproc) gd bcmath
 
 # Instalamos y habilitamos el controlador de MongoDB (Para el RF-12 de Telemetría)
-RUN pecl install mongodb && docker-php-ext-enable mongodb
+RUN pecl install mongodb-1.20.1 && docker-php-ext-enable mongodb
 
 # Traemos Composer desde su imagen oficial
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.8.5 /usr/bin/composer /usr/bin/composer
 
 # Instalamos dependencias de PHP en tiempo de build para no depender del host
 COPY composer.json composer.lock ./
@@ -86,8 +86,8 @@ RUN php /var/www/scripts/cache_dompdf_fonts.php || true
 RUN composer run-script post-autoload-dump --no-interaction 2>/dev/null || true
 
 # Descargamos el binario RoadRunner (rr) directamente en el PATH del contenedor.
-RUN curl -sSL https://github.com/roadrunner-server/roadrunner/releases/download/v2024.3.5/roadrunner-2024.3.5-linux-amd64.tar.gz \
-    | tar -xz --strip-components=1 -C /usr/local/bin roadrunner-2024.3.5-linux-amd64/rr \
+RUN curl -sSL https://github.com/roadrunner-server/roadrunner/releases/download/v2024.3.12/roadrunner-2024.3.12-linux-amd64.tar.gz \
+    | tar -xz --strip-components=1 -C /usr/local/bin roadrunner-2024.3.12-linux-amd64/rr \
     && chmod +x /usr/local/bin/rr
 
 # Exponemos el puerto 8000 para que tu compu pueda ver el proyecto
