@@ -57,7 +57,7 @@ RUN composer install --optimize-autoloader --no-scripts --no-interaction
 COPY . .
 
 # ── Descargamos la fuente FontAwesome 6 Free Solid para los PDFs ────────────
-RUN curl -sSL \
+RUN curl -fsSL \
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.ttf" \
     -o /var/www/resources/fonts/fa-solid-900.ttf
 
@@ -86,8 +86,8 @@ RUN php /var/www/scripts/cache_dompdf_fonts.php || true
 RUN composer run-script post-autoload-dump --no-interaction 2>/dev/null || true
 
 # Descargamos el binario RoadRunner (rr) directamente en el PATH del contenedor.
-RUN curl -sSL https://github.com/roadrunner-server/roadrunner/releases/download/v2024.3.12/roadrunner-2024.3.12-linux-amd64.tar.gz \
-    | tar -xz --strip-components=1 -C /usr/local/bin roadrunner-2024.3.12-linux-amd64/rr \
+RUN curl -fsSL https://github.com/roadrunner-server/roadrunner/releases/download/v2025.1.15/roadrunner-2025.1.15-linux-amd64.tar.gz \
+    | tar -xz --strip-components=1 -C /usr/local/bin roadrunner-2025.1.15-linux-amd64/rr \
     && chmod +x /usr/local/bin/rr
 
 # Exponemos el puerto 8000 para que tu compu pueda ver el proyecto
